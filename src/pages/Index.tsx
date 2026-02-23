@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,10 @@ import heroImage from "@/assets/hero-food.jpg";
 
 export default function Index() {
   const published = getPublishedRecipes();
-  const recent = [...published].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 6);
+  const recent = useMemo(
+    () => [...published].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 6),
+    [published]
+  );
 
   return (
     <>
