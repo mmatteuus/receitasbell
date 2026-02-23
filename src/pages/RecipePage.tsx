@@ -14,6 +14,7 @@ import { PriceBadge } from "@/components/price-badge";
 import { PaywallBox } from "@/hooks/paywall-box";
 import { useDemoPurchase } from "@/hooks/use-demo-purchase";
 import { ShareButtons } from "@/components/ShareButtons";
+import { BackToTop } from "@/components/BackToTop";
 
 export default function RecipePage() {
   const { slug } = useParams<{ slug: string }>();
@@ -266,6 +267,8 @@ export default function RecipePage() {
           </div>
         </>
       )}
+
+      <BackToTop />
     </div>
   );
 }
