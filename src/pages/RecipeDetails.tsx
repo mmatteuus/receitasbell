@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { RelatedRecipes } from "@/components/RelatedRecipes";
 import { RecipeRating } from "@/components/RecipeRating";
+import { ShareButtons } from "@/components/ShareButtons";
 
 export default function RecipeDetails() {
   const { slug } = useParams<{ slug: string }>();
@@ -143,10 +144,13 @@ export default function RecipeDetails() {
                   </Badge>
                 ))}
               </div>
-              <Button variant="outline" size="sm" onClick={() => window.print()} className="gap-2 print:hidden">
-                <Printer className="h-4 w-4" />
-                Imprimir
-              </Button>
+              <div className="flex items-center gap-2">
+                <ShareButtons title={recipe.title} slug={recipe.slug} />
+                <Button variant="outline" size="sm" onClick={() => window.print()} className="gap-2 print:hidden">
+                  <Printer className="h-4 w-4" />
+                  Imprimir
+                </Button>
+              </div>
             </div>
             <h1 className="font-heading text-4xl font-bold leading-tight text-foreground sm:text-5xl">
               {recipe.title}
