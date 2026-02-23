@@ -2,7 +2,7 @@
 
 import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import Link from "next/next/link";
+import { Link } from "react-router-dom";
 
 interface PaywallBoxProps {
   price: number;
@@ -26,7 +26,7 @@ export function PaywallBox({ price, recipeSlug }: PaywallBoxProps) {
           Esta receita completa está disponível por apenas <span className="font-bold text-orange-600">{formattedPrice}</span>.
         </p>
         <Button asChild size="lg" className="bg-orange-600 hover:bg-orange-700">
-          <Link href={`/checkout?slug=${recipeSlug}`}>Desbloquear Agora</Link>
+          <Link to={`/checkout?slug=${recipeSlug}`}>Desbloquear Agora</Link>
         </Button>
       </div>
     </div>

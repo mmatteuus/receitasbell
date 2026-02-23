@@ -9,6 +9,7 @@ import RecipeCard from "@/components/RecipeCard";
 export default function SearchPage() {
   const [query, setQuery] = useState("");
   const [catFilter, setCatFilter] = useState("all");
+  const [tierFilter, setTierFilter] = useState("all");
   const published = getPublishedRecipes();
 
   const results = useMemo(() => {
@@ -16,9 +17,10 @@ export default function SearchPage() {
     return published.filter((r) => {
       const matchText = !q || r.title.toLowerCase().includes(q) || r.description.toLowerCase().includes(q) || r.tags.some((t) => t.toLowerCase().includes(q));
       const matchCat = catFilter === "all" || r.categorySlug === catFilter;
-      return matchText && matchCat;
+      const matchTier = tierFilter === "all" || r.accessTier === tierFilter;
+      return matchText && matchCat && matchTier;
     });
-  }, [query, catFilter, published]);
+  }, [query, catFilter, tierFilter, published]);
 
   return (
     <div className="container py-10">
@@ -37,6 +39,16 @@ export default function SearchPage() {
             {categories.map((c) => (
               <SelectItem key={c.slug} value={c.slug}>{c.emoji} {c.name}</SelectItem>
             ))}
+          </SelectContent>
+        </Select>
+        <Select value={tierFilter} onValueChange={setTierFilter}>
+          <SelectTrigger className="w-full sm:w-32">
+            <SelectValue placeholder="Preço" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos</SelectItem>
+            <SelectItem value="free">Grátis</SelectItem>
+            <SelectItem value="paid">Pago</SelectItem>
           </SelectContent>
         </Select>
       </div>
