@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams, Link } from "react-router-dom";
-import { Heart, Clock, Users, ChevronRight, Printer, Minus, Plus, ChefHat } from "lucide-react";
+import { Heart, Clock, Users, ChevronRight, Printer, Minus, Plus, ChefHat, Image as ImageIcon, ImageOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,6 +15,7 @@ import { PaywallBox } from "@/hooks/paywall-box";
 import { useDemoPurchase } from "@/hooks/use-demo-purchase";
 import { ShareButtons } from "@/components/ShareButtons";
 import { BackToTop } from "@/components/BackToTop";
+import { ReadingProgress } from "@/components/ReadingProgress";
 
 export default function RecipePage() {
   const { slug } = useParams<{ slug: string }>();
@@ -30,10 +31,15 @@ export default function RecipePage() {
   // Novos estados para monetização e porções
   const { isUnlocked } = useDemoPurchase();
   const [customServings, setCustomServings] = useState(1);
+  const [printImages, setPrintImages] = useState(true);
 
   useEffect(() => {
     if (recipe) {
       setCustomServings(recipe.servings);
+    }
+    const storedPrintPref = localStorage.getItem("receitas_bell_print_images");
+    if (storedPrintPref !== null) {
+      setPrintImages(JSON.parse(storedPrintPref));
     }
   }, [recipe]);
 
@@ -59,6 +65,12 @@ export default function RecipePage() {
     const newValue = value * factor;
     const formattedValue = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 }).format(newValue);
     return `${formattedValue}${rest}`;
+  };
+
+  const togglePrintImages = () => {
+    const newValue = !printImages;
+    setPrintImages(newValue);
+    localStorage.setItem("receitas_bell_print_images", JSON.stringify(newValue));
   };
 
   if (!recipe || (recipe.status === "draft" && !isPreview)) {
@@ -100,7 +112,8 @@ export default function RecipePage() {
   };
 
   return (
-    <div className="container max-w-3xl py-10 animate-in fade-in duration-500">
+    <div className="container max-w-3xl py-10 animate-in fade-in duration-500 print:py-0 print:max-w-none">
+      <ReadingProgress />
       {isPreview && (
         <div className="mb-4 rounded-lg bg-warning/20 px-4 py-2 text-sm font-medium text-warning">
           ⚠️ Pré-visualização — esta receita é um rascunho.
@@ -118,11 +131,19 @@ export default function RecipePage() {
 
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
-          <h1 className="font-heading text-3xl font-bold md:text-4xl">{recipe.title}</h1>
-          {recipe.description && <p className="mt-3 text-lg text-muted-foreground">{recipe.description}</p>}
+          <h1 className="font-heading text-3xl font-bold md:text-4xl print:text-2xl">{recipe.title}</h1>
+          {recipe.description && <p className="mt-3 text-lg text-muted-foreground print:text-base">{recipe.description}</p>}
         </div>
         <div className="flex gap-2 print:hidden">
            <ShareButtons title={recipe.title} slug={recipe.slug} />
+           <Button 
+             variant="outline" 
+             size="icon" 
+             onClick={togglePrintImages} 
+             title={printImages ? "Imprimir com imagens" : "Modo economia de tinta (sem imagens)"}
+           >
+             {printImages ? <ImageIcon className="h-4 w-4" /> : <ImageOff className="h-4 w-4" />}
+           </Button>
            <Button variant="outline" size="icon" onClick={() => window.print()} title="Imprimir">
              <Printer className="h-4 w-4" />
            </Button>
@@ -130,28 +151,28 @@ export default function RecipePage() {
       </div>
 
       {recipe.image ? (
-        <div className="relative mt-6 overflow-hidden rounded-xl">
-          <img src={recipe.image} alt={recipe.title} className="w-full object-cover transition-transform hover:scale-105" style={{ maxHeight: 420 }} />
-          <div className="absolute right-4 top-4">
+        <div className={`relative mt-6 overflow-hidden rounded-xl print:mt-4 print:rounded-none print:h-64 ${!printImages ? "print:hidden" : ""}`}>
+          <img src={recipe.image} alt={recipe.title} className="w-full object-cover transition-transform hover:scale-105 print:object-contain print:h-full" style={{ maxHeight: 420 }} />
+          <div className="absolute right-4 top-4 print:hidden">
              <PriceBadge accessTier={recipe.accessTier} priceCents={recipe.priceCents} className="shadow-lg scale-110" />
           </div>
         </div>
       ) : (
-        <div className="mt-6 flex h-64 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+        <div className="mt-6 flex h-64 items-center justify-center rounded-xl bg-muted text-muted-foreground print:hidden">
           <ChefHat className="h-16 w-16 opacity-20" />
         </div>
       )}
 
       {/* Meta cards */}
-      <div className="mt-6 flex flex-wrap gap-4">
+      <div className="mt-6 flex flex-wrap gap-4 print:mt-4 print:gap-8">
         {recipe.totalTime > 0 && (
-          <div className="flex items-center gap-2 rounded-lg border bg-card px-4 py-2">
+          <div className="flex items-center gap-2 rounded-lg border bg-card px-4 py-2 print:border-0 print:bg-transparent print:p-0">
             <Clock className="h-4 w-4 text-primary" />
             <span className="text-sm font-medium">{recipe.totalTime} min</span>
           </div>
         )}
         {recipe.servings > 0 && (
-          <div className="flex items-center gap-2 rounded-lg border bg-card px-4 py-2">
+          <div className="flex items-center gap-2 rounded-lg border bg-card px-4 py-2 print:border-0 print:bg-transparent print:p-0">
             <Users className="h-4 w-4 text-primary" />
             <div className="flex items-center gap-2">
                <Button variant="ghost" size="icon" className="h-5 w-5 print:hidden" onClick={() => setCustomServings(s => Math.max(1, s - 1))}>
@@ -165,7 +186,7 @@ export default function RecipePage() {
           </div>
         )}
         {rating.count > 0 && (
-          <div className="flex items-center gap-2 rounded-lg border bg-card px-4 py-2">
+          <div className="flex items-center gap-2 rounded-lg border bg-card px-4 py-2 print:hidden">
             <span className="text-sm font-medium">⭐ {rating.avg.toFixed(1)} ({rating.count})</span>
           </div>
         )}
@@ -185,19 +206,24 @@ export default function RecipePage() {
 
       {/* Tags */}
       {recipe.tags.length > 0 && (
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-4 flex flex-wrap gap-2 print:hidden">
           {recipe.tags.map((t) => <Badge key={t} variant="secondary">{t}</Badge>)}
         </div>
       )}
 
-      <Separator className="my-8" />
+      <Separator className="my-8 print:my-4" />
 
       {/* Ingredients */}
-      <h2 className="font-heading text-2xl font-bold">Ingredientes</h2>
-      <ul className="mt-4 space-y-2">
+      <h2 className="font-heading text-2xl font-bold print:text-xl">
+        Ingredientes
+        <span className="ml-2 text-base font-normal text-muted-foreground print:text-sm">
+          (para {customServings} {customServings === 1 ? 'pessoa' : 'pessoas'})
+        </span>
+      </h2>
+      <ul className="mt-4 space-y-2 print:space-y-1">
         {ingredients.map((ing, i) => (
-          <li key={i} className="flex items-start gap-2 text-sm">
-            <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-primary" />
+          <li key={i} className="flex items-start gap-2 text-sm print:text-base">
+            <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-primary print:bg-black print:mt-2" />
             {scaleIngredient(ing)}
           </li>
         ))}
@@ -208,17 +234,17 @@ export default function RecipePage() {
         )}
       </ul>
 
-      <Separator className="my-8" />
+      <Separator className="my-8 print:my-4" />
 
       {/* Steps */}
-      <h2 className="font-heading text-2xl font-bold">Modo de Preparo</h2>
-      <ol className="mt-4 space-y-4">
+      <h2 className="font-heading text-2xl font-bold print:text-xl">Modo de Preparo</h2>
+      <ol className="mt-4 space-y-4 print:space-y-2">
         {instructions.map((step, i) => (
-          <li key={i} className="flex gap-4 rounded-lg border bg-card p-4">
-            <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground">
+          <li key={i} className="flex gap-4 rounded-lg border bg-card p-4 print:border-0 print:bg-transparent print:p-0 print:gap-2">
+            <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-primary-foreground print:bg-transparent print:text-black print:border print:border-black print:h-6 print:w-6">
               {i + 1}
             </span>
-            <p className="text-sm leading-relaxed">{step}</p>
+            <p className="text-sm leading-relaxed print:text-base">{step}</p>
           </li>
         ))}
         {showPaywall && (
@@ -234,7 +260,7 @@ export default function RecipePage() {
         </div>
       )}
 
-      <Separator className="my-8" />
+      <Separator className="my-8 print:hidden" />
 
       {/* Comments */}
       <h2 className="font-heading text-2xl font-bold print:hidden">Comentários ({comments.length})</h2>
@@ -258,15 +284,17 @@ export default function RecipePage() {
       )}
 
       {/* Related */}
-      {related.length > 0 && !showPaywall && (
-        <>
-          <Separator className="my-8" />
-          <h2 className="font-heading text-2xl font-bold">Quem gostou também viu</h2>
-          <div className="mt-4 grid gap-4 sm:grid-cols-3">
-            {related.map((r) => <RecipeCard key={r.id} recipe={r} />)}
-          </div>
-        </>
-      )}
+      <div className="print:hidden">
+        {related.length > 0 && !showPaywall && (
+          <>
+            <Separator className="my-8" />
+            <h2 className="font-heading text-2xl font-bold">Quem gostou também viu</h2>
+            <div className="mt-4 grid gap-4 sm:grid-cols-3">
+              {related.map((r) => <RecipeCard key={r.id} recipe={r} />)}
+            </div>
+          </>
+        )}
+      </div>
 
       <BackToTop />
     </div>
