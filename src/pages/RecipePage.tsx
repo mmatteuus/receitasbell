@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useSearchParams, Link } from "react-router-dom";
-import { Heart, Clock, Users, ChevronRight, Printer, Minus, Plus, ChefHat, Image as ImageIcon, ImageOff } from "lucide-react";
+import { Heart, Clock, Users, ChevronRight, Printer, Minus, Plus, ChefHat, Image as ImageIcon, ImageOff, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,6 +16,7 @@ import { useDemoPurchase } from "@/hooks/use-demo-purchase";
 import { ShareButtons } from "@/components/ShareButtons";
 import { BackToTop } from "@/components/BackToTop";
 import { ReadingProgress } from "@/components/ReadingProgress";
+import { FocusContainer } from "@/components/FocusContainer";
 
 export default function RecipePage() {
   const { slug } = useParams<{ slug: string }>();
@@ -32,6 +33,7 @@ export default function RecipePage() {
   const { isUnlocked } = useDemoPurchase();
   const [customServings, setCustomServings] = useState(1);
   const [printImages, setPrintImages] = useState(true);
+  const [isFocused, setIsFocused] = useState(false);
 
   useEffect(() => {
     if (recipe) {
@@ -112,8 +114,13 @@ export default function RecipePage() {
   };
 
   return (
-    <div className="container max-w-3xl py-10 animate-in fade-in duration-500 print:py-0 print:max-w-none">
-      <ReadingProgress />
+    <FocusContainer 
+      isFocused={isFocused} 
+      onClose={() => setIsFocused(false)}
+      className="container max-w-3xl py-10 animate-in fade-in duration-500 print:py-0 print:max-w-none"
+    >
+      {!isFocused && <ReadingProgress />}
+      
       {isPreview && (
         <div className="mb-4 rounded-lg bg-warning/20 px-4 py-2 text-sm font-medium text-warning">
           ⚠️ Pré-visualização — esta receita é um rascunho.
@@ -143,6 +150,14 @@ export default function RecipePage() {
              title={printImages ? "Imprimir com imagens" : "Modo economia de tinta (sem imagens)"}
            >
              {printImages ? <ImageIcon className="h-4 w-4" /> : <ImageOff className="h-4 w-4" />}
+           </Button>
+           <Button 
+             variant="outline" 
+             size="icon" 
+             onClick={() => setIsFocused(true)} 
+             title="Modo de Leitura Focada"
+           >
+             <Maximize2 className="h-4 w-4" />
            </Button>
            <Button variant="outline" size="icon" onClick={() => window.print()} title="Imprimir">
              <Printer className="h-4 w-4" />
@@ -296,7 +311,7 @@ export default function RecipePage() {
         )}
       </div>
 
-      <BackToTop />
-    </div>
+      {!isFocused && <BackToTop />}
+    </FocusContainer>
   );
 }

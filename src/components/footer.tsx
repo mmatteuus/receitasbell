@@ -9,8 +9,8 @@ export function Footer() {
           <p className="text-sm text-muted-foreground">
             © {new Date().getFullYear()} Receitas do Bell. Todos os direitos reservados.
           </p>
-          <p className="text-xs text-muted-foreground mt-1">
-            Desenvolvido por <a href="https://mtsferreira.dev" target="_blank" rel="noopener noreferrer" className="hover:text-orange-600 transition-colors">MtsFerreira</a>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+            Desenvolvido por <a href="https://mtsferreira.dev" target="_blank" rel="noopener noreferrer" className="inline-block font-medium transition-all duration-300 hover:scale-110 hover:text-orange-600">MtsFerreira</a>
           </p>
         </div>
         
