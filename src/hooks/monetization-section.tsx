@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertCircle, Info, DollarSign, Lock } from "lucide-react";
-import { Recipe } from "@/src/types/recipe";
+import { Recipe } from "@/entities/recipe/model/types";
 
 export function MonetizationSection() {
   const { register, watch, setValue, formState: { errors } } = useFormContext<Recipe>();

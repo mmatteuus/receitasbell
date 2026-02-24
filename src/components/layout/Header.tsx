@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, Search, Heart, ChefHat, Settings } from "lucide-react";
+import { Menu, X, Search, Heart, ChefHat, Settings, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { categories } from "@/lib/categories";
 
@@ -12,6 +12,7 @@ export default function Header() {
     { to: "/", label: "Home" },
     { to: "/buscar", label: "Buscar", icon: Search },
     { to: "/minha-conta/favoritos", label: "Favoritos", icon: Heart },
+    { to: "/minha-conta/lista-de-compras", label: "Lista", icon: ShoppingCart },
   ];
 
   const isActive = (path: string) => pathname === path;
