@@ -90,7 +90,7 @@ export function CommentsSection({ recipeId }: CommentsSectionProps) {
 
       <div className="space-y-6">
         {comments.length === 0 ? (
-          <p className="text-muted-foreground text-center py-8 font-sans">Seja o primo a comentar!</p>
+          <p className="text-muted-foreground text-center py-8 font-sans">Seja o primeiro a comentar!</p>
         ) : (
           comments.map((comment) => (
             <div key={comment.id} className="flex gap-4 p-4 rounded-lg border bg-card">

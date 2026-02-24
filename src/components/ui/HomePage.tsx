@@ -28,7 +28,7 @@ export default function HomePage() {
         try {
           const historyIds = JSON.parse(localStorage.getItem("receitas_bell_recent_recipes") || "[]");
           if (Array.isArray(historyIds) && historyIds.length > 0) {
-            // Mapeia os IDs para objetos de receita, mantendo a ordem do histórico (mais recente primo)
+            // Mapeia os IDs para objetos de receita, mantendo a ordem do histórico (mais recente primeiro)
             const recent = historyIds
               .map((id: string) => published.find(r => r.id === id))
               .filter((r): r is Recipe => !!r);
