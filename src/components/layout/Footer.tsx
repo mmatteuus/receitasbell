@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { ChefHat } from "lucide-react";
-import { NewsletterForm } from "@/features/newsletter/ui/NewsletterForm";
+// import { NewsletterForm } from "@/features/newsletter/ui/NewsletterForm";
 
 export default function Footer() {
   return (
@@ -45,7 +45,7 @@ export default function Footer() {
             <p className="mb-4 text-sm text-muted-foreground">
               Receba as melhores receitas e dicas exclusivas diretamente no seu e-mail.
             </p>
-            <NewsletterForm />
+            {/* <NewsletterForm /> */}
           </div>
         </div>
         <div className="mt-12 border-t pt-8 text-center text-sm text-muted-foreground">

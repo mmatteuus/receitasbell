@@ -1,12 +1,12 @@
 import { createBrowserRouter } from "react-router-dom";
-import PublicLayout from "@/lib/PublicLayout";
-import ProfilePage from "@/pages/profile/ui/ProfilePage";
-import HomePage from "@/pages/home/ui/HomePage";
-import SearchPage from "@/pages/search/ui/SearchPage";
-import FavoritesPage from "@/pages/account/ui/FavoritesPage";
-import RecipePage from "@/pages/recipe/ui/RecipePage";
-import CategoryPage from "@/pages/category/ui/CategoryPage";
-import Institutional from "@/pages/Institutional";
+import PublicLayout from "@/components/layout/PublicLayout";
+// import ProfilePage from "@/pages/profile/ui/ProfilePage"; // This page does not exist
+import HomePage from "@/pages/Index";
+import SearchPage from "@/pages/Search";
+import FavoritesPage from "@/pages/Favorites";
+import RecipePage from "@/pages/RecipePage";
+import CategoryPage from "@/pages/Category";
+import InstitutionalPage from "@/pages/Institutional";
 
 // Placeholder components for routes that were mentioned but not fully provided in context
 // In a real scenario, these would be imported from their respective pages
@@ -34,17 +34,17 @@ export const router = createBrowserRouter([
         path: "receitas/:slug",
         element: <RecipePage />,
       },
-      {
-        path: "minha-conta/perfil",
-        element: <ProfilePage />,
-      },
+      // {
+      //   path: "minha-conta/perfil",
+      //   element: <ProfilePage />,
+      // },
       {
         path: "minha-conta/favoritos",
         element: <FavoritesPage />,
       },
       {
         path: "institucional/:page",
-        element: <Institutional />,
+        element: <InstitutionalPage />,
       },
       {
         path: "checkout",

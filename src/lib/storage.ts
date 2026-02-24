@@ -1,5 +1,4 @@
 import { Recipe, Comment } from "@/types/recipe";
-import { seedRecipes } from "./seed-data";
 
 const KEYS = {
   recipes: "rdb_recipes_v2",
@@ -8,15 +7,9 @@ const KEYS = {
   ratings: "rdb_ratings_v1",
 };
 
-function init() {
-  if (!localStorage.getItem(KEYS.recipes)) {
-    localStorage.setItem(KEYS.recipes, JSON.stringify(seedRecipes));
-  }
-}
-
 export function getRecipes(): Recipe[] {
-  init();
-  return JSON.parse(localStorage.getItem(KEYS.recipes) || "[]");
+  const data = localStorage.getItem(KEYS.recipes);
+  return data ? JSON.parse(data) : [];
 }
 
 export function getPublishedRecipes(): Recipe[] {
