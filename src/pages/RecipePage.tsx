@@ -37,7 +37,7 @@ export default function RecipePage() {
 
   useEffect(() => {
     if (recipe) {
-      setCustomServings(recipe.servings);
+      setCustomServings(recipe.servings || 1);
     }
     const storedPrintPref = localStorage.getItem("receitas_bell_print_images");
     if (storedPrintPref !== null) {
@@ -46,8 +46,10 @@ export default function RecipePage() {
   }, [recipe]);
 
   const scaleIngredient = (text: string) => {
-    if (!recipe?.servings) return text;
-    const factor = customServings / recipe.servings;
+    const baseServings = recipe?.servings || 1;
+    const factor = customServings / baseServings;
+    if (factor === 1) return text;
+    
     const regex = /^((?:\d+\s+e\s+)?\d+(?:[.,]\d+)?(?:\s*\/\s*\d+)?)/i;
     const match = text.match(regex);
     if (!match) return text;
@@ -186,21 +188,18 @@ export default function RecipePage() {
             <span className="text-sm font-medium">{recipe.totalTime} min</span>
           </div>
         )}
-        {recipe.servings > 0 && (
-          <div className="flex items-center gap-2 rounded-lg border bg-card px-4 py-2 print:border-0 print:bg-transparent print:p-0">
-            <Users className="h-4 w-4 text-primary" />
-            <div className="flex items-center gap-2">
-               <Button variant="ghost" size="icon" className="h-5 w-5 print:hidden" onClick={() => setCustomServings(s => Math.max(1, s - 1))}>
-                 <Minus className="h-3 w-3" />
-               </Button>
-               <span className="text-sm font-medium">{customServings} porções</span>
-               <Button variant="ghost" size="icon" className="h-5 w-5 print:hidden" onClick={() => setCustomServings(s => s + 1)}>
-                 <Plus className="h-3 w-3" />
-               </Button>
-            </div>
-          </div>
-        )}
-        {rating.count > 0 && (
+              <div className="flex items-center gap-2 rounded-lg border bg-card px-4 py-2 print:border-0 print:bg-transparent print:p-0">
+                <Users className="h-4 w-4 text-primary" />
+                <div className="flex items-center gap-2">
+                   <Button variant="ghost" size="icon" className="h-5 w-5 print:hidden" onClick={() => setCustomServings(s => Math.max(1, s - 1))}>
+                     <Minus className="h-3 w-3" />
+                   </Button>
+                   <span className="text-sm font-medium">{customServings} porções</span>
+                   <Button variant="ghost" size="icon" className="h-5 w-5 print:hidden" onClick={() => setCustomServings(s => s + 1)}>
+                     <Plus className="h-3 w-3" />
+                   </Button>
+                </div>
+              </div>        {rating.count > 0 && (
           <div className="flex items-center gap-2 rounded-lg border bg-card px-4 py-2 print:hidden">
             <span className="text-sm font-medium">⭐ {rating.avg.toFixed(1)} ({rating.count})</span>
           </div>
