@@ -12,11 +12,12 @@ import ShoppingListPage from "@/pages/ShoppingListPage";
 import Dashboard from "@/pages/admin/Dashboard";
 import RecipeListPage from "@/pages/admin/RecipeListPage";
 import RecipeEditor from "@/pages/admin/RecipeEditor";
+import CheckoutPage from "@/pages/CheckoutPage";
+import SuccessPage from "@/pages/SuccessPage";
+import { AdminPaymentsRoutes } from "./routes_admin_payments";
 
 // Placeholder components for routes that were mentioned but not fully provided in context
 // In a real scenario, these would be imported from their respective pages
-const CheckoutPage = () => <div className="container py-10">Checkout Page (Placeholder)</div>;
-const SuccessPage = () => <div className="container py-10">Success Page (Placeholder)</div>;
 const ProfilePage = () => <div className="container py-10">Profile Page (Placeholder)</div>;
 
 export const router = createBrowserRouter([
@@ -85,6 +86,10 @@ export const router = createBrowserRouter([
       {
         path: "receitas/:id/editar",
         element: <RecipeEditor />,
+      },
+      {
+        path: "pagamentos/*",
+        element: <AdminPaymentsRoutes />,
       },
     ],
   },
