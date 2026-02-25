@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Clock, Users, Lock, Unlock } from "lucide-react";
-import { Recipe } from "@/entities/recipe/model/types";
+import { Recipe } from "@/types/recipe";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Rating } from "@/components/ui/rating";

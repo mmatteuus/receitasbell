@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowUp, ArrowDown, X, Plus, ClipboardPaste, AlertCircle, AlertTriangle, CheckCircle2, Globe, Save } from "lucide-react";
+import { ArrowUp, ArrowDown, X, Plus, ClipboardPaste, AlertCircle, AlertTriangle, CheckCircle2, Globe, Save, DollarSign, Lock, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,6 +17,7 @@ const empty: Partial<Recipe> = {
   title: "", slug: "", description: "", categorySlug: "salgadas",
   image: "", prepTime: 0, cookTime: 0, totalTime: 0, servings: 0,
   ingredients: [], instructions: [], tags: [], status: "draft",
+  accessTier: "free",
 };
 
 export default function RecipeEditor() {
@@ -56,12 +57,15 @@ export default function RecipeEditor() {
     if (form.slug && isSlugTaken(form.slug, form.id)) e.push("Slug já existe");
     if (!form.ingredients?.length) e.push("Adicione pelo menos 1 ingrediente");
     if (!form.instructions?.length) e.push("Adicione pelo menos 1 passo");
+    if (form.accessTier === "paid" && (!form.priceCents || form.priceCents <= 0)) e.push("Receita paga precisa de preço");
     if (!form.description) w.push("Sem descrição (SEO fraco)");
     if (!form.image) w.push("Sem imagem");
     if ((form.ingredients?.length || 0) < 3) w.push("Poucos ingredientes");
     if ((form.instructions?.length || 0) < 2) w.push("Poucos passos");
     if (!form.prepTime && !form.cookTime) w.push("Sem tempo definido");
     if (!form.servings) w.push("Sem porções");
+    if (form.accessTier === "paid" && !(form.teaserIngredients || []).length) w.push("Receita paga sem teaser de ingredientes");
+    if (form.accessTier === "paid" && !(form.teaserInstructions || []).length) w.push("Receita paga sem teaser de instruções");
     return { errors: e, warnings: w };
   }, [form]);
 
@@ -106,6 +110,11 @@ export default function RecipeEditor() {
       instructions: form.instructions || [],
       tags,
       status: publish ? "published" : "draft",
+      accessTier: form.accessTier || "free",
+      priceCents: form.priceCents,
+      currency: form.currency || "BRL",
+      teaserIngredients: form.teaserIngredients,
+      teaserInstructions: form.teaserInstructions,
       createdAt: form.createdAt || now,
       updatedAt: now,
       publishedAt: publish ? (form.publishedAt || now) : form.publishedAt || null,
@@ -238,6 +247,77 @@ export default function RecipeEditor() {
           {renderList("ingredients", "Ingredientes", showBatchIng, setShowBatchIng, batchIng, setBatchIng)}
           <Separator />
           {renderList("instructions", "Modo de Preparo", showBatchStep, setShowBatchStep, batchStep, setBatchStep)}
+
+          <Separator />
+
+          {/* Monetização */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-primary" />
+              <Label className="text-base font-semibold">Monetização</Label>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Nível de Acesso</Label>
+                <Select value={form.accessTier || "free"} onValueChange={(v) => set("accessTier", v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="free">🔓 Grátis (Público)</SelectItem>
+                    <SelectItem value="paid">🔒 Pago (Premium)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {form.accessTier === "paid" && (
+                <div className="space-y-2">
+                  <Label>Preço (centavos)</Label>
+                  <Input
+                    type="number"
+                    value={form.priceCents || ""}
+                    onChange={(e) => set("priceCents", +e.target.value)}
+                    placeholder="990 = R$ 9,90"
+                    min="100"
+                  />
+                  {form.priceCents ? (
+                    <p className="text-xs text-muted-foreground">
+                      = {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format((form.priceCents || 0) / 100)}
+                    </p>
+                  ) : null}
+                </div>
+              )}
+            </div>
+
+            {form.accessTier === "paid" && (
+              <div className="space-y-4 rounded-lg border bg-muted/30 p-4">
+                <div className="flex items-center gap-2 text-orange-600">
+                  <Lock className="h-4 w-4" />
+                  <span className="text-sm font-semibold">Conteúdo de Teaser (preview público)</span>
+                </div>
+                <div className="space-y-2">
+                  <Label>Ingredientes do Teaser (1 por linha)</Label>
+                  <Textarea
+                    value={(form.teaserIngredients || []).join("\n")}
+                    onChange={(e) => set("teaserIngredients", e.target.value.split("\n").filter(Boolean))}
+                    placeholder="Ex: Farinha, ovos, açúcar..."
+                    rows={3}
+                  />
+                  {!(form.teaserIngredients || []).length && (
+                    <p className="text-xs text-amber-600 flex items-center gap-1">
+                      <Info className="h-3 w-3" /> Aviso: Sem teaser, o paywall só mostra o título.
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label>Instruções do Teaser (1 por linha)</Label>
+                  <Textarea
+                    value={(form.teaserInstructions || []).join("\n")}
+                    onChange={(e) => set("teaserInstructions", e.target.value.split("\n").filter(Boolean))}
+                    placeholder="Ex: Comece misturando os ingredientes secos..."
+                    rows={3}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
 
           <div className="flex justify-end gap-2 pt-4">
             <Button variant="outline" onClick={() => handleSave(false)}>

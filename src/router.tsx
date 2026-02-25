@@ -1,7 +1,6 @@
 import { createBrowserRouter } from "react-router-dom";
 import PublicLayout from "@/components/layout/PublicLayout";
 import AdminLayout from "@/components/layout/AdminLayout";
-// import ProfilePage from "@/pages/profile/ui/ProfilePage"; // This page does not exist
 import HomePage from "@/pages/Index";
 import SearchPage from "@/pages/Search";
 import FavoritesPage from "@/pages/Favorites";
@@ -14,10 +13,10 @@ import RecipeListPage from "@/pages/admin/RecipeListPage";
 import RecipeEditor from "@/pages/admin/RecipeEditor";
 import CheckoutPage from "@/pages/CheckoutPage";
 import SuccessPage from "@/pages/SuccessPage";
+import PendingPage from "@/pages/PendingPage";
+import FailurePage from "@/pages/FailurePage";
 import { AdminPaymentsRoutes } from "./routes_admin_payments";
 
-// Placeholder components for routes that were mentioned but not fully provided in context
-// In a real scenario, these would be imported from their respective pages
 const ProfilePage = () => <div className="container py-10">Profile Page (Placeholder)</div>;
 
 export const router = createBrowserRouter([
@@ -25,72 +24,29 @@ export const router = createBrowserRouter([
     path: "/",
     element: <PublicLayout />,
     children: [
-      {
-        index: true,
-        element: <HomePage />,
-      },
-      {
-        path: "buscar",
-        element: <SearchPage />,
-      },
-      {
-        path: "categorias/:slug",
-        element: <CategoryPage />,
-      },
-      {
-        path: "receitas/:slug",
-        element: <RecipePage />,
-      },
-      {
-        path: "minha-conta/perfil",
-        element: <ProfilePage />,
-      },
-      {
-        path: "minha-conta/favoritos",
-        element: <FavoritesPage />,
-      },
-      {
-        path: "minha-conta/lista-de-compras",
-        element: <ShoppingListPage />,
-      },
-      {
-        path: "institucional/:page",
-        element: <InstitutionalPage />,
-      },
-      {
-        path: "checkout",
-        element: <CheckoutPage />,
-      },
-      {
-        path: "compra/sucesso",
-        element: <SuccessPage />,
-      },
+      { index: true, element: <HomePage /> },
+      { path: "buscar", element: <SearchPage /> },
+      { path: "categorias/:slug", element: <CategoryPage /> },
+      { path: "receitas/:slug", element: <RecipePage /> },
+      { path: "minha-conta/perfil", element: <ProfilePage /> },
+      { path: "minha-conta/favoritos", element: <FavoritesPage /> },
+      { path: "minha-conta/lista-de-compras", element: <ShoppingListPage /> },
+      { path: "institucional/:page", element: <InstitutionalPage /> },
+      { path: "checkout", element: <CheckoutPage /> },
+      { path: "compra/sucesso", element: <SuccessPage /> },
+      { path: "compra/pendente", element: <PendingPage /> },
+      { path: "compra/falha", element: <FailurePage /> },
     ],
   },
   {
     path: "/admin",
     element: <AdminLayout />,
     children: [
-      {
-        index: true,
-        element: <Dashboard />,
-      },
-      {
-        path: "receitas",
-        element: <RecipeListPage />,
-      },
-      {
-        path: "receitas/nova",
-        element: <RecipeEditor />,
-      },
-      {
-        path: "receitas/:id/editar",
-        element: <RecipeEditor />,
-      },
-      {
-        path: "pagamentos/*",
-        element: <AdminPaymentsRoutes />,
-      },
+      { index: true, element: <Dashboard /> },
+      { path: "receitas", element: <RecipeListPage /> },
+      { path: "receitas/nova", element: <RecipeEditor /> },
+      { path: "receitas/:id/editar", element: <RecipeEditor /> },
+      { path: "pagamentos/*", element: <AdminPaymentsRoutes /> },
     ],
   },
 ]);

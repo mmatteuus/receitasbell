@@ -1,4 +1,4 @@
-import { seedRecipes } from "@/lib/seed-data";
+import { getPublishedRecipes } from "@/lib/storage";
 import RecipeCard from "@/components/RecipeCard";
 
 interface RelatedRecipesProps {
@@ -7,7 +7,7 @@ interface RelatedRecipesProps {
 }
 
 export function RelatedRecipes({ currentRecipeId, categorySlug }: RelatedRecipesProps) {
-  const related = seedRecipes
+  const related = getPublishedRecipes()
     .filter((r) => r.categorySlug === categorySlug && r.id !== currentRecipeId)
     .slice(0, 3);
 
