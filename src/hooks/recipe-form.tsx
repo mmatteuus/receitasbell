@@ -16,6 +16,7 @@ const recipeSchema = z.object({
   accessTier: z.enum(["free", "paid"]),
   priceCents: z.coerce.number().min(0, "O preço não pode ser negativo").optional(),
   teaserIngredients: z.string().optional(),
+  teaserInstructions: z.string().optional(),
 }).refine((data) => {
   if (data.accessTier === "paid") {
     return data.priceCents !== undefined && data.priceCents > 0;
@@ -37,6 +38,7 @@ export function RecipeForm() {
       accessTier: "free",
       priceCents: 0,
       teaserIngredients: "",
+      teaserInstructions: "",
     },
   });
 

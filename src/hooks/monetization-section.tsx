@@ -22,6 +22,7 @@ export function MonetizationSection() {
   const accessTier = watch("accessTier");
   const priceCents = watch("priceCents");
   const teaserIngredients = watch("teaserIngredients");
+  const teaserInstructions = watch("teaserInstructions");
 
   // Estado local para o valor exibido (BRL formatado)
   const [displayPrice, setDisplayPrice] = useState("");
@@ -134,6 +135,19 @@ export function MonetizationSection() {
               {!teaserIngredients?.length && (
                 <p className="text-xs text-amber-600 flex items-center gap-1">
                   <Info className="h-3 w-3" /> Aviso: Sem teaser, o paywall mostrará apenas o título.
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label>Instruções do Teaser</Label>
+              <Textarea 
+                placeholder="Ex: Misture os ingredientes secos... (apenas o início)"
+                {...register("teaserInstructions")}
+              />
+              {!teaserInstructions?.length && (
+                <p className="text-xs text-amber-600 flex items-center gap-1">
+                  <Info className="h-3 w-3" /> Aviso: Sem instruções de teaser.
                 </p>
               )}
             </div>
