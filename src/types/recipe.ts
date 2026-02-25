@@ -1,6 +1,21 @@
 export type RecipeStatus = 'draft' | 'published' | 'archived';
 export type AccessTier = 'free' | 'paid';
 
+export interface Category {
+  name: string;
+  slug: string;
+  emoji: string;
+  description: string;
+}
+
+export interface Comment {
+  id: string;
+  recipeId: string;
+  author: string;
+  text: string;
+  createdAt: string;
+}
+
 export interface Recipe {
   id: string;
   slug: string;
@@ -24,7 +39,7 @@ export interface Recipe {
   // Monetization
   accessTier: AccessTier;
   priceCents?: number;
-  currency?: string; // e.g. 'BRL'
+  currency?: string;
 
   // Content
   ingredients: string[];

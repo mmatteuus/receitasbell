@@ -1,6 +1,6 @@
 "use client";
 
-import { AccessTier } from "@/src/types/recipe";
+import { AccessTier } from "@/types/recipe";
 
 interface PriceBadgeProps {
   accessTier: AccessTier;

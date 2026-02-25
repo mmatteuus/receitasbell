@@ -1,7 +1,5 @@
-"use client";
-
-import { useDemoPurchase } from "@/src/hooks/use-demo-purchase";
-import Link from "next/next/link";
+import { useDemoPurchase } from "@/hooks/use-demo-purchase";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { BookOpen } from "lucide-react";
 
@@ -18,7 +16,7 @@ export default function BibliotecaPage() {
           <h2 className="text-xl font-semibold">Sua biblioteca está vazia</h2>
           <p className="mb-6 text-muted-foreground">Você ainda não adquiriu nenhuma receita paga.</p>
           <Button asChild>
-            <Link href="/">Explorar Receitas</Link>
+            <Link to="/">Explorar Receitas</Link>
           </Button>
         </div>
       ) : (
@@ -26,7 +24,7 @@ export default function BibliotecaPage() {
           {purchasedIds.map(id => (
             <div key={id} className="rounded-lg border p-4">
               <p className="font-bold">Receita: {id}</p>
-              <Link href={`/receitas/${id}`} className="text-orange-600 hover:underline">Ver receita completa</Link>
+              <Link to={`/receitas/${id}`} className="text-orange-600 hover:underline">Ver receita completa</Link>
             </div>
           ))}
         </div>

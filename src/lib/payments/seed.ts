@@ -129,7 +129,7 @@ export const mockPayments: Payment[] = [
       status: status,
       status_detail: status === 'approved' ? 'accredited' : 'other_reason',
       payment_method_id: method,
-      payment_type_id: method === 'boleto' ? 'ticket' : 'credit_card',
+      payment_type_id: (method === 'boleto' ? 'ticket' : method === 'pix' ? 'account_money' : 'credit_card') as Payment['payment_type_id'],
       transaction_amount: parseFloat((Math.random() * 100).toFixed(2)),
       currency_id: 'BRL' as const,
       payer: { email: `comprador${8 + i}@example.com` },
