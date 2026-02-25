@@ -22,28 +22,40 @@ export default function RecipePage() {
   const { slug } = useParams<{ slug: string }>();
   const [params] = useSearchParams();
   const isPreview = params.get("preview") === "1";
-  const recipe = getRecipeBySlug(slug || "");
-  const [fav, setFav] = useState(() => recipe ? isFavorite(recipe.id) : false);
-  const [rating, setRating] = useState<{ avg: number; count: number }>(() => recipe ? getAverageRating(recipe.id) : { avg: 0, count: 0 });
-  const [comments, setComments] = useState(() => recipe ? getComments(recipe.id) : []);
+  
+  // State for the recipe itself
+  const [recipe, setRecipe] = useState<ReturnType<typeof getRecipeBySlug>>();
+  
+  // State that depends on the recipe
+  const [fav, setFav] = useState(false);
+  const [rating, setRating] = useState({ avg: 0, count: 0 });
+  const [comments, setComments] = useState<ReturnType<typeof getComments>>([]);
+  const [customServings, setCustomServings] = useState(1);
+
+  // Other state
   const [author, setAuthor] = useState("");
   const [commentText, setCommentText] = useState("");
-  
-  // Novos estados para monetização e porções
   const { isUnlocked } = useDemoPurchase();
-  const [customServings, setCustomServings] = useState(1);
   const [printImages, setPrintImages] = useState(true);
   const [isFocused, setIsFocused] = useState(false);
 
+  // Effect to load recipe and all dependent state
   useEffect(() => {
-    if (recipe) {
-      setCustomServings(recipe.servings || 1);
+    const foundRecipe = getRecipeBySlug(slug || "");
+    setRecipe(foundRecipe);
+
+    if (foundRecipe) {
+      setFav(isFavorite(foundRecipe.id));
+      setRating(getAverageRating(foundRecipe.id));
+      setComments(getComments(foundRecipe.id));
+      setCustomServings(foundRecipe.servings || 1);
     }
+
     const storedPrintPref = localStorage.getItem("receitas_bell_print_images");
     if (storedPrintPref !== null) {
       setPrintImages(JSON.parse(storedPrintPref));
     }
-  }, [recipe]);
+  }, [slug]);
 
   const scaleIngredient = (text: string) => {
     const baseServings = recipe?.servings || 1;
