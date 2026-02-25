@@ -101,7 +101,7 @@ export default function RecipeEditor() {
       prepTime: form.prepTime || 0,
       cookTime: form.cookTime || 0,
       totalTime: (form.prepTime || 0) + (form.cookTime || 0),
-      servings: form.servings || 0,
+      servings: form.servings || 1,
       ingredients: form.ingredients || [],
       instructions: form.instructions || [],
       tags,
@@ -226,7 +226,7 @@ export default function RecipeEditor() {
             </div>
             <div className="space-y-2">
               <Label>Porções</Label>
-              <Input type="number" value={form.servings || ""} onChange={(e) => set("servings", +e.target.value)} />
+              <Input type="number" value={form.servings || ""} onChange={(e) => set("servings", +e.target.value)} min="1" />
             </div>
           </div>
           <div className="space-y-2">
