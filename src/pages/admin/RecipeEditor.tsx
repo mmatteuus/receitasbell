@@ -16,7 +16,7 @@ import { Recipe } from "@/types/recipe";
 const empty: Partial<Recipe> = {
   title: "", slug: "", description: "", categorySlug: "salgadas",
   image: "", prepTime: 0, cookTime: 0, totalTime: 0, servings: 0,
-  ingredients: [], steps: [], tags: [], status: "draft",
+  ingredients: [], instructions: [], tags: [], status: "draft",
 };
 
 export default function RecipeEditor() {
@@ -35,7 +35,7 @@ export default function RecipeEditor() {
   useEffect(() => {
     if (id) {
       const r = getRecipeById(id);
-      if (r) { setForm(r); setTagsInput(r.tags.join(", ")); }
+      if (r) { setForm(r); setTagsInput((r.tags || []).join(", ")); }
       else navigate("/admin/receitas");
     }
   }, [id]);
@@ -55,34 +55,34 @@ export default function RecipeEditor() {
     if (!form.slug) e.push("Slug é obrigatório");
     if (form.slug && isSlugTaken(form.slug, form.id)) e.push("Slug já existe");
     if (!form.ingredients?.length) e.push("Adicione pelo menos 1 ingrediente");
-    if (!form.steps?.length) e.push("Adicione pelo menos 1 passo");
+    if (!form.instructions?.length) e.push("Adicione pelo menos 1 passo");
     if (!form.description) w.push("Sem descrição (SEO fraco)");
     if (!form.image) w.push("Sem imagem");
     if ((form.ingredients?.length || 0) < 3) w.push("Poucos ingredientes");
-    if ((form.steps?.length || 0) < 2) w.push("Poucos passos");
+    if ((form.instructions?.length || 0) < 2) w.push("Poucos passos");
     if (!form.prepTime && !form.cookTime) w.push("Sem tempo definido");
     if (!form.servings) w.push("Sem porções");
     return { errors: e, warnings: w };
   }, [form]);
 
   // List helpers
-  const addItem = (key: "ingredients" | "steps") => set(key, [...(form[key] || []), ""]);
-  const updateItem = (key: "ingredients" | "steps", i: number, v: string) => {
+  const addItem = (key: "ingredients" | "instructions") => set(key, [...(form[key] || []), ""]);
+  const updateItem = (key: "ingredients" | "instructions", i: number, v: string) => {
     const arr = [...(form[key] || [])];
     arr[i] = v;
     set(key, arr);
   };
-  const removeItem = (key: "ingredients" | "steps", i: number) => {
+  const removeItem = (key: "ingredients" | "instructions", i: number) => {
     set(key, (form[key] || []).filter((_, idx) => idx !== i));
   };
-  const moveItem = (key: "ingredients" | "steps", i: number, dir: -1 | 1) => {
+  const moveItem = (key: "ingredients" | "instructions", i: number, dir: -1 | 1) => {
     const arr = [...(form[key] || [])];
     const j = i + dir;
     if (j < 0 || j >= arr.length) return;
     [arr[i], arr[j]] = [arr[j], arr[i]];
     set(key, arr);
   };
-  const batchAdd = (key: "ingredients" | "steps", text: string) => {
+  const batchAdd = (key: "ingredients" | "instructions", text: string) => {
     const items = text.split("\n").map((s) => s.trim()).filter(Boolean);
     set(key, [...(form[key] || []), ...items]);
   };
@@ -103,7 +103,7 @@ export default function RecipeEditor() {
       totalTime: (form.prepTime || 0) + (form.cookTime || 0),
       servings: form.servings || 0,
       ingredients: form.ingredients || [],
-      steps: form.steps || [],
+      instructions: form.instructions || [],
       tags,
       status: publish ? "published" : "draft",
       createdAt: form.createdAt || now,
@@ -114,7 +114,7 @@ export default function RecipeEditor() {
     navigate("/admin/receitas");
   };
 
-  const renderList = (key: "ingredients" | "steps", label: string, showBatch: boolean, setShowBatch: (v: boolean) => void, batchVal: string, setBatchVal: (v: string) => void) => (
+  const renderList = (key: "ingredients" | "instructions", label: string, showBatch: boolean, setShowBatch: (v: boolean) => void, batchVal: string, setBatchVal: (v: string) => void) => (
     <div>
       <div className="flex items-center justify-between">
         <Label className="text-base font-semibold">{label}</Label>
@@ -237,7 +237,7 @@ export default function RecipeEditor() {
           <Separator />
           {renderList("ingredients", "Ingredientes", showBatchIng, setShowBatchIng, batchIng, setBatchIng)}
           <Separator />
-          {renderList("steps", "Modo de Preparo", showBatchStep, setShowBatchStep, batchStep, setBatchStep)}
+          {renderList("instructions", "Modo de Preparo", showBatchStep, setShowBatchStep, batchStep, setBatchStep)}
 
           <div className="flex justify-end gap-2 pt-4">
             <Button variant="outline" onClick={() => handleSave(false)}>

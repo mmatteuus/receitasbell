@@ -51,7 +51,15 @@ export function isSlugTaken(slug: string, excludeId?: string): boolean {
 
 // Favorites
 export function getFavorites(): string[] {
-  return JSON.parse(localStorage.getItem(KEYS.favorites) || "[]");
+  const data = localStorage.getItem(KEYS.favorites);
+  if (!data) return [];
+  try {
+    const parsed = JSON.parse(data);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    console.error(`Failed to parse ${KEYS.favorites} from localStorage`, e);
+    return [];
+  }
 }
 
 export function toggleFavorite(recipeId: string): string[] {
@@ -69,12 +77,30 @@ export function isFavorite(recipeId: string): boolean {
 
 // Ratings
 export function getRatings(recipeId: string): number[] {
-  const all: Record<string, number[]> = JSON.parse(localStorage.getItem(KEYS.ratings) || "{}");
-  return all[recipeId] || [];
+  const data = localStorage.getItem(KEYS.ratings);
+  if (data) {
+    try {
+      const all = JSON.parse(data);
+      if (typeof all === 'object' && all !== null) {
+        return all[recipeId] || [];
+      }
+    } catch (e) { /* ignore */ }
+  }
+  return [];
 }
 
 export function addRating(recipeId: string, value: number) {
-  const all: Record<string, number[]> = JSON.parse(localStorage.getItem(KEYS.ratings) || "{}");
+  const data = localStorage.getItem(KEYS.ratings);
+  let all: Record<string, number[]> = {};
+  if (data) {
+    try {
+      const parsed = JSON.parse(data);
+      if (typeof parsed === 'object' && parsed !== null) {
+        all = parsed;
+      }
+    } catch (e) { /* ignore */ }
+  }
+  
   if (!all[recipeId]) all[recipeId] = [];
   all[recipeId].push(value);
   localStorage.setItem(KEYS.ratings, JSON.stringify(all));
@@ -91,12 +117,30 @@ export function getAverageRating(recipeId: string): { avg: number; count: number
 
 // Comments
 export function getComments(recipeId: string): Comment[] {
-  const all: Record<string, Comment[]> = JSON.parse(localStorage.getItem(KEYS.comments) || "{}");
-  return all[recipeId] || [];
+  const data = localStorage.getItem(KEYS.comments);
+  if (data) {
+    try {
+      const all = JSON.parse(data);
+      if (typeof all === 'object' && all !== null) {
+        return all[recipeId] || [];
+      }
+    } catch (e) { /* ignore */ }
+  }
+  return [];
 }
 
 export function addComment(recipeId: string, author: string, text: string): Comment {
-  const all: Record<string, Comment[]> = JSON.parse(localStorage.getItem(KEYS.comments) || "{}");
+  const data = localStorage.getItem(KEYS.comments);
+  let all: Record<string, Comment[]> = {};
+  if (data) {
+    try {
+      const parsed = JSON.parse(data);
+      if (typeof parsed === 'object' && parsed !== null) {
+        all = parsed;
+      }
+    } catch (e) { /* ignore */ }
+  }
+
   if (!all[recipeId]) all[recipeId] = [];
   const comment: Comment = {
     id: crypto.randomUUID(),

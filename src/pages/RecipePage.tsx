@@ -91,8 +91,8 @@ export default function RecipePage() {
   const unlocked = isUnlocked(recipe.id, recipe.accessTier);
   const showPaywall = !unlocked && recipe.accessTier === "paid";
   
-  const ingredients = showPaywall ? recipe.teaserIngredients : recipe.fullIngredients;
-  const instructions = showPaywall ? recipe.teaserInstructions : recipe.fullInstructions;
+  const ingredients = (showPaywall ? recipe.teaserIngredients : recipe.ingredients) || [];
+  const instructions = (showPaywall ? recipe.teaserInstructions : recipe.instructions) || [];
 
   const handleFav = () => {
     toggleFavorite(recipe.id);
@@ -220,7 +220,7 @@ export default function RecipePage() {
       </div>
 
       {/* Tags */}
-      {recipe.tags.length > 0 && (
+      {recipe.tags && recipe.tags.length > 0 && (
         <div className="mt-4 flex flex-wrap gap-2 print:hidden">
           {recipe.tags.map((t) => <Badge key={t} variant="secondary">{t}</Badge>)}
         </div>
