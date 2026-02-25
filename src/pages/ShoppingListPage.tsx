@@ -19,7 +19,10 @@ export default function ShoppingListPage() {
     const stored = localStorage.getItem("receitas_bell_shopping_list");
     if (stored) {
       try {
-        setItems(JSON.parse(stored));
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          setItems(parsed);
+        }
       } catch (e) {
         console.error("Failed to parse shopping list", e);
       }

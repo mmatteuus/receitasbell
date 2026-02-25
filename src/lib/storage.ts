@@ -9,7 +9,15 @@ const KEYS = {
 
 export function getRecipes(): Recipe[] {
   const data = localStorage.getItem(KEYS.recipes);
-  return data ? JSON.parse(data) : [];
+  if (!data) return [];
+
+  try {
+    const parsed = JSON.parse(data);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    console.error("Failed to parse recipes from localStorage", e);
+    return [];
+  }
 }
 
 export function getPublishedRecipes(): Recipe[] {
