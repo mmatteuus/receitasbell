@@ -80,8 +80,8 @@ export default function RecipePage() {
   const showPaywall = !unlocked && recipe.accessTier === "paid";
 
   // Auto teaser: first 2 items for paid blocked
-  const ingredients = showPaywall ? recipe.ingredients.slice(0, 2) : recipe.ingredients;
-  const instructions = showPaywall ? recipe.instructions.slice(0, 2) : recipe.instructions;
+  const ingredients = showPaywall ? recipe.fullIngredients.slice(0, 2) : recipe.fullIngredients;
+  const instructions = showPaywall ? recipe.fullInstructions.slice(0, 2) : recipe.fullInstructions;
 
   const handleFav = () => { toggleFavorite(recipe.id); setFav(!fav); };
   const handleRate = (v: number) => { addRating(recipe.id, v); setRating(getAverageRating(recipe.id)); };

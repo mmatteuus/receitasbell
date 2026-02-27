@@ -1,5 +1,5 @@
 import { Category } from "@/types/recipe";
-import { generateSlug } from "@/lib/storage";
+import { generateSlug } from "@/lib/helpers";
 
 const KEY = "rdb_categories_v1";
 

@@ -56,8 +56,8 @@ export default function RecipeDetails() {
   const unlocked = isUnlocked(recipe.id, recipe.accessTier);
   const showPaywall = !unlocked && recipe.accessTier === "paid";
   // Auto teaser: first 2 items
-  const ingredients = showPaywall ? recipe.ingredients.slice(0, 2) : recipe.ingredients;
-  const instructions = showPaywall ? recipe.instructions.slice(0, 2) : recipe.instructions;
+  const ingredients = showPaywall ? recipe.fullIngredients.slice(0, 2) : recipe.fullIngredients;
+  const instructions = showPaywall ? recipe.fullInstructions.slice(0, 2) : recipe.fullInstructions;
 
   return (
     <div className="container px-4 py-8 sm:py-10 animate-in fade-in duration-500">

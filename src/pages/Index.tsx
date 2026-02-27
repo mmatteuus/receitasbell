@@ -7,6 +7,7 @@ import RecipeCard from "@/components/RecipeCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { NewsletterSignup } from "@/components/NewsletterSignup";
 // import { NewsletterForm } from "@/lib/NewsletterForm";
 
 export default function HomePage() {
@@ -138,9 +139,7 @@ export default function HomePage() {
           <p className="text-muted-foreground max-w-[600px] font-sans">
             Inscreva-se em nossa newsletter para receber receitas semanais, dicas de culinária e ofertas especiais.
           </p>
-          <div className="w-full max-w-sm pt-4">
-            {/* <NewsletterForm /> */}
-          </div>
+          <NewsletterSignup />
         </div>
       </section>
     </div>

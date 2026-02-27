@@ -16,8 +16,9 @@ import { Recipe } from "@/types/recipe";
 
 const empty: Partial<Recipe> = {
   title: "", slug: "", description: "", categorySlug: "salgadas",
-  image: "", prepTime: 0, cookTime: 0, totalTime: 0, servings: 0,
-  ingredients: [], instructions: [], tags: [], status: "draft",
+  image: "", imageUrl: "", imageDataUrl: "",
+  prepTime: 0, cookTime: 0, totalTime: 0, servings: 0,
+  fullIngredients: [], fullInstructions: [], tags: [], status: "draft",
   accessTier: "free",
 };
 
@@ -101,6 +102,8 @@ export default function RecipeEditor() {
     try {
       const dataUrl = await compressImage(file);
       set("image", dataUrl);
+      set("imageDataUrl", dataUrl);
+      set("imageUrl", "");
     } catch (err) {
       console.error("Failed to compress image", err);
     }
@@ -120,32 +123,37 @@ export default function RecipeEditor() {
     const e: string[] = [];
     const w: string[] = [];
     if (!form.title) e.push("Título é obrigatório");
-    if (!form.ingredients?.length) e.push("Adicione pelo menos 1 ingrediente");
-    if (!form.instructions?.length) e.push("Adicione pelo menos 1 passo");
+    if (!form.fullIngredients?.length) e.push("Adicione pelo menos 1 ingrediente");
+    if (!form.fullInstructions?.length) e.push("Adicione pelo menos 1 passo");
     if (form.accessTier === "paid" && (!form.priceBRL || form.priceBRL <= 0)) e.push("Receita paga precisa de preço");
     if (!form.description) w.push("Sem descrição (SEO fraco)");
     if (!form.image) w.push("Sem imagem");
-    if ((form.ingredients?.length || 0) < 3) w.push("Poucos ingredientes");
-    if ((form.instructions?.length || 0) < 2) w.push("Poucos passos");
+    if ((form.fullIngredients?.length || 0) < 3) w.push("Poucos ingredientes");
+    if ((form.fullInstructions?.length || 0) < 2) w.push("Poucos passos");
     if (!form.prepTime && !form.cookTime) w.push("Sem tempo definido");
     if (!form.servings) w.push("Sem porções");
     return { errors: e, warnings: w };
   }, [form]);
 
   // List helpers
-  const addItem = (key: "ingredients" | "instructions") => set(key, [...(form[key] || []), ""]);
-  const updateItem = (key: "ingredients" | "instructions", i: number, v: string) => {
-    const arr = [...(form[key] || [])]; arr[i] = v; set(key, arr);
+  type ListKey = "fullIngredients" | "fullInstructions";
+  const addItem = (key: ListKey) => set(key, [...(form[key] || []), ""]);
+  const updateItem = (key: ListKey, i: number, v: string) => {
+    const arr = [...(form[key] || [])];
+    arr[i] = v;
+    set(key, arr);
   };
-  const removeItem = (key: "ingredients" | "instructions", i: number) => {
+  const removeItem = (key: ListKey, i: number) => {
     set(key, (form[key] || []).filter((_, idx) => idx !== i));
   };
-  const moveItem = (key: "ingredients" | "instructions", i: number, dir: -1 | 1) => {
-    const arr = [...(form[key] || [])]; const j = i + dir;
+  const moveItem = (key: ListKey, i: number, dir: -1 | 1) => {
+    const arr = [...(form[key] || [])];
+    const j = i + dir;
     if (j < 0 || j >= arr.length) return;
-    [arr[i], arr[j]] = [arr[j], arr[i]]; set(key, arr);
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+    set(key, arr);
   };
-  const batchAdd = (key: "ingredients" | "instructions", text: string) => {
+  const batchAdd = (key: ListKey, text: string) => {
     const items = text.split("\n").map((s) => s.trim()).filter(Boolean);
     set(key, [...(form[key] || []), ...items]);
   };
@@ -155,19 +163,25 @@ export default function RecipeEditor() {
     const now = new Date().toISOString();
     const tags = tagsInput.split(",").map((t) => t.trim()).filter(Boolean);
     const slug = form.slug || uniqueSlug(form.title || "receita", form.id);
+    const hasDataImage = Boolean(form.imageDataUrl);
+    const remoteImage = form.imageUrl || (!hasDataImage && form.image ? form.image : undefined);
+    const imageUrl = hasDataImage ? form.imageUrl || undefined : remoteImage;
+    const imageDataUrl = hasDataImage ? form.imageDataUrl : undefined;
     const recipe: Recipe = {
       id: form.id || crypto.randomUUID(),
       title: form.title || "",
       slug,
       description: form.description || "",
       categorySlug: form.categorySlug || "salgadas",
-      image: form.image || "",
+      image: form.imageDataUrl || remoteImage || "",
+      imageUrl,
+      imageDataUrl,
       prepTime: form.prepTime || 0,
       cookTime: form.cookTime || 0,
       totalTime: (form.prepTime || 0) + (form.cookTime || 0),
       servings: form.servings || 1,
-      ingredients: form.ingredients || [],
-      instructions: form.instructions || [],
+      fullIngredients: form.fullIngredients || [],
+      fullInstructions: form.fullInstructions || [],
       tags,
       status: publish ? "published" : "draft",
       accessTier: form.accessTier || "free",
@@ -180,7 +194,7 @@ export default function RecipeEditor() {
     navigate("/admin/receitas");
   };
 
-  const renderList = (key: "ingredients" | "instructions", label: string, showBatch: boolean, setShowBatch: (v: boolean) => void, batchVal: string, setBatchVal: (v: string) => void) => (
+  const renderList = (key: ListKey, label: string, showBatch: boolean, setShowBatch: (v: boolean) => void, batchVal: string, setBatchVal: (v: string) => void) => (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Label className="text-base font-semibold">{label}</Label>
@@ -363,9 +377,9 @@ export default function RecipeEditor() {
           </div>
 
           <Separator />
-          {renderList("ingredients", "Ingredientes", showBatchIng, setShowBatchIng, batchIng, setBatchIng)}
+          {renderList("fullIngredients", "Ingredientes", showBatchIng, setShowBatchIng, batchIng, setBatchIng)}
           <Separator />
-          {renderList("instructions", "Modo de Preparo", showBatchStep, setShowBatchStep, batchStep, setBatchStep)}
+          {renderList("fullInstructions", "Modo de Preparo", showBatchStep, setShowBatchStep, batchStep, setBatchStep)}
           <Separator />
 
           {/* Monetization */}

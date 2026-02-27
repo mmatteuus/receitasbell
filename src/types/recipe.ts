@@ -21,7 +21,9 @@ export interface Recipe {
   slug: string;
   title: string;
   description: string;
-  image: string; // URL or base64 data URL
+  image?: string; // compatible fallback for legacy consumers
+  imageUrl?: string;
+  imageDataUrl?: string;
 
   categorySlug: string;
   tags: string[];
@@ -35,8 +37,8 @@ export interface Recipe {
   accessTier: AccessTier;
   priceBRL?: number; // e.g. 9.90
 
-  ingredients: string[];
-  instructions: string[];
+  fullIngredients: string[];
+  fullInstructions: string[];
 
   createdAt: string;
   updatedAt: string;

@@ -12,11 +12,11 @@ export const seedRecipes: Recipe[] = [
     status: "published",
     prepTime: 20, cookTime: 40, totalTime: 60, servings: 10,
     accessTier: "free",
-    ingredients: [
+    fullIngredients: [
       "3 cenouras médias", "4 ovos", "1 xícara de óleo", "2 xícaras de açúcar",
       "2 e 1/2 xícaras de farinha de trigo", "1 colher de sopa de fermento em pó"
     ],
-    instructions: [
+    fullInstructions: [
       "Bata no liquidificador as cenouras, os ovos e o óleo.",
       "Acrescente o açúcar e bata novamente.",
       "Em uma tigela, misture a farinha e o fermento.",
@@ -37,11 +37,11 @@ export const seedRecipes: Recipe[] = [
     status: "published",
     prepTime: 15, cookTime: 25, totalTime: 40, servings: 20,
     accessTier: "free",
-    ingredients: [
+    fullIngredients: [
       "500g de polvilho azedo", "1 xícara de leite", "1/2 xícara de óleo",
       "2 ovos", "200g de queijo minas curado ralado", "1 colher de chá de sal"
     ],
-    instructions: [
+    fullInstructions: [
       "Ferva o leite com o óleo e o sal.",
       "Despeje sobre o polvilho e misture bem.",
       "Quando esfriar, adicione os ovos e o queijo.",
@@ -62,12 +62,12 @@ export const seedRecipes: Recipe[] = [
     prepTime: 30, cookTime: 20, totalTime: 50, servings: 30,
     accessTier: "paid",
     priceBRL: 9.90,
-    ingredients: [
+    fullIngredients: [
       "1 lata de leite condensado", "100g de pasta de pistache importada",
       "150g de chocolate belga branco picado", "2 colheres de manteiga sem sal",
       "1 colher de creme de leite fresco", "Pistache triturado para decorar", "Raspas de chocolate branco"
     ],
-    instructions: [
+    fullInstructions: [
       "Derreta o chocolate belga branco em banho-maria a 45°C.",
       "Em outra panela, aqueça o leite condensado com a manteiga em fogo baixo.",
       "Adicione a pasta de pistache e mexa sem parar por 5 minutos.",
@@ -91,14 +91,14 @@ export const seedRecipes: Recipe[] = [
     prepTime: 15, cookTime: 35, totalTime: 50, servings: 4,
     accessTier: "paid",
     priceBRL: 14.90,
-    ingredients: [
+    fullIngredients: [
       "300g de arroz arbório", "200g de cogumelos shimeji", "150g de cogumelos shiitake",
       "100g de cogumelos paris", "1 litro de caldo de legumes quente", "1 cebola picada finamente",
       "2 dentes de alho picados", "150ml de vinho branco seco", "80g de parmesão ralado",
       "3 colheres de manteiga gelada", "2 colheres de azeite trufado", "Sal e pimenta do reino a gosto",
       "Cebolinha para finalizar"
     ],
-    instructions: [
+    fullInstructions: [
       "Limpe e fatie os cogumelos. Separe os talos para o caldo.",
       "Refogue os cogumelos em azeite com alho até dourar. Reserve.",
       "Na mesma panela, refogue a cebola em manteiga até translúcida.",
@@ -124,11 +124,11 @@ export const seedRecipes: Recipe[] = [
     status: "published",
     prepTime: 5, cookTime: 0, totalTime: 5, servings: 2,
     accessTier: "free",
-    ingredients: [
+    fullIngredients: [
       "1 maçã verde", "2 folhas de couve", "1/2 pepino",
       "Suco de 1 limão", "1 pedaço de gengibre", "200ml de água de coco"
     ],
-    instructions: [
+    fullInstructions: [
       "Lave bem todos os ingredientes.",
       "Corte a maçã e o pepino em pedaços.",
       "Bata tudo no liquidificador com a água de coco.",
@@ -147,11 +147,11 @@ export const seedRecipes: Recipe[] = [
     status: "published",
     prepTime: 15, cookTime: 0, totalTime: 15, servings: 2,
     accessTier: "free",
-    ingredients: [
+    fullIngredients: [
       "Mix de folhas verdes", "1 pepino", "Tomates cereja", "Azeitonas pretas",
       "Queijo feta", "Azeite extra virgem", "Suco de limão", "Orégano"
     ],
-    instructions: [
+    fullInstructions: [
       "Lave e seque as folhas.",
       "Corte o pepino em rodelas e os tomates ao meio.",
       "Monte a salada numa travessa.",
@@ -172,13 +172,13 @@ export const seedRecipes: Recipe[] = [
     prepTime: 10, cookTime: 15, totalTime: 25, servings: 2,
     accessTier: "paid",
     priceBRL: 7.90,
-    ingredients: [
+    fullIngredients: [
       "200g de spaghetti ou rigatoni", "150g de guanciale em cubos",
       "4 gemas de ovo caipira", "1 ovo inteiro",
       "80g de pecorino romano DOP ralado fino", "Pimenta do reino moída na hora",
       "Sal para a água da massa"
     ],
-    instructions: [
+    fullInstructions: [
       "Cozinhe a massa em água bem salgada até 1 minuto antes do al dente.",
       "Enquanto isso, frite o guanciale em fogo médio-baixo na própria gordura.",
       "Em uma tigela, misture as gemas, o ovo inteiro e o pecorino. Reserve.",
@@ -203,11 +203,11 @@ export const seedRecipes: Recipe[] = [
     status: "published",
     prepTime: 10, cookTime: 45, totalTime: 55, servings: 8,
     accessTier: "free",
-    ingredients: [
+    fullIngredients: [
       "3 ovos", "2 xícaras de leite", "1 xícara de fubá", "1 xícara de açúcar",
       "3 colheres de farinha de trigo", "2 colheres de manteiga", "1 colher de fermento"
     ],
-    instructions: [
+    fullInstructions: [
       "Bata tudo no liquidificador por 3 minutos.",
       "Despeje em forma untada e enfarinhada.",
       "Asse a 180°C por 45 minutos.",
