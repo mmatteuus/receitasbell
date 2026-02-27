@@ -2,28 +2,31 @@ import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Menu, X, Search, Heart, ChefHat, Settings, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { categories } from "@/lib/categories";
+import { Badge } from "@/components/ui/badge";
+import { getCategories } from "@/lib/categories";
+import { useCart } from "@/hooks/use-cart";
 
 export default function Header() {
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
+  const { count } = useCart();
+  const categories = getCategories();
 
   const navLinks = [
     { to: "/", label: "Home" },
     { to: "/buscar", label: "Buscar", icon: Search },
     { to: "/minha-conta/favoritos", label: "Favoritos", icon: Heart },
-    { to: "/minha-conta/lista-de-compras", label: "Lista", icon: ShoppingCart },
   ];
 
   const isActive = (path: string) => pathname === path;
 
   return (
     <header className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
-      <div className="container flex h-16 items-center justify-between">
+      <div className="container flex h-14 items-center justify-between px-4 sm:h-16">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
-          <ChefHat className="h-7 w-7 text-primary" />
-          <span className="font-heading text-xl font-bold text-foreground">
+          <ChefHat className="h-6 w-6 text-primary sm:h-7 sm:w-7" />
+          <span className="font-heading text-lg font-bold text-foreground sm:text-xl">
             Receitas do Bell
           </span>
         </Link>
@@ -35,15 +38,29 @@ export default function Header() {
               key={link.to}
               to={link.to}
               className={`flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                isActive(link.to)
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:text-foreground"
+                isActive(link.to) ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"
               }`}
             >
               {link.icon && <link.icon className="h-4 w-4" />}
               {link.label}
             </Link>
           ))}
+
+          {/* Cart */}
+          <Link
+            to="/carrinho"
+            className={`relative flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+              isActive("/carrinho") ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <ShoppingCart className="h-4 w-4" />
+            Carrinho
+            {count > 0 && (
+              <Badge className="ml-1 h-5 min-w-[20px] justify-center rounded-full px-1.5 text-[10px]">
+                {count}
+              </Badge>
+            )}
+          </Link>
 
           {/* Categories dropdown */}
           <div className="group relative">
@@ -74,39 +91,44 @@ export default function Header() {
           </Link>
         </nav>
 
-        {/* Mobile toggle */}
-        <button
-          className="md:hidden"
-          onClick={() => setOpen(!open)}
-          aria-label="Menu"
-        >
-          {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </button>
+        {/* Mobile: cart + toggle */}
+        <div className="flex items-center gap-2 md:hidden">
+          <Link to="/carrinho" className="relative p-2">
+            <ShoppingCart className="h-5 w-5" />
+            {count > 0 && (
+              <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+                {count}
+              </span>
+            )}
+          </Link>
+          <button onClick={() => setOpen(!open)} aria-label="Menu">
+            {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile Nav */}
       {open && (
         <div className="border-t bg-card md:hidden">
-          <nav className="container flex flex-col gap-1 py-4">
+          <nav className="container flex flex-col gap-1 px-4 py-4">
             {navLinks.map((link) => (
               <Link
                 key={link.to}
                 to={link.to}
                 onClick={() => setOpen(false)}
                 className={`flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium ${
-                  isActive(link.to)
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground"
+                  isActive(link.to) ? "bg-primary/10 text-primary" : "text-muted-foreground"
                 }`}
               >
                 {link.icon && <link.icon className="h-4 w-4" />}
                 {link.label}
               </Link>
             ))}
+            <Link to="/carrinho" onClick={() => setOpen(false)} className="flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground">
+              <ShoppingCart className="h-4 w-4" /> Carrinho {count > 0 && `(${count})`}
+            </Link>
             <div className="my-2 border-t" />
-            <p className="px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Categorias
-            </p>
+            <p className="px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Categorias</p>
             {categories.map((cat) => (
               <Link
                 key={cat.slug}
