@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, Link } from "react-router-dom";
-import { getRecipeBySlug, getRecipeById } from "@/lib/storage";
+import { getRecipeBySlug, getRecipeById, formatBRL } from "@/lib/storage";
 import { useDemoPurchase } from "@/hooks/use-demo-purchase";
+import { useCart } from "@/hooks/use-cart";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Lock, ShieldCheck, Zap, ArrowRight } from "lucide-react";
@@ -10,99 +11,90 @@ import { toast } from "sonner";
 
 export default function CheckoutPage() {
   const [searchParams] = useSearchParams();
-  const recipeId = searchParams.get("recipeId");
   const recipeSlug = searchParams.get("slug");
-  const [recipe, setRecipe] = useState<Recipe | null>(null);
+  const isCartCheckout = searchParams.get("cart") === "1";
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(false);
   const { unlockRecipe } = useDemoPurchase();
+  const { items: cartItems, clear: clearCart } = useCart();
 
   useEffect(() => {
-    if (recipeId) {
-      const r = getRecipeById(recipeId);
-      if (r) setRecipe(r);
+    if (isCartCheckout) {
+      const cartRecipes = cartItems
+        .map((id) => getRecipeById(id))
+        .filter((r): r is Recipe => !!r && r.accessTier === "paid");
+      setRecipes(cartRecipes);
     } else if (recipeSlug) {
       const r = getRecipeBySlug(recipeSlug);
-      if (r) setRecipe(r);
+      if (r) setRecipes([r]);
     }
-  }, [recipeId, recipeSlug]);
+  }, [recipeSlug, isCartCheckout, cartItems]);
 
-  const formattedPrice = recipe?.priceCents
-    ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(recipe.priceCents / 100)
-    : "R$ 0,00";
+  const total = recipes.reduce((sum, r) => sum + (r.priceBRL || 0), 0);
 
   const handleCheckout = async () => {
-    if (!recipe) return;
+    if (!recipes.length) return;
     setLoading(true);
-
-    // Simula chamada a POST /api/mp/create-preference
-    // Em produção, isso faria fetch para o backend e redirecionaria para init_point do Mercado Pago
     await new Promise((r) => setTimeout(r, 1500));
-
-    // Mock: simula pagamento aprovado instantaneamente
-    unlockRecipe(recipe.id);
+    recipes.forEach((r) => unlockRecipe(r.id));
+    if (isCartCheckout) clearCart();
     toast.success("Pagamento aprovado! (simulação)");
-
-    // Redireciona para página de sucesso
-    window.location.href = `/compra/sucesso?slug=${recipe.slug}&status=approved&payment_id=mock-${Date.now()}`;
+    const slug = recipes.length === 1 ? recipes[0].slug : "";
+    window.location.href = `/compra/sucesso?slug=${slug}&status=approved&payment_id=mock-${Date.now()}`;
   };
 
-  if (!recipe) {
+  if (!recipes.length) {
     return (
-      <div className="container max-w-lg py-20 text-center">
-        <h1 className="text-2xl font-bold">Receita não encontrada</h1>
-        <p className="text-muted-foreground mt-2">Não foi possível carregar os dados desta receita.</p>
-        <Button asChild variant="outline" className="mt-6">
-          <Link to="/">Voltar para o início</Link>
-        </Button>
+      <div className="container max-w-lg px-4 py-20 text-center">
+        <h1 className="text-xl font-bold sm:text-2xl">Nenhuma receita selecionada</h1>
+        <p className="text-muted-foreground mt-2">Não foi possível carregar os dados.</p>
+        <Button asChild variant="outline" className="mt-6"><Link to="/">Voltar</Link></Button>
       </div>
     );
   }
 
   return (
-    <div className="container max-w-lg py-12 animate-in fade-in duration-500">
-      <h1 className="font-heading text-3xl font-bold text-center">Finalizar Compra</h1>
-      <p className="text-center text-muted-foreground mt-2">Você está prestes a desbloquear uma receita exclusiva</p>
+    <div className="container max-w-lg px-4 py-8 sm:py-12 animate-in fade-in duration-500">
+      <h1 className="font-heading text-2xl font-bold text-center sm:text-3xl">Finalizar Compra</h1>
+      <p className="text-center text-muted-foreground mt-2 text-sm">
+        {recipes.length === 1 ? "Você está prestes a desbloquear uma receita exclusiva" : `${recipes.length} receitas no pedido`}
+      </p>
 
-      <div className="mt-8 rounded-xl border bg-card p-6 shadow-sm space-y-4">
-        <div className="flex gap-4">
-          {recipe.image && (
-            <img src={recipe.image} alt={recipe.title} className="h-20 w-20 rounded-lg object-cover" />
-          )}
-          <div className="flex-1">
-            <h2 className="font-heading text-lg font-semibold">{recipe.title}</h2>
-            <p className="text-sm text-muted-foreground line-clamp-2">{recipe.description}</p>
+      <div className="mt-6 sm:mt-8 rounded-xl border bg-card p-4 sm:p-6 shadow-sm space-y-4">
+        {recipes.map((recipe) => (
+          <div key={recipe.id} className="flex gap-3 sm:gap-4">
+            {recipe.image && (
+              <img src={recipe.image} alt={recipe.title} className="h-16 w-16 sm:h-20 sm:w-20 rounded-lg object-cover shrink-0" />
+            )}
+            <div className="flex-1 min-w-0">
+              <h2 className="font-heading text-sm font-semibold sm:text-lg truncate">{recipe.title}</h2>
+              <p className="text-xs text-muted-foreground line-clamp-1 sm:text-sm">{recipe.description}</p>
+              <p className="text-sm font-bold mt-1">{formatBRL(recipe.priceBRL || 0)}</p>
+            </div>
           </div>
-        </div>
+        ))}
 
         <Separator />
 
         <div className="flex justify-between items-center">
-          <span className="text-sm text-muted-foreground">Receita completa</span>
-          <span className="text-xl font-bold">{formattedPrice}</span>
+          <span className="text-sm text-muted-foreground">Total</span>
+          <span className="text-xl font-bold">{formatBRL(Math.round(total * 100) / 100)}</span>
         </div>
 
         <div className="space-y-2 text-sm text-muted-foreground">
-          <div className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-green-600" /> Pagamento seguro via Mercado Pago</div>
-          <div className="flex items-center gap-2"><Lock className="h-4 w-4 text-green-600" /> Acesso vitalício ao conteúdo completo</div>
-          <div className="flex items-center gap-2"><Zap className="h-4 w-4 text-green-600" /> Liberação instantânea após aprovação</div>
+          <div className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-green-600 shrink-0" /> Pagamento seguro via Mercado Pago</div>
+          <div className="flex items-center gap-2"><Lock className="h-4 w-4 text-green-600 shrink-0" /> Acesso vitalício ao conteúdo</div>
+          <div className="flex items-center gap-2"><Zap className="h-4 w-4 text-green-600 shrink-0" /> Liberação instantânea</div>
         </div>
 
-        <Button
-          onClick={handleCheckout}
-          disabled={loading}
-          className="w-full bg-orange-600 hover:bg-orange-700 text-white gap-2"
-          size="lg"
-        >
+        <Button onClick={handleCheckout} disabled={loading} className="w-full bg-orange-600 hover:bg-orange-700 text-white gap-2" size="lg">
           {loading ? (
             <span className="flex items-center gap-2">
               <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
               Processando...
             </span>
           ) : (
-            <>
-              Pagar {formattedPrice}
-              <ArrowRight className="h-4 w-4" />
-            </>
+            <>Pagar {formatBRL(Math.round(total * 100) / 100)} <ArrowRight className="h-4 w-4" /></>
           )}
         </Button>
 
@@ -112,8 +104,8 @@ export default function CheckoutPage() {
       </div>
 
       <div className="mt-6 text-center">
-        <Link to={`/receitas/${recipe.slug}`} className="text-sm text-muted-foreground hover:text-primary transition-colors">
-          ← Voltar para a receita
+        <Link to={recipes.length === 1 ? `/receitas/${recipes[0].slug}` : "/carrinho"} className="text-sm text-muted-foreground hover:text-primary transition-colors">
+          ← Voltar
         </Link>
       </div>
     </div>

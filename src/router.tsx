@@ -8,6 +8,7 @@ import RecipePage from "@/pages/RecipePage";
 import CategoryPage from "@/pages/Category";
 import InstitutionalPage from "@/pages/Institutional";
 import ShoppingListPage from "@/pages/ShoppingListPage";
+import CartPage from "@/pages/CartPage";
 import Dashboard from "@/pages/admin/Dashboard";
 import RecipeListPage from "@/pages/admin/RecipeListPage";
 import RecipeEditor from "@/pages/admin/RecipeEditor";
@@ -31,6 +32,7 @@ export const router = createBrowserRouter([
       { path: "minha-conta/perfil", element: <ProfilePage /> },
       { path: "minha-conta/favoritos", element: <FavoritesPage /> },
       { path: "minha-conta/lista-de-compras", element: <ShoppingListPage /> },
+      { path: "carrinho", element: <CartPage /> },
       { path: "institucional/:page", element: <InstitutionalPage /> },
       { path: "checkout", element: <CheckoutPage /> },
       { path: "compra/sucesso", element: <SuccessPage /> },

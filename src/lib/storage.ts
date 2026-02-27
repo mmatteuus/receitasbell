@@ -7,15 +7,29 @@ const KEYS = {
   ratings: "rdb_ratings_v1",
 };
 
+/** Migrate legacy fields on read */
+function migrateRecipe(r: any): Recipe {
+  const migrated = { ...r };
+  // priceCents → priceBRL
+  if (migrated.priceCents != null && migrated.priceBRL == null) {
+    migrated.priceBRL = Math.round(migrated.priceCents) / 100;
+  }
+  delete migrated.priceCents;
+  delete migrated.currency;
+  delete migrated.teaserIngredients;
+  delete migrated.teaserInstructions;
+  delete migrated.rating;
+  delete migrated.reviewsCount;
+  return migrated as Recipe;
+}
+
 export function getRecipes(): Recipe[] {
   const data = localStorage.getItem(KEYS.recipes);
   if (!data) return [];
-
   try {
     const parsed = JSON.parse(data);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (e) {
-    console.error("Failed to parse recipes from localStorage", e);
+    return Array.isArray(parsed) ? parsed.map(migrateRecipe) : [];
+  } catch {
     return [];
   }
 }
@@ -51,13 +65,9 @@ export function isSlugTaken(slug: string, excludeId?: string): boolean {
 
 // Favorites
 export function getFavorites(): string[] {
-  const data = localStorage.getItem(KEYS.favorites);
-  if (!data) return [];
   try {
-    const parsed = JSON.parse(data);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (e) {
-    console.error(`Failed to parse ${KEYS.favorites} from localStorage`, e);
+    return JSON.parse(localStorage.getItem(KEYS.favorites) || "[]");
+  } catch {
     return [];
   }
 }
@@ -77,30 +87,17 @@ export function isFavorite(recipeId: string): boolean {
 
 // Ratings
 export function getRatings(recipeId: string): number[] {
-  const data = localStorage.getItem(KEYS.ratings);
-  if (data) {
-    try {
-      const all = JSON.parse(data);
-      if (typeof all === 'object' && all !== null) {
-        return all[recipeId] || [];
-      }
-    } catch (e) { /* ignore */ }
+  try {
+    const all = JSON.parse(localStorage.getItem(KEYS.ratings) || "{}");
+    return all[recipeId] || [];
+  } catch {
+    return [];
   }
-  return [];
 }
 
 export function addRating(recipeId: string, value: number) {
-  const data = localStorage.getItem(KEYS.ratings);
   let all: Record<string, number[]> = {};
-  if (data) {
-    try {
-      const parsed = JSON.parse(data);
-      if (typeof parsed === 'object' && parsed !== null) {
-        all = parsed;
-      }
-    } catch (e) { /* ignore */ }
-  }
-  
+  try { all = JSON.parse(localStorage.getItem(KEYS.ratings) || "{}"); } catch { /* */ }
   if (!all[recipeId]) all[recipeId] = [];
   all[recipeId].push(value);
   localStorage.setItem(KEYS.ratings, JSON.stringify(all));
@@ -109,46 +106,24 @@ export function addRating(recipeId: string, value: number) {
 export function getAverageRating(recipeId: string): { avg: number; count: number } {
   const ratings = getRatings(recipeId);
   if (!ratings.length) return { avg: 0, count: 0 };
-  return {
-    avg: ratings.reduce((a, b) => a + b, 0) / ratings.length,
-    count: ratings.length,
-  };
+  return { avg: ratings.reduce((a, b) => a + b, 0) / ratings.length, count: ratings.length };
 }
 
 // Comments
 export function getComments(recipeId: string): Comment[] {
-  const data = localStorage.getItem(KEYS.comments);
-  if (data) {
-    try {
-      const all = JSON.parse(data);
-      if (typeof all === 'object' && all !== null) {
-        return all[recipeId] || [];
-      }
-    } catch (e) { /* ignore */ }
+  try {
+    const all = JSON.parse(localStorage.getItem(KEYS.comments) || "{}");
+    return all[recipeId] || [];
+  } catch {
+    return [];
   }
-  return [];
 }
 
 export function addComment(recipeId: string, author: string, text: string): Comment {
-  const data = localStorage.getItem(KEYS.comments);
   let all: Record<string, Comment[]> = {};
-  if (data) {
-    try {
-      const parsed = JSON.parse(data);
-      if (typeof parsed === 'object' && parsed !== null) {
-        all = parsed;
-      }
-    } catch (e) { /* ignore */ }
-  }
-
+  try { all = JSON.parse(localStorage.getItem(KEYS.comments) || "{}"); } catch { /* */ }
   if (!all[recipeId]) all[recipeId] = [];
-  const comment: Comment = {
-    id: crypto.randomUUID(),
-    recipeId,
-    author,
-    text,
-    createdAt: new Date().toISOString(),
-  };
+  const comment: Comment = { id: crypto.randomUUID(), recipeId, author, text, createdAt: new Date().toISOString() };
   all[recipeId].unshift(comment);
   localStorage.setItem(KEYS.comments, JSON.stringify(all));
   return comment;
@@ -162,4 +137,21 @@ export function generateSlug(title: string): string {
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+}
+
+export function uniqueSlug(title: string, excludeId?: string): string {
+  const base = generateSlug(title);
+  if (!base) return "";
+  let slug = base;
+  let n = 2;
+  while (isSlugTaken(slug, excludeId)) {
+    slug = `${base}-${n}`;
+    n++;
+  }
+  return slug;
+}
+
+/** Format BRL price */
+export function formatBRL(value: number): string {
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 }
