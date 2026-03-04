@@ -215,11 +215,142 @@ export const seedRecipes: Recipe[] = [
     ],
     createdAt: "2025-02-12T10:00:00Z", updatedAt: "2025-02-12T10:00:00Z", publishedAt: "2025-02-12T10:00:00Z"
   },
+  {
+    id: "seed-9",
+    slug: "tiramisu-classico",
+    title: "Tiramisù Clássico Italiano",
+    description: "A autêntica sobremesa italiana com camadas de biscoito champagne, café espresso e creme de mascarpone.",
+    image: "https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?w=800&auto=format",
+    categorySlug: "doces",
+    tags: ["gourmet", "premium", "italiano"],
+    status: "published",
+    prepTime: 40, cookTime: 0, totalTime: 240, servings: 8,
+    accessTier: "paid",
+    priceBRL: 12.90,
+    fullIngredients: [
+      "500g de mascarpone italiano", "6 gemas de ovo caipira", "150g de açúcar refinado",
+      "300ml de café espresso forte (frio)", "3 colheres de licor Amaretto", "400g de biscoitos Savoiardi",
+      "Cacau em pó amargo para polvilhar", "Raspas de chocolate amargo 70%"
+    ],
+    fullInstructions: [
+      "Bata as gemas com o açúcar até obter um creme claro e volumoso (10 min).",
+      "Adicione o mascarpone aos poucos, mexendo delicadamente.",
+      "Misture o café frio com o licor Amaretto.",
+      "Mergulhe rapidamente cada biscoito no café (não encharcar).",
+      "Monte uma camada de biscoitos no fundo de uma travessa.",
+      "Cubra com metade do creme de mascarpone.",
+      "Repita: biscoitos + creme.",
+      "Leve à geladeira por no mínimo 4 horas (ideal 12h).",
+      "Antes de servir, polvilhe cacau amargo e raspas de chocolate."
+    ],
+    createdAt: "2025-02-15T10:00:00Z", updatedAt: "2025-02-15T10:00:00Z", publishedAt: "2025-02-15T10:00:00Z"
+  },
+  {
+    id: "seed-10",
+    slug: "ramen-japones-tonkotsu",
+    title: "Ramen Tonkotsu com Chashu",
+    description: "Ramen japonês autêntico com caldo cremoso de ossos de porco cozido por 12 horas e barriga de porco caramelizada.",
+    image: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=800&auto=format",
+    categorySlug: "salgadas",
+    tags: ["gourmet", "premium", "japonês"],
+    status: "published",
+    prepTime: 60, cookTime: 720, totalTime: 780, servings: 4,
+    accessTier: "paid",
+    priceBRL: 19.90,
+    fullIngredients: [
+      "1kg de ossos de porco (joelho e espinha)", "500g de barriga de porco inteira",
+      "200ml de molho de soja", "100ml de mirin", "4 ovos caipira (para ajitsuke tamago)",
+      "400g de macarrão ramen fresco", "4 dentes de alho", "Gengibre fresco 5cm",
+      "Cebolinha, nori e gergelim para finalizar", "Óleo de gergelim torrado"
+    ],
+    fullInstructions: [
+      "Branqueie os ossos em água fervente por 10 min, descarte a água.",
+      "Cubra os ossos com água limpa e cozinhe em fogo alto por 1h sem tampa.",
+      "Reduza para fogo médio e cozinhe por mais 11h, adicionando água conforme necessário.",
+      "O caldo deve ficar branco e cremoso (emulsão de colágeno).",
+      "Para o chashu: enrole a barriga de porco e amarre. Sele em panela quente.",
+      "Cozinhe o chashu no molho de soja + mirin + alho por 2h em fogo baixo.",
+      "Cozinhe os ovos por 6min30s (gema mole), descasque e marine no molho do chashu por 4h.",
+      "Cozinhe o macarrão conforme instruções (geralmente 2 min).",
+      "Monte: caldo no bowl, macarrão, fatias de chashu, ovo marinado partido ao meio.",
+      "Finalize com cebolinha, nori, gergelim e gotas de óleo de gergelim."
+    ],
+    createdAt: "2025-02-18T10:00:00Z", updatedAt: "2025-02-18T10:00:00Z", publishedAt: "2025-02-18T10:00:00Z"
+  },
+  {
+    id: "seed-11",
+    slug: "cheesecake-ny-style",
+    title: "Cheesecake New York Style com Calda de Frutas Vermelhas",
+    description: "O cheesecake cremoso estilo Nova York com base crocante de biscoito e calda artesanal de frutas vermelhas.",
+    image: "https://images.unsplash.com/photo-1524351199678-941a58a3df50?w=800&auto=format",
+    categorySlug: "doces",
+    tags: ["gourmet", "premium", "americano"],
+    status: "published",
+    prepTime: 30, cookTime: 60, totalTime: 360, servings: 12,
+    accessTier: "paid",
+    priceBRL: 11.90,
+    fullIngredients: [
+      "800g de cream cheese temperatura ambiente", "200g de açúcar", "5 ovos grandes",
+      "200ml de creme de leite fresco", "1 colher de extrato de baunilha",
+      "200g de biscoito tipo digestive", "80g de manteiga derretida",
+      "200g de mix de frutas vermelhas (morango, framboesa, mirtilo)", "3 colheres de açúcar para calda",
+      "Suco de meio limão"
+    ],
+    fullInstructions: [
+      "Triture os biscoitos e misture com a manteiga derretida.",
+      "Forre o fundo de uma forma de 23cm com fundo removível. Leve à geladeira 30 min.",
+      "Bata o cream cheese com o açúcar até ficar liso (não incorporar ar).",
+      "Adicione os ovos um a um, batendo em velocidade baixa.",
+      "Acrescente o creme de leite e a baunilha.",
+      "Despeje sobre a base e asse a 160°C por 60 min (centro levemente tremido).",
+      "Desligue o forno e deixe o cheesecake dentro por 1h com a porta entreaberta.",
+      "Leve à geladeira por no mínimo 4 horas.",
+      "Calda: cozinhe as frutas com açúcar e limão por 10 min até engrossar.",
+      "Sirva o cheesecake com a calda por cima."
+    ],
+    createdAt: "2025-02-20T10:00:00Z", updatedAt: "2025-02-20T10:00:00Z", publishedAt: "2025-02-20T10:00:00Z"
+  },
+  {
+    id: "seed-12",
+    slug: "paella-valenciana",
+    title: "Paella Valenciana Autêntica",
+    description: "A tradicional paella espanhola com frutos do mar, açafrão legítimo e arroz bomba cozido na paellera.",
+    image: "https://images.unsplash.com/photo-1534080564583-6be75777b70a?w=800&auto=format",
+    categorySlug: "salgadas",
+    tags: ["gourmet", "premium", "espanhol"],
+    status: "published",
+    prepTime: 30, cookTime: 45, totalTime: 75, servings: 6,
+    accessTier: "paid",
+    priceBRL: 16.90,
+    fullIngredients: [
+      "400g de arroz bomba (ou arbório)", "300g de camarões grandes limpos",
+      "300g de lula em anéis", "500g de mexilhões limpos", "1 pimentão vermelho em tiras",
+      "200g de ervilhas frescas", "4 dentes de alho picados", "2 tomates ralados",
+      "1 pitada generosa de açafrão em fios", "1,2L de caldo de peixe quente",
+      "Azeite de oliva extra virgem", "Limão siciliano para servir"
+    ],
+    fullInstructions: [
+      "Aqueça azeite na paellera e refogue os frutos do mar. Reserve.",
+      "No mesmo azeite, refogue o alho, pimentão e tomate por 5 min.",
+      "Adicione o arroz e toste por 2 minutos, mexendo.",
+      "Dissolva o açafrão no caldo quente e despeje sobre o arroz.",
+      "Distribua uniformemente e NÃO mexa mais a partir daqui.",
+      "Cozinhe em fogo alto por 5 min, depois médio por 15 min.",
+      "Adicione os frutos do mar e as ervilhas nos últimos 5 min.",
+      "Quando ouvir o arroz crepitar no fundo (socarrat), desligue.",
+      "Cubra com pano limpo e descanse 5 min antes de servir.",
+      "Sirva com fatias de limão siciliano."
+    ],
+    createdAt: "2025-02-22T10:00:00Z", updatedAt: "2025-02-22T10:00:00Z", publishedAt: "2025-02-22T10:00:00Z"
+  },
 ];
 
+const SEED_VERSION = "v3"; // bump to force re-seed when new recipes are added
+
 export function initSeedData() {
-  const existing = localStorage.getItem("rdb_recipes_v2");
-  if (!existing || existing === "[]") {
+  const seeded = localStorage.getItem("rdb_seed_version");
+  if (seeded !== SEED_VERSION) {
     localStorage.setItem("rdb_recipes_v2", JSON.stringify(seedRecipes));
+    localStorage.setItem("rdb_seed_version", SEED_VERSION);
   }
 }
