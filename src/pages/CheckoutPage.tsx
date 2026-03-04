@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSearchParams, Link } from "react-router-dom";
+import { useSearchParams, Link, useNavigate } from "react-router-dom";
 import { getRecipeBySlug, getRecipeById, formatBRL } from "@/lib/storage";
 import { useDemoPurchase } from "@/hooks/use-demo-purchase";
 import { useCart } from "@/hooks/use-cart";
@@ -11,6 +11,7 @@ import { toast } from "sonner";
 
 export default function CheckoutPage() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const recipeSlug = searchParams.get("slug");
   const isCartCheckout = searchParams.get("cart") === "1";
   const [recipes, setRecipes] = useState<Recipe[]>([]);
@@ -40,7 +41,7 @@ export default function CheckoutPage() {
     if (isCartCheckout) clearCart();
     toast.success("Pagamento aprovado! (simulação)");
     const slug = recipes.length === 1 ? recipes[0].slug : "";
-    window.location.href = `/compra/sucesso?slug=${slug}&status=approved&payment_id=mock-${Date.now()}`;
+    navigate(`/compra/sucesso?slug=${slug}&status=approved&payment_id=mock-${Date.now()}&count=${recipes.length}`);
   };
 
   if (!recipes.length) {

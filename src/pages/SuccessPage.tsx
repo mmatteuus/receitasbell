@@ -5,18 +5,21 @@ import { Button } from "@/components/ui/button";
 export default function SuccessPage() {
   const [searchParams] = useSearchParams();
   const slug = searchParams.get("slug");
-  const status = searchParams.get("status");
   const paymentId = searchParams.get("payment_id");
+  const count = Number(searchParams.get("count") || "1");
+  const isMulti = count > 1 || !slug;
 
   return (
-    <div className="container max-w-lg py-20 text-center animate-in zoom-in-95 duration-500">
+    <div className="container max-w-lg px-4 py-20 text-center animate-in zoom-in-95 duration-500">
       <div className="mx-auto h-24 w-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6 dark:bg-green-900/30 dark:text-green-400">
         <CheckCircle className="h-12 w-12" />
       </div>
 
       <h1 className="text-3xl font-bold mb-2">Compra Confirmada!</h1>
       <p className="text-muted-foreground mb-8">
-        Sua receita foi desbloqueada com sucesso. Aproveite o conteúdo completo!
+        {isMulti
+          ? `${count} receitas foram desbloqueadas com sucesso!`
+          : "Sua receita foi desbloqueada com sucesso. Aproveite o conteúdo completo!"}
       </p>
 
       <div className="bg-card border rounded-xl p-6 shadow-sm text-left mb-8 space-y-3">
@@ -32,13 +35,25 @@ export default function SuccessPage() {
             <code className="bg-muted px-2 py-1 rounded text-xs font-mono">{paymentId}</code>
           </div>
         )}
+        {isMulti && (
+          <div className="flex justify-between items-center">
+            <span className="text-sm text-muted-foreground">Receitas desbloqueadas</span>
+            <span className="font-semibold">{count}</span>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col gap-3">
-        {slug && (
+        {slug ? (
           <Button asChild size="lg" className="gap-2">
             <Link to={`/receitas/${slug}`}>
               Ver Receita Completa <ArrowRight className="h-4 w-4" />
+            </Link>
+          </Button>
+        ) : (
+          <Button asChild size="lg" className="gap-2">
+            <Link to="/buscar?tier=paid">
+              Ver Receitas Desbloqueadas <ArrowRight className="h-4 w-4" />
             </Link>
           </Button>
         )}
