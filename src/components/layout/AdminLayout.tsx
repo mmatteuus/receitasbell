@@ -1,30 +1,22 @@
-import { AdminSidebar, AdminSidebarProvider } from "@/AdminSidebar";
-import { Link, Outlet } from "react-router-dom";
-import { ChefHat, ExternalLink } from "lucide-react";
+import { AdminSidebar, AdminSidebarProvider, AdminMobileSidebar, AdminMobileMenuButton } from "@/AdminSidebar";
+import { Outlet } from "react-router-dom";
+import { AdminBreadcrumbs } from "./AdminBreadcrumbs";
 
 export default function AdminLayout() {
   return (
     <AdminSidebarProvider>
       <div className="flex min-h-screen">
-        {/* Sticky sidebar (hidden on mobile) */}
+        {/* Desktop sidebar */}
         <AdminSidebar />
+        {/* Mobile sidebar drawer */}
+        <AdminMobileSidebar />
 
         {/* Main column */}
         <div className="flex-1 flex flex-col min-w-0">
-          {/* Mobile header */}
-          <header className="flex h-14 items-center gap-2 border-b bg-card px-4 overflow-x-auto md:hidden">
-            <Link to="/admin" className="flex items-center gap-2 shrink-0">
-              <ChefHat className="h-5 w-5 text-primary" />
-              <span className="font-heading font-bold">Admin</span>
-            </Link>
-            <nav className="ml-auto flex items-center gap-1 text-sm shrink-0">
-              <Link to="/admin" className="rounded-md px-2 py-1 text-muted-foreground hover:bg-muted">Dashboard</Link>
-              <Link to="/admin/receitas" className="rounded-md px-2 py-1 text-muted-foreground hover:bg-muted">Receitas</Link>
-              <Link to="/admin/pagamentos" className="rounded-md px-2 py-1 text-muted-foreground hover:bg-muted">Pagamentos</Link>
-              <Link to="/" className="rounded-md p-1 text-muted-foreground hover:bg-muted">
-                <ExternalLink className="h-4 w-4" />
-              </Link>
-            </nav>
+          {/* Top header bar */}
+          <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b bg-card/80 backdrop-blur-sm px-4 md:px-8">
+            <AdminMobileMenuButton />
+            <AdminBreadcrumbs />
           </header>
 
           <main className="flex-1 bg-background p-4 md:p-8">
