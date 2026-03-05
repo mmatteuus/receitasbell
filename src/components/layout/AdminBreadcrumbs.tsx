@@ -7,8 +7,9 @@ const breadcrumbMap: Record<string, string> = {
   "/admin/receitas": "Receitas",
   "/admin/receitas/nova": "Nova Receita",
   "/admin/pagamentos": "Pagamentos",
-  "/admin/pagamentos/configuracoes": "Configurações",
+  "/admin/pagamentos/configuracoes": "Config. Pagamentos",
   "/admin/pagamentos/transacoes": "Transações",
+  "/admin/configuracoes": "Configurações",
 };
 
 export function AdminBreadcrumbs() {

@@ -14,6 +14,7 @@ import Institutional from "./pages/Institutional";
 import Dashboard from "./pages/admin/Dashboard";
 import RecipeListPage from "./pages/admin/RecipeListPage";
 import RecipeEditor from "./pages/admin/RecipeEditor";
+import SettingsPage from "./pages/admin/SettingsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ const App = () => (
             <Route path="receitas" element={<RecipeListPage />} />
             <Route path="receitas/nova" element={<RecipeEditor />} />
             <Route path="receitas/:id/editar" element={<RecipeEditor />} />
+            <Route path="configuracoes" element={<SettingsPage />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
