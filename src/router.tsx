@@ -12,6 +12,7 @@ import CartPage from "@/pages/CartPage";
 import Dashboard from "@/pages/admin/Dashboard";
 import RecipeListPage from "@/pages/admin/RecipeListPage";
 import RecipeEditor from "@/pages/admin/RecipeEditor";
+import SettingsPage from "@/pages/admin/SettingsPage";
 import CheckoutPage from "@/pages/CheckoutPage";
 import SuccessPage from "@/pages/SuccessPage";
 import PendingPage from "@/pages/PendingPage";
@@ -49,6 +50,7 @@ export const router = createBrowserRouter([
       { path: "receitas/nova", element: <RecipeEditor /> },
       { path: "receitas/:id/editar", element: <RecipeEditor /> },
       { path: "pagamentos/*", element: <AdminPaymentsRoutes /> },
+      { path: "configuracoes", element: <SettingsPage /> },
     ],
   },
 ]);
