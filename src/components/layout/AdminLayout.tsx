@@ -1,14 +1,16 @@
-import { AdminSidebar } from "@/AdminSidebar";
+import { AdminSidebar, AdminSidebarProvider } from "@/AdminSidebar";
 import { Link, Outlet } from "react-router-dom";
 import { ChefHat, ExternalLink } from "lucide-react";
-import { Footer } from "./Footer";
 
 export default function AdminLayout() {
   return (
-    <div className="flex min-h-screen flex-col">
-      <div className="flex flex-1">
+    <AdminSidebarProvider>
+      <div className="flex min-h-screen">
+        {/* Sticky sidebar (hidden on mobile) */}
         <AdminSidebar />
-        <div className="flex flex-1 flex-col">
+
+        {/* Main column */}
+        <div className="flex-1 flex flex-col min-w-0">
           {/* Mobile header */}
           <header className="flex h-14 items-center gap-2 border-b bg-card px-4 overflow-x-auto md:hidden">
             <Link to="/admin" className="flex items-center gap-2 shrink-0">
@@ -24,12 +26,20 @@ export default function AdminLayout() {
               </Link>
             </nav>
           </header>
+
           <main className="flex-1 bg-background p-4 md:p-8">
             <Outlet />
           </main>
+
+          {/* Minimal copyright footer */}
+          <footer className="border-t py-4 text-center text-xs text-muted-foreground">
+            © {new Date().getFullYear()} Receitas do Bell. Desenvolvido por{" "}
+            <a href="https://mtsferreira.dev" target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline">
+              MtsFerreira
+            </a>
+          </footer>
         </div>
       </div>
-      <Footer />
-    </div>
+    </AdminSidebarProvider>
   );
 }
