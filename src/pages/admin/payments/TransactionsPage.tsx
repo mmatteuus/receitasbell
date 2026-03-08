@@ -119,9 +119,17 @@ export default function TransactionsPage() {
             <DatePickerWithRange onSelect={setDateRange} />
         </div>
       </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center gap-2 flex-wrap">
             <Button onClick={handleFilter}>Filtrar</Button>
             <Button variant="outline" onClick={clearFilters}>Limpar Filtros</Button>
+            <div className="ml-auto flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => exportPaymentsCSV(payments)} className="gap-1.5">
+                <Download className="h-4 w-4" /> CSV
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => exportPaymentsPDF(payments)} className="gap-1.5">
+                <FileText className="h-4 w-4" /> PDF
+              </Button>
+            </div>
         </div>
 
       {loading ? (

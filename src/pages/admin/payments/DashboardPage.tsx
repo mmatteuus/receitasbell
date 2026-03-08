@@ -67,22 +67,29 @@ export default function DashboardPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-wrap justify-between items-center gap-3">
                 <h1 className="text-2xl font-bold">Dashboard de Pagamentos</h1>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                     <DatePickerWithRange onSelect={setDateRange} />
-                    <Button onClick={() => {
+                    <Button variant="outline" size="sm" onClick={() => {
                         const to = new Date();
                         const from = new Date();
                         from.setDate(from.getDate() - 7);
                         setDateRange({ from, to });
-                    }}>Últimos 7 dias</Button>
-                    <Button onClick={() => {
+                    }}>7 dias</Button>
+                    <Button variant="outline" size="sm" onClick={() => {
                         const to = new Date();
                         const from = new Date();
                         from.setDate(from.getDate() - 30);
                         setDateRange({ from, to });
-                    }}>Últimos 30 dias</Button>
+                    }}>30 dias</Button>
+                    <div className="h-6 w-px bg-border" />
+                    <Button variant="outline" size="sm" onClick={() => exportPaymentsCSV(payments, "dashboard-pagamentos")} className="gap-1.5">
+                        <Download className="h-4 w-4" /> CSV
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => exportPaymentsPDF(payments, "dashboard-pagamentos")} className="gap-1.5">
+                        <FileText className="h-4 w-4" /> PDF
+                    </Button>
                 </div>
             </div>
 
