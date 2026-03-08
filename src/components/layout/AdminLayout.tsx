@@ -1,7 +1,7 @@
 import { AdminSidebar, AdminSidebarProvider, AdminMobileSidebar, AdminMobileMenuButton } from "@/AdminSidebar";
 import { Outlet } from "react-router-dom";
 import { AdminBreadcrumbs } from "./AdminBreadcrumbs";
-
+import { AdminNotifications } from "./AdminNotifications";
 export default function AdminLayout() {
   return (
     <AdminSidebarProvider>
@@ -17,6 +17,9 @@ export default function AdminLayout() {
           <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b bg-card/80 backdrop-blur-sm px-4 md:px-8">
             <AdminMobileMenuButton />
             <AdminBreadcrumbs />
+            <div className="ml-auto">
+              <AdminNotifications />
+            </div>
           </header>
 
           <main className="flex-1 bg-background p-4 md:p-8">
