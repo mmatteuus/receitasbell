@@ -38,6 +38,16 @@ export default function TransactionsPage() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const calculateTotals = (paymentsList: Payment[]) => {
+    return {
+      count: paymentsList.length,
+      total: paymentsList.reduce((sum, p) => sum + p.transaction_amount, 0),
+      approved: paymentsList
+        .filter(p => p.status === 'approved')
+        .reduce((sum, p) => sum + p.transaction_amount, 0),
+    };
+  };
+
   // Filters
   const [search, setSearch] = useState("");
   const [searchField, setSearchField] = useState("email");
