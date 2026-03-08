@@ -38,6 +38,16 @@ export default function TransactionsPage() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const calculateTotals = (paymentsList: Payment[]) => {
+    return {
+      count: paymentsList.length,
+      total: paymentsList.reduce((sum, p) => sum + p.transaction_amount, 0),
+      approved: paymentsList
+        .filter(p => p.status === 'approved')
+        .reduce((sum, p) => sum + p.transaction_amount, 0),
+    };
+  };
+
   // Filters
   const [search, setSearch] = useState("");
   const [searchField, setSearchField] = useState("email");
@@ -80,6 +90,34 @@ export default function TransactionsPage() {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">Transações</h1>
+
+      {/* Totalizador */}
+      {!loading && payments.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="rounded-lg border bg-card p-4">
+            <p className="text-sm text-muted-foreground">Total de Transações</p>
+            <p className="text-2xl font-bold">{calculateTotals(payments).count}</p>
+          </div>
+          <div className="rounded-lg border bg-card p-4">
+            <p className="text-sm text-muted-foreground">Valor Total</p>
+            <p className="text-2xl font-bold">
+              {new Intl.NumberFormat("pt-BR", {
+                style: "currency",
+                currency: "BRL",
+              }).format(calculateTotals(payments).total)}
+            </p>
+          </div>
+          <div className="rounded-lg border bg-card p-4">
+            <p className="text-sm text-muted-foreground">Valor Aprovado</p>
+            <p className="text-2xl font-bold">
+              {new Intl.NumberFormat("pt-BR", {
+                style: "currency",
+                currency: "BRL",
+              }).format(calculateTotals(payments).approved)}
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="flex items-start gap-2 flex-wrap">
         <div className="grid w-full max-w-sm items-center gap-1.5">
