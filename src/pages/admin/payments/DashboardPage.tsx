@@ -83,6 +83,7 @@ export default function DashboardPage() {
   const chartRefTrends = useRef<HTMLDivElement>(null);
   const chartRefSuccess = useRef<HTMLDivElement>(null);
   const chartRefMethods = useRef<HTMLDivElement>(null);
+  const chartRefMonthly = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setLoading(true);
