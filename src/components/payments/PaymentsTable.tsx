@@ -7,6 +7,7 @@ import {
     useReactTable,
     SortingState,
     getSortedRowModel,
+    VisibilityState,
 } from "@tanstack/react-table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
@@ -19,11 +20,12 @@ import {
     TableRow,
 } from "@/components/ui/table"
 import { Payment } from "@/lib/payments/types"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "../ui/button"
 import { StatusBadge } from "./StatusBadge"
 import { useNavigate } from "react-router-dom"
 import { ArrowUpDown } from "lucide-react"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 interface PaymentsTableProps {
     data: Payment[]
@@ -122,6 +124,16 @@ const columns: ColumnDef<Payment>[] = [
 
 export function PaymentsTable({ data }: PaymentsTableProps) {
     const [sorting, setSorting] = useState<SortingState>([])
+    const isMobile = useIsMobile()
+    const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
+
+    useEffect(() => {
+        setColumnVisibility({
+            external_reference: !isMobile,
+            payment_method_id: !isMobile,
+            actions: !isMobile,
+        })
+    }, [isMobile])
 
     const table = useReactTable({
         data,
@@ -130,8 +142,10 @@ export function PaymentsTable({ data }: PaymentsTableProps) {
         getPaginationRowModel: getPaginationRowModel(),
         onSortingChange: setSorting,
         getSortedRowModel: getSortedRowModel(),
+        onColumnVisibilityChange: setColumnVisibility,
         state: {
-            sorting
+            sorting,
+            columnVisibility,
         }
     })
 

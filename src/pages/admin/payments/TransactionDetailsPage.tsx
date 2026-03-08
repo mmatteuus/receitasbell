@@ -61,35 +61,35 @@ export default function TransactionDetailsPage() {
 
   return (
     <div className="space-y-6">
-        <div className="flex justify-between items-start">
+        <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
             <div>
                 <div className="flex items-center gap-2">
-                    <h1 className="text-2xl font-bold">Detalhes da Transação</h1>
+                    <h1 className="text-xl sm:text-2xl font-bold">Detalhes da Transação</h1>
                     <Button variant="ghost" size="icon" onClick={() => copyToClipboard(String(payment.id))}>
                         <Copy className="h-4 w-4" />
                     </Button>
                 </div>
-                <p className="text-muted-foreground">Payment ID: {payment.id}</p>
+                <p className="text-muted-foreground text-sm">Payment ID: {payment.id}</p>
             </div>
             <StatusBadge status={payment.status} statusDetail={payment.status_detail} />
         </div>
 
         <div className="flex items-center space-x-2">
-            <Button disabled>
+            <Button disabled size="sm">
                 Reembolsar
             </Button>
-            <Button variant="outline" disabled>
+            <Button variant="outline" disabled size="sm">
                 Cancelar
             </Button>
         </div>
 
-      <div className="grid md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2 space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Resumo</CardTitle>
+              <CardTitle className="text-lg">Resumo</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3 text-sm">
                 <p><strong>Valor:</strong> {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(payment.transaction_amount)}</p>
                 <p><strong>Método:</strong> {payment.payment_method_id}</p>
                 <p><strong>Data de criação:</strong> {new Date(payment.date_created).toLocaleString()}</p>
@@ -99,20 +99,20 @@ export default function TransactionDetailsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Pagador</CardTitle>
+              <CardTitle className="text-lg">Pagador</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
-              <p><strong>Email:</strong> {payment.payer.email}</p>
+            <CardContent className="space-y-2 text-sm">
+              <p><strong>Email:</strong> <span className="break-all">{payment.payer.email}</span></p>
               {payment.payer.first_name && <p><strong>Nome:</strong> {payment.payer.first_name}</p>}
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle>Item Comprado</CardTitle>
+              <CardTitle className="text-lg">Item Comprado</CardTitle>
             </CardHeader>
-            <CardContent>
-              <Link to={`/receitas/${payment.external_reference}`} className="text-blue-500 hover:underline">
+            <CardContent className="text-sm">
+              <Link to={`/receitas/${payment.external_reference}`} className="text-primary hover:underline break-all">
                 Ver receita: {payment.external_reference}
               </Link>
             </CardContent>
@@ -122,10 +122,10 @@ export default function TransactionDetailsPage() {
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Timeline</CardTitle>
+              <CardTitle className="text-lg">Timeline</CardTitle>
             </CardHeader>
             <CardContent>
-              <ul className="space-y-2">
+              <ul className="space-y-2 text-sm">
                 <li>Criado: {new Date(payment.date_created).toLocaleString()}</li>
                 {payment.date_approved && <li>Aprovado: {new Date(payment.date_approved).toLocaleString()}</li>}
                 {payment.status === 'refunded' && <li>Reembolsado</li>}
@@ -136,10 +136,10 @@ export default function TransactionDetailsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Eventos</CardTitle>
+              <CardTitle className="text-lg">Eventos</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">Última sincronização: {events.length > 0 ? new Date(events[0].date_created).toLocaleString() : 'N/A'}</p>
+              <p className="text-xs text-muted-foreground">Última sincronização: {events.length > 0 ? new Date(events[0].date_created).toLocaleString() : 'N/A'}</p>
               <ul className="space-y-2 mt-4">
                 {events.map(event => (
                   <li key={event.id} className="text-sm">
@@ -152,7 +152,7 @@ export default function TransactionDetailsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Observações Internas</CardTitle>
+              <CardTitle className="text-lg">Observações Internas</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <Textarea 
@@ -160,7 +160,7 @@ export default function TransactionDetailsPage() {
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="Adicione uma nota interna sobre este pagamento..."
               />
-              <Button onClick={handleSaveNote}>Salvar Nota</Button>
+              <Button onClick={handleSaveNote} size="sm">Salvar Nota</Button>
             </CardContent>
           </Card>
         </div>
