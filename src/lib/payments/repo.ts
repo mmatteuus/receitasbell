@@ -20,6 +20,7 @@ initializeData();
 
 interface ListPaymentsFilters {
   status?: PaymentStatus[];
+  paymentMethod?: string[];
   email?: string;
   paymentId?: string;
   externalReference?: string;
@@ -33,6 +34,10 @@ export const paymentsRepo = {
 
     if (filters.status && filters.status.length > 0) {
       payments = payments.filter(p => filters.status!.includes(p.status));
+    }
+
+    if (filters.paymentMethod && filters.paymentMethod.length > 0) {
+      payments = payments.filter(p => filters.paymentMethod!.includes(p.payment_method_id));
     }
 
     if (filters.email) {
