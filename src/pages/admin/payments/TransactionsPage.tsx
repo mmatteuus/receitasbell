@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { Payment, PaymentStatus } from "@/lib/payments/types";
 import { paymentsRepo } from "@/lib/payments/repo";
+import { exportPaymentsCSV, exportPaymentsPDF } from "@/lib/payments/export";
 import { PaymentsTable } from "@/components/payments/PaymentsTable";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import { DatePickerWithRange } from "@/components/ui/date-picker-with-range";
 import { DateRange } from "react-day-picker";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Download, FileText } from "lucide-react";
 
 const statusOptions: { label: string, value: PaymentStatus }[] = [
     { label: "Aprovado", value: "approved" },
