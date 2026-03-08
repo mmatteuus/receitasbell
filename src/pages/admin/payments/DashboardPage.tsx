@@ -2,11 +2,13 @@
 import { useEffect, useState } from "react";
 import { paymentsRepo } from "@/lib/payments/repo";
 import { Payment } from "@/lib/payments/types";
+import { exportPaymentsCSV, exportPaymentsPDF } from "@/lib/payments/export";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AreaChart, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Area } from 'recharts';
 import { Button } from "@/components/ui/button";
 import { DateRange } from "react-day-picker";
 import { DatePickerWithRange } from "@/components/ui/date-picker-with-range";
+import { Download, FileText } from "lucide-react";
 
 const getRevenue = (payments: Payment[]) => payments.reduce((acc, p) => p.status === 'approved' ? acc + p.transaction_amount : acc, 0);
 
