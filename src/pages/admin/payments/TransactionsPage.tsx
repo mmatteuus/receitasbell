@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { Payment, PaymentStatus } from "@/lib/payments/types";
 import { paymentsRepo } from "@/lib/payments/repo";
+import { exportPaymentsCSV, exportPaymentsPDF } from "@/lib/payments/export";
 import { PaymentsTable } from "@/components/payments/PaymentsTable";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import { DatePickerWithRange } from "@/components/ui/date-picker-with-range";
 import { DateRange } from "react-day-picker";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Download, FileText } from "lucide-react";
 
 const statusOptions: { label: string, value: PaymentStatus }[] = [
     { label: "Aprovado", value: "approved" },
@@ -117,9 +119,17 @@ export default function TransactionsPage() {
             <DatePickerWithRange onSelect={setDateRange} />
         </div>
       </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center gap-2 flex-wrap">
             <Button onClick={handleFilter}>Filtrar</Button>
             <Button variant="outline" onClick={clearFilters}>Limpar Filtros</Button>
+            <div className="ml-auto flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => exportPaymentsCSV(payments)} className="gap-1.5">
+                <Download className="h-4 w-4" /> CSV
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => exportPaymentsPDF(payments)} className="gap-1.5">
+                <FileText className="h-4 w-4" /> PDF
+              </Button>
+            </div>
         </div>
 
       {loading ? (
