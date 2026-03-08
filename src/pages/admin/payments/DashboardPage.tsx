@@ -444,6 +444,48 @@ export default function DashboardPage() {
             </Card>
           </div>
         </TabsContent>
+
+        {/* Monthly Comparison */}
+        <TabsContent value="monthly">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-foreground">Comparação Mês a Mês</CardTitle>
+                <CardDescription>Evolução da receita e volume de transações por mês</CardDescription>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => exportChartAsPNG(chartRefMonthly, "comparacao-mensal")} title="Exportar como PNG">
+                <Camera className="h-4 w-4" />
+              </Button>
+            </CardHeader>
+            <CardContent ref={chartRefMonthly}>
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart data={monthlyComparison}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis dataKey="label" />
+                  <YAxis yAxisId="left" tickFormatter={(val) => formatBRL(val)} width={90} />
+                  <YAxis yAxisId="right" orientation="right" />
+                  <Tooltip
+                    formatter={(val: number, name: string) => {
+                      if (name === 'revenue') return [formatBRL(val), 'Receita'];
+                      if (name === 'avgTicket') return [formatBRL(val), 'Ticket Médio'];
+                      return [val, 'Transações'];
+                    }}
+                    contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }}
+                  />
+                  <Legend formatter={(value) => {
+                    if (value === 'revenue') return 'Receita';
+                    if (value === 'count') return 'Total Transações';
+                    if (value === 'avgTicket') return 'Ticket Médio';
+                    return value;
+                  }} />
+                  <Bar yAxisId="left" dataKey="revenue" name="revenue" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                  <Bar yAxisId="right" dataKey="count" name="count" fill="hsl(var(--primary) / 0.4)" radius={[4, 4, 0, 0]} />
+                  <Line yAxisId="left" type="monotone" dataKey="avgTicket" name="avgTicket" stroke="hsl(45, 93%, 47%)" strokeWidth={2} dot={{ r: 4 }} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
     </div>
   );
