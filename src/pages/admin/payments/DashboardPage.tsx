@@ -163,6 +163,28 @@ export default function DashboardPage() {
     }));
   }, [payments]);
 
+  const monthlyComparison = useMemo(() => {
+    const map: Record<string, { revenue: number; count: number; approved: number }> = {};
+    payments.forEach(p => {
+      const d = new Date(p.date_created);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      if (!map[key]) map[key] = { revenue: 0, count: 0, approved: 0 };
+      map[key].count += 1;
+      if (p.status === 'approved') {
+        map[key].revenue += p.transaction_amount;
+        map[key].approved += 1;
+      }
+    });
+    return Object.entries(map)
+      .map(([month, data]) => ({
+        month,
+        label: new Date(month + '-15').toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }),
+        ...data,
+        avgTicket: data.approved > 0 ? data.revenue / data.approved : 0,
+      }))
+      .sort((a, b) => a.month.localeCompare(b.month));
+  }, [payments]);
+
   const setQuickRange = (days: number) => {
     const to = new Date();
     const from = new Date();
