@@ -7,7 +7,7 @@ import { exportPaymentsCSV, exportPaymentsPDF } from "@/lib/payments/export";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   AreaChart, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Area,
-  PieChart, Pie, Cell, LineChart, Line, Legend, CartesianGrid
+  PieChart, Pie, Cell, LineChart, Line, Legend, CartesianGrid, ComposedChart
 } from 'recharts';
 import { Button } from "@/components/ui/button";
 import { DateRange } from "react-day-picker";
