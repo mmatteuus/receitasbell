@@ -459,7 +459,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent ref={chartRefMonthly}>
               <ResponsiveContainer width="100%" height={400}>
-                <BarChart data={monthlyComparison}>
+                <ComposedChart data={monthlyComparison}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                   <XAxis dataKey="label" />
                   <YAxis yAxisId="left" tickFormatter={(val) => formatBRL(val)} width={90} />
@@ -481,7 +481,7 @@ export default function DashboardPage() {
                   <Bar yAxisId="left" dataKey="revenue" name="revenue" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                   <Bar yAxisId="right" dataKey="count" name="count" fill="hsl(var(--primary) / 0.4)" radius={[4, 4, 0, 0]} />
                   <Line yAxisId="left" type="monotone" dataKey="avgTicket" name="avgTicket" stroke="hsl(45, 93%, 47%)" strokeWidth={2} dot={{ r: 4 }} />
-                </BarChart>
+                </ComposedChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
