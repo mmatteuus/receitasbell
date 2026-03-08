@@ -20,6 +20,7 @@ initializeData();
 
 interface ListPaymentsFilters {
   status?: PaymentStatus[];
+  paymentMethod?: string[];
   email?: string;
   paymentId?: string;
   externalReference?: string;
