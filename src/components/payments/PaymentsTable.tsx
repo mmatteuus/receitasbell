@@ -124,6 +124,16 @@ const columns: ColumnDef<Payment>[] = [
 
 export function PaymentsTable({ data }: PaymentsTableProps) {
     const [sorting, setSorting] = useState<SortingState>([])
+    const isMobile = useIsMobile()
+    const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
+
+    useEffect(() => {
+        setColumnVisibility({
+            external_reference: !isMobile,
+            payment_method_id: !isMobile,
+            actions: !isMobile,
+        })
+    }, [isMobile])
 
     const table = useReactTable({
         data,
@@ -132,8 +142,10 @@ export function PaymentsTable({ data }: PaymentsTableProps) {
         getPaginationRowModel: getPaginationRowModel(),
         onSortingChange: setSorting,
         getSortedRowModel: getSortedRowModel(),
+        onColumnVisibilityChange: setColumnVisibility,
         state: {
-            sorting
+            sorting,
+            columnVisibility,
         }
     })
 
