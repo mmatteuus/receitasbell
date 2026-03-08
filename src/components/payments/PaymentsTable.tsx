@@ -181,9 +181,9 @@ export function PaymentsTable({ data }: PaymentsTableProps) {
                     </TableBody>
                 </Table>
             </div>
-            <div className="flex items-center justify-between py-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 py-4">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <span>Linhas por página</span>
+                    <span className="whitespace-nowrap">Linhas por página</span>
                     <Select
                         value={String(table.getState().pagination.pageSize)}
                         onValueChange={(val) => table.setPageSize(Number(val))}
