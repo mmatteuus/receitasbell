@@ -277,10 +277,11 @@ export default function DashboardPage() {
 
       {/* Charts Section */}
       <Tabs defaultValue="trends" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-grid">
+        <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid">
           <TabsTrigger value="trends">Tendências</TabsTrigger>
           <TabsTrigger value="success">Taxa de Sucesso</TabsTrigger>
           <TabsTrigger value="methods">Por Método</TabsTrigger>
+          <TabsTrigger value="monthly">Mês a Mês</TabsTrigger>
         </TabsList>
 
         {/* Revenue Trends */}
