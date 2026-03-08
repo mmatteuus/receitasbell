@@ -28,6 +28,12 @@ const statusOptions: { label: string, value: PaymentStatus }[] = [
     { label: "Chargeback", value: "charged_back" },
 ];
 
+const methodOptions: { label: string, value: string }[] = [
+    { label: "PIX", value: "pix" },
+    { label: "Cartão de Crédito", value: "credit_card" },
+    { label: "Boleto", value: "boleto" },
+];
+
 export default function TransactionsPage() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,6 +42,7 @@ export default function TransactionsPage() {
   const [search, setSearch] = useState("");
   const [searchField, setSearchField] = useState("email");
   const [status, setStatus] = useState<PaymentStatus[]>([]);
+  const [methods, setMethods] = useState<string[]>([]);
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
   const handleFilter = () => {
@@ -43,6 +50,7 @@ export default function TransactionsPage() {
     const filters = {
         [searchField]: search,
         status: status,
+        paymentMethod: methods,
         dateFrom: dateRange?.from?.toISOString(),
         dateTo: dateRange?.to?.toISOString(),
     }
@@ -56,6 +64,7 @@ export default function TransactionsPage() {
     setSearch("");
     setSearchField("email");
     setStatus([]);
+    setMethods([]);
     setDateRange(undefined);
     setPayments(paymentsRepo.listPayments());
     setLoading(false);
@@ -72,7 +81,7 @@ export default function TransactionsPage() {
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">Transações</h1>
 
-      <div className="flex items-center space-x-2">
+      <div className="flex items-start gap-2 flex-wrap">
         <div className="grid w-full max-w-sm items-center gap-1.5">
             <Label htmlFor="search">Pesquisar</Label>
             <div className="flex w-full max-w-sm items-center space-x-2">
@@ -90,12 +99,12 @@ export default function TransactionsPage() {
             </div>
         </div>
 
-        <div className="grid w-full max-w-sm items-center gap-1.5">
+        <div className="grid w-full max-w-[200px] items-center gap-1.5">
             <Label>Status</Label>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="w-full">
-                        Selecionar Status
+                    <Button variant="outline" className="w-full justify-start font-normal">
+                        {status.length > 0 ? `${status.length} selecionado(s)` : "Selecionar Status"}
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56">
@@ -105,6 +114,30 @@ export default function TransactionsPage() {
                             checked={status.includes(option.value)}
                             onCheckedChange={(checked) => {
                                 setStatus(prev => checked ? [...prev, option.value] : prev.filter(s => s !== option.value))
+                            }}
+                        >
+                            {option.label}
+                        </DropdownMenuCheckboxItem>
+                    ))}
+                </DropdownMenuContent>
+            </DropdownMenu>
+        </div>
+
+        <div className="grid w-full max-w-[200px] items-center gap-1.5">
+            <Label>Método</Label>
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start font-normal">
+                        {methods.length > 0 ? `${methods.length} selecionado(s)` : "Selecionar Método"}
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56">
+                    {methodOptions.map(option => (
+                        <DropdownMenuCheckboxItem
+                            key={option.value}
+                            checked={methods.includes(option.value)}
+                            onCheckedChange={(checked) => {
+                                setMethods(prev => checked ? [...prev, option.value] : prev.filter(m => m !== option.value))
                             }}
                         >
                             {option.label}
