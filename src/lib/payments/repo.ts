@@ -36,6 +36,10 @@ export const paymentsRepo = {
       payments = payments.filter(p => filters.status!.includes(p.status));
     }
 
+    if (filters.paymentMethod && filters.paymentMethod.length > 0) {
+      payments = payments.filter(p => filters.paymentMethod!.includes(p.payment_method_id));
+    }
+
     if (filters.email) {
       const query = filters.email.toLowerCase();
       payments = payments.filter(p => p.payer.email.toLowerCase().includes(query));
