@@ -1,5 +1,6 @@
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { paymentsRepo } from "@/lib/payments/repo";
 import { Payment } from "@/lib/payments/types";
 import { exportPaymentsCSV, exportPaymentsPDF } from "@/lib/payments/export";
@@ -11,8 +12,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { DateRange } from "react-day-picker";
 import { DatePickerWithRange } from "@/components/ui/date-picker-with-range";
-import { Download, FileText, TrendingUp, TrendingDown, DollarSign, CreditCard, CheckCircle, Clock, RotateCcw } from "lucide-react";
+import { Download, FileText, DollarSign, CheckCircle, Clock, RotateCcw, Camera } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { toast } from "sonner";
+import html2canvas from "html2canvas";
 
 const formatBRL = (val: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(val);
 
@@ -48,7 +51,26 @@ const STATUS_LABELS: Record<string, string> = {
   charged_back: 'Chargeback',
 };
 
+const STATUS_LABELS_REVERSE: Record<string, string> = Object.fromEntries(
+  Object.entries(STATUS_LABELS).map(([k, v]) => [v, k])
+);
+
+async function exportChartAsPNG(ref: React.RefObject<HTMLDivElement | null>, filename: string) {
+  if (!ref.current) return;
+  try {
+    const canvas = await html2canvas(ref.current, { backgroundColor: null, scale: 2 });
+    const link = document.createElement("a");
+    link.download = `${filename}.png`;
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+    toast.success("Gráfico exportado como PNG");
+  } catch {
+    toast.error("Erro ao exportar gráfico");
+  }
+}
+
 export default function DashboardPage() {
+  const navigate = useNavigate();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
@@ -57,6 +79,10 @@ export default function DashboardPage() {
     from.setDate(from.getDate() - 90);
     return { from, to };
   });
+
+  const chartRefTrends = useRef<HTMLDivElement>(null);
+  const chartRefSuccess = useRef<HTMLDivElement>(null);
+  const chartRefMethods = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -131,6 +157,7 @@ export default function DashboardPage() {
     payments.forEach(p => { map[p.status] = (map[p.status] || 0) + 1; });
     return Object.entries(map).map(([name, value]) => ({
       name: STATUS_LABELS[name] || name,
+      statusKey: name,
       value,
       color: COLORS[name as keyof typeof COLORS] || 'hsl(0,0%,50%)',
     }));
@@ -142,6 +169,24 @@ export default function DashboardPage() {
     from.setDate(from.getDate() - days);
     setDateRange({ from, to });
   };
+
+  const handleStatusBarClick = useCallback((data: any) => {
+    if (!data) return;
+    const statusKey = data.statusKey || STATUS_LABELS_REVERSE[data.name];
+    if (statusKey) {
+      navigate(`/admin/pagamentos/transacoes?status=${statusKey}`);
+      toast.info(`Filtrando transações por: ${STATUS_LABELS[statusKey] || statusKey}`);
+    }
+  }, [navigate]);
+
+  const handleMethodBarClick = useCallback((data: any) => {
+    if (!data) return;
+    const method = data.method;
+    if (method) {
+      navigate(`/admin/pagamentos/transacoes?method=${method}`);
+      toast.info(`Filtrando transações por: ${METHOD_LABELS[method] || method}`);
+    }
+  }, [navigate]);
 
   return (
     <div className="space-y-6">
@@ -218,11 +263,16 @@ export default function DashboardPage() {
         {/* Revenue Trends */}
         <TabsContent value="trends">
           <Card>
-            <CardHeader>
-              <CardTitle className="text-foreground">Tendência de Receita</CardTitle>
-              <CardDescription>Receita aprovada por dia no período selecionado</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-foreground">Tendência de Receita</CardTitle>
+                <CardDescription>Receita aprovada por dia no período selecionado</CardDescription>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => exportChartAsPNG(chartRefTrends, "tendencia-receita")} title="Exportar como PNG">
+                <Camera className="h-4 w-4" />
+              </Button>
             </CardHeader>
-            <CardContent>
+            <CardContent ref={chartRefTrends}>
               <ResponsiveContainer width="100%" height={350}>
                 <AreaChart data={revenueByDay}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
@@ -243,11 +293,16 @@ export default function DashboardPage() {
         {/* Success Rate */}
         <TabsContent value="success">
           <Card>
-            <CardHeader>
-              <CardTitle className="text-foreground">Taxa de Sucesso por Dia</CardTitle>
-              <CardDescription>Percentual de transações aprovadas em relação ao total diário</CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-foreground">Taxa de Sucesso por Dia</CardTitle>
+                <CardDescription>Percentual de transações aprovadas em relação ao total diário</CardDescription>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => exportChartAsPNG(chartRefSuccess, "taxa-sucesso")} title="Exportar como PNG">
+                <Camera className="h-4 w-4" />
+              </Button>
             </CardHeader>
-            <CardContent>
+            <CardContent ref={chartRefSuccess}>
               <ResponsiveContainer width="100%" height={350}>
                 <LineChart data={successRateByDay}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
@@ -273,11 +328,13 @@ export default function DashboardPage() {
 
         {/* Revenue by Method */}
         <TabsContent value="methods">
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2" ref={chartRefMethods}>
             <Card>
-              <CardHeader>
-                <CardTitle className="text-foreground">Receita por Método</CardTitle>
-                <CardDescription>Distribuição da receita aprovada por método de pagamento</CardDescription>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="text-foreground">Receita por Método</CardTitle>
+                  <CardDescription>Clique em uma fatia para filtrar transações</CardDescription>
+                </div>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
@@ -290,6 +347,8 @@ export default function DashboardPage() {
                       cy="50%"
                       outerRadius={100}
                       label={({ label, percent }) => `${label} (${(percent * 100).toFixed(0)}%)`}
+                      onClick={handleMethodBarClick}
+                      className="cursor-pointer"
                     >
                       {revenueByMethod.map((entry) => (
                         <Cell key={entry.method} fill={METHOD_COLORS[entry.method as keyof typeof METHOD_COLORS] || 'hsl(0,0%,60%)'} />
@@ -305,7 +364,7 @@ export default function DashboardPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-foreground">Volume por Método</CardTitle>
-                <CardDescription>Quantidade de transações aprovadas por método</CardDescription>
+                <CardDescription>Clique em uma barra para filtrar transações</CardDescription>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
@@ -320,7 +379,7 @@ export default function DashboardPage() {
                       }}
                       contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }}
                     />
-                    <Bar dataKey="count" name="Transações" radius={[4, 4, 0, 0]}>
+                    <Bar dataKey="count" name="Transações" radius={[4, 4, 0, 0]} onClick={handleMethodBarClick} className="cursor-pointer">
                       {revenueByMethod.map((entry) => (
                         <Cell key={entry.method} fill={METHOD_COLORS[entry.method as keyof typeof METHOD_COLORS] || 'hsl(0,0%,60%)'} />
                       ))}
@@ -332,9 +391,14 @@ export default function DashboardPage() {
 
             {/* Status Distribution */}
             <Card className="md:col-span-2">
-              <CardHeader>
-                <CardTitle className="text-foreground">Distribuição de Status</CardTitle>
-                <CardDescription>Visão geral do status de todas as transações</CardDescription>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="text-foreground">Distribuição de Status</CardTitle>
+                  <CardDescription>Clique em uma barra para filtrar transações por status</CardDescription>
+                </div>
+                <Button variant="ghost" size="icon" onClick={() => exportChartAsPNG(chartRefMethods, "metodos-pagamento")} title="Exportar como PNG">
+                  <Camera className="h-4 w-4" />
+                </Button>
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
@@ -345,7 +409,7 @@ export default function DashboardPage() {
                     <Tooltip
                       contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }}
                     />
-                    <Bar dataKey="value" name="Transações" radius={[0, 4, 4, 0]}>
+                    <Bar dataKey="value" name="Transações" radius={[0, 4, 4, 0]} onClick={handleStatusBarClick} className="cursor-pointer">
                       {statusDistribution.map((entry, i) => (
                         <Cell key={i} fill={entry.color} />
                       ))}
