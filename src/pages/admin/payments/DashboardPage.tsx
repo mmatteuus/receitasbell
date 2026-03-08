@@ -1,73 +1,20 @@
-
-import { useEffect, useState, useMemo, useRef, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { paymentsRepo } from "@/lib/payments/repo";
 import { Payment } from "@/lib/payments/types";
 import { exportPaymentsCSV, exportPaymentsPDF } from "@/lib/payments/export";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import {
-  AreaChart, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Area,
-  PieChart, Pie, Cell, LineChart, Line, Legend, CartesianGrid, ComposedChart
-} from 'recharts';
 import { Button } from "@/components/ui/button";
 import { DateRange } from "react-day-picker";
 import { DatePickerWithRange } from "@/components/ui/date-picker-with-range";
-import { Download, FileText, DollarSign, CheckCircle, Clock, RotateCcw, Camera } from "lucide-react";
+import { Download, FileText } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import html2canvas from "html2canvas";
-
-const formatBRL = (val: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(val);
-
-const COLORS = {
-  approved: 'hsl(142, 71%, 45%)',
-  pending: 'hsl(45, 93%, 47%)',
-  in_process: 'hsl(199, 89%, 48%)',
-  rejected: 'hsl(0, 84%, 60%)',
-  cancelled: 'hsl(0, 0%, 60%)',
-  refunded: 'hsl(262, 83%, 58%)',
-  charged_back: 'hsl(330, 81%, 60%)',
-};
-
-const METHOD_COLORS = {
-  pix: 'hsl(168, 76%, 42%)',
-  credit_card: 'hsl(221, 83%, 53%)',
-  boleto: 'hsl(25, 95%, 53%)',
-};
-
-const METHOD_LABELS: Record<string, string> = {
-  pix: 'PIX',
-  credit_card: 'Cartão de Crédito',
-  boleto: 'Boleto',
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  approved: 'Aprovado',
-  pending: 'Pendente',
-  in_process: 'Em Processo',
-  rejected: 'Rejeitado',
-  cancelled: 'Cancelado',
-  refunded: 'Reembolsado',
-  charged_back: 'Chargeback',
-};
-
-const STATUS_LABELS_REVERSE: Record<string, string> = Object.fromEntries(
-  Object.entries(STATUS_LABELS).map(([k, v]) => [v, k])
-);
-
-async function exportChartAsPNG(ref: React.RefObject<HTMLDivElement | null>, filename: string) {
-  if (!ref.current) return;
-  try {
-    const canvas = await html2canvas(ref.current, { backgroundColor: null, scale: 2 });
-    const link = document.createElement("a");
-    link.download = `${filename}.png`;
-    link.href = canvas.toDataURL("image/png");
-    link.click();
-    toast.success("Gráfico exportado como PNG");
-  } catch {
-    toast.error("Erro ao exportar gráfico");
-  }
-}
+import { formatBRL, COLORS, METHOD_LABELS, STATUS_LABELS, STATUS_LABELS_REVERSE } from "./constants";
+import { KPICards } from "./KPICards";
+import { TrendsChart } from "./charts/TrendsChart";
+import { SuccessRateChart } from "./charts/SuccessRateChart";
+import { MethodsChart } from "./charts/MethodsChart";
+import { MonthlyChart } from "./charts/MonthlyChart";
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -79,11 +26,6 @@ export default function DashboardPage() {
     from.setDate(from.getDate() - 90);
     return { from, to };
   });
-
-  const chartRefTrends = useRef<HTMLDivElement>(null);
-  const chartRefSuccess = useRef<HTMLDivElement>(null);
-  const chartRefMethods = useRef<HTMLDivElement>(null);
-  const chartRefMonthly = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -147,9 +89,7 @@ export default function DashboardPage() {
       }
     });
     return Object.entries(map).map(([method, data]) => ({
-      method,
-      label: METHOD_LABELS[method] || method,
-      ...data,
+      method, label: METHOD_LABELS[method] || method, ...data,
     }));
   }, [payments]);
 
@@ -157,10 +97,8 @@ export default function DashboardPage() {
     const map: Record<string, number> = {};
     payments.forEach(p => { map[p.status] = (map[p.status] || 0) + 1; });
     return Object.entries(map).map(([name, value]) => ({
-      name: STATUS_LABELS[name] || name,
-      statusKey: name,
-      value,
-      color: COLORS[name as keyof typeof COLORS] || 'hsl(0,0%,50%)',
+      name: STATUS_LABELS[name] || name, statusKey: name, value,
+      color: COLORS[name] || 'hsl(0,0%,50%)',
     }));
   }, [payments]);
 
@@ -213,7 +151,6 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-wrap justify-between items-center gap-3">
         <h1 className="text-2xl font-bold text-foreground">Analytics de Pagamentos</h1>
         <div className="flex items-center gap-2 flex-wrap">
@@ -231,51 +168,8 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Receita Total</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">{formatBRL(stats.totalRevenue)}</div>
-            <p className="text-xs text-muted-foreground mt-1">Ticket médio: {formatBRL(stats.avgTicket)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Taxa de Aprovação</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">{stats.approvalRate.toFixed(1)}%</div>
-            <p className="text-xs text-muted-foreground mt-1">{stats.approved} de {stats.total} transações</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Pendentes</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">{stats.pending}</div>
-            <p className="text-xs text-muted-foreground mt-1">Rejeitados: {stats.rejected}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Reembolsos</CardTitle>
-            <RotateCcw className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-foreground">{stats.refunded}</div>
-            <p className="text-xs text-muted-foreground mt-1">Total: {stats.total} transações</p>
-          </CardContent>
-        </Card>
-      </div>
+      <KPICards stats={stats} />
 
-      {/* Charts Section */}
       <Tabs defaultValue="trends" className="space-y-4">
         <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid">
           <TabsTrigger value="trends">Tendências</TabsTrigger>
@@ -284,207 +178,25 @@ export default function DashboardPage() {
           <TabsTrigger value="monthly">Mês a Mês</TabsTrigger>
         </TabsList>
 
-        {/* Revenue Trends */}
         <TabsContent value="trends">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="text-foreground">Tendência de Receita</CardTitle>
-                <CardDescription>Receita aprovada por dia no período selecionado</CardDescription>
-              </div>
-              <Button variant="ghost" size="icon" onClick={() => exportChartAsPNG(chartRefTrends, "tendencia-receita")} title="Exportar como PNG">
-                <Camera className="h-4 w-4" />
-              </Button>
-            </CardHeader>
-            <CardContent ref={chartRefTrends}>
-              <ResponsiveContainer width="100%" height={350}>
-                <AreaChart data={revenueByDay}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="date" tickFormatter={(str) => new Date(str + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })} className="text-muted-foreground" />
-                  <YAxis tickFormatter={(val) => formatBRL(val)} width={90} className="text-muted-foreground" />
-                  <Tooltip
-                    formatter={(val: number) => [formatBRL(val), 'Receita']}
-                    labelFormatter={(label) => new Date(label + 'T12:00:00').toLocaleDateString('pt-BR')}
-                    contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }}
-                  />
-                  <Area type="monotone" dataKey="revenue" stroke="hsl(var(--primary))" fill="hsl(var(--primary) / 0.2)" strokeWidth={2} />
-                </AreaChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+          <TrendsChart data={revenueByDay} />
         </TabsContent>
 
-        {/* Success Rate */}
         <TabsContent value="success">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="text-foreground">Taxa de Sucesso por Dia</CardTitle>
-                <CardDescription>Percentual de transações aprovadas em relação ao total diário</CardDescription>
-              </div>
-              <Button variant="ghost" size="icon" onClick={() => exportChartAsPNG(chartRefSuccess, "taxa-sucesso")} title="Exportar como PNG">
-                <Camera className="h-4 w-4" />
-              </Button>
-            </CardHeader>
-            <CardContent ref={chartRefSuccess}>
-              <ResponsiveContainer width="100%" height={350}>
-                <LineChart data={successRateByDay}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="date" tickFormatter={(str) => new Date(str + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })} />
-                  <YAxis domain={[0, 100]} tickFormatter={(val) => `${val}%`} />
-                  <Tooltip
-                    formatter={(val: number, name: string) => {
-                      if (name === 'rate') return [`${val}%`, 'Taxa de Aprovação'];
-                      return [val, 'Total de Transações'];
-                    }}
-                    labelFormatter={(label) => new Date(label + 'T12:00:00').toLocaleDateString('pt-BR')}
-                    contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }}
-                  />
-                  <Legend formatter={(value) => value === 'rate' ? 'Taxa de Aprovação (%)' : 'Total de Transações'} />
-                  <Line type="monotone" dataKey="rate" stroke="hsl(142, 71%, 45%)" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="total" stroke="hsl(var(--primary))" strokeWidth={2} dot={false} yAxisId="right" />
-                  <YAxis yAxisId="right" orientation="right" />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+          <SuccessRateChart data={successRateByDay} />
         </TabsContent>
 
-        {/* Revenue by Method */}
         <TabsContent value="methods">
-          <div className="grid gap-4 md:grid-cols-2" ref={chartRefMethods}>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="text-foreground">Receita por Método</CardTitle>
-                  <CardDescription>Clique em uma fatia para filtrar transações</CardDescription>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={revenueByMethod}
-                      dataKey="revenue"
-                      nameKey="label"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={100}
-                      label={({ label, percent }) => `${label} (${(percent * 100).toFixed(0)}%)`}
-                      onClick={handleMethodBarClick}
-                      className="cursor-pointer"
-                    >
-                      {revenueByMethod.map((entry) => (
-                        <Cell key={entry.method} fill={METHOD_COLORS[entry.method as keyof typeof METHOD_COLORS] || 'hsl(0,0%,60%)'} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(val: number) => [formatBRL(val), 'Receita']}
-                      contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-foreground">Volume por Método</CardTitle>
-                <CardDescription>Clique em uma barra para filtrar transações</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={revenueByMethod}>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                    <XAxis dataKey="label" />
-                    <YAxis />
-                    <Tooltip
-                      formatter={(val: number, name: string) => {
-                        if (name === 'revenue') return [formatBRL(val), 'Receita'];
-                        return [val, 'Transações'];
-                      }}
-                      contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }}
-                    />
-                    <Bar dataKey="count" name="Transações" radius={[4, 4, 0, 0]} onClick={handleMethodBarClick} className="cursor-pointer">
-                      {revenueByMethod.map((entry) => (
-                        <Cell key={entry.method} fill={METHOD_COLORS[entry.method as keyof typeof METHOD_COLORS] || 'hsl(0,0%,60%)'} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-
-            {/* Status Distribution */}
-            <Card className="md:col-span-2">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="text-foreground">Distribuição de Status</CardTitle>
-                  <CardDescription>Clique em uma barra para filtrar transações por status</CardDescription>
-                </div>
-                <Button variant="ghost" size="icon" onClick={() => exportChartAsPNG(chartRefMethods, "metodos-pagamento")} title="Exportar como PNG">
-                  <Camera className="h-4 w-4" />
-                </Button>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={statusDistribution} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                    <XAxis type="number" />
-                    <YAxis dataKey="name" type="category" width={100} />
-                    <Tooltip
-                      contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }}
-                    />
-                    <Bar dataKey="value" name="Transações" radius={[0, 4, 4, 0]} onClick={handleStatusBarClick} className="cursor-pointer">
-                      {statusDistribution.map((entry, i) => (
-                        <Cell key={i} fill={entry.color} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </div>
+          <MethodsChart
+            revenueByMethod={revenueByMethod}
+            statusDistribution={statusDistribution}
+            onMethodClick={handleMethodBarClick}
+            onStatusClick={handleStatusBarClick}
+          />
         </TabsContent>
 
-        {/* Monthly Comparison */}
         <TabsContent value="monthly">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="text-foreground">Comparação Mês a Mês</CardTitle>
-                <CardDescription>Evolução da receita e volume de transações por mês</CardDescription>
-              </div>
-              <Button variant="ghost" size="icon" onClick={() => exportChartAsPNG(chartRefMonthly, "comparacao-mensal")} title="Exportar como PNG">
-                <Camera className="h-4 w-4" />
-              </Button>
-            </CardHeader>
-            <CardContent ref={chartRefMonthly}>
-              <ResponsiveContainer width="100%" height={400}>
-                <ComposedChart data={monthlyComparison}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="label" />
-                  <YAxis yAxisId="left" tickFormatter={(val) => formatBRL(val)} width={90} />
-                  <YAxis yAxisId="right" orientation="right" />
-                  <Tooltip
-                    formatter={(val: number, name: string) => {
-                      if (name === 'revenue') return [formatBRL(val), 'Receita'];
-                      if (name === 'avgTicket') return [formatBRL(val), 'Ticket Médio'];
-                      return [val, 'Transações'];
-                    }}
-                    contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }}
-                  />
-                  <Legend formatter={(value) => {
-                    if (value === 'revenue') return 'Receita';
-                    if (value === 'count') return 'Total Transações';
-                    if (value === 'avgTicket') return 'Ticket Médio';
-                    return value;
-                  }} />
-                  <Bar yAxisId="left" dataKey="revenue" name="revenue" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                  <Bar yAxisId="right" dataKey="count" name="count" fill="hsl(var(--primary) / 0.4)" radius={[4, 4, 0, 0]} />
-                  <Line yAxisId="left" type="monotone" dataKey="avgTicket" name="avgTicket" stroke="hsl(45, 93%, 47%)" strokeWidth={2} dot={{ r: 4 }} />
-                </ComposedChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+          <MonthlyChart data={monthlyComparison} />
         </TabsContent>
       </Tabs>
     </div>
