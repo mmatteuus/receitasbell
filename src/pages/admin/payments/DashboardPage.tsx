@@ -7,7 +7,7 @@ import { exportPaymentsCSV, exportPaymentsPDF } from "@/lib/payments/export";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   AreaChart, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Area,
-  PieChart, Pie, Cell, LineChart, Line, Legend, CartesianGrid
+  PieChart, Pie, Cell, LineChart, Line, Legend, CartesianGrid, ComposedChart
 } from 'recharts';
 import { Button } from "@/components/ui/button";
 import { DateRange } from "react-day-picker";
@@ -83,6 +83,7 @@ export default function DashboardPage() {
   const chartRefTrends = useRef<HTMLDivElement>(null);
   const chartRefSuccess = useRef<HTMLDivElement>(null);
   const chartRefMethods = useRef<HTMLDivElement>(null);
+  const chartRefMonthly = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -161,6 +162,28 @@ export default function DashboardPage() {
       value,
       color: COLORS[name as keyof typeof COLORS] || 'hsl(0,0%,50%)',
     }));
+  }, [payments]);
+
+  const monthlyComparison = useMemo(() => {
+    const map: Record<string, { revenue: number; count: number; approved: number }> = {};
+    payments.forEach(p => {
+      const d = new Date(p.date_created);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      if (!map[key]) map[key] = { revenue: 0, count: 0, approved: 0 };
+      map[key].count += 1;
+      if (p.status === 'approved') {
+        map[key].revenue += p.transaction_amount;
+        map[key].approved += 1;
+      }
+    });
+    return Object.entries(map)
+      .map(([month, data]) => ({
+        month,
+        label: new Date(month + '-15').toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }),
+        ...data,
+        avgTicket: data.approved > 0 ? data.revenue / data.approved : 0,
+      }))
+      .sort((a, b) => a.month.localeCompare(b.month));
   }, [payments]);
 
   const setQuickRange = (days: number) => {
@@ -254,10 +277,11 @@ export default function DashboardPage() {
 
       {/* Charts Section */}
       <Tabs defaultValue="trends" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-grid">
+        <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid">
           <TabsTrigger value="trends">Tendências</TabsTrigger>
           <TabsTrigger value="success">Taxa de Sucesso</TabsTrigger>
           <TabsTrigger value="methods">Por Método</TabsTrigger>
+          <TabsTrigger value="monthly">Mês a Mês</TabsTrigger>
         </TabsList>
 
         {/* Revenue Trends */}
@@ -419,6 +443,48 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        {/* Monthly Comparison */}
+        <TabsContent value="monthly">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-foreground">Comparação Mês a Mês</CardTitle>
+                <CardDescription>Evolução da receita e volume de transações por mês</CardDescription>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => exportChartAsPNG(chartRefMonthly, "comparacao-mensal")} title="Exportar como PNG">
+                <Camera className="h-4 w-4" />
+              </Button>
+            </CardHeader>
+            <CardContent ref={chartRefMonthly}>
+              <ResponsiveContainer width="100%" height={400}>
+                <ComposedChart data={monthlyComparison}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis dataKey="label" />
+                  <YAxis yAxisId="left" tickFormatter={(val) => formatBRL(val)} width={90} />
+                  <YAxis yAxisId="right" orientation="right" />
+                  <Tooltip
+                    formatter={(val: number, name: string) => {
+                      if (name === 'revenue') return [formatBRL(val), 'Receita'];
+                      if (name === 'avgTicket') return [formatBRL(val), 'Ticket Médio'];
+                      return [val, 'Transações'];
+                    }}
+                    contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }}
+                  />
+                  <Legend formatter={(value) => {
+                    if (value === 'revenue') return 'Receita';
+                    if (value === 'count') return 'Total Transações';
+                    if (value === 'avgTicket') return 'Ticket Médio';
+                    return value;
+                  }} />
+                  <Bar yAxisId="left" dataKey="revenue" name="revenue" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                  <Bar yAxisId="right" dataKey="count" name="count" fill="hsl(var(--primary) / 0.4)" radius={[4, 4, 0, 0]} />
+                  <Line yAxisId="left" type="monotone" dataKey="avgTicket" name="avgTicket" stroke="hsl(45, 93%, 47%)" strokeWidth={2} dot={{ r: 4 }} />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
