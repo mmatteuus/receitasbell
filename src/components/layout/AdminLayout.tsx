@@ -1,7 +1,7 @@
 import { AdminSidebar, AdminSidebarProvider, AdminMobileSidebar, AdminMobileMenuButton } from "@/AdminSidebar";
 import { Outlet } from "react-router-dom";
 import { AdminBreadcrumbs } from "./AdminBreadcrumbs";
-
+import { AdminNotifications } from "./AdminNotifications";
 export default function AdminLayout() {
   return (
     <AdminSidebarProvider>
