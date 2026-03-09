@@ -15,6 +15,7 @@ import { TrendsChart } from "./charts/TrendsChart";
 import { SuccessRateChart } from "./charts/SuccessRateChart";
 import { MethodsChart } from "./charts/MethodsChart";
 import { MonthlyChart } from "./charts/MonthlyChart";
+import type { MethodChartClickData, StatusChartClickData } from "./charts/MethodsChart";
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -131,18 +132,18 @@ export default function DashboardPage() {
     setDateRange({ from, to });
   };
 
-  const handleStatusBarClick = useCallback((data: any) => {
+  const handleStatusBarClick = useCallback((data?: StatusChartClickData) => {
     if (!data) return;
-    const statusKey = data.statusKey || STATUS_LABELS_REVERSE[data.name];
+    const statusKey = data.statusKey || data.payload?.statusKey || STATUS_LABELS_REVERSE[data.name || data.payload?.name || ""];
     if (statusKey) {
       navigate(`/admin/pagamentos/transacoes?status=${statusKey}`);
       toast.info(`Filtrando transações por: ${STATUS_LABELS[statusKey] || statusKey}`);
     }
   }, [navigate]);
 
-  const handleMethodBarClick = useCallback((data: any) => {
+  const handleMethodBarClick = useCallback((data?: MethodChartClickData) => {
     if (!data) return;
-    const method = data.method;
+    const method = data.method || data.payload?.method;
     if (method) {
       navigate(`/admin/pagamentos/transacoes?method=${method}`);
       toast.info(`Filtrando transações por: ${METHOD_LABELS[method] || method}`);

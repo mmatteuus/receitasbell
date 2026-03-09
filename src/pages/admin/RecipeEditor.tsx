@@ -74,9 +74,9 @@ export default function RecipeEditor() {
         }
       } else navigate("/admin/receitas");
     }
-  }, [id]);
+  }, [id, navigate]);
 
-  const set = (k: string, v: any) => setForm((p) => ({ ...p, [k]: v }));
+  const set = <K extends keyof Recipe>(k: K, v: Recipe[K] | undefined) => setForm((p) => ({ ...p, [k]: v }));
 
   const handleTitle = (title: string) => {
     set("title", title);

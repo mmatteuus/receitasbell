@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 interface SiteSettings {
   siteName: string;
@@ -44,9 +44,9 @@ function hslToHex(h: number, s: number, l: number): string {
 function hexToHsl(hex: string): { h: number; s: number; l: number } {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   if (!result) return { h: 0, s: 0, l: 0 };
-  let r = parseInt(result[1], 16) / 255;
-  let g = parseInt(result[2], 16) / 255;
-  let b = parseInt(result[3], 16) / 255;
+  const r = parseInt(result[1], 16) / 255;
+  const g = parseInt(result[2], 16) / 255;
+  const b = parseInt(result[3], 16) / 255;
   const max = Math.max(r, g, b), min = Math.min(r, g, b);
   let h = 0, s = 0;
   const l = (max + min) / 2;
@@ -76,7 +76,6 @@ const FONT_OPTIONS = [
 ];
 
 export default function SettingsPage() {
-  const { toast } = useToast();
   const [settings, setSettings] = useState<SiteSettings>(() => {
     const stored = localStorage.getItem("rdb_site_settings");
     return stored ? { ...DEFAULT_SETTINGS, ...JSON.parse(stored) } : DEFAULT_SETTINGS;
@@ -112,8 +111,7 @@ export default function SettingsPage() {
     root.style.setProperty("--accent", `${accent.h} ${accent.s}% ${accent.l}%`);
     root.style.setProperty("--ring", `${primary.h} ${primary.s}% ${primary.l}%`);
 
-    toast({
-      title: "Configurações salvas",
+    toast.success("Configurações salvas", {
       description: "As alterações foram aplicadas com sucesso.",
     });
   };
@@ -128,8 +126,7 @@ export default function SettingsPage() {
     root.style.removeProperty("--secondary");
     root.style.removeProperty("--accent");
     root.style.removeProperty("--ring");
-    toast({
-      title: "Configurações restauradas",
+    toast.success("Configurações restauradas", {
       description: "Os valores padrão foram restaurados.",
     });
   };

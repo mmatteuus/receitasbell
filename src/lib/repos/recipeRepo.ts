@@ -3,6 +3,11 @@ import { seedRecipes } from "@/lib/seed-data";
 import { generateSlug } from "@/lib/helpers";
 
 const KEY = "rdb_recipes_v2";
+type RawRecipe = Partial<Recipe> & {
+  ingredients?: string[];
+  instructions?: string[];
+  priceCents?: number;
+};
 
 function ensureSeeded() {
   if (!localStorage.getItem(KEY)) {
@@ -10,19 +15,19 @@ function ensureSeeded() {
   }
 }
 
-function readRawStorage(): any[] {
+function readRawStorage(): RawRecipe[] {
   ensureSeeded();
   const data = localStorage.getItem(KEY);
   if (!data) return [];
   try {
     const parsed = JSON.parse(data);
-    return Array.isArray(parsed) ? parsed : [];
+    return Array.isArray(parsed) ? parsed as RawRecipe[] : [];
   } catch {
     return [];
   }
 }
 
-function normalizeRecipe(raw: any): Recipe {
+function normalizeRecipe(raw: RawRecipe): Recipe {
   const title = raw.title || "Receita";
   const slug = raw.slug || generateSlug(title) || "receita";
   const ingredients = Array.isArray(raw.fullIngredients)

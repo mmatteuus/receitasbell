@@ -26,8 +26,8 @@ export interface Payment {
   date_created: string;
   date_approved: string | null;
   external_reference: string; // recipe slug
-  refunds: any[]; // simplified for now
-  chargebacks: any[]; // simplified for now
+  refunds: unknown[]; // simplified for now
+  chargebacks: unknown[]; // simplified for now
 }
 
 export interface PaymentEvent {

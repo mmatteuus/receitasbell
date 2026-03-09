@@ -20,7 +20,7 @@ import {
     TableRow,
 } from "@/components/ui/table"
 import { Payment } from "@/lib/payments/types"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Button } from "../ui/button"
 import { StatusBadge } from "./StatusBadge"
 import { useNavigate } from "react-router-dom"
@@ -31,101 +31,95 @@ interface PaymentsTableProps {
     data: Payment[]
 }
 
-const columns: ColumnDef<Payment>[] = [
-    {
-        accessorKey: "id",
-        header: ({ column }) => {
-            return (
-              <Button
-                variant="ghost"
-                onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-              >
-                Payment ID
-                <ArrowUpDown className="ml-2 h-4 w-4" />
-              </Button>
-            )
-        },
-        cell: ({ row }) => {
-            const navigate = useNavigate()
-            return (
+export function PaymentsTable({ data }: PaymentsTableProps) {
+    const navigate = useNavigate()
+    const [sorting, setSorting] = useState<SortingState>([])
+    const isMobile = useIsMobile()
+    const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
+
+    const columns = useMemo<ColumnDef<Payment>[]>(() => [
+        {
+            accessorKey: "id",
+            header: ({ column }) => {
+                return (
+                  <Button
+                    variant="ghost"
+                    onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+                  >
+                    Payment ID
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                  </Button>
+                )
+            },
+            cell: ({ row }) => (
                 <Button variant="link" onClick={() => navigate(`/admin/pagamentos/transacoes/${row.original.id}`)}>
                     {row.original.id}
                 </Button>
             )
-        }
-    },
-    {
-        accessorKey: "date_created",
-        header: ({ column }) => {
-            return (
-              <Button
-                variant="ghost"
-                onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-              >
-                Data
-                <ArrowUpDown className="ml-2 h-4 w-4" />
-              </Button>
-            )
         },
-        cell: ({ row }) => new Date(row.original.date_created).toLocaleDateString()
-    },
-    {
-        accessorKey: "external_reference",
-        header: "Receita"
-    },
-    {
-        accessorKey: "payer.email",
-        header: "Cliente"
-    },
-    {
-        accessorKey: "payment_method_id",
-        header: "Método"
-    },
-    {
-        accessorKey: "transaction_amount",
-        header: ({ column }) => {
-            return (
-              <Button
-                variant="ghost"
-                onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-              >
-                Valor
-                <ArrowUpDown className="ml-2 h-4 w-4" />
-              </Button>
-            )
+        {
+            accessorKey: "date_created",
+            header: ({ column }) => {
+                return (
+                  <Button
+                    variant="ghost"
+                    onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+                  >
+                    Data
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                  </Button>
+                )
+            },
+            cell: ({ row }) => new Date(row.original.date_created).toLocaleDateString()
         },
-        cell: ({ row }) => {
-            const amount = parseFloat(row.getValue("transaction_amount"))
-            const formatted = new Intl.NumberFormat("pt-BR", {
-              style: "currency",
-              currency: "BRL",
-            }).format(amount)
-       
-            return <div className="text-right font-medium">{formatted}</div>
-        }
-    },
-    {
-        accessorKey: "status",
-        header: "Status",
-        cell: ({ row }) => <StatusBadge status={row.original.status} statusDetail={row.original.status_detail} />
-    },
-    {
-        id: "actions",
-        cell: ({ row }) => {
-            const navigate = useNavigate()
-            return (
+        {
+            accessorKey: "external_reference",
+            header: "Receita"
+        },
+        {
+            accessorKey: "payer.email",
+            header: "Cliente"
+        },
+        {
+            accessorKey: "payment_method_id",
+            header: "Método"
+        },
+        {
+            accessorKey: "transaction_amount",
+            header: ({ column }) => {
+                return (
+                  <Button
+                    variant="ghost"
+                    onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+                  >
+                    Valor
+                    <ArrowUpDown className="ml-2 h-4 w-4" />
+                  </Button>
+                )
+            },
+            cell: ({ row }) => {
+                const formatted = new Intl.NumberFormat("pt-BR", {
+                  style: "currency",
+                  currency: "BRL",
+                }).format(row.original.transaction_amount)
+           
+                return <div className="text-right font-medium">{formatted}</div>
+            }
+        },
+        {
+            accessorKey: "status",
+            header: "Status",
+            cell: ({ row }) => <StatusBadge status={row.original.status} statusDetail={row.original.status_detail} />
+        },
+        {
+            id: "actions",
+            cell: ({ row }) => (
                 <Button variant="outline" size="sm" onClick={() => navigate(`/admin/pagamentos/transacoes/${row.original.id}`)}>
                     Ver detalhes
                 </Button>
             )
         }
-    }
-]
-
-export function PaymentsTable({ data }: PaymentsTableProps) {
-    const [sorting, setSorting] = useState<SortingState>([])
-    const isMobile = useIsMobile()
-    const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
+    ], [navigate])
 
     useEffect(() => {
         setColumnVisibility({

@@ -4,9 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { useToast } from "@/components/ui/use-toast";
 import { paymentsRepo } from "@/lib/payments/repo";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "sonner";
 
 const SETTINGS_KEY = 'bell_mp_settings';
 
@@ -27,7 +27,6 @@ const defaultSettings: MpSettings = {
 }
 
 export default function SettingsPage() {
-  const { toast } = useToast();
   const [settings, setSettings] = useState<MpSettings>(() => {
     const saved = localStorage.getItem(SETTINGS_KEY);
     return saved ? JSON.parse(saved) : defaultSettings;
@@ -35,8 +34,7 @@ export default function SettingsPage() {
 
   const handleSave = () => {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-    toast({
-      title: "Configurações salvas!",
+    toast.success("Configurações salvas!", {
       description: "As configurações do Mercado Pago foram salvas (mock).",
     });
   };
@@ -47,20 +45,17 @@ export default function SettingsPage() {
     if (pendingPayments.length > 0) {
       const randomPayment = pendingPayments[Math.floor(Math.random() * pendingPayments.length)];
       paymentsRepo.updateMockStatus(randomPayment.id, 'approved', 'accredited');
-      toast({
-        title: "Webhook de teste enviado!",
+      toast.success("Webhook de teste enviado!", {
         description: `O pagamento ${randomPayment.id} foi atualizado para "Aprovado".`,
       });
     } else {
-        toast({
-            title: "Nenhum pagamento pendente",
+        toast.error("Nenhum pagamento pendente", {
             description: "Não há pagamentos pendentes para testar o webhook.",
-            variant: "destructive"
-        })
+        });
     }
   };
 
-  const handleChange = (field: keyof MpSettings, value: any) => {
+  const handleChange = <K extends keyof MpSettings>(field: K, value: MpSettings[K]) => {
     setSettings(prev => ({...prev, [field]: value}))
   }
 

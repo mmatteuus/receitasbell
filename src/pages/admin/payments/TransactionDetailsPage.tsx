@@ -7,12 +7,11 @@ import { StatusBadge } from "@/components/payments/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/components/ui/use-toast";
 import { Copy } from "lucide-react";
+import { toast } from "sonner";
 
 export default function TransactionDetailsPage() {
   const { id } = useParams<{ id: string }>();
-  const { toast } = useToast();
 
   const [payment, setPayment] = useState<Payment | null>(null);
   const [events, setEvents] = useState<PaymentEvent[]>([]);
@@ -36,8 +35,7 @@ export default function TransactionDetailsPage() {
   const handleSaveNote = () => {
     if (payment) {
       paymentsRepo.addNote(payment.id, note);
-      toast({
-        title: "Nota salva!",
+      toast.success("Nota salva!", {
         description: "A observação interna foi salva com sucesso.",
       });
     }
@@ -45,11 +43,10 @@ export default function TransactionDetailsPage() {
   
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    toast({
-      title: "Copiado!",
+    toast.success("Copiado!", {
       description: "O ID do pagamento foi copiado para a área de transferência.",
     });
-  }
+  };
 
   if (loading) {
     return <p>Carregando...</p>;

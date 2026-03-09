@@ -73,7 +73,7 @@ export const paymentsRepo = {
   },
 
   updateMockStatus: (paymentId: number, status: PaymentStatus, status_detail: string): Payment | undefined => {
-    let payments: Payment[] = JSON.parse(localStorage.getItem(PAYMENTS_KEY) || '[]');
+    const payments: Payment[] = JSON.parse(localStorage.getItem(PAYMENTS_KEY) || '[]');
     const paymentIndex = payments.findIndex(p => p.id === paymentId);
 
     if (paymentIndex === -1) return undefined;

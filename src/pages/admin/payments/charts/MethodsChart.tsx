@@ -22,11 +22,22 @@ interface StatusData {
   color: string;
 }
 
+export interface MethodChartClickData {
+  method?: string;
+  payload?: MethodData;
+}
+
+export interface StatusChartClickData {
+  name?: string;
+  statusKey?: string;
+  payload?: StatusData;
+}
+
 interface Props {
   revenueByMethod: MethodData[];
   statusDistribution: StatusData[];
-  onMethodClick: (data: any) => void;
-  onStatusClick: (data: any) => void;
+  onMethodClick: (data?: MethodChartClickData) => void;
+  onStatusClick: (data?: StatusChartClickData) => void;
 }
 
 export function MethodsChart({ revenueByMethod, statusDistribution, onMethodClick, onStatusClick }: Props) {
