@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router-dom";
+import { Navigate, createBrowserRouter } from "react-router-dom";
 import PublicLayout from "@/components/layout/PublicLayout";
 import AdminLayout from "@/components/layout/AdminLayout";
 import HomePage from "@/pages/Index";
@@ -19,8 +19,6 @@ import PendingPage from "@/pages/PendingPage";
 import FailurePage from "@/pages/FailurePage";
 import { AdminPaymentsRoutes } from "./routes_admin_payments";
 
-const ProfilePage = () => <div className="container py-10">Profile Page (Placeholder)</div>;
-
 export const router = createBrowserRouter([
   {
     path: "/",
@@ -30,7 +28,7 @@ export const router = createBrowserRouter([
       { path: "buscar", element: <SearchPage /> },
       { path: "categorias/:slug", element: <CategoryPage /> },
       { path: "receitas/:slug", element: <RecipePage /> },
-      { path: "minha-conta/perfil", element: <ProfilePage /> },
+      { path: "minha-conta/perfil", element: <Navigate to="/minha-conta/favoritos" replace /> },
       { path: "minha-conta/favoritos", element: <FavoritesPage /> },
       { path: "minha-conta/lista-de-compras", element: <ShoppingListPage /> },
       { path: "carrinho", element: <CartPage /> },

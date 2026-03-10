@@ -1,12 +1,12 @@
 # Receitas do Bell
 
-Aplicação frontend em React + Vite para catálogo de receitas com área pública, painel administrativo, carrinho, checkout simulado e gestão básica de pagamentos. Os dados são persistidos localmente em `localStorage`.
+Aplicação web para catálogo de receitas com área pública, painel administrativo, carrinho, checkout simulado e gestão básica de pagamentos. Os dados são persistidos localmente em `localStorage`.
 
 ## Executando localmente
 
 1. `npm install`
 2. `npm run dev`
-3. Abra a URL exibida pelo Vite no navegador.
+3. Abra a URL local exibida no terminal.
 
 ## Scripts
 
@@ -34,4 +34,4 @@ Aplicação frontend em React + Vite para catálogo de receitas com área públi
 
 - O editor normaliza slug, ingredientes, instruções, imagem e preço antes de persistir.
 - Receitas pagas bloqueadas exibem apenas os dois primeiros ingredientes e passos até a compra.
-- O projeto usa `npm` como gerenciador de dependências e lockfile oficial.
+- Os dados iniciais são carregados automaticamente quando o armazenamento local está vazio.
