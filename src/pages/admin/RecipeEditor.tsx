@@ -391,7 +391,7 @@ export default function RecipeEditor() {
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label>Nível de Acesso</Label>
-                <Select value={form.accessTier || "free"} onValueChange={(v) => set("accessTier", v)}>
+                <Select value={form.accessTier || "free"} onValueChange={(v) => set("accessTier", v as import("@/types/recipe").AccessTier)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="free">🔓 Grátis (Público)</SelectItem>
