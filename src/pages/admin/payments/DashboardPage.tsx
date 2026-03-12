@@ -179,15 +179,15 @@ export default function DashboardPage() {
           <TabsTrigger value="monthly">Mês a Mês</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="trends">
+        <TabsContent value="trends" className="animate-fade-in">
           <TrendsChart data={revenueByDay} />
         </TabsContent>
 
-        <TabsContent value="success">
+        <TabsContent value="success" className="animate-fade-in">
           <SuccessRateChart data={successRateByDay} />
         </TabsContent>
 
-        <TabsContent value="methods">
+        <TabsContent value="methods" className="animate-fade-in">
           <MethodsChart
             revenueByMethod={revenueByMethod}
             statusDistribution={statusDistribution}
@@ -196,7 +196,7 @@ export default function DashboardPage() {
           />
         </TabsContent>
 
-        <TabsContent value="monthly">
+        <TabsContent value="monthly" className="animate-fade-in">
           <MonthlyChart data={monthlyComparison} />
         </TabsContent>
       </Tabs>
