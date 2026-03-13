@@ -48,9 +48,11 @@ import {
 } from "../src/server/validators.js";
 
 function getApiPathSegments(request: VercelRequest) {
+  const routedPath = getQueryValue(request.query.route as string | string[] | undefined);
   const url = new URL(request.url || "/", `http://${request.headers.host || "localhost"}`);
-  return url.pathname
-    .replace(/^\/api\/?/, "")
+  const rawPath = routedPath || url.pathname.replace(/^\/api\/router\/?/, "").replace(/^\/api\/?/, "");
+
+  return rawPath
     .split("/")
     .map((segment) => segment.trim())
     .filter(Boolean)
