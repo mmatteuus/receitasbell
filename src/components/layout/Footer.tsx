@@ -1,7 +1,10 @@
 import { Link } from "react-router-dom";
 import { ChefHat } from "lucide-react";
+import { useAppContext } from "@/contexts/app-context";
 
 export function Footer() {
+  const { settings } = useAppContext();
+
   return (
     <footer className="border-t bg-muted/30 py-8 mt-auto">
       <div className="container px-4">
@@ -9,10 +12,14 @@ export function Footer() {
           {/* Brand */}
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <ChefHat className="h-5 w-5 text-primary" />
-              <span className="font-heading text-lg font-bold">Receitas do Bell</span>
+              {settings.logoUrl ? (
+                <img src={settings.logoUrl} alt={settings.siteName} className="h-5 w-5 rounded object-cover" />
+              ) : (
+                <ChefHat className="h-5 w-5 text-primary" />
+              )}
+              <span className="font-heading text-lg font-bold">{settings.siteName}</span>
             </div>
-            <p className="text-sm text-muted-foreground">Receitas testadas e aprovadas para tornar seus momentos na cozinha inesquecíveis.</p>
+            <p className="text-sm text-muted-foreground">{settings.siteDescription}</p>
           </div>
 
           {/* Navegação */}
@@ -47,7 +54,7 @@ export function Footer() {
 
         <div className="mt-8 border-t pt-4 text-center text-xs text-muted-foreground">
           <p>
-            © {new Date().getFullYear()} Receitas do Bell. Desenvolvido por{" "}
+            © {new Date().getFullYear()} {settings.siteName}. Desenvolvido por{" "}
             <a href="https://mtsferreira.dev" target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline">
               MtsFerreira
             </a>

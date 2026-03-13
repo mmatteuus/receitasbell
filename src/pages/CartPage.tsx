@@ -1,17 +1,34 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ShoppingCart, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useCart } from "@/hooks/use-cart";
-import { getRecipeById, formatBRL } from "@/lib/storage";
+import { formatBRL } from "@/lib/helpers";
+import { listRecipes } from "@/lib/api/recipes";
 import { PriceBadge } from "@/components/price-badge";
+import type { Recipe } from "@/types/recipe";
 
 export default function CartPage() {
   const { items, remove, clear } = useCart();
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
 
-  const recipes = items
-    .map((id) => getRecipeById(id))
-    .filter((r): r is NonNullable<typeof r> => !!r);
+  useEffect(() => {
+    async function loadRecipes() {
+      if (!items.length) {
+        setRecipes([]);
+        return;
+      }
+
+      try {
+        setRecipes(await listRecipes({ ids: items }));
+      } catch (error) {
+        console.error("Failed to load cart recipes", error);
+      }
+    }
+
+    void loadRecipes();
+  }, [items]);
 
   const total = recipes.reduce((sum, r) => sum + (r.priceBRL || 0), 0);
 

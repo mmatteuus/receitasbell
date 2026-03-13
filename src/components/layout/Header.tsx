@@ -3,14 +3,14 @@ import { Link, useLocation } from "react-router-dom";
 import { Menu, X, Search, Heart, ChefHat, Settings, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { getCategories } from "@/lib/categories";
+import { useAppContext } from "@/contexts/app-context";
 import { useCart } from "@/hooks/use-cart";
 
 export default function Header() {
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
   const { count } = useCart();
-  const categories = getCategories();
+  const { categories, settings } = useAppContext();
 
   const navLinks = [
     { to: "/", label: "Home" },
@@ -25,9 +25,13 @@ export default function Header() {
       <div className="container flex h-14 items-center justify-between px-4 sm:h-16">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
-          <ChefHat className="h-6 w-6 text-primary sm:h-7 sm:w-7" />
+          {settings.logoUrl ? (
+            <img src={settings.logoUrl} alt={settings.siteName} className="h-6 w-6 rounded object-cover sm:h-7 sm:w-7" />
+          ) : (
+            <ChefHat className="h-6 w-6 text-primary sm:h-7 sm:w-7" />
+          )}
           <span className="font-heading text-lg font-bold text-foreground sm:text-xl">
-            Receitas do Bell
+            {settings.siteName}
           </span>
         </Link>
 

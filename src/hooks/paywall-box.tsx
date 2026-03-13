@@ -1,7 +1,7 @@
 import { Lock, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { formatBRL } from "@/lib/storage";
+import { formatBRL } from "@/lib/helpers";
 import { useCart } from "@/hooks/use-cart";
 
 interface PaywallBoxProps {

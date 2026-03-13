@@ -1,13 +1,38 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Heart } from "lucide-react";
-import { getPublishedRecipes } from "@/lib/storage";
+import { listRecipes } from "@/lib/api/recipes";
+import { useAppContext } from "@/contexts/app-context";
 import { useFavorites } from "@/hooks/use-favorites";
 import RecipeCard from "@/components/RecipeCard";
 import { Button } from "@/components/ui/button";
+import type { Recipe } from "@/types/recipe";
 
 export default function Favorites() {
   const { favorites } = useFavorites();
-  const recipes = getPublishedRecipes().filter((r) => favorites.includes(r.id));
+  const { requireIdentity } = useAppContext();
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+
+  useEffect(() => {
+    void requireIdentity("Digite seu e-mail para acessar seus favoritos.");
+  }, [requireIdentity]);
+
+  useEffect(() => {
+    async function loadFavoriteRecipes() {
+      if (!favorites.length) {
+        setRecipes([]);
+        return;
+      }
+
+      try {
+        setRecipes(await listRecipes({ ids: favorites }));
+      } catch (error) {
+        console.error("Failed to load favorites", error);
+      }
+    }
+
+    void loadFavoriteRecipes();
+  }, [favorites]);
 
   return (
     <div className="container py-10">

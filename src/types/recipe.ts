@@ -11,8 +11,11 @@ export interface Category {
 export interface Comment {
   id: string;
   recipeId: string;
+  userId?: string | null;
   author: string;
+  authorEmail?: string;
   text: string;
+  status?: string;
   createdAt: string;
 }
 
@@ -23,7 +26,6 @@ export interface Recipe {
   description: string;
   image?: string; // compatible fallback for legacy consumers
   imageUrl?: string;
-  imageDataUrl?: string;
 
   categorySlug: string;
   tags: string[];
@@ -39,6 +41,14 @@ export interface Recipe {
 
   fullIngredients: string[];
   fullInstructions: string[];
+  excerpt?: string;
+  seoTitle?: string;
+  seoDescription?: string;
+  isFeatured?: boolean;
+  createdByUserId?: string | null;
+  ratingAvg?: number;
+  ratingCount?: number;
+  isUnlocked?: boolean;
 
   createdAt: string;
   updatedAt: string;

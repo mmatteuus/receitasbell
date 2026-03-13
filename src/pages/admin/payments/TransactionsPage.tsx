@@ -1,7 +1,7 @@
-
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Payment, PaymentStatus } from "@/lib/payments/types";
-import { paymentsRepo } from "@/lib/payments/repo";
+import { listPayments } from "@/lib/api/payments";
 import { exportPaymentsCSV, exportPaymentsPDF } from "@/lib/payments/export";
 import { PaymentsTable } from "@/components/payments/PaymentsTable";
 import { Input } from "@/components/ui/input";
@@ -18,102 +18,126 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Download, FileText } from "lucide-react";
 
-const statusOptions: { label: string, value: PaymentStatus }[] = [
-    { label: "Aprovado", value: "approved" },
-    { label: "Pendente", value: "pending" },
-    { label: "Processando", value: "in_process" },
-    { label: "Rejeitado", value: "rejected" },
-    { label: "Cancelado", value: "cancelled" },
-    { label: "Devolvido", value: "refunded" },
-    { label: "Chargeback", value: "charged_back" },
+const statusOptions: { label: string; value: PaymentStatus }[] = [
+  { label: "Aprovado", value: "approved" },
+  { label: "Pendente", value: "pending" },
+  { label: "Processando", value: "in_process" },
+  { label: "Rejeitado", value: "rejected" },
+  { label: "Cancelado", value: "cancelled" },
+  { label: "Devolvido", value: "refunded" },
+  { label: "Chargeback", value: "charged_back" },
 ];
 
-const methodOptions: { label: string, value: string }[] = [
-    { label: "PIX", value: "pix" },
-    { label: "Cartão de Crédito", value: "credit_card" },
-    { label: "Boleto", value: "boleto" },
+const methodOptions = [
+  { label: "PIX", value: "pix" },
+  { label: "Cartão de Crédito", value: "credit_card" },
+  { label: "Boleto", value: "boleto" },
 ];
 
 export default function TransactionsPage() {
+  const [searchParams] = useSearchParams();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const calculateTotals = (paymentsList: Payment[]) => {
-    return {
-      count: paymentsList.length,
-      total: paymentsList.reduce((sum, p) => sum + p.transaction_amount, 0),
-      approved: paymentsList
-        .filter(p => p.status === 'approved')
-        .reduce((sum, p) => sum + p.transaction_amount, 0),
-    };
-  };
-
-  // Filters
   const [search, setSearch] = useState("");
   const [searchField, setSearchField] = useState("email");
-  const [status, setStatus] = useState<PaymentStatus[]>([]);
-  const [methods, setMethods] = useState<string[]>([]);
+  const [status, setStatus] = useState<PaymentStatus[]>(() => {
+    const value = searchParams.get("status");
+    return value ? value.split(",") as PaymentStatus[] : [];
+  });
+  const [methods, setMethods] = useState<string[]>(() => {
+    const value = searchParams.get("method");
+    return value ? value.split(",") : [];
+  });
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
-  const handleFilter = () => {
-    setLoading(true);
-    const filters = {
-        [searchField]: search,
-        status: status,
-        paymentMethod: methods,
-        dateFrom: dateRange?.from?.toISOString(),
-        dateTo: dateRange?.to?.toISOString(),
-    }
-    const filteredPayments = paymentsRepo.listPayments(filters);
-    setPayments(filteredPayments);
-    setLoading(false);
+  function calculateTotals(paymentsList: Payment[]) {
+    return {
+      count: paymentsList.length,
+      total: paymentsList.reduce((sum, payment) => sum + payment.transaction_amount, 0),
+      approved: paymentsList
+        .filter((payment) => payment.status === "approved")
+        .reduce((sum, payment) => sum + payment.transaction_amount, 0),
+    };
   }
 
-  const clearFilters = () => {
+  async function loadPayments(filters: {
+    status?: PaymentStatus[];
+    paymentMethod?: string[];
+    email?: string;
+    paymentId?: string;
+    externalReference?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  } = {}) {
     setLoading(true);
+    try {
+      const next = await listPayments({
+        status: filters.status,
+        paymentMethod: filters.paymentMethod,
+        email: filters.email,
+        paymentId: filters.paymentId,
+        external_reference: filters.externalReference,
+        dateFrom: filters.dateFrom,
+        dateTo: filters.dateTo,
+      });
+      setPayments(next);
+    } catch (error) {
+      console.error("Failed to load payments", error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void loadPayments({
+      status,
+      paymentMethod: methods,
+    });
+  }, []);
+
+  function handleFilter() {
+    void loadPayments({
+      status,
+      paymentMethod: methods,
+      email: searchField === "email" ? search : undefined,
+      paymentId: searchField === "paymentId" ? search : undefined,
+      externalReference: searchField === "external_reference" ? search : undefined,
+      dateFrom: dateRange?.from?.toISOString(),
+      dateTo: dateRange?.to?.toISOString(),
+    });
+  }
+
+  function clearFilters() {
     setSearch("");
     setSearchField("email");
     setStatus([]);
     setMethods([]);
     setDateRange(undefined);
-    setPayments(paymentsRepo.listPayments());
-    setLoading(false);
+    void loadPayments();
   }
 
-  useEffect(() => {
-    setLoading(true);
-    const allPayments = paymentsRepo.listPayments();
-    setPayments(allPayments);
-    setLoading(false);
-  }, []);
+  const totals = calculateTotals(payments);
 
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">Transações</h1>
 
-      {/* Totalizador */}
       {!loading && payments.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="rounded-lg border bg-card p-4">
             <p className="text-sm text-muted-foreground">Total de Transações</p>
-            <p className="text-2xl font-bold">{calculateTotals(payments).count}</p>
+            <p className="text-2xl font-bold">{totals.count}</p>
           </div>
           <div className="rounded-lg border bg-card p-4">
             <p className="text-sm text-muted-foreground">Valor Total</p>
             <p className="text-2xl font-bold">
-              {new Intl.NumberFormat("pt-BR", {
-                style: "currency",
-                currency: "BRL",
-              }).format(calculateTotals(payments).total)}
+              {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(totals.total)}
             </p>
           </div>
           <div className="rounded-lg border bg-card p-4">
             <p className="text-sm text-muted-foreground">Valor Aprovado</p>
             <p className="text-2xl font-bold">
-              {new Intl.NumberFormat("pt-BR", {
-                style: "currency",
-                currency: "BRL",
-              }).format(calculateTotals(payments).approved)}
+              {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(totals.approved)}
             </p>
           </div>
         </div>
@@ -121,93 +145,90 @@ export default function TransactionsPage() {
 
       <div className="flex items-start gap-2 flex-wrap">
         <div className="grid w-full max-w-sm items-center gap-1.5">
-            <Label htmlFor="search">Pesquisar</Label>
-            <div className="flex w-full max-w-sm items-center space-x-2">
-                <Input id="search" type="text" placeholder="Buscar..." value={search} onChange={e => setSearch(e.target.value)}/>
-                <Select value={searchField} onValueChange={setSearchField}>
-                    <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Buscar por..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="email">Email</SelectItem>
-                        <SelectItem value="paymentId">Payment ID</SelectItem>
-                        <SelectItem value="external_reference">Receita</SelectItem>
-                    </SelectContent>
-                </Select>
-            </div>
+          <Label htmlFor="search">Pesquisar</Label>
+          <div className="flex w-full max-w-sm items-center space-x-2">
+            <Input id="search" type="text" placeholder="Buscar..." value={search} onChange={(event) => setSearch(event.target.value)} />
+            <Select value={searchField} onValueChange={setSearchField}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Buscar por..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="email">Email</SelectItem>
+                <SelectItem value="paymentId">Payment ID</SelectItem>
+                <SelectItem value="external_reference">Receita</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <div className="grid w-full max-w-[200px] items-center gap-1.5">
-            <Label>Status</Label>
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start font-normal">
-                        {status.length > 0 ? `${status.length} selecionado(s)` : "Selecionar Status"}
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56">
-                    {statusOptions.map(option => (
-                        <DropdownMenuCheckboxItem
-                            key={option.value}
-                            checked={status.includes(option.value)}
-                            onCheckedChange={(checked) => {
-                                setStatus(prev => checked ? [...prev, option.value] : prev.filter(s => s !== option.value))
-                            }}
-                        >
-                            {option.label}
-                        </DropdownMenuCheckboxItem>
-                    ))}
-                </DropdownMenuContent>
-            </DropdownMenu>
+          <Label>Status</Label>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="w-full justify-start font-normal">
+                {status.length > 0 ? `${status.length} selecionado(s)` : "Selecionar Status"}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56">
+              {statusOptions.map((option) => (
+                <DropdownMenuCheckboxItem
+                  key={option.value}
+                  checked={status.includes(option.value)}
+                  onCheckedChange={(checked) => {
+                    setStatus((current) => checked ? [...current, option.value] : current.filter((item) => item !== option.value));
+                  }}
+                >
+                  {option.label}
+                </DropdownMenuCheckboxItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         <div className="grid w-full max-w-[200px] items-center gap-1.5">
-            <Label>Método</Label>
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start font-normal">
-                        {methods.length > 0 ? `${methods.length} selecionado(s)` : "Selecionar Método"}
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56">
-                    {methodOptions.map(option => (
-                        <DropdownMenuCheckboxItem
-                            key={option.value}
-                            checked={methods.includes(option.value)}
-                            onCheckedChange={(checked) => {
-                                setMethods(prev => checked ? [...prev, option.value] : prev.filter(m => m !== option.value))
-                            }}
-                        >
-                            {option.label}
-                        </DropdownMenuCheckboxItem>
-                    ))}
-                </DropdownMenuContent>
-            </DropdownMenu>
+          <Label>Método</Label>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="w-full justify-start font-normal">
+                {methods.length > 0 ? `${methods.length} selecionado(s)` : "Selecionar Método"}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56">
+              {methodOptions.map((option) => (
+                <DropdownMenuCheckboxItem
+                  key={option.value}
+                  checked={methods.includes(option.value)}
+                  onCheckedChange={(checked) => {
+                    setMethods((current) => checked ? [...current, option.value] : current.filter((item) => item !== option.value));
+                  }}
+                >
+                  {option.label}
+                </DropdownMenuCheckboxItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         <div className="grid w-full max-w-sm items-center gap-1.5">
-            <Label>Período</Label>
-            <DatePickerWithRange onSelect={setDateRange} />
+          <Label>Período</Label>
+          <DatePickerWithRange onSelect={setDateRange} />
         </div>
       </div>
-        <div className="flex items-center gap-2 flex-wrap">
-            <Button onClick={handleFilter}>Filtrar</Button>
-            <Button variant="outline" onClick={clearFilters}>Limpar Filtros</Button>
-            <div className="ml-auto flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => exportPaymentsCSV(payments)} className="gap-1.5">
-                <Download className="h-4 w-4" /> CSV
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => exportPaymentsPDF(payments)} className="gap-1.5">
-                <FileText className="h-4 w-4" /> PDF
-              </Button>
-            </div>
-        </div>
 
-      {loading ? (
-        <p>Carregando...</p>
-      ) : (
-        <PaymentsTable data={payments} />
-      )}
+      <div className="flex items-center gap-2 flex-wrap">
+        <Button onClick={handleFilter}>Filtrar</Button>
+        <Button variant="outline" onClick={clearFilters}>Limpar Filtros</Button>
+        <div className="ml-auto flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => exportPaymentsCSV(payments)} className="gap-1.5">
+            <Download className="h-4 w-4" /> CSV
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => exportPaymentsPDF(payments)} className="gap-1.5">
+            <FileText className="h-4 w-4" /> PDF
+          </Button>
+        </div>
+      </div>
+
+      {loading ? <p>Carregando...</p> : <PaymentsTable data={payments} />}
     </div>
   );
 }

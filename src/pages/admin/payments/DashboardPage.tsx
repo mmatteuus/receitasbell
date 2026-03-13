@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { paymentsRepo } from "@/lib/payments/repo";
+import { listPayments } from "@/lib/api/payments";
 import { Payment } from "@/lib/payments/types";
 import { exportPaymentsCSV, exportPaymentsPDF } from "@/lib/payments/export";
 import { Button } from "@/components/ui/button";
@@ -29,13 +29,22 @@ export default function DashboardPage() {
   });
 
   useEffect(() => {
-    setLoading(true);
-    const filtered = paymentsRepo.listPayments({
-      dateFrom: dateRange?.from?.toISOString(),
-      dateTo: dateRange?.to?.toISOString(),
-    });
-    setPayments(filtered);
-    setLoading(false);
+    async function loadPaymentsForDashboard() {
+      setLoading(true);
+      try {
+        const filtered = await listPayments({
+          dateFrom: dateRange?.from?.toISOString(),
+          dateTo: dateRange?.to?.toISOString(),
+        });
+        setPayments(filtered);
+      } catch (error) {
+        console.error("Failed to load payments dashboard", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    void loadPaymentsForDashboard();
   }, [dateRange]);
 
   const stats = useMemo(() => {

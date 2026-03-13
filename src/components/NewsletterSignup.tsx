@@ -1,8 +1,8 @@
 import { FormEvent, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
-const STORAGE_KEY = "rdb_newsletter_subscribers";
+import { subscribeToNewsletter } from "@/lib/api/interactions";
+import { ApiClientError } from "@/lib/api/client";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -11,7 +11,7 @@ export function NewsletterSignup() {
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const normalized = email.trim().toLowerCase();
     if (!emailPattern.test(normalized)) {
@@ -19,25 +19,22 @@ export function NewsletterSignup() {
       setMessage("Informe um e-mail válido para receber as novidades.");
       return;
     }
-    const stored = (() => {
-      try {
-        const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-        return Array.isArray(parsed) ? parsed : [];
-      } catch {
-        return [];
-      }
-    })();
-    if (stored.includes(normalized)) {
+    try {
+      await subscribeToNewsletter({
+        email: normalized,
+        source: "homepage",
+      });
       setStatus("success");
-      setMessage("Você já está na nossa lista! Obrigado pela confiança.");
+      setMessage("Recebemos seu e-mail! Fique de olho na caixa de entrada.");
       setEmail("");
-      return;
+    } catch (error) {
+      setStatus(error instanceof ApiClientError && error.status === 409 ? "success" : "error");
+      setMessage(
+        error instanceof ApiClientError && error.status === 409
+          ? "Você já está na nossa lista! Obrigado pela confiança."
+          : "Nao foi possivel salvar seu e-mail agora. Tente novamente em instantes.",
+      );
     }
-    const next = [...stored, normalized];
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    setStatus("success");
-    setMessage("Recebemos seu e-mail! Fique de olho na caixa de entrada.");
-    setEmail("");
   };
 
   return (

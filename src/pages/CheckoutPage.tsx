@@ -1,13 +1,15 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, Link, useNavigate } from "react-router-dom";
-import { getRecipeBySlug, getRecipeById, formatBRL } from "@/lib/storage";
-import { useDemoPurchase } from "@/hooks/use-demo-purchase";
+import { getRecipeBySlug, listRecipes } from "@/lib/api/recipes";
+import { createCheckout } from "@/lib/api/interactions";
+import { formatBRL } from "@/lib/helpers";
 import { useCart } from "@/hooks/use-cart";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Lock, ShieldCheck, Zap, ArrowRight } from "lucide-react";
 import { Recipe } from "@/types/recipe";
 import { toast } from "sonner";
+import { useAppContext } from "@/contexts/app-context";
 
 export default function CheckoutPage() {
   const [searchParams] = useSearchParams();
@@ -16,19 +18,33 @@ export default function CheckoutPage() {
   const isCartCheckout = searchParams.get("cart") === "1";
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(false);
-  const { unlockRecipe } = useDemoPurchase();
   const { items: cartItems, clear: clearCart } = useCart();
+  const { requireIdentity } = useAppContext();
 
   useEffect(() => {
-    if (isCartCheckout) {
-      const cartRecipes = cartItems
-        .map((id) => getRecipeById(id))
-        .filter((r): r is Recipe => !!r && r.accessTier === "paid");
-      setRecipes(cartRecipes);
-    } else if (recipeSlug) {
-      const r = getRecipeBySlug(recipeSlug);
-      if (r) setRecipes([r]);
+    async function loadRecipes() {
+      if (isCartCheckout) {
+        try {
+          const cartRecipes = await listRecipes({ ids: cartItems });
+          setRecipes(cartRecipes.filter((recipe) => recipe.accessTier === "paid"));
+        } catch (error) {
+          console.error("Failed to load checkout recipes", error);
+        }
+        return;
+      }
+
+      if (recipeSlug) {
+        try {
+          const recipe = await getRecipeBySlug(recipeSlug);
+          setRecipes(recipe ? [recipe] : []);
+        } catch (error) {
+          console.error("Failed to load checkout recipe", error);
+          setRecipes([]);
+        }
+      }
     }
+
+    void loadRecipes();
   }, [recipeSlug, isCartCheckout, cartItems]);
 
   const total = recipes.reduce((sum, r) => sum + (r.priceBRL || 0), 0);
@@ -36,12 +52,31 @@ export default function CheckoutPage() {
   const handleCheckout = async () => {
     if (!recipes.length) return;
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 1500));
-    recipes.forEach((r) => unlockRecipe(r.id));
-    if (isCartCheckout) clearCart();
-    toast.success("Pagamento aprovado! (simulação)");
-    const slug = recipes.length === 1 ? recipes[0].slug : "";
-    navigate(`/compra/sucesso?slug=${slug}&status=approved&payment_id=mock-${Date.now()}&count=${recipes.length}`);
+    try {
+      const buyerEmail = await requireIdentity("Digite seu e-mail para concluir a compra.");
+      if (!buyerEmail) {
+        setLoading(false);
+        return;
+      }
+
+      const result = await createCheckout({
+        recipeIds: recipes.map((recipe) => recipe.id),
+        buyerEmail,
+        checkoutReference: crypto.randomUUID(),
+      });
+
+      if (isCartCheckout) clearCart();
+      toast.success("Pagamento aprovado! (simulação)");
+      const slug = recipes.length === 1 ? recipes[0].slug : "";
+      navigate(
+        `/compra/sucesso?slug=${slug}&status=approved&payment_id=${result.primaryPaymentId || ""}&count=${result.unlockedCount}`,
+      );
+    } catch (error) {
+      console.error("Failed to complete checkout", error);
+      toast.error("Nao foi possivel concluir a compra.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!recipes.length) {

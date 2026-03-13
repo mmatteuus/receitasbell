@@ -1,11 +1,12 @@
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Search as SearchIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { getPublishedRecipes } from "@/lib/storage";
-import { getCategories } from "@/lib/categories";
+import { listRecipes } from "@/lib/api/recipes";
+import { useAppContext } from "@/contexts/app-context";
 import RecipeCard from "@/components/RecipeCard";
+import type { Recipe } from "@/types/recipe";
 
 export default function SearchPage() {
   const [searchParams] = useSearchParams();
@@ -15,8 +16,20 @@ export default function SearchPage() {
   const [query, setQuery] = useState(initialQ);
   const [catFilter, setCatFilter] = useState("all");
   const [tierFilter, setTierFilter] = useState(initialTier);
-  const categories = getCategories();
-  const published = getPublishedRecipes();
+  const [published, setPublished] = useState<Recipe[]>([]);
+  const { categories } = useAppContext();
+
+  useEffect(() => {
+    async function loadRecipes() {
+      try {
+        setPublished(await listRecipes());
+      } catch (error) {
+        console.error("Failed to load recipes", error);
+      }
+    }
+
+    void loadRecipes();
+  }, []);
 
   const results = useMemo(() => {
     const q = query.toLowerCase();

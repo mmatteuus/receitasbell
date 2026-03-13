@@ -1,12 +1,29 @@
+import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { getPublishedRecipes } from "@/lib/storage";
-import { getCategoryBySlug } from "@/lib/categories";
+import { listRecipes } from "@/lib/api/recipes";
+import { useAppContext } from "@/contexts/app-context";
 import RecipeCard from "@/components/RecipeCard";
+import type { Recipe } from "@/types/recipe";
 
 export default function Category() {
   const { slug } = useParams<{ slug: string }>();
-  const cat = getCategoryBySlug(slug || "");
-  const recipes = getPublishedRecipes().filter((r) => r.categorySlug === slug);
+  const { categories } = useAppContext();
+  const cat = categories.find((category) => category.slug === (slug || ""));
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+
+  useEffect(() => {
+    if (!slug) return;
+
+    async function loadRecipes() {
+      try {
+        setRecipes(await listRecipes({ categorySlug: slug }));
+      } catch (error) {
+        console.error("Failed to load category recipes", error);
+      }
+    }
+
+    void loadRecipes();
+  }, [slug]);
 
   if (!cat) {
     return (

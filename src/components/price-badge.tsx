@@ -1,5 +1,5 @@
 import { AccessTier } from "@/types/recipe";
-import { formatBRL } from "@/lib/storage";
+import { formatBRL } from "@/lib/helpers";
 
 interface PriceBadgeProps {
   accessTier: AccessTier;

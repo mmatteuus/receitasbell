@@ -4,7 +4,6 @@ import { Recipe } from "@/types/recipe";
 import { PriceBadge } from "@/components/price-badge";
 import { useFavorites } from "@/hooks/use-favorites";
 import { useCart } from "@/hooks/use-cart";
-import { useDemoPurchase } from "@/hooks/use-demo-purchase";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -15,10 +14,9 @@ interface RecipeCardProps {
 export default function RecipeCard({ recipe }: RecipeCardProps) {
   const { isFavorite, toggleFavorite } = useFavorites();
   const { has: inCart, add: addToCart } = useCart();
-  const { isUnlocked } = useDemoPurchase();
   const isFav = isFavorite(recipe.id);
   const isPaid = recipe.accessTier === "paid";
-  const unlocked = isUnlocked(recipe.id, recipe.accessTier);
+  const unlocked = recipe.accessTier === "free" || Boolean(recipe.isUnlocked);
   const blocked = isPaid && !unlocked;
 
   return (
@@ -37,7 +35,10 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
             variant="secondary"
             size="icon"
             className="h-8 w-8 rounded-full bg-white/90 shadow-sm hover:bg-white hover:text-red-500 dark:bg-black/60 dark:hover:bg-black/80"
-            onClick={(e) => { e.preventDefault(); toggleFavorite(recipe.id); }}
+            onClick={(e) => {
+              e.preventDefault();
+              void toggleFavorite(recipe.id);
+            }}
           >
             <Heart className={`h-4 w-4 transition-colors ${isFav ? "fill-red-500 text-red-500" : "text-muted-foreground"}`} />
             <span className="sr-only">Favoritar</span>

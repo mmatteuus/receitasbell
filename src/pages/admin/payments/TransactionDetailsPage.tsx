@@ -1,8 +1,7 @@
-
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Payment, PaymentEvent } from "@/lib/payments/types";
-import { paymentsRepo } from "@/lib/payments/repo";
+import { Payment, PaymentEvent, PaymentNote } from "@/lib/payments/types";
+import { addPaymentNote, getPayment } from "@/lib/api/payments";
 import { StatusBadge } from "@/components/payments/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,41 +11,50 @@ import { toast } from "sonner";
 
 export default function TransactionDetailsPage() {
   const { id } = useParams<{ id: string }>();
-
   const [payment, setPayment] = useState<Payment | null>(null);
   const [events, setEvents] = useState<PaymentEvent[]>([]);
-  const [note, setNote] = useState("");
+  const [notes, setNotes] = useState<PaymentNote[]>([]);
+  const [noteDraft, setNoteDraft] = useState("");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (id) {
+    if (!id) return;
+
+    async function loadPayment() {
       setLoading(true);
-      const paymentId = parseInt(id, 10);
-      const foundPayment = paymentsRepo.getPayment(paymentId);
-      if (foundPayment) {
-        setPayment(foundPayment);
-        setEvents(paymentsRepo.listEvents(paymentId));
-        setNote(paymentsRepo.getNote(paymentId));
+      try {
+        const details = await getPayment(id);
+        setPayment(details.payment);
+        setEvents(details.events);
+        setNotes(details.notes);
+      } catch (error) {
+        console.error("Failed to load payment details", error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
+
+    void loadPayment();
   }, [id]);
 
-  const handleSaveNote = () => {
-    if (payment) {
-      paymentsRepo.addNote(payment.id, note);
-      toast.success("Nota salva!", {
-        description: "A observação interna foi salva com sucesso.",
-      });
+  async function handleSaveNote() {
+    if (!payment || !noteDraft.trim()) return;
+
+    try {
+      const note = await addPaymentNote(payment.id, noteDraft.trim());
+      setNotes((current) => [note, ...current]);
+      setNoteDraft("");
+      toast.success("Nota salva");
+    } catch (error) {
+      console.error("Failed to save payment note", error);
+      toast.error("Nao foi possivel salvar a nota.");
     }
-  };
-  
-  const copyToClipboard = (text: string) => {
+  }
+
+  function copyToClipboard(text: string) {
     navigator.clipboard.writeText(text);
-    toast.success("Copiado!", {
-      description: "O ID do pagamento foi copiado para a área de transferência.",
-    });
-  };
+    toast.success("Copiado para a área de transferência");
+  }
 
   if (loading) {
     return <p>Carregando...</p>;
@@ -58,56 +66,40 @@ export default function TransactionDetailsPage() {
 
   return (
     <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-            <div>
-                <div className="flex items-center gap-2">
-                    <h1 className="text-xl sm:text-2xl font-bold">Detalhes da Transação</h1>
-                    <Button variant="ghost" size="icon" onClick={() => copyToClipboard(String(payment.id))}>
-                        <Copy className="h-4 w-4" />
-                    </Button>
-                </div>
-                <p className="text-muted-foreground text-sm">Payment ID: {payment.id}</p>
-            </div>
-            <StatusBadge status={payment.status} statusDetail={payment.status_detail} />
-        </div>
-
-        <div className="flex items-center space-x-2">
-            <Button disabled size="sm">
-                Reembolsar
+      <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-bold">Detalhes da Transação</h1>
+            <Button variant="ghost" size="icon" onClick={() => copyToClipboard(String(payment.id))}>
+              <Copy className="h-4 w-4" />
             </Button>
-            <Button variant="outline" disabled size="sm">
-                Cancelar
-            </Button>
+          </div>
+          <p className="text-muted-foreground text-sm">Payment ID: {payment.id}</p>
         </div>
+        <StatusBadge status={payment.status} statusDetail={payment.status_detail} />
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2 space-y-6">
           <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Resumo</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle className="text-lg">Resumo</CardTitle></CardHeader>
             <CardContent className="space-y-3 text-sm">
-                <p><strong>Valor:</strong> {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(payment.transaction_amount)}</p>
-                <p><strong>Método:</strong> {payment.payment_method_id}</p>
-                <p><strong>Data de criação:</strong> {new Date(payment.date_created).toLocaleString()}</p>
-                {payment.date_approved && <p><strong>Data de aprovação:</strong> {new Date(payment.date_approved).toLocaleString()}</p>}
+              <p><strong>Valor:</strong> {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(payment.transaction_amount)}</p>
+              <p><strong>Método:</strong> {payment.payment_method_id}</p>
+              <p><strong>Data de criação:</strong> {new Date(payment.date_created).toLocaleString()}</p>
+              {payment.date_approved && <p><strong>Data de aprovação:</strong> {new Date(payment.date_approved).toLocaleString()}</p>}
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Pagador</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle className="text-lg">Pagador</CardTitle></CardHeader>
             <CardContent className="space-y-2 text-sm">
               <p><strong>Email:</strong> <span className="break-all">{payment.payer.email}</span></p>
-              {payment.payer.first_name && <p><strong>Nome:</strong> {payment.payer.first_name}</p>}
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Item Comprado</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle className="text-lg">Item Comprado</CardTitle></CardHeader>
             <CardContent className="text-sm">
               <Link to={`/receitas/${payment.external_reference}`} className="text-primary hover:underline break-all">
                 Ver receita: {payment.external_reference}
@@ -118,46 +110,46 @@ export default function TransactionDetailsPage() {
 
         <div className="space-y-6">
           <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Timeline</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle className="text-lg">Timeline</CardTitle></CardHeader>
             <CardContent>
               <ul className="space-y-2 text-sm">
                 <li>Criado: {new Date(payment.date_created).toLocaleString()}</li>
                 {payment.date_approved && <li>Aprovado: {new Date(payment.date_approved).toLocaleString()}</li>}
-                {payment.status === 'refunded' && <li>Reembolsado</li>}
-                {payment.status === 'charged_back' && <li>Chargeback</li>}
+                {payment.webhook_received_at && <li>Webhook: {new Date(payment.webhook_received_at).toLocaleString()}</li>}
               </ul>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Eventos</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle className="text-lg">Eventos</CardTitle></CardHeader>
             <CardContent>
-              <p className="text-xs text-muted-foreground">Última sincronização: {events.length > 0 ? new Date(events[0].date_created).toLocaleString() : 'N/A'}</p>
-              <ul className="space-y-2 mt-4">
-                {events.map(event => (
-                  <li key={event.id} className="text-sm">
-                    Webhook recebido: {event.type} em {new Date(event.date_created).toLocaleString()}
+              <ul className="space-y-2 text-sm">
+                {events.length > 0 ? events.map((event) => (
+                  <li key={event.id}>
+                    {event.type} em {new Date(event.date_created).toLocaleString()}
                   </li>
-                ))}
+                )) : <li>Nenhum evento registrado.</li>}
               </ul>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Observações Internas</CardTitle>
-            </CardHeader>
+            <CardHeader><CardTitle className="text-lg">Observações Internas</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-              <Textarea 
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
+              <Textarea
+                value={noteDraft}
+                onChange={(event) => setNoteDraft(event.target.value)}
                 placeholder="Adicione uma nota interna sobre este pagamento..."
               />
-              <Button onClick={handleSaveNote} size="sm">Salvar Nota</Button>
+              <Button onClick={() => void handleSaveNote()} size="sm">Salvar Nota</Button>
+              <div className="space-y-3">
+                {notes.length > 0 ? notes.map((note) => (
+                  <div key={note.id} className="rounded-lg border p-3 text-sm">
+                    <p>{note.note}</p>
+                    <p className="mt-2 text-xs text-muted-foreground">{new Date(note.created_at).toLocaleString()}</p>
+                  </div>
+                )) : <p className="text-sm text-muted-foreground">Nenhuma nota registrada.</p>}
+              </div>
             </CardContent>
           </Card>
         </div>

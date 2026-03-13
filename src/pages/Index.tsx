@@ -2,13 +2,13 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search } from "lucide-react";
 import { Recipe } from "@/types/recipe";
-import { getPublishedRecipes } from "@/lib/storage";
+import { listRecipes } from "@/lib/api/recipes";
 import RecipeCard from "@/components/RecipeCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { NewsletterSignup } from "@/components/NewsletterSignup";
-// import { NewsletterForm } from "@/lib/NewsletterForm";
+import { useAppContext } from "@/contexts/app-context";
 
 export default function HomePage() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
@@ -16,11 +16,12 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const navigate = useNavigate();
+  const { settings } = useAppContext();
 
   useEffect(() => {
-    function loadRecipes() {
+    async function loadRecipes() {
       try {
-        const published = getPublishedRecipes();
+        const published = await listRecipes();
         setRecipes(published);
 
         // Carrega histórico
@@ -42,7 +43,7 @@ export default function HomePage() {
         setLoading(false);
       }
     }
-    loadRecipes();
+    void loadRecipes();
   }, []);
 
   const handleSearch = (e: React.FormEvent) => {
@@ -58,10 +59,10 @@ export default function HomePage() {
       <section className="bg-orange-50 dark:bg-orange-950/20 py-16 md:py-24">
         <div className="container px-4 md:px-6 text-center space-y-6">
           <h1 className="font-serif text-4xl md:text-6xl font-bold tracking-tighter text-orange-900 dark:text-orange-100">
-            Receitas do Bell
+            {settings.siteName}
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-[700px] mx-auto font-sans">
-            Descubra receitas deliciosas, testadas e aprovadas para tornar seus momentos na cozinha inesquecíveis.
+            {settings.siteDescription}
           </p>
           
           <div className="max-w-md mx-auto w-full">

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Bell } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -6,7 +6,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { paymentsRepo } from "@/lib/payments/repo";
+import { listPayments } from "@/lib/api/payments";
+import type { Payment } from "@/lib/payments/types";
 import { cn } from "@/lib/utils";
 
 export function AdminNotifications() {
@@ -14,15 +15,21 @@ export function AdminNotifications() {
     () => localStorage.getItem("rdb_notif_last_seen") || ""
   );
   const [open, setOpen] = useState(false);
+  const [recentPayments, setRecentPayments] = useState<Payment[]>([]);
 
-  const recentPayments = useMemo(() => {
-    const all = paymentsRepo.listPayments();
-    // Show payments from last 7 days as "notifications"
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - 7);
-    return all
-      .filter((p) => new Date(p.date_created) >= cutoff)
-      .slice(0, 10);
+  useEffect(() => {
+    async function loadNotifications() {
+      try {
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - 7);
+        const payments = await listPayments({ dateFrom: cutoff.toISOString() });
+        setRecentPayments(payments.slice(0, 10));
+      } catch (error) {
+        console.error("Failed to load admin notifications", error);
+      }
+    }
+
+    void loadNotifications();
   }, []);
 
   const unseenCount = useMemo(() => {

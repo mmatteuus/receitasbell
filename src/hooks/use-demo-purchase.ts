@@ -1,33 +1,29 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-
-const STORAGE_KEY = 'receitas_bell_purchased';
+import { createCheckout } from "@/lib/api/interactions";
+import { useAppContext } from "@/contexts/app-context";
 
 export function useDemoPurchase() {
-  const [purchasedIds, setPurchasedIds] = useState<string[]>([]);
+  const { requireIdentity } = useAppContext();
 
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
-        setPurchasedIds(JSON.parse(stored));
-      } catch (e) {
-        setPurchasedIds([]);
-      }
-    }
-  }, []);
+  async function unlockRecipes(recipeIds: string[]) {
+    const buyerEmail = await requireIdentity("Digite seu e-mail para concluir a compra.");
+    if (!buyerEmail) return null;
 
-  const unlockRecipe = (id: string) => {
-    const updated = [...purchasedIds, id];
-    setPurchasedIds(updated);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    return createCheckout({
+      recipeIds,
+      buyerEmail,
+      checkoutReference: crypto.randomUUID(),
+    });
+  }
+
+  function isUnlocked(_recipeId: string, tier: "free" | "paid", unlocked?: boolean) {
+    if (tier === "free") return true;
+    return Boolean(unlocked);
+  }
+
+  return {
+    unlockRecipes,
+    isUnlocked,
   };
-
-  const isUnlocked = (recipeId: string, tier: 'free' | 'paid') => {
-    if (tier === 'free') return true;
-    return purchasedIds.includes(recipeId);
-  };
-
-  return { purchasedIds, unlockRecipe, isUnlocked };
 }
