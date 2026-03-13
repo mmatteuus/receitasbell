@@ -19,6 +19,13 @@ export function getAdminApiSecret() {
   return getRequiredEnv("ADMIN_API_SECRET");
 }
 
+export function getMercadoPagoEnv() {
+  return {
+    accessToken: getRequiredEnv("MP_ACCESS_TOKEN"),
+    webhookSecret: getRequiredEnv("MP_WEBHOOK_SECRET"),
+  };
+}
+
 export function hasMercadoPagoConfig() {
   return Boolean(process.env.MP_ACCESS_TOKEN && process.env.MP_WEBHOOK_SECRET);
 }

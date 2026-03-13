@@ -1,5 +1,5 @@
-import type { Category } from "../types/recipe";
-import type { PaymentSettings, SiteSettings } from "../types/settings";
+import type { Category } from "../types/recipe.js";
+import type { PaymentSettings, SiteSettings } from "../types/settings.js";
 
 export const DEFAULT_CATEGORIES: Category[] = [
   { name: "Salgadas", slug: "salgadas", emoji: "🧂", description: "Receitas salgadas para qualquer ocasião" },

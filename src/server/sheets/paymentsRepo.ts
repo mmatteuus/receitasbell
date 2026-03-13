@@ -2,9 +2,10 @@ import type { Payment, PaymentEvent, PaymentNote, PaymentStatus } from "../../li
 import { ApiError } from "../http.js";
 import { readTable, mutateTable } from "./table.js";
 import { ensureRecipeUnlock } from "./recipeUnlocksRepo.js";
-import { getRecipeById } from "./recipesRepo.js";
+import { getRecipeById, getRecipeBySlug } from "./recipesRepo.js";
 import { SheetRecord } from "./schema.js";
 import { nowIso, asJson, asNumber, asNullableString, toJsonString } from "./utils.js";
+import { findOrCreateUserByEmail } from "./usersRepo.js";
 
 interface ListPaymentsFilters {
   status?: PaymentStatus[];
@@ -15,6 +16,8 @@ interface ListPaymentsFilters {
   dateFrom?: string;
   dateTo?: string;
 }
+
+type MercadoPagoPayload = Record<string, unknown>;
 
 function mapPayment(row: SheetRecord<"payments">): Payment {
   return {
@@ -145,6 +148,184 @@ async function addPaymentEvents(paymentId: string, eventTypes: string[], payload
       payload_json: toJsonString(payload),
     })),
   ]);
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  return value as Record<string, unknown>;
+}
+
+function asText(value: unknown) {
+  if (typeof value === "string" && value.trim()) {
+    return value.trim();
+  }
+
+  if (typeof value === "number" || typeof value === "bigint") {
+    return String(value);
+  }
+
+  return null;
+}
+
+function asFiniteNumber(value: unknown) {
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function normalizePaymentStatus(status: string | null | undefined): PaymentStatus {
+  switch ((status || "").trim()) {
+    case "approved":
+      return "approved";
+    case "pending":
+      return "pending";
+    case "in_process":
+      return "in_process";
+    case "rejected":
+      return "rejected";
+    case "cancelled":
+    case "cancelled_by_user":
+      return "cancelled";
+    case "refunded":
+      return "refunded";
+    case "charged_back":
+      return "charged_back";
+    default:
+      return "pending";
+  }
+}
+
+function normalizePaymentMethodId(method: string | null | undefined): Payment["payment_method_id"] {
+  const normalized = (method || "").trim().toLowerCase();
+  if (normalized === "pix") return "pix";
+  if (normalized === "bolbradesco" || normalized === "pec" || normalized === "boleto") return "boleto";
+  return "credit_card";
+}
+
+function normalizePaymentTypeId(type: string | null | undefined): Payment["payment_type_id"] {
+  const normalized = (type || "").trim().toLowerCase();
+  if (normalized === "ticket") return "ticket";
+  if (normalized === "credit_card") return "credit_card";
+  return "account_money";
+}
+
+function buildMercadoPagoEventType(notification: MercadoPagoPayload, status: PaymentStatus) {
+  const action = asText(notification.action);
+  if (action) return action;
+
+  const topic = asText(notification.type) || asText(notification.topic);
+  if (topic) {
+    return `${topic}.${status}`;
+  }
+
+  return `payment.${status}`;
+}
+
+async function resolveRecipeFromMercadoPagoPayment(payment: MercadoPagoPayload) {
+  const metadata = asRecord(payment.metadata) ?? {};
+  const recipeId = asText(metadata.recipe_id);
+  if (recipeId) {
+    const recipe = await getRecipeById(recipeId, { includeDrafts: true });
+    if (recipe) return recipe;
+  }
+
+  const externalReference = asText(payment.external_reference);
+  if (externalReference) {
+    const recipe = await getRecipeBySlug(externalReference, { includeDrafts: true });
+    if (recipe) return recipe;
+  }
+
+  return null;
+}
+
+export async function syncMercadoPagoPayment(paymentPayload: MercadoPagoPayload, notificationPayload: MercadoPagoPayload) {
+  const externalPaymentId = asText(paymentPayload.id);
+  if (!externalPaymentId) {
+    throw new ApiError(400, "Mercado Pago payment payload is missing an id");
+  }
+
+  const payer = asRecord(paymentPayload.payer) ?? {};
+  const metadata = asRecord(paymentPayload.metadata) ?? {};
+  const recipe = await resolveRecipeFromMercadoPagoPayment(paymentPayload);
+  const buyerEmail = asText(payer.email)?.toLowerCase() || "";
+  const user = buyerEmail ? await findOrCreateUserByEmail(buyerEmail) : null;
+  const recipeId = recipe?.id || asText(metadata.recipe_id) || "";
+  const externalReference =
+    asText(paymentPayload.external_reference) || recipe?.slug || asText(metadata.recipe_slug) || "";
+  const checkoutReference =
+    asText(metadata.checkout_reference) ||
+    asText(paymentPayload.order_id) ||
+    asText(asRecord(paymentPayload.order)?.id) ||
+    "";
+  const status = normalizePaymentStatus(asText(paymentPayload.status));
+  const statusDetail = asText(paymentPayload.status_detail) || status;
+  const transactionAmount = asFiniteNumber(paymentPayload.transaction_amount) ?? 0;
+  const currencyId = asText(paymentPayload.currency_id) || "BRL";
+  const dateCreated = asText(paymentPayload.date_created) || nowIso();
+  const dateApproved =
+    status === "approved"
+      ? asText(paymentPayload.date_approved) || asText(paymentPayload.date_last_updated) || nowIso()
+      : "";
+  const webhookReceivedAt = nowIso();
+  const idempotencyKey = `mp:${externalPaymentId}`;
+
+  const rows = await mutateTable("payments", async (current) => {
+    const existing = current.find(
+      (row) => row.external_payment_id === externalPaymentId || row.idempotency_key === idempotencyKey,
+    );
+
+    const nextRow: SheetRecord<"payments"> = {
+      id: existing?.id || crypto.randomUUID(),
+      external_payment_id: externalPaymentId,
+      provider: "mercadopago",
+      recipe_id: recipeId || existing?.recipe_id || "",
+      user_id: user?.id || existing?.user_id || "",
+      buyer_email: buyerEmail || existing?.buyer_email || "",
+      status,
+      status_detail: statusDetail,
+      payment_method_id: normalizePaymentMethodId(asText(paymentPayload.payment_method_id)),
+      payment_type_id: normalizePaymentTypeId(asText(paymentPayload.payment_type_id)),
+      transaction_amount: String(transactionAmount),
+      currency_id: currencyId,
+      date_created: existing?.date_created || dateCreated,
+      date_approved: dateApproved || existing?.date_approved || "",
+      raw_json: toJsonString(paymentPayload),
+      external_reference: externalReference || existing?.external_reference || "",
+      checkout_reference: checkoutReference || existing?.checkout_reference || "",
+      webhook_received_at: webhookReceivedAt,
+      idempotency_key: existing?.idempotency_key || idempotencyKey,
+    };
+
+    if (existing) {
+      return current.map((row) => (row.id === existing.id ? nextRow : row));
+    }
+
+    return [...current, nextRow];
+  });
+
+  const payment = mapPayment(
+    rows.find(
+      (row) => row.external_payment_id === externalPaymentId || row.idempotency_key === idempotencyKey,
+    )!,
+  );
+
+  await addPaymentEvents(payment.id, [buildMercadoPagoEventType(notificationPayload, payment.status)], {
+    notification: notificationPayload,
+    payment: paymentPayload,
+  });
+
+  if (payment.status === "approved" && payment.recipe_id && (payment.buyer_email || payment.user_id)) {
+    await ensureRecipeUnlock({
+      recipeId: payment.recipe_id,
+      paymentId: payment.id,
+      userId: payment.user_id,
+      buyerEmail: payment.buyer_email,
+    });
+  }
+
+  return payment;
 }
 
 async function createMockPayment(input: {

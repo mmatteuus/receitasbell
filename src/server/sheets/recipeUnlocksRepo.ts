@@ -37,12 +37,12 @@ export async function ensureRecipeUnlock(input: {
   recipeId: string;
   paymentId: string;
   userId?: string | null;
-  buyerEmail: string;
+  buyerEmail?: string | null;
 }) {
-  const email = input.buyerEmail.trim().toLowerCase();
+  const email = input.buyerEmail?.trim().toLowerCase() || "";
   const existing = await listRecipeUnlocksForIdentity({
     userId: input.userId,
-    email,
+    email: email || null,
   });
   const found = existing.find((unlock) => unlock.recipeId === input.recipeId);
   if (found) return found;
