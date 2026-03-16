@@ -1,10 +1,8 @@
 const IDENTITY_COOKIE = "rb_user_email";
 const IDENTITY_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
-const ADMIN_SESSION_KEY = "rb_admin_secret";
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 let pendingIdentityPrompt: Promise<string | null> | null = null;
-let pendingAdminPrompt: Promise<string | null> | null = null;
 
 function hasWindow() {
   return typeof window !== "undefined";
@@ -68,38 +66,3 @@ export async function ensureIdentityEmail(message = "Digite seu e-mail para salv
 
   return pendingIdentityPrompt;
 }
-
-export function getAdminSecret() {
-  if (!hasWindow()) return null;
-  return window.sessionStorage.getItem(ADMIN_SESSION_KEY);
-}
-
-export function setAdminSecret(secret: string) {
-  if (!hasWindow()) return;
-  window.sessionStorage.setItem(ADMIN_SESSION_KEY, secret.trim());
-}
-
-export function clearAdminSecret() {
-  if (!hasWindow()) return;
-  window.sessionStorage.removeItem(ADMIN_SESSION_KEY);
-}
-
-export async function ensureAdminSecret(message = "Digite a senha do admin para continuar.") {
-  const current = getAdminSecret();
-  if (current) return current;
-  if (!hasWindow()) return null;
-
-  if (!pendingAdminPrompt) {
-    pendingAdminPrompt = Promise.resolve().then(() => {
-      const input = window.prompt(message, "");
-      if (!input?.trim()) return null;
-      setAdminSecret(input);
-      return input.trim();
-    }).finally(() => {
-      pendingAdminPrompt = null;
-    });
-  }
-
-  return pendingAdminPrompt;
-}
-

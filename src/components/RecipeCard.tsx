@@ -6,6 +6,7 @@ import { useFavorites } from "@/hooks/use-favorites";
 import { useCart } from "@/hooks/use-cart";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { getRecipeImage, getRecipePresentation } from "@/lib/recipes/presentation";
 
 interface RecipeCardProps {
   recipe: Recipe;
@@ -18,12 +19,14 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
   const isPaid = recipe.accessTier === "paid";
   const unlocked = recipe.accessTier === "free" || Boolean(recipe.isUnlocked);
   const blocked = isPaid && !unlocked;
+  const imageUrl = getRecipeImage(recipe);
+  const presentation = getRecipePresentation(recipe);
 
   return (
     <div className="group relative flex flex-col overflow-hidden rounded-2xl border bg-card shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl">
       <Link to={`/receitas/${recipe.slug}`} className="relative aspect-[4/3] overflow-hidden">
         <img
-          src={recipe.image || "/placeholder.svg"}
+          src={imageUrl}
           alt={recipe.title}
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
@@ -55,11 +58,11 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
         </div>
 
         <Link to={`/receitas/${recipe.slug}`} className="group-hover:underline">
-          <h3 className="line-clamp-1 font-heading text-base font-semibold sm:text-lg">{recipe.title}</h3>
+          <h3 className="line-clamp-2 font-heading text-base font-semibold sm:text-lg">{presentation.cardTitle}</h3>
         </Link>
 
         <p className="mt-1 line-clamp-2 text-sm text-muted-foreground sm:mt-2">
-          {recipe.description}
+          {presentation.cardSubtitle}
         </p>
 
         <div className="mt-auto flex items-center gap-4 pt-4 text-xs text-muted-foreground">

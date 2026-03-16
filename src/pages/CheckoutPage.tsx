@@ -10,6 +10,7 @@ import { Lock, ShieldCheck, Zap, ArrowRight } from "lucide-react";
 import { Recipe } from "@/types/recipe";
 import { toast } from "sonner";
 import { useAppContext } from "@/contexts/app-context";
+import { getRecipeImage, getRecipePresentation } from "@/lib/recipes/presentation";
 
 export default function CheckoutPage() {
   const [searchParams] = useSearchParams();
@@ -99,12 +100,10 @@ export default function CheckoutPage() {
       <div className="mt-6 sm:mt-8 rounded-xl border bg-card p-4 sm:p-6 shadow-sm space-y-4">
         {recipes.map((recipe) => (
           <div key={recipe.id} className="flex gap-3 sm:gap-4">
-            {recipe.image && (
-              <img src={recipe.image} alt={recipe.title} className="h-16 w-16 sm:h-20 sm:w-20 rounded-lg object-cover shrink-0" />
-            )}
+            <img src={getRecipeImage(recipe)} alt={recipe.title} className="h-16 w-16 sm:h-20 sm:w-20 rounded-lg object-cover shrink-0" />
             <div className="flex-1 min-w-0">
-              <h2 className="font-heading text-sm font-semibold sm:text-lg truncate">{recipe.title}</h2>
-              <p className="text-xs text-muted-foreground line-clamp-1 sm:text-sm">{recipe.description}</p>
+              <h2 className="font-heading text-sm font-semibold sm:text-lg truncate">{getRecipePresentation(recipe).cardTitle}</h2>
+              <p className="text-xs text-muted-foreground line-clamp-1 sm:text-sm">{getRecipePresentation(recipe).cardSubtitle}</p>
               <p className="text-sm font-bold mt-1">{formatBRL(recipe.priceBRL || 0)}</p>
             </div>
           </div>

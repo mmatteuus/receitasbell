@@ -16,6 +16,19 @@ const CACHE_TTL_MS = 10 * 60 * 1000;
 let cachedRecipes: Recipe[] | null = null;
 let cachedAt = 0;
 
+function parseBoolean(value: string | undefined) {
+  if (!value) return undefined;
+  if (value === "1" || value.toLowerCase() === "true") return true;
+  if (value === "0" || value.toLowerCase() === "false") return false;
+  return undefined;
+}
+
+export function isInternetFallbackEnabled() {
+  const envValue = parseBoolean(import.meta.env.VITE_ENABLE_INTERNET_FALLBACK);
+  if (envValue !== undefined) return envValue;
+  return Boolean(import.meta.env.DEV);
+}
+
 function toInstructionSteps(instructions: string | null): string[] {
   if (!instructions) {
     return ["Modo de preparo indisponivel."];

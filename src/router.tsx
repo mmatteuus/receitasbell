@@ -1,5 +1,7 @@
 import type { ComponentType } from "react";
 import { Navigate, createBrowserRouter } from "react-router-dom";
+import { RequireAdminAuth } from "@/components/auth/RequireAdminAuth";
+import AdminLayout from "@/components/layout/AdminLayout";
 import PublicLayout from "@/components/layout/PublicLayout";
 import HomePage from "@/pages/Index";
 
@@ -36,8 +38,16 @@ export const router = createBrowserRouter([
     ],
   },
   {
+    path: "/admin/login",
+    lazy: lazyRoute(() => import("@/pages/admin/LoginPage")),
+  },
+  {
     path: "/admin",
-    lazy: lazyRoute(() => import("@/components/layout/AdminLayout")),
+    element: (
+      <RequireAdminAuth>
+        <AdminLayout />
+      </RequireAdminAuth>
+    ),
     children: [
       { index: true, lazy: lazyRoute(() => import("@/pages/admin/Dashboard")) },
       { path: "receitas", lazy: lazyRoute(() => import("@/pages/admin/RecipeListPage")) },

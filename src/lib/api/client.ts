@@ -1,5 +1,3 @@
-import { clearAdminSecret, ensureAdminSecret } from "./identity";
-
 export class ApiClientError extends Error {
   status: number;
   details?: unknown;
@@ -56,14 +54,6 @@ export async function jsonFetch<T>(path: string, options: JsonFetchOptions = {})
     }
   }
 
-  if (admin) {
-    const secret = await ensureAdminSecret();
-    if (!secret) {
-      throw new ApiClientError(401, "Autenticacao de admin cancelada.");
-    }
-    headers.set("x-admin-secret", secret);
-  }
-
   const response = await fetch(path, {
     credentials: "same-origin",
     ...init,
@@ -80,7 +70,11 @@ export async function jsonFetch<T>(path: string, options: JsonFetchOptions = {})
 
   if (!response.ok) {
     if (admin && response.status === 401) {
-      clearAdminSecret();
+      if (typeof window !== "undefined" && !window.location.pathname.startsWith("/admin/login")) {
+        const redirect = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+        window.location.assign(`/admin/login?redirect=${encodeURIComponent(redirect)}`);
+      }
+      throw new ApiClientError(401, "Sessão de admin expirada. Faça login novamente.", payload?.details);
     }
     throw new ApiClientError(
       response.status,
@@ -91,4 +85,3 @@ export async function jsonFetch<T>(path: string, options: JsonFetchOptions = {})
 
   return payload as T;
 }
-

@@ -1,14 +1,16 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { getMercadoPagoEnv, hasMercadoPagoConfig } from "../src/server/env.js";
+import { getAdminApiSecret, getMercadoPagoEnv, hasMercadoPagoConfig } from "../src/server/env.js";
 import { requireIdentityUser, resolveOptionalIdentityUser } from "../src/server/identity.js";
 import {
   ApiError,
   assertMethod,
+  clearAdminSessionCookie,
   hasAdminAccess,
   parseStringArray,
   readJsonBody,
   requireAdminAccess,
   requireQueryParam,
+  setAdminSessionCookie,
   sendJson,
   sendNoContent,
   withApiHandler,
@@ -122,6 +124,28 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
     if (!resource) {
       throw new ApiError(404, "API route not found");
+    }
+
+    if (resource === "admin" && resourceId === "session") {
+      if (request.method === "GET") {
+        return sendJson(response, 200, { authenticated: hasAdminAccess(request) });
+      }
+
+      if (request.method === "DELETE") {
+        clearAdminSessionCookie(request, response);
+        return sendNoContent(response);
+      }
+
+      assertMethod(request, ["POST"]);
+      const body = await readJsonBody<{ password?: string }>(request);
+      const password = String(body.password || "");
+
+      if (password !== getAdminApiSecret()) {
+        throw new ApiError(401, "Senha inválida");
+      }
+
+      setAdminSessionCookie(request, response, password);
+      return sendJson(response, 200, { authenticated: true });
     }
 
     if (resource === "recipes" && !resourceId) {

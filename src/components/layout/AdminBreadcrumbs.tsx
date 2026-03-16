@@ -10,6 +10,7 @@ const breadcrumbMap: Record<string, string> = {
   "/admin/pagamentos/configuracoes": "Config. Pagamentos",
   "/admin/pagamentos/transacoes": "Transações",
   "/admin/configuracoes": "Configurações",
+  "/admin/configuracoes/pagina-inicial": "Página Inicial",
 };
 
 export function AdminBreadcrumbs() {

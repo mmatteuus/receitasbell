@@ -1,10 +1,11 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Utensils, CreditCard, LogOut,
   ChevronLeft, ChevronRight, Moon, Sun, Menu, X, Settings, Home
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { logoutAdmin } from "@/lib/api/adminSession";
 
 /* ── Context ── */
 interface SidebarCtx {
@@ -60,6 +61,17 @@ const sidebarItems = [
 /* ── Sidebar nav content (shared between desktop and mobile) ── */
 function SidebarNav({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: () => void }) {
   const location = useLocation();
+  const navigate = useNavigate();
+
+  async function handleLogout() {
+    try {
+      await logoutAdmin();
+    } catch {
+      // Ignora erro de logout para não bloquear saída.
+    }
+    onNavigate?.();
+    navigate("/admin/login", { replace: true });
+  }
 
   return (
     <>
@@ -92,18 +104,19 @@ function SidebarNav({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?
 
       <div className="border-t p-2 space-y-1">
         <DarkModeButton collapsed={collapsed} />
-        <Link
-          to="/"
+        <button
           title="Sair do Admin"
-          onClick={onNavigate}
+          onClick={() => {
+            void handleLogout();
+          }}
           className={cn(
-            "flex items-center gap-3 rounded-md text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors",
+            "flex w-full items-center gap-3 rounded-md text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
             collapsed ? "justify-center px-2 py-2.5" : "px-3 py-2.5"
           )}
         >
           <LogOut className="h-4 w-4 shrink-0" />
           {!collapsed && "Sair do Admin"}
-        </Link>
+        </button>
       </div>
     </>
   );

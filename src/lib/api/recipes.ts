@@ -1,6 +1,7 @@
 import type { Recipe } from "@/types/recipe";
 import { buildQuery, jsonFetch } from "./client";
-import { filterInternetRecipes, getInternetRecipes } from "./internetRecipes";
+import { filterInternetRecipes, getInternetRecipes, isInternetFallbackEnabled } from "./internetRecipes";
+import { normalizeRecipeForUI } from "@/lib/recipes/presentation";
 
 export type RecipeMutationPayload = {
   id?: string;
@@ -42,14 +43,15 @@ export async function listRecipes(params: {
     const result = await jsonFetch<{ recipes: Recipe[] }>(`/api/recipes${query}`, {
       admin: Boolean(params.includeDrafts),
     });
-    return result.recipes;
+    return result.recipes.map(normalizeRecipeForUI);
   } catch (error) {
-    if (params.includeDrafts) {
+    if (params.includeDrafts || !isInternetFallbackEnabled()) {
       throw error;
     }
 
+    console.warn("API de receitas indisponível. Usando fallback externo controlado.");
     const internetRecipes = await getInternetRecipes();
-    return filterInternetRecipes(internetRecipes, params);
+    return filterInternetRecipes(internetRecipes, params).map(normalizeRecipeForUI);
   }
 }
 
@@ -58,18 +60,19 @@ export async function getRecipeBySlug(slug: string, options: { includeDrafts?: b
     const result = await jsonFetch<{ recipe: Recipe }>(`/api/recipes/${encodeURIComponent(slug)}`, {
       admin: Boolean(options.includeDrafts),
     });
-    return result.recipe;
+    return normalizeRecipeForUI(result.recipe);
   } catch (error) {
-    if (options.includeDrafts) {
+    if (options.includeDrafts || !isInternetFallbackEnabled()) {
       throw error;
     }
 
+    console.warn("API de receita indisponível. Usando fallback externo controlado.");
     const internetRecipes = await getInternetRecipes();
     const fallback = internetRecipes.find((recipe) => recipe.slug === slug);
     if (!fallback) {
       throw error;
     }
-    return fallback;
+    return normalizeRecipeForUI(fallback);
   }
 }
 
@@ -78,7 +81,7 @@ export async function getRecipeById(id: string) {
   const result = await jsonFetch<{ recipe: Recipe }>(`/api/recipes/${encodeURIComponent(id)}${query}`, {
     admin: true,
   });
-  return result.recipe;
+  return normalizeRecipeForUI(result.recipe);
 }
 
 export async function createRecipe(input: RecipeMutationPayload) {
@@ -87,7 +90,7 @@ export async function createRecipe(input: RecipeMutationPayload) {
     admin: true,
     body: input,
   });
-  return result.recipe;
+  return normalizeRecipeForUI(result.recipe);
 }
 
 export async function updateRecipe(id: string, input: RecipeMutationPayload) {
@@ -96,7 +99,7 @@ export async function updateRecipe(id: string, input: RecipeMutationPayload) {
     admin: true,
     body: input,
   });
-  return result.recipe;
+  return normalizeRecipeForUI(result.recipe);
 }
 
 export async function deleteRecipe(id: string) {

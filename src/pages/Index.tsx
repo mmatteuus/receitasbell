@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAppContext } from "@/contexts/app-context";
 import { listRecipes } from "@/lib/api/recipes";
+import { getRecipeImage, getRecipePresentation } from "@/lib/recipes/presentation";
 import type { Recipe } from "@/types/recipe";
 
 const RECENT_RECIPES_KEY = "receitas_bell_recent_recipes";
@@ -75,6 +76,8 @@ export default function HomePage() {
   }, []);
 
   const featuredRecipes = useMemo(() => pickFeatured(recipes, settings), [recipes, settings]);
+  const featuredMainRecipe = featuredRecipes[0] ?? null;
+  const featuredMainPresentation = featuredMainRecipe ? getRecipePresentation(featuredMainRecipe) : null;
   const premiumRecipes = useMemo(() => {
     const featuredIds = new Set(featuredRecipes.map((recipe) => recipe.id));
     return recipes.filter((recipe) => recipe.accessTier === "paid" && !featuredIds.has(recipe.id)).slice(0, 4);
@@ -207,21 +210,21 @@ export default function HomePage() {
           <div className="grid gap-6 lg:grid-cols-12">
             <Reveal className="lg:col-span-7">
               <article className="overflow-hidden rounded-3xl border bg-card shadow-sm">
-                <Link to={`/receitas/${featuredRecipes[0].slug}`} className="block">
+                <Link to={`/receitas/${featuredMainRecipe!.slug}`} className="block">
                   <img
-                    src={featuredRecipes[0].image || featuredRecipes[0].imageUrl || "/placeholder.svg"}
-                    alt={featuredRecipes[0].title}
+                    src={getRecipeImage(featuredMainRecipe!)}
+                    alt={featuredMainRecipe!.title}
                     className="h-[320px] w-full object-cover"
                   />
                 </Link>
                 <div className="space-y-3 p-6">
                   <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                    <Badge variant="outline" className="capitalize">{featuredRecipes[0].categorySlug}</Badge>
-                    <span>{featuredRecipes[0].totalTime} min</span>
+                    <Badge variant="outline" className="capitalize">{featuredMainRecipe!.categorySlug}</Badge>
+                    <span>{featuredMainRecipe!.totalTime} min</span>
                   </div>
-                  <h3 className="text-3xl leading-tight">{featuredRecipes[0].title}</h3>
-                  <p className="text-muted-foreground">{featuredRecipes[0].description}</p>
-                  <Button onClick={() => navigate(`/receitas/${featuredRecipes[0].slug}`)} className="gap-2">
+                  <h3 className="text-3xl leading-tight">{featuredMainPresentation?.cardTitle || featuredMainRecipe!.title}</h3>
+                  <p className="text-muted-foreground">{featuredMainPresentation?.marketingHeadline || featuredMainRecipe!.description}</p>
+                  <Button onClick={() => navigate(`/receitas/${featuredMainRecipe!.slug}`)} className="gap-2">
                     Ver receita
                     <ArrowRight className="h-4 w-4" />
                   </Button>

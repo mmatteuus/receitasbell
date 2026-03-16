@@ -9,6 +9,7 @@ import { useAppContext } from "@/contexts/app-context";
 import type { Recipe } from "@/types/recipe";
 import { PriceBadge } from "@/components/price-badge";
 import { toast } from "sonner";
+import { getRecipeImage, getRecipePresentation } from "@/lib/recipes/presentation";
 
 export default function RecipeListPage() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
@@ -114,7 +115,7 @@ export default function RecipeListPage() {
                   return (
                     <TableRow key={recipe.id}>
                       <TableCell>
-                        <p className="font-medium">{recipe.title}</p>
+                        <p className="font-medium">{getRecipePresentation(recipe).cardTitle}</p>
                         <p className="text-xs text-muted-foreground">/{recipe.slug}</p>
                       </TableCell>
                       <TableCell className="hidden md:table-cell">
@@ -156,7 +157,7 @@ export default function RecipeListPage() {
                 <div key={recipe.id} className="rounded-xl border bg-card p-4 shadow-sm">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
-                      <p className="font-medium truncate">{recipe.title}</p>
+                      <p className="font-medium truncate">{getRecipePresentation(recipe).cardTitle}</p>
                       <p className="text-xs text-muted-foreground">/{recipe.slug}</p>
                       <div className="mt-2 flex flex-wrap gap-2">
                         {category && <span className="text-xs">{category.emoji} {category.name}</span>}
@@ -166,9 +167,7 @@ export default function RecipeListPage() {
                         <PriceBadge accessTier={recipe.accessTier} priceBRL={recipe.priceBRL} />
                       </div>
                     </div>
-                    {recipe.image && (
-                      <img src={recipe.image} alt="" className="h-14 w-14 rounded-lg object-cover shrink-0" />
-                    )}
+                    <img src={getRecipeImage(recipe)} alt="" className="h-14 w-14 rounded-lg object-cover shrink-0" />
                   </div>
                   <div className="mt-3 flex flex-wrap gap-1">
                     <Link to={`/admin/receitas/${recipe.id}/editar`}><Button variant="outline" size="sm" className="h-8 gap-1 text-xs"><Pencil className="h-3 w-3" /> Editar</Button></Link>

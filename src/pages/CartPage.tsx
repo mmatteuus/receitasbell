@@ -8,6 +8,7 @@ import { formatBRL } from "@/lib/helpers";
 import { listRecipes } from "@/lib/api/recipes";
 import { PriceBadge } from "@/components/price-badge";
 import type { Recipe } from "@/types/recipe";
+import { getRecipeImage, getRecipePresentation } from "@/lib/recipes/presentation";
 
 export default function CartPage() {
   const { items, remove, clear } = useCart();
@@ -54,14 +55,14 @@ export default function CartPage() {
         {recipes.map((r) => (
           <div key={r.id} className="flex gap-3 rounded-xl border bg-card p-3 shadow-sm sm:gap-4 sm:p-4">
             <Link to={`/receitas/${r.slug}`} className="h-20 w-20 shrink-0 overflow-hidden rounded-lg sm:h-24 sm:w-24">
-              <img src={r.image || "/placeholder.svg"} alt={r.title} className="h-full w-full object-cover" />
+              <img src={getRecipeImage(r)} alt={r.title} className="h-full w-full object-cover" />
             </Link>
             <div className="flex flex-1 flex-col justify-between min-w-0">
               <div>
                 <Link to={`/receitas/${r.slug}`} className="font-semibold text-sm sm:text-base line-clamp-1 hover:underline">
-                  {r.title}
+                  {getRecipePresentation(r).cardTitle}
                 </Link>
-                <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{r.description}</p>
+                <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{getRecipePresentation(r).cardSubtitle}</p>
               </div>
               <div className="flex items-center justify-between mt-2">
                 <PriceBadge accessTier={r.accessTier} priceBRL={r.priceBRL} />

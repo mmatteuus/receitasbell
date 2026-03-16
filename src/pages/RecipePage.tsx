@@ -27,6 +27,7 @@ import { useAppContext } from "@/contexts/app-context";
 import { useFavorites } from "@/hooks/use-favorites";
 import { ApiClientError } from "@/lib/api/client";
 import { toast } from "sonner";
+import { getRecipeImage, getRecipePresentation } from "@/lib/recipes/presentation";
 
 type RatingState = {
   avg: number;
@@ -147,6 +148,8 @@ export default function RecipePage() {
 
   const cat = categories.find((category) => category.slug === recipe.categorySlug);
   const favorite = isFavorite(recipe.id);
+  const imageUrl = getRecipeImage(recipe);
+  const presentation = getRecipePresentation(recipe);
   const unlocked = recipe.accessTier === "free" || Boolean(recipe.isUnlocked);
   const showPaywall = !unlocked && recipe.accessTier === "paid";
   const ingredients = showPaywall ? recipe.fullIngredients.slice(0, 2) : recipe.fullIngredients;
@@ -248,7 +251,11 @@ export default function RecipePage() {
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
           <h1 className="font-heading text-2xl font-bold sm:text-3xl md:text-4xl print:text-2xl">{recipe.title}</h1>
-          {recipe.description && <p className="mt-2 text-base text-muted-foreground sm:mt-3 sm:text-lg print:text-base">{recipe.description}</p>}
+          {(recipe.description || presentation.cardSubtitle) && (
+            <p className="mt-2 text-base text-muted-foreground sm:mt-3 sm:text-lg print:text-base">
+              {recipe.description || presentation.cardSubtitle}
+            </p>
+          )}
         </div>
         <div className="flex flex-wrap gap-2 print:hidden">
           <ShareButtons title={recipe.title} slug={recipe.slug} />
@@ -261,9 +268,9 @@ export default function RecipePage() {
         </div>
       </div>
 
-      {recipe.image ? (
+      {imageUrl ? (
         <div className="relative mt-4 overflow-hidden rounded-xl sm:mt-6 print:mt-4">
-          <img src={recipe.image} alt={recipe.title} className="w-full max-h-[420px] object-cover transition-transform hover:scale-105 print:object-contain" />
+          <img src={imageUrl} alt={recipe.title} className="w-full max-h-[420px] object-cover transition-transform hover:scale-105 print:object-contain" />
           <div className="absolute right-3 top-3 print:hidden">
             <PriceBadge accessTier={recipe.accessTier} priceBRL={recipe.priceBRL} className="shadow-lg" />
           </div>
