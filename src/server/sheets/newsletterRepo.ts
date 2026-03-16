@@ -1,6 +1,6 @@
 import { ApiError } from "../http.js";
 import { mutateTable, readTable } from "./table.js";
-import { nowIso } from "./utils.js";
+import { nowIso, sanitizeForSpreadsheet } from "./utils.js";
 
 export async function subscribeToNewsletter(input: { email: string; name?: string; source?: string }) {
   const email = input.email.trim().toLowerCase();
@@ -16,9 +16,9 @@ export async function subscribeToNewsletter(input: { email: string; name?: strin
       const next = [...current];
       next[index] = {
         ...next[index],
-        name: input.name?.trim() || next[index].name,
+        name: sanitizeForSpreadsheet(input.name?.trim() || next[index].name),
         status: "active",
-        source: input.source?.trim() || next[index].source || "site",
+        source: sanitizeForSpreadsheet(input.source?.trim() || next[index].source || "site"),
         updated_at: now,
         unsubscribed_at: "",
       };
@@ -29,10 +29,10 @@ export async function subscribeToNewsletter(input: { email: string; name?: strin
       ...current,
       {
         id: crypto.randomUUID(),
-        email,
-        name: input.name?.trim() || "",
+        email: sanitizeForSpreadsheet(email),
+        name: sanitizeForSpreadsheet(input.name?.trim() || ""),
         status: "active",
-        source: input.source?.trim() || "site",
+        source: sanitizeForSpreadsheet(input.source?.trim() || "site"),
         created_at: now,
         updated_at: now,
         unsubscribed_at: "",

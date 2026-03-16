@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { getRecipeImage, getRecipePresentation } from "@/lib/recipes/presentation";
 import { useAppContext } from "@/contexts/app-context";
 import { resolveCategoryDisplay } from "@/lib/categoriesDisplay";
+import SmartImage from "@/components/SmartImage";
 
 interface RecipeCardProps {
   recipe: Recipe;
@@ -29,14 +30,10 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
   return (
     <div className="group relative flex flex-col overflow-hidden rounded-2xl border bg-card shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl">
       <Link to={`/receitas/${recipe.slug}`} className="relative aspect-[4/3] overflow-hidden">
-        <img
+        <SmartImage
           src={imageUrl}
           alt={recipe.title}
-          loading="lazy"
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-          onError={(event) => {
-            event.currentTarget.src = "/placeholder.svg";
-          }}
         />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/45 to-transparent" />
         <div className="absolute left-2 top-2">

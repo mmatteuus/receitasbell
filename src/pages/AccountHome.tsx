@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getRecipeImage, getRecipePresentation } from "@/lib/recipes/presentation";
+import SmartImage from "@/components/SmartImage";
 import type { Recipe } from "@/types/recipe";
 import { ApiClientError } from "@/lib/api/client";
 import { toast } from "sonner";
@@ -225,7 +226,11 @@ export default function AccountHome() {
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {unlocked.map((recipe) => (
                     <Link key={recipe.id} to={`/receitas/${recipe.slug}`} className="overflow-hidden rounded-xl border transition hover:shadow-md">
-                      <img src={getRecipeImage(recipe)} alt={recipe.title} className="h-36 w-full object-cover" loading="lazy" />
+                      <SmartImage
+                        src={getRecipeImage(recipe)}
+                        alt={recipe.title}
+                        className="h-36 w-full object-cover"
+                      />
                       <div className="space-y-1 p-3">
                         <p className="font-medium">{getRecipePresentation(recipe).cardTitle}</p>
                         <p className="text-xs text-muted-foreground">{recipe.totalTime} min • {recipe.servings} porções</p>

@@ -51,3 +51,5 @@ export function createUniqueSlug(baseValue: string, existingValues: string[], ex
 export function isBlankRecord(record: Record<string, string>) {
   return Object.values(record).every((value) => !value.trim());
 }
+
+export { sanitizeForSpreadsheet } from "./sanitizeForSpreadsheet.js";

@@ -1,7 +1,7 @@
 import { ApiError } from "../http.js";
 import { SheetRecord } from "./schema.js";
 import { mutateTable, readTable } from "./table.js";
-import { asBoolean, nowIso } from "./utils.js";
+import { asBoolean, nowIso, sanitizeForSpreadsheet } from "./utils.js";
 
 export interface ShoppingListItemRecord {
   id: string;
@@ -42,8 +42,8 @@ export async function createShoppingListItems(
   const createdAt = nowIso();
   const validItems = items.map((item) => ({
     recipe_id: item.recipeId ?? "",
-    recipe_title_snapshot: item.recipeTitleSnapshot?.trim() || "",
-    text: item.text.trim(),
+    recipe_title_snapshot: sanitizeForSpreadsheet(item.recipeTitleSnapshot?.trim() || ""),
+    text: sanitizeForSpreadsheet(item.text.trim()),
     checked: item.checked ? "true" : "false",
   })).filter((item) => item.text);
 
@@ -88,7 +88,7 @@ export async function updateShoppingListItem(
       found = true;
       return {
         ...row,
-        text: patch.text?.trim() || row.text,
+        text: patch.text ? sanitizeForSpreadsheet(patch.text.trim()) : row.text,
         checked: patch.checked === undefined ? row.checked : String(patch.checked),
         updated_at: updatedAt,
       };

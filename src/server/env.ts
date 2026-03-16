@@ -16,7 +16,16 @@ export function getGoogleEnv() {
 }
 
 export function getAdminApiSecret() {
-  return process.env.ADMIN_API_SECRET?.trim() || "123";
+  const secret = process.env.ADMIN_API_SECRET?.trim();
+  if (secret) {
+    return secret;
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("ADMIN_API_SECRET is required in production");
+  }
+
+  return "123";
 }
 
 export function getMercadoPagoEnv() {

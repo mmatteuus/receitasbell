@@ -24,10 +24,14 @@ function normalizeTime(value: string | null) {
   return "all";
 }
 
+function readCategoryParam(params: URLSearchParams) {
+  return params.get("category") ?? params.get("cat") ?? params.get("categoria");
+}
+
 export default function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState(searchParams.get("q") || "");
-  const [catFilter, setCatFilter] = useState(searchParams.get("categoria") || "all");
+  const [catFilter, setCatFilter] = useState(readCategoryParam(searchParams) || "all");
   const [tierFilter, setTierFilter] = useState(normalizeTier(searchParams.get("tier")));
   const [timeFilter, setTimeFilter] = useState(normalizeTime(searchParams.get("tempo")));
   const [sortBy, setSortBy] = useState(normalizeSort(searchParams.get("ordem")));
@@ -38,7 +42,7 @@ export default function SearchPage() {
   useEffect(() => {
     const params = new URLSearchParams(searchParams);
     const nextQ = params.get("q") || "";
-    const nextCat = params.get("categoria") || "all";
+    const nextCat = readCategoryParam(params) || "all";
     const nextTier = normalizeTier(params.get("tier"));
     const nextTempo = normalizeTime(params.get("tempo"));
     const nextOrder = normalizeSort(params.get("ordem"));
@@ -55,8 +59,13 @@ export default function SearchPage() {
         const params = new URLSearchParams(current);
         if (query.trim()) params.set("q", query.trim());
         else params.delete("q");
-        if (catFilter !== "all") params.set("categoria", catFilter);
-        else params.delete("categoria");
+        if (catFilter !== "all") {
+          params.set("category", catFilter);
+        } else {
+          params.delete("category");
+        }
+        params.delete("cat");
+        params.delete("categoria");
         if (tierFilter !== "all") params.set("tier", tierFilter);
         else params.delete("tier");
         if (timeFilter !== "all") params.set("tempo", timeFilter);
@@ -76,7 +85,7 @@ export default function SearchPage() {
       try {
         const recipes = await listRecipes({
           q: searchParams.get("q") || undefined,
-          categorySlug: searchParams.get("categoria") || undefined,
+          categorySlug: readCategoryParam(searchParams) || undefined,
         });
         setResults(recipes);
       } catch (error) {
@@ -113,7 +122,8 @@ export default function SearchPage() {
   useEffect(() => {
     trackEvent("search.performed", {
       q: searchParams.get("q") || "",
-      categoria: searchParams.get("categoria") || "all",
+      categoria: readCategoryParam(searchParams) || "all",
+      category: readCategoryParam(searchParams) || "all",
       tier: tierFilter,
       tempo: timeFilter,
       ordem: sortBy,
@@ -165,7 +175,7 @@ export default function SearchPage() {
           </SelectContent>
         </Select>
       </div>
-      <p className="mt-4 text-sm text-muted-foreground">
+      <p data-testid="search-results-count" className="mt-4 text-sm text-muted-foreground">
         {loading ? "Atualizando resultados..." : `${filtered.length} resultado${filtered.length !== 1 ? "s" : ""}`}
       </p>
       {filtered.length > 0 ? (

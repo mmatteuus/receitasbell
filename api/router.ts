@@ -15,6 +15,7 @@ import {
   sendNoContent,
   withApiHandler,
 } from "../src/server/http.js";
+import { consumeAdminRateLimit } from "../src/server/rateLimit.js";
 import { createCategory, listCategories } from "../src/server/sheets/categoriesRepo.js";
 import { createComment, listCommentsByRecipeId } from "../src/server/sheets/commentsRepo.js";
 import { createFavorite, deleteFavorite, listFavoritesByUserId } from "../src/server/sheets/favoritesRepo.js";
@@ -48,8 +49,6 @@ import {
   shoppingListCreateSchema,
   shoppingListUpdateSchema,
 } from "../src/server/validators.js";
-
-const adminAttemptState = new Map<string, { count: number; blockedUntil: number }>();
 
 function getApiPathSegments(request: VercelRequest) {
   const routedPath = getQueryValue(request.query.route as string | string[] | undefined);
@@ -161,21 +160,18 @@ export default async function handler(request: VercelRequest, response: VercelRe
       const body = await readJsonBody<{ password?: string }>(request);
       const password = String(body.password || "");
       const clientAddress = getClientAddress(request);
-      const now = Date.now();
-      const attempt = adminAttemptState.get(clientAddress);
+      const rateResult = await consumeAdminRateLimit(clientAddress);
 
-      if (attempt && attempt.blockedUntil > now) {
-        throw new ApiError(429, "Muitas tentativas inválidas. Aguarde um minuto e tente novamente.");
+      if (!rateResult.success) {
+        response.setHeader("Retry-After", String(rateResult.resetAfter));
+        throw new ApiError(429, "Muitas tentativas inválidas. Aguarde alguns segundos e tente novamente.");
       }
 
       if (password !== getAdminApiSecret()) {
-        const nextCount = (attempt?.count || 0) + 1;
-        const blockedUntil = nextCount >= 5 ? now + 60_000 : 0;
-        adminAttemptState.set(clientAddress, { count: blockedUntil ? 0 : nextCount, blockedUntil });
+        console.warn(`Admin login failed for ${clientAddress} (remaining=${rateResult.remaining})`);
         throw new ApiError(401, "Senha inválida");
       }
 
-      adminAttemptState.delete(clientAddress);
       setAdminSessionCookie(request, response, password);
       return sendJson(response, 200, { authenticated: true });
     }

@@ -31,7 +31,7 @@ export const DEFAULT_HOME_SETTINGS: HomeSettings = {
   heroPrimaryCtaLabel: "Explorar receitas",
   heroPrimaryCtaHref: "/buscar",
   heroSecondaryCtaLabel: "Ver exclusivas",
-  heroSecondaryCtaHref: "/buscar?q=premium",
+  heroSecondaryCtaHref: "/buscar?tier=paid",
   featuredSectionTitle: "Seleção editorial",
   featuredSectionSubtitle: "Uma curadoria especial para você cozinhar melhor hoje.",
   featuredMode: "featuredFlag",

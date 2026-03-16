@@ -2,7 +2,7 @@ import type { Comment } from "../../types/recipe.js";
 import { ApiError } from "../http.js";
 import { SheetRecord } from "./schema.js";
 import { mutateTable, readTable } from "./table.js";
-import { nowIso } from "./utils.js";
+import { nowIso, sanitizeForSpreadsheet } from "./utils.js";
 
 function mapComment(row: SheetRecord<"comments">): Comment {
   return {
@@ -32,9 +32,9 @@ export async function createComment(input: {
   userId?: string | null;
   text: string;
 }) {
-  const authorName = input.authorName.trim();
-  const authorEmail = input.authorEmail.trim().toLowerCase();
-  const text = input.text.trim();
+  const authorName = sanitizeForSpreadsheet(input.authorName.trim());
+  const authorEmail = sanitizeForSpreadsheet(input.authorEmail.trim().toLowerCase());
+  const text = sanitizeForSpreadsheet(input.text.trim());
   if (!authorName || !authorEmail || !text) {
     throw new ApiError(400, "Comment requires author name, author email and text");
   }
@@ -44,16 +44,16 @@ export async function createComment(input: {
 
   const rows = await mutateTable("comments", async (current) => [
     ...current,
-    {
-      id,
-      user_id: input.userId ?? "",
-      recipe_id: input.recipeId,
-      author_name: authorName,
-      author_email: authorEmail,
-      text,
-      status: "approved",
-      created_at: createdAt,
-    },
+      {
+        id,
+        user_id: input.userId ?? "",
+        recipe_id: input.recipeId,
+        author_name: authorName,
+        author_email: authorEmail,
+        text,
+        status: "approved",
+        created_at: createdAt,
+      },
   ]);
 
   return mapComment(rows.find((row) => row.id === id)!);

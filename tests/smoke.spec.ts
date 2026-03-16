@@ -24,7 +24,7 @@ test.describe("ReceitasBell smoke", () => {
     await openRoute(page, "/");
 
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-    await expect(page.getByPlaceholder("Busque por prato, ingrediente ou ocasião")).toBeVisible();
+    await expect(page.getByTestId("home-search-input")).toBeVisible();
     await expect(page.getByText(/Curadoria editorial/i)).toBeVisible();
   });
 
@@ -33,7 +33,7 @@ test.describe("ReceitasBell smoke", () => {
 
     await expect(page.getByRole("heading", { name: "Buscar Receitas" })).toBeVisible();
     await expect(page.getByPlaceholder("Buscar por nome, ingrediente ou tag...")).toHaveValue("bolo");
-    await expect(page.getByText(/resultado/)).toBeVisible();
+    await expect(page.getByTestId("search-results-count")).toBeVisible();
   });
 
   test("categoria conhecida abre e mostra o estado atual", async ({ page }) => {

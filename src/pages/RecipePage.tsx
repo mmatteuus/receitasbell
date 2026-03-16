@@ -28,6 +28,7 @@ import { useFavorites } from "@/hooks/use-favorites";
 import { ApiClientError } from "@/lib/api/client";
 import { toast } from "sonner";
 import { getRecipeImage, getRecipePresentation } from "@/lib/recipes/presentation";
+import SmartImage from "@/components/SmartImage";
 
 type RatingState = {
   avg: number;
@@ -270,7 +271,11 @@ export default function RecipePage() {
 
       {imageUrl ? (
         <div className="relative mt-4 overflow-hidden rounded-xl sm:mt-6 print:mt-4">
-          <img src={imageUrl} alt={recipe.title} className="w-full max-h-[420px] object-cover transition-transform hover:scale-105 print:object-contain" />
+          <SmartImage
+            src={imageUrl}
+            alt={recipe.title}
+            className="w-full max-h-[420px] object-cover transition-transform hover:scale-105 print:object-contain"
+          />
           <div className="absolute right-3 top-3 print:hidden">
             <PriceBadge accessTier={recipe.accessTier} priceBRL={recipe.priceBRL} className="shadow-lg" />
           </div>

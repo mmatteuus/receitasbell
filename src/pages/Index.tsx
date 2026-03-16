@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import SmartImage from "@/components/SmartImage";
 import { useAppContext } from "@/contexts/app-context";
 import { listRecipes } from "@/lib/api/recipes";
 import { pickFeaturedRecipes, pickPremiumRecipes } from "@/lib/home/curation";
@@ -80,7 +81,7 @@ export default function HomePage() {
                   {settings.heroBadge}
                 </Badge>
               )}
-              <h1 className="max-w-[18ch] text-4xl leading-tight sm:text-5xl lg:text-6xl">{settings.heroTitle}</h1>
+              <h1 data-testid="home-hero-heading" className="max-w-[18ch] text-4xl leading-tight sm:text-5xl lg:text-6xl">{settings.heroTitle}</h1>
               <p className="max-w-[58ch] text-base text-muted-foreground sm:text-lg">{settings.heroSubtitle}</p>
               <div className="flex flex-wrap gap-3">
                 <Button
@@ -103,13 +104,14 @@ export default function HomePage() {
               <form onSubmit={handleSearch} className="mt-2 flex max-w-xl gap-2">
                 <div className="relative flex-1">
                   <Search className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type="search"
-                    placeholder="Busque por prato, ingrediente ou ocasião"
-                    className="h-11 rounded-xl pl-9"
-                    value={searchTerm}
-                    onChange={(event) => setSearchTerm(event.target.value)}
-                  />
+                <Input
+                  type="search"
+                  placeholder="Busque por prato, ingrediente ou ocasião"
+                  data-testid="home-search-input"
+                  className="h-11 rounded-xl pl-9"
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                />
                 </div>
                 <Button type="submit" className="h-11 rounded-xl">Buscar</Button>
               </form>
@@ -117,14 +119,12 @@ export default function HomePage() {
           </Reveal>
           <Reveal delayMs={120}>
             <div className="relative">
-              <img
+              <SmartImage
                 src={settings.heroImageUrl}
                 alt={settings.siteName}
+                priority
                 className="h-[340px] w-full rounded-3xl object-cover shadow-2xl sm:h-[420px]"
-                loading="lazy"
-                onError={(event) => {
-                  event.currentTarget.src = "/placeholder.svg";
-                }}
+                data-testid="home-hero-visual"
               />
               <div className="absolute bottom-5 left-5 rounded-2xl border border-white/30 bg-black/35 px-4 py-3 text-white backdrop-blur">
                 <p className="text-xs uppercase tracking-[0.2em] text-white/80">Selecao da Casa</p>
@@ -194,15 +194,11 @@ export default function HomePage() {
             <Reveal className="lg:col-span-7">
               <article className="overflow-hidden rounded-3xl border bg-card shadow-sm">
                 <Link to={`/receitas/${featuredMainRecipe!.slug}`} className="block">
-                  <img
-                    src={getRecipeImage(featuredMainRecipe!)}
-                    alt={featuredMainRecipe!.title}
-                    className="h-[320px] w-full object-cover"
-                    loading="lazy"
-                    onError={(event) => {
-                      event.currentTarget.src = "/placeholder.svg";
-                    }}
-                  />
+                <SmartImage
+                  src={getRecipeImage(featuredMainRecipe!)}
+                  alt={featuredMainRecipe!.title}
+                  className="h-[320px] w-full object-cover"
+                />
                 </Link>
                 <div className="space-y-3 p-6">
                   <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -247,7 +243,7 @@ export default function HomePage() {
           <Reveal>
             <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
               <div className="space-y-2">
-                <p className="text-xs uppercase tracking-[0.2em] text-zinc-300">Colecao exclusiva</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-zinc-300">Coleção exclusiva</p>
                 <h2 className="text-3xl">Receitas Premium para momentos especiais</h2>
                 <p className="max-w-2xl text-sm text-zinc-300">
                   Conteúdos completos, combinações autorais e preparo guiado para quem quer ir além do básico.
@@ -309,14 +305,10 @@ export default function HomePage() {
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
-            <img
+            <SmartImage
               src={settings.aboutImageUrl}
               alt={settings.siteName}
               className="h-[260px] w-full rounded-2xl object-cover sm:h-[320px]"
-              loading="lazy"
-              onError={(event) => {
-                event.currentTarget.src = "/placeholder.svg";
-              }}
             />
           </div>
         </Reveal>
