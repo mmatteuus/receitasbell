@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Utensils, CreditCard, LogOut,
-  ChevronLeft, ChevronRight, Moon, Sun, Menu, X, Settings
+  ChevronLeft, ChevronRight, Moon, Sun, Menu, X, Settings, Home
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -54,6 +54,7 @@ const sidebarItems = [
   { title: "Receitas", href: "/admin/receitas", icon: Utensils },
   { title: "Pagamentos", href: "/admin/pagamentos", icon: CreditCard },
   { title: "Configurações", href: "/admin/configuracoes", icon: Settings },
+  { title: "Página Inicial", href: "/admin/configuracoes/pagina-inicial", icon: Home },
 ];
 
 /* ── Sidebar nav content (shared between desktop and mobile) ── */

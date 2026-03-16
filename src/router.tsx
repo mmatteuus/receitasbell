@@ -23,7 +23,8 @@ export const router = createBrowserRouter([
       { path: "buscar", lazy: lazyRoute(() => import("@/pages/Search")) },
       { path: "categorias/:slug", lazy: lazyRoute(() => import("@/pages/Category")) },
       { path: "receitas/:slug", lazy: lazyRoute(() => import("@/pages/RecipePage")) },
-      { path: "minha-conta/perfil", element: <Navigate to="/minha-conta/favoritos" replace /> },
+      { path: "minha-conta", lazy: lazyRoute(() => import("@/pages/AccountHome")) },
+      { path: "minha-conta/perfil", element: <Navigate to="/minha-conta" replace /> },
       { path: "minha-conta/favoritos", lazy: lazyRoute(() => import("@/pages/Favorites")) },
       { path: "minha-conta/lista-de-compras", lazy: lazyRoute(() => import("@/pages/ShoppingListPage")) },
       { path: "carrinho", lazy: lazyRoute(() => import("@/pages/CartPage")) },
@@ -55,6 +56,7 @@ export const router = createBrowserRouter([
         ],
       },
       { path: "configuracoes", lazy: lazyRoute(() => import("@/pages/admin/SettingsPage")) },
+      { path: "configuracoes/pagina-inicial", lazy: lazyRoute(() => import("@/pages/admin/HomePageSettings")) },
     ],
   },
 ]);

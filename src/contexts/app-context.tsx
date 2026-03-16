@@ -8,7 +8,7 @@ import {
   type PropsWithChildren,
 } from "react";
 import { toast } from "sonner";
-import { DEFAULT_CATEGORIES, DEFAULT_PAYMENT_SETTINGS, DEFAULT_SITE_SETTINGS } from "@/lib/defaults";
+import { DEFAULT_CATEGORIES, DEFAULT_HOME_SETTINGS, DEFAULT_PAYMENT_SETTINGS, DEFAULT_SITE_SETTINGS } from "@/lib/defaults";
 import { addFavorite, deleteFavorite, type FavoriteRecord, listFavorites } from "@/lib/api/interactions";
 import { listCategories } from "@/lib/api/categories";
 import { getSettings } from "@/lib/api/settings";
@@ -42,6 +42,7 @@ type AppContextValue = {
 
 const defaultSettings: SettingsMap = {
   ...DEFAULT_SITE_SETTINGS,
+  ...DEFAULT_HOME_SETTINGS,
   ...DEFAULT_PAYMENT_SETTINGS,
 };
 

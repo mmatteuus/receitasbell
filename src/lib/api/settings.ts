@@ -7,11 +7,17 @@ export async function getSettings() {
 }
 
 export async function updateSettings(settings: Partial<SettingsMap>) {
+  const normalized = Object.fromEntries(
+    Object.entries(settings).map(([key, value]) => [
+      key,
+      Array.isArray(value) ? JSON.stringify(value) : value,
+    ]),
+  ) as Partial<SettingsMap>;
+
   const result = await jsonFetch<{ settings: SettingsMap }>("/api/settings", {
     method: "PUT",
     admin: true,
-    body: { settings },
+    body: { settings: normalized },
   });
   return result.settings;
 }
-

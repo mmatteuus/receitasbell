@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, Search, Heart, ChefHat, Settings, ShoppingCart } from "lucide-react";
+import { Menu, X, Search, Heart, ChefHat, Settings, ShoppingCart, UserCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAppContext } from "@/contexts/app-context";
@@ -8,6 +8,7 @@ import { useCart } from "@/hooks/use-cart";
 
 export default function Header() {
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const { pathname } = useLocation();
   const { count } = useCart();
   const { categories, settings } = useAppContext();
@@ -15,13 +16,28 @@ export default function Header() {
   const navLinks = [
     { to: "/", label: "Home" },
     { to: "/buscar", label: "Buscar", icon: Search },
+    { to: "/minha-conta", label: "Minha Conta", icon: UserCircle2 },
     { to: "/minha-conta/favoritos", label: "Favoritos", icon: Heart },
   ];
 
   const isActive = (path: string) => pathname === path;
 
+  useEffect(() => {
+    function onScroll() {
+      setScrolled(window.scrollY > 8);
+    }
+
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
-    <header className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/80">
+    <header
+      className={`sticky top-0 z-50 border-b backdrop-blur supports-[backdrop-filter]:bg-card/80 transition-all duration-300 ${
+        scrolled ? "bg-card/95 shadow-sm" : "bg-card/85"
+      }`}
+    >
       <div className="container flex h-14 items-center justify-between px-4 sm:h-16">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
@@ -128,6 +144,9 @@ export default function Header() {
                 {link.label}
               </Link>
             ))}
+            <Link to="/minha-conta" onClick={() => setOpen(false)} className="flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground">
+              <UserCircle2 className="h-4 w-4" /> Minha Conta
+            </Link>
             <Link to="/carrinho" onClick={() => setOpen(false)} className="flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground">
               <ShoppingCart className="h-4 w-4" /> Carrinho {count > 0 && `(${count})`}
             </Link>

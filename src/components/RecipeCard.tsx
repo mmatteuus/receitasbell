@@ -20,13 +20,14 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
   const blocked = isPaid && !unlocked;
 
   return (
-    <div className="group relative flex flex-col overflow-hidden rounded-xl border bg-card shadow-sm transition-all hover:shadow-md">
+    <div className="group relative flex flex-col overflow-hidden rounded-2xl border bg-card shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl">
       <Link to={`/receitas/${recipe.slug}`} className="relative aspect-[4/3] overflow-hidden">
         <img
           src={recipe.image || "/placeholder.svg"}
           alt={recipe.title}
-          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/45 to-transparent" />
         <div className="absolute left-2 top-2">
           <PriceBadge accessTier={recipe.accessTier} priceBRL={recipe.priceBRL} />
         </div>
@@ -46,7 +47,7 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
         </div>
       </Link>
 
-      <div className="flex flex-1 flex-col p-3 sm:p-4">
+      <div className="flex flex-1 flex-col p-4 sm:p-5">
         <div className="mb-2">
           <Badge variant="outline" className="text-xs font-normal capitalize">
             {recipe.categorySlug}
@@ -57,11 +58,11 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
           <h3 className="line-clamp-1 font-heading text-base font-semibold sm:text-lg">{recipe.title}</h3>
         </Link>
 
-        <p className="mt-1 line-clamp-2 text-xs text-muted-foreground sm:mt-2 sm:text-sm">
+        <p className="mt-1 line-clamp-2 text-sm text-muted-foreground sm:mt-2">
           {recipe.description}
         </p>
 
-        <div className="mt-auto flex items-center gap-4 pt-3 text-xs text-muted-foreground sm:pt-4">
+        <div className="mt-auto flex items-center gap-4 pt-4 text-xs text-muted-foreground">
           <div className="flex items-center gap-1">
             <Clock className="h-3.5 w-3.5" />
             <span>{recipe.totalTime} min</span>
