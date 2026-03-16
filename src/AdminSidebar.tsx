@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { logoutAdmin } from "@/lib/api/adminSession";
+import { trackEvent } from "@/lib/telemetry";
 
 /* ── Context ── */
 interface SidebarCtx {
@@ -66,6 +67,7 @@ function SidebarNav({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?
   async function handleLogout() {
     try {
       await logoutAdmin();
+      trackEvent("admin.logout");
     } catch {
       // Ignora erro de logout para não bloquear saída.
     }

@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { getAdminSession, loginAdmin } from "@/lib/api/adminSession";
 import { ApiClientError } from "@/lib/api/client";
+import { trackEvent } from "@/lib/telemetry";
 
 export default function AdminLoginPage() {
   const [params] = useSearchParams();
@@ -48,9 +49,11 @@ export default function AdminLoginPage() {
     try {
       const result = await loginAdmin(password);
       if (result.authenticated) {
+        trackEvent("admin.login.success", { redirectTo });
         navigate(redirectTo, { replace: true });
       }
     } catch (err) {
+      trackEvent("admin.login.failed");
       if (err instanceof ApiClientError) {
         setError(err.message || "Senha inválida.");
       } else {

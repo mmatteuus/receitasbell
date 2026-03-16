@@ -23,10 +23,9 @@ test.describe("ReceitasBell smoke", () => {
   test("home renderiza a vitrine publica", async ({ page }) => {
     await openRoute(page, "/");
 
-    await expect(page.getByRole("heading", { name: /Receitas do Bell/i })).toBeVisible();
-    await expect(page.getByRole("heading", { name: /Destaques da Semana/i })).toBeVisible();
-    await expect(page.getByPlaceholder("Buscar receitas...")).toBeVisible();
-    await expect(page.getByRole("heading", { name: /Fique por dentro das novidades/i })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await expect(page.getByPlaceholder("Busque por prato, ingrediente ou ocasião")).toBeVisible();
+    await expect(page.getByText(/Curadoria editorial/i)).toBeVisible();
   });
 
   test("busca preserva a query na interface", async ({ page }) => {

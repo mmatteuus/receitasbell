@@ -10,35 +10,13 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAppContext } from "@/contexts/app-context";
 import { listRecipes } from "@/lib/api/recipes";
+import { pickFeaturedRecipes, pickPremiumRecipes } from "@/lib/home/curation";
 import { getRecipeImage, getRecipePresentation } from "@/lib/recipes/presentation";
+import { resolveCategoryDisplay } from "@/lib/categoriesDisplay";
+import { trackError, trackEvent } from "@/lib/telemetry";
 import type { Recipe } from "@/types/recipe";
 
 const RECENT_RECIPES_KEY = "receitas_bell_recent_recipes";
-
-function sortByRecency(recipes: Recipe[]) {
-  return [...recipes].sort((a, b) => {
-    return (b.publishedAt || b.updatedAt || "").localeCompare(a.publishedAt || a.updatedAt || "");
-  });
-}
-
-function pickFeatured(recipes: Recipe[], settings: ReturnType<typeof useAppContext>["settings"]) {
-  const limit = Math.max(3, Math.min(settings.featuredLimit || 7, 12));
-  if (settings.featuredMode === "manual" && settings.featuredRecipeIds.length > 0) {
-    const map = new Map(recipes.map((recipe) => [recipe.id, recipe]));
-    return settings.featuredRecipeIds.map((id) => map.get(id)).filter((recipe): recipe is Recipe => Boolean(recipe)).slice(0, limit);
-  }
-
-  if (settings.featuredMode === "category" && settings.featuredCategorySlug) {
-    return recipes.filter((recipe) => recipe.categorySlug === settings.featuredCategorySlug).slice(0, limit);
-  }
-
-  if (settings.featuredMode === "featuredFlag") {
-    const flagged = recipes.filter((recipe) => recipe.isFeatured);
-    if (flagged.length > 0) return flagged.slice(0, limit);
-  }
-
-  return sortByRecency(recipes).slice(0, limit);
-}
 
 export default function HomePage() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
@@ -66,7 +44,7 @@ export default function HomePage() {
           console.error("Failed to load history", error);
         }
       } catch (error) {
-        console.error("Failed to load recipes", error);
+        trackError("home.loadRecipes", error);
       } finally {
         setLoading(false);
       }
@@ -75,17 +53,18 @@ export default function HomePage() {
     void loadRecipes();
   }, []);
 
-  const featuredRecipes = useMemo(() => pickFeatured(recipes, settings), [recipes, settings]);
+  const featuredRecipes = useMemo(() => pickFeaturedRecipes(recipes, settings), [recipes, settings]);
   const featuredMainRecipe = featuredRecipes[0] ?? null;
   const featuredMainPresentation = featuredMainRecipe ? getRecipePresentation(featuredMainRecipe) : null;
-  const premiumRecipes = useMemo(() => {
-    const featuredIds = new Set(featuredRecipes.map((recipe) => recipe.id));
-    return recipes.filter((recipe) => recipe.accessTier === "paid" && !featuredIds.has(recipe.id)).slice(0, 4);
-  }, [featuredRecipes, recipes]);
+  const premiumRecipes = useMemo(() => pickPremiumRecipes(recipes, featuredRecipes, 4), [featuredRecipes, recipes]);
+  const featuredCategoryDisplay = featuredMainRecipe
+    ? resolveCategoryDisplay(categories, featuredMainRecipe.categorySlug)
+    : null;
 
   const handleSearch = (event: React.FormEvent) => {
     event.preventDefault();
     if (!searchTerm.trim()) return;
+    trackEvent("home.search.submit", { q: searchTerm.trim() });
     navigate(`/buscar?q=${encodeURIComponent(searchTerm)}`);
   };
 
@@ -142,6 +121,10 @@ export default function HomePage() {
                 src={settings.heroImageUrl}
                 alt={settings.siteName}
                 className="h-[340px] w-full rounded-3xl object-cover shadow-2xl sm:h-[420px]"
+                loading="lazy"
+                onError={(event) => {
+                  event.currentTarget.src = "/placeholder.svg";
+                }}
               />
               <div className="absolute bottom-5 left-5 rounded-2xl border border-white/30 bg-black/35 px-4 py-3 text-white backdrop-blur">
                 <p className="text-xs uppercase tracking-[0.2em] text-white/80">Selecao da Casa</p>
@@ -215,16 +198,28 @@ export default function HomePage() {
                     src={getRecipeImage(featuredMainRecipe!)}
                     alt={featuredMainRecipe!.title}
                     className="h-[320px] w-full object-cover"
+                    loading="lazy"
+                    onError={(event) => {
+                      event.currentTarget.src = "/placeholder.svg";
+                    }}
                   />
                 </Link>
                 <div className="space-y-3 p-6">
                   <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                    <Badge variant="outline" className="capitalize">{featuredMainRecipe!.categorySlug}</Badge>
+                    <Badge variant="outline" className="capitalize">
+                      {featuredCategoryDisplay ? `${featuredCategoryDisplay.emoji} ${featuredCategoryDisplay.label}` : featuredMainRecipe!.categorySlug}
+                    </Badge>
                     <span>{featuredMainRecipe!.totalTime} min</span>
                   </div>
                   <h3 className="text-3xl leading-tight">{featuredMainPresentation?.cardTitle || featuredMainRecipe!.title}</h3>
                   <p className="text-muted-foreground">{featuredMainPresentation?.marketingHeadline || featuredMainRecipe!.description}</p>
-                  <Button onClick={() => navigate(`/receitas/${featuredMainRecipe!.slug}`)} className="gap-2">
+                  <Button
+                    onClick={() => {
+                      trackEvent("home.featured.click", { recipeId: featuredMainRecipe!.id, slug: featuredMainRecipe!.slug });
+                      navigate(`/receitas/${featuredMainRecipe!.slug}`);
+                    }}
+                    className="gap-2"
+                  >
                     Ver receita
                     <ArrowRight className="h-4 w-4" />
                   </Button>
@@ -258,7 +253,14 @@ export default function HomePage() {
                   Conteúdos completos, combinações autorais e preparo guiado para quem quer ir além do básico.
                 </p>
               </div>
-              <Button variant="secondary" onClick={() => navigate("/buscar?q=premium")} className="gap-2">
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  trackEvent("home.premium.cta", { source: "premium_section" });
+                  navigate("/buscar?tier=paid");
+                }}
+                className="gap-2"
+              >
                 Explorar premium
                 <Sparkles className="h-4 w-4" />
               </Button>
@@ -311,6 +313,10 @@ export default function HomePage() {
               src={settings.aboutImageUrl}
               alt={settings.siteName}
               className="h-[260px] w-full rounded-2xl object-cover sm:h-[320px]"
+              loading="lazy"
+              onError={(event) => {
+                event.currentTarget.src = "/placeholder.svg";
+              }}
             />
           </div>
         </Reveal>

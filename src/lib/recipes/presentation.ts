@@ -16,7 +16,45 @@ function normalizeSpaces(value: string) {
 
 function isGenericTitle(title: string) {
   const normalized = normalizeSpaces(title);
+  const lowered = normalized.toLowerCase();
+  if (/^receita\s+(premium|favorita)/.test(lowered)) return true;
+  if (/^admin\s+playwright/.test(lowered)) return true;
+  if (/\d{6,}/.test(lowered)) return true;
   return normalized.length <= 24 && normalized.split(" ").length <= 3;
+}
+
+function themedNameByCategory(recipe: Recipe) {
+  const category = (recipe.categorySlug || "").toLowerCase();
+
+  if (category === "doces" || category === "bolos") {
+    return recipe.accessTier === "paid"
+      ? "Sobremesa autoral com textura cremosa e finalização elegante"
+      : "Doce caseiro equilibrado, cremoso e fácil de acertar";
+  }
+
+  if (category === "massas") {
+    return recipe.accessTier === "paid"
+      ? "Massa especial com molho encorpado e acabamento refinado"
+      : "Massa prática e saborosa para o dia a dia";
+  }
+
+  if (category === "salgadas") {
+    return recipe.accessTier === "paid"
+      ? "Prato salgado especial com sabor marcante e apresentação caprichada"
+      : "Receita salgada caseira com preparo simples e resultado delicioso";
+  }
+
+  if (category === "saudaveis") {
+    return "Receita leve e nutritiva com sabor de comida feita em casa";
+  }
+
+  if (category === "bebidas") {
+    return "Bebida artesanal equilibrada para servir bem em qualquer ocasião";
+  }
+
+  return recipe.accessTier === "paid"
+    ? "Receita especial da casa com acabamento premium"
+    : "Receita caseira com sabor, praticidade e ótima apresentação";
 }
 
 function buildSmartTitle(recipe: Recipe) {
@@ -24,16 +62,20 @@ function buildSmartTitle(recipe: Recipe) {
   if (!base) return "Receita da casa";
   if (!isGenericTitle(base)) return base;
 
+  if (recipe.tags?.length) {
+    const highlightedTag = recipe.tags
+      .map((tag) => normalizeSpaces(tag))
+      .find((tag) => tag && tag !== "premium" && tag !== "playwright" && tag !== "teste");
+    if (highlightedTag) {
+      return `${highlightedTag[0].toUpperCase()}${highlightedTag.slice(1)} com preparo caprichado`;
+    }
+  }
+
   if (recipe.totalTime > 0 && recipe.totalTime <= 30) {
-    return `${base} com preparo rápido e resultado caprichado`;
+    return `${themedNameByCategory(recipe)} em versão rápida para a semana`;
   }
 
-  if (recipe.accessTier === "paid") {
-    return `${base} em versão especial para ocasiões marcantes`;
-  }
-
-  const category = toDisplayCategory(recipe.categorySlug).toLowerCase();
-  return `${base} com toque autoral da ${category}`;
+  return themedNameByCategory(recipe);
 }
 
 function buildSubtitle(recipe: Recipe) {
@@ -87,14 +129,10 @@ export function getRecipePresentation(recipe: Recipe): RecipePresentation {
 }
 
 export function normalizeRecipeForUI(recipe: Recipe): Recipe {
-  const presentation = getRecipePresentation(recipe);
+  const imageUrl = getRecipeImage(recipe);
   return {
     ...recipe,
-    imageUrl: presentation.imageUrl,
-    image: presentation.imageUrl,
-    cardTitle: presentation.cardTitle,
-    cardSubtitle: presentation.cardSubtitle,
-    marketingHeadline: presentation.marketingHeadline,
-    excerpt: recipe.excerpt || presentation.cardSubtitle,
+    imageUrl,
+    image: imageUrl,
   };
 }

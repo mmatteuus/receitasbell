@@ -42,9 +42,6 @@ export interface Recipe {
   fullIngredients: string[];
   fullInstructions: string[];
   excerpt?: string;
-  cardTitle?: string;
-  cardSubtitle?: string;
-  marketingHeadline?: string;
   seoTitle?: string;
   seoDescription?: string;
   isFeatured?: boolean;

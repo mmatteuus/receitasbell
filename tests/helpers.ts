@@ -1,5 +1,6 @@
 import "./playwright-env";
 import { expect, type BrowserContext, type Page } from "@playwright/test";
+import { createHmac } from "node:crypto";
 
 export const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "https://receitasbell.vercel.app";
 export const baseOrigin = new URL(baseURL).origin;
@@ -51,9 +52,15 @@ export async function primeSession(
   }
 
   if (options.adminSecret) {
-    await page.addInitScript((secret: string) => {
-      window.sessionStorage.setItem("rb_admin_secret", secret);
-    }, options.adminSecret);
+    const token = createHmac("sha256", options.adminSecret).update("receitasbell-admin-session-v1").digest("hex");
+    await page.context().addCookies([
+      {
+        name: "rb_admin_session",
+        value: token,
+        url: baseOrigin,
+        sameSite: "Lax",
+      },
+    ]);
   }
 }
 

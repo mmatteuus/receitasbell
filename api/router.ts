@@ -49,6 +49,8 @@ import {
   shoppingListUpdateSchema,
 } from "../src/server/validators.js";
 
+const adminAttemptState = new Map<string, { count: number; blockedUntil: number }>();
+
 function getApiPathSegments(request: VercelRequest) {
   const routedPath = getQueryValue(request.query.route as string | string[] | undefined);
   const url = new URL(request.url || "/", `http://${request.headers.host || "localhost"}`);
@@ -59,6 +61,13 @@ function getApiPathSegments(request: VercelRequest) {
     .map((segment) => segment.trim())
     .filter(Boolean)
     .map(decodeURIComponent);
+}
+
+function getClientAddress(request: VercelRequest) {
+  const forwarded = request.headers["x-forwarded-for"];
+  if (Array.isArray(forwarded)) return forwarded[0] || "unknown";
+  if (typeof forwarded === "string") return forwarded.split(",")[0]?.trim() || "unknown";
+  return request.socket.remoteAddress || "unknown";
 }
 
 function getQueryValue(value: string | string[] | undefined) {
@@ -126,6 +135,18 @@ export default async function handler(request: VercelRequest, response: VercelRe
       throw new ApiError(404, "API route not found");
     }
 
+    if (resource === "events" && !resourceId) {
+      assertMethod(request, ["POST"]);
+      const body = await readJsonBody<Record<string, unknown>>(request);
+      console.info("[event]", JSON.stringify({
+        name: body.name || "unknown",
+        path: body.path || request.url || "",
+        at: body.at || new Date().toISOString(),
+        payload: body.payload || {},
+      }));
+      return sendJson(response, 202, { accepted: true });
+    }
+
     if (resource === "admin" && resourceId === "session") {
       if (request.method === "GET") {
         return sendJson(response, 200, { authenticated: hasAdminAccess(request) });
@@ -139,11 +160,22 @@ export default async function handler(request: VercelRequest, response: VercelRe
       assertMethod(request, ["POST"]);
       const body = await readJsonBody<{ password?: string }>(request);
       const password = String(body.password || "");
+      const clientAddress = getClientAddress(request);
+      const now = Date.now();
+      const attempt = adminAttemptState.get(clientAddress);
+
+      if (attempt && attempt.blockedUntil > now) {
+        throw new ApiError(429, "Muitas tentativas inválidas. Aguarde um minuto e tente novamente.");
+      }
 
       if (password !== getAdminApiSecret()) {
+        const nextCount = (attempt?.count || 0) + 1;
+        const blockedUntil = nextCount >= 5 ? now + 60_000 : 0;
+        adminAttemptState.set(clientAddress, { count: blockedUntil ? 0 : nextCount, blockedUntil });
         throw new ApiError(401, "Senha inválida");
       }
 
+      adminAttemptState.delete(clientAddress);
       setAdminSessionCookie(request, response, password);
       return sendJson(response, 200, { authenticated: true });
     }

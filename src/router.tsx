@@ -26,6 +26,8 @@ export const router = createBrowserRouter([
       { path: "categorias/:slug", lazy: lazyRoute(() => import("@/pages/Category")) },
       { path: "receitas/:slug", lazy: lazyRoute(() => import("@/pages/RecipePage")) },
       { path: "minha-conta", lazy: lazyRoute(() => import("@/pages/AccountHome")) },
+      { path: "minha-conta/minhas-receitas", element: <Navigate to="/minha-conta?tab=minhas-receitas" replace /> },
+      { path: "minha-conta/compras", element: <Navigate to="/minha-conta?tab=compras" replace /> },
       { path: "minha-conta/perfil", element: <Navigate to="/minha-conta" replace /> },
       { path: "minha-conta/favoritos", lazy: lazyRoute(() => import("@/pages/Favorites")) },
       { path: "minha-conta/lista-de-compras", lazy: lazyRoute(() => import("@/pages/ShoppingListPage")) },

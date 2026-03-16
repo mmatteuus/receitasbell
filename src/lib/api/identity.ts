@@ -2,8 +2,6 @@ const IDENTITY_COOKIE = "rb_user_email";
 const IDENTITY_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-let pendingIdentityPrompt: Promise<string | null> | null = null;
-
 function hasWindow() {
   return typeof window !== "undefined";
 }
@@ -47,22 +45,7 @@ export async function ensureIdentityEmail(message = "Digite seu e-mail para salv
   const current = getIdentityEmail();
   if (current) return current;
   if (!hasWindow()) return null;
-
-  if (!pendingIdentityPrompt) {
-    pendingIdentityPrompt = Promise.resolve().then(() => {
-      const input = window.prompt(message, "");
-      if (!input) return null;
-      const normalized = normalizeEmail(input);
-      if (!isValidEmail(normalized)) {
-        window.alert("Informe um e-mail valido para continuar.");
-        return null;
-      }
-      setIdentityEmail(normalized);
-      return normalized;
-    }).finally(() => {
-      pendingIdentityPrompt = null;
-    });
-  }
-
-  return pendingIdentityPrompt;
+  // Legacy fallback: identity capture now happens through the app dialog.
+  console.warn(message);
+  return null;
 }

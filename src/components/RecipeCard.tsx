@@ -7,6 +7,8 @@ import { useCart } from "@/hooks/use-cart";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getRecipeImage, getRecipePresentation } from "@/lib/recipes/presentation";
+import { useAppContext } from "@/contexts/app-context";
+import { resolveCategoryDisplay } from "@/lib/categoriesDisplay";
 
 interface RecipeCardProps {
   recipe: Recipe;
@@ -15,12 +17,14 @@ interface RecipeCardProps {
 export default function RecipeCard({ recipe }: RecipeCardProps) {
   const { isFavorite, toggleFavorite } = useFavorites();
   const { has: inCart, add: addToCart } = useCart();
+  const { categories } = useAppContext();
   const isFav = isFavorite(recipe.id);
   const isPaid = recipe.accessTier === "paid";
   const unlocked = recipe.accessTier === "free" || Boolean(recipe.isUnlocked);
   const blocked = isPaid && !unlocked;
   const imageUrl = getRecipeImage(recipe);
   const presentation = getRecipePresentation(recipe);
+  const category = resolveCategoryDisplay(categories, recipe.categorySlug);
 
   return (
     <div className="group relative flex flex-col overflow-hidden rounded-2xl border bg-card shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl">
@@ -28,7 +32,11 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
         <img
           src={imageUrl}
           alt={recipe.title}
+          loading="lazy"
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          onError={(event) => {
+            event.currentTarget.src = "/placeholder.svg";
+          }}
         />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/45 to-transparent" />
         <div className="absolute left-2 top-2">
@@ -53,7 +61,7 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
       <div className="flex flex-1 flex-col p-4 sm:p-5">
         <div className="mb-2">
           <Badge variant="outline" className="text-xs font-normal capitalize">
-            {recipe.categorySlug}
+            {category.emoji ? `${category.emoji} ${category.label}` : category.label}
           </Badge>
         </div>
 

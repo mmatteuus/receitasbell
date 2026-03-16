@@ -171,7 +171,7 @@ test.describe("ReceitasBell user flows", () => {
       await page.waitForLoadState("networkidle");
 
       await expect(page.getByRole("heading", { name: "Receitas" })).toBeVisible();
-      const row = page.locator("tr").filter({ hasText: recipeTitle }).first();
+      const row = page.locator("tr").filter({ hasText: recipeSlug }).first();
       await expect(row).toBeVisible();
       await expect(row).toContainText(recipeSlug);
 

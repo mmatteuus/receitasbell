@@ -4,13 +4,16 @@ import { toast } from "sonner";
 import { useAppContext } from "@/contexts/app-context";
 import { DEFAULT_HOME_SETTINGS } from "@/lib/defaults";
 import { updateSettings } from "@/lib/api/settings";
+import { listRecipes } from "@/lib/api/recipes";
 import type { HomeSectionId, HomeSettings } from "@/types/settings";
+import type { Recipe } from "@/types/recipe";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const HOME_SECTIONS: Array<{ id: HomeSectionId; label: string }> = [
   { id: "hero", label: "Hero" },
@@ -38,9 +41,12 @@ function splitLines(value: string) {
 }
 
 export default function HomePageSettings() {
-  const { settings, refreshSettings } = useAppContext();
+  const { settings, refreshSettings, categories } = useAppContext();
   const [form, setForm] = useState<HomeSettings>(DEFAULT_HOME_SETTINGS);
+  const [allRecipes, setAllRecipes] = useState<Recipe[]>([]);
+  const [recipeFilter, setRecipeFilter] = useState("");
   const [saving, setSaving] = useState(false);
+  const [validationError, setValidationError] = useState("");
 
   useEffect(() => {
     setForm({
@@ -73,6 +79,19 @@ export default function HomePageSettings() {
     });
   }, [settings]);
 
+  useEffect(() => {
+    async function loadRecipesForPicker() {
+      try {
+        const recipes = await listRecipes({ includeDrafts: true });
+        setAllRecipes(recipes);
+      } catch (error) {
+        console.error("Failed to load recipes for CMS picker", error);
+      }
+    }
+
+    void loadRecipesForPicker();
+  }, []);
+
   function setField<K extends keyof HomeSettings>(key: K, value: HomeSettings[K]) {
     setForm((current) => ({ ...current, [key]: value }));
   }
@@ -89,6 +108,32 @@ export default function HomePageSettings() {
   }
 
   async function handleSave() {
+    if (form.heroImageUrl && !/^https?:\/\//i.test(form.heroImageUrl)) {
+      setValidationError("A imagem do hero precisa ser uma URL http(s).");
+      return;
+    }
+    if (form.aboutImageUrl && !/^https?:\/\//i.test(form.aboutImageUrl)) {
+      setValidationError("A imagem da seção Sobre precisa ser uma URL http(s).");
+      return;
+    }
+    if (form.heroPrimaryCtaHref && !form.heroPrimaryCtaHref.startsWith("/")) {
+      setValidationError("O link do CTA primário deve começar com /");
+      return;
+    }
+    if (form.heroSecondaryCtaHref && !form.heroSecondaryCtaHref.startsWith("/")) {
+      setValidationError("O link do CTA secundário deve começar com /");
+      return;
+    }
+    if (form.featuredMode === "manual" && form.featuredRecipeIds.length === 0) {
+      setValidationError("No modo manual, selecione ao menos uma receita para os destaques.");
+      return;
+    }
+    if (form.featuredMode === "category" && !form.featuredCategorySlug) {
+      setValidationError("No modo por categoria, selecione uma categoria.");
+      return;
+    }
+
+    setValidationError("");
     setSaving(true);
     try {
       await updateSettings(form);
@@ -152,6 +197,16 @@ export default function HomePageSettings() {
           <div className="space-y-2 md:col-span-2">
             <Label>Imagem hero (URL)</Label>
             <Input value={form.heroImageUrl} onChange={(event) => setField("heroImageUrl", event.target.value)} />
+            {form.heroImageUrl && (
+              <img
+                src={form.heroImageUrl}
+                alt="Preview hero"
+                className="mt-2 h-28 w-full rounded-lg border object-cover"
+                onError={(event) => {
+                  event.currentTarget.style.display = "none";
+                }}
+              />
+            )}
           </div>
           <div className="space-y-2">
             <Label>CTA primário (texto)</Label>
@@ -210,15 +265,51 @@ export default function HomePageSettings() {
           </div>
           <div className="space-y-2">
             <Label>Categoria (modo category)</Label>
-            <Input value={form.featuredCategorySlug} onChange={(event) => setField("featuredCategorySlug", event.target.value)} />
+            <Select value={form.featuredCategorySlug || "none"} onValueChange={(value) => setField("featuredCategorySlug", value === "none" ? "" : value)}>
+              <SelectTrigger><SelectValue placeholder="Selecione uma categoria" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Nenhuma</SelectItem>
+                {categories.map((category) => (
+                  <SelectItem key={category.slug} value={category.slug}>
+                    {category.emoji} {category.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-2 md:col-span-2">
-            <Label>IDs manuais (1 por linha)</Label>
-            <Textarea
-              rows={4}
-              value={form.featuredRecipeIds.join("\n")}
-              onChange={(event) => setField("featuredRecipeIds", splitLines(event.target.value))}
+            <Label>Curadoria manual</Label>
+            <Input
+              placeholder="Filtrar receitas por título..."
+              value={recipeFilter}
+              onChange={(event) => setRecipeFilter(event.target.value)}
             />
+            <div className="max-h-64 space-y-1 overflow-auto rounded-lg border p-2">
+              {allRecipes
+                .filter((recipe) => recipe.title.toLowerCase().includes(recipeFilter.toLowerCase()))
+                .slice(0, 60)
+                .map((recipe) => {
+                  const checked = form.featuredRecipeIds.includes(recipe.id);
+                  return (
+                    <label key={recipe.id} className="flex cursor-pointer items-center justify-between rounded px-2 py-1.5 text-sm hover:bg-muted/40">
+                      <span className="truncate">{recipe.title}</span>
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(event) => {
+                          setField(
+                            "featuredRecipeIds",
+                            event.target.checked
+                              ? [...form.featuredRecipeIds, recipe.id]
+                              : form.featuredRecipeIds.filter((id) => id !== recipe.id),
+                          );
+                        }}
+                      />
+                    </label>
+                  );
+                })}
+            </div>
+            <p className="text-xs text-muted-foreground">{form.featuredRecipeIds.length} receita(s) selecionada(s).</p>
           </div>
         </CardContent>
       </Card>
@@ -290,6 +381,16 @@ export default function HomePageSettings() {
           <div className="space-y-2">
             <Label>Imagem do bloco sobre (URL)</Label>
             <Input value={form.aboutImageUrl} onChange={(event) => setField("aboutImageUrl", event.target.value)} />
+            {form.aboutImageUrl && (
+              <img
+                src={form.aboutImageUrl}
+                alt="Preview sobre"
+                className="mt-2 h-24 w-full rounded-lg border object-cover"
+                onError={(event) => {
+                  event.currentTarget.style.display = "none";
+                }}
+              />
+            )}
           </div>
           <div className="space-y-2 md:col-span-2">
             <Label>Texto do bloco sobre</Label>
@@ -299,6 +400,7 @@ export default function HomePageSettings() {
       </Card>
 
       <div className="flex flex-wrap gap-3">
+        {validationError && <p className="w-full text-sm text-destructive">{validationError}</p>}
         <Button onClick={() => void handleSave()} disabled={saving} className="gap-2">
           <Save className="h-4 w-4" />
           Salvar página inicial
