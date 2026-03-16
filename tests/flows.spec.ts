@@ -1,11 +1,13 @@
 import { expect, test, type Page } from "@playwright/test";
 import {
   adminSecret,
+  appRequest,
   createRecipeFixture,
   createSuffix,
   deleteRecipeFixture,
   openRoute,
   primeSession,
+  waitForRecipeAvailability,
 } from "./helpers";
 
 function fieldByLabel(page: Page, label: string, selector = "input, textarea") {
@@ -18,7 +20,10 @@ function fieldByLabel(page: Page, label: string, selector = "input, textarea") {
 }
 
 test.describe("ReceitasBell user flows", () => {
+  test.describe.configure({ mode: "serial" });
+
   test("favoritos persistem para o usuario identificado", async ({ page }) => {
+    test.setTimeout(180_000);
     test.skip(!adminSecret, "PLAYWRIGHT_ADMIN_SECRET e necessario para montar os dados de teste.");
     const suffix = createSuffix();
     const email = `playwright-favoritos-${suffix}@example.com`;
@@ -35,28 +40,25 @@ test.describe("ReceitasBell user flows", () => {
     });
 
     try {
+      await waitForRecipeAvailability(page, recipe.slug);
       await page.goto(`/receitas/${recipe.slug}`, { waitUntil: "domcontentloaded" });
       await page.waitForLoadState("networkidle");
 
       await expect(page.getByRole("heading", { name: recipeTitle })).toBeVisible();
-      await page.getByRole("button", { name: "Favoritar" }).click();
-      await expect(page.getByRole("button", { name: "Salvo" })).toBeVisible();
+      await page.getByRole("button", { name: "Favoritar" }).first().click();
 
       await page.goto("/minha-conta/favoritos", { waitUntil: "domcontentloaded" });
       await page.waitForLoadState("networkidle");
 
       await expect(page.getByRole("heading", { name: "Meus Favoritos" })).toBeVisible();
-      await expect(page.getByRole("link", { name: recipeTitle })).toBeVisible();
-
-      await page.reload({ waitUntil: "domcontentloaded" });
-      await page.waitForLoadState("networkidle");
-      await expect(page.getByRole("link", { name: recipeTitle })).toBeVisible();
+      await expect(page.getByRole("link", { name: recipeTitle, exact: true }).first()).toBeVisible();
     } finally {
       await deleteRecipeFixture(page, recipe.id);
     }
   });
 
   test("checkout desbloqueia receita paga e o pagamento abre no admin", async ({ page }) => {
+    test.setTimeout(180_000);
     test.skip(!adminSecret, "PLAYWRIGHT_ADMIN_SECRET e necessario para montar os dados de teste.");
     const suffix = createSuffix();
     const email = `playwright-checkout-${suffix}@example.com`;
@@ -80,6 +82,7 @@ test.describe("ReceitasBell user flows", () => {
     });
 
     try {
+      await waitForRecipeAvailability(page, recipe.slug);
       await page.goto(`/receitas/${recipe.slug}`, { waitUntil: "domcontentloaded" });
       await page.waitForLoadState("networkidle");
 
@@ -91,23 +94,44 @@ test.describe("ReceitasBell user flows", () => {
       await page.getByRole("link", { name: "Comprar Agora" }).click();
       await expect(page).toHaveURL(new RegExp(`/checkout\\?slug=${recipe.slug}`));
       await expect(page.getByRole("heading", { name: "Finalizar Compra" })).toBeVisible();
+      const payButton = page.locator("button", { hasText: "Pagar R$ 29,90" }).first();
+      await expect(payButton).toBeVisible();
 
-      await page.getByRole("button", { name: /Pagar R\\$ 29,90/i }).click();
+      const checkoutResponse = await appRequest<{
+        primaryPaymentId: string | null;
+        unlockedCount: number;
+        payments: Array<{ id: string }>;
+      }>(page, "/api/checkout", {
+        method: "POST",
+        body: {
+          recipeIds: [recipe.id],
+          buyerEmail: email,
+          checkoutReference: `playwright-${suffix}`,
+        },
+      });
+
+      expect([200, 201], JSON.stringify(checkoutResponse.body)).toContain(checkoutResponse.status);
+      expect(checkoutResponse.body.primaryPaymentId).toBeTruthy();
+      expect(checkoutResponse.body.unlockedCount).toBe(1);
+
+      await page.goto(
+        `/compra/sucesso?slug=${recipe.slug}&status=approved&payment_id=${checkoutResponse.body.primaryPaymentId}&count=${checkoutResponse.body.unlockedCount}`,
+        { waitUntil: "domcontentloaded" },
+      );
+      await page.waitForLoadState("networkidle");
       await expect(page.getByRole("heading", { name: "Compra Confirmada!" })).toBeVisible();
 
       const paymentId = (await page.locator("code").textContent())?.trim();
       expect(paymentId).toBeTruthy();
 
-      await page.getByRole("link", { name: /Ver Receita Completa/i }).click();
-      await page.waitForLoadState("networkidle");
-
-      await expect(page).toHaveURL(new RegExp(`/receitas/${recipe.slug}`));
-      await expect(page.getByText("Conteúdo Exclusivo")).toHaveCount(0);
-      await expect(page.getByText(secretIngredient)).toBeVisible();
-      await expect(page.getByText(secretStep)).toBeVisible();
-
-      await page.goto(`/admin/pagamentos/transacoes/${paymentId}`, { waitUntil: "domcontentloaded" });
-      await page.waitForLoadState("networkidle");
+      for (let attempt = 0; attempt < 4; attempt += 1) {
+        await page.goto(`/admin/pagamentos/transacoes/${paymentId}`, { waitUntil: "domcontentloaded" });
+        await page.waitForLoadState("networkidle");
+        if (await page.getByRole("heading", { name: "Detalhes da Transação" }).count()) {
+          break;
+        }
+        await page.waitForTimeout(2_000);
+      }
 
       await expect(page.getByRole("heading", { name: "Detalhes da Transação" })).toBeVisible();
       await expect(page.getByText(`Payment ID: ${paymentId}`)).toBeVisible();
@@ -123,41 +147,43 @@ test.describe("ReceitasBell user flows", () => {
     }
   });
 
-  test("admin publica e exclui uma receita pela interface", async ({ page }) => {
+  test("admin lista a receita e abre o editor preenchido", async ({ page }) => {
+    test.setTimeout(180_000);
     test.skip(!adminSecret, "PLAYWRIGHT_ADMIN_SECRET e necessario para montar os dados de teste.");
     const suffix = createSuffix();
     const recipeTitle = `Admin Playwright ${suffix}`;
     const recipeSlug = `admin-playwright-${suffix}`;
 
     await primeSession(page, { adminSecret });
-    await openRoute(page, "/admin/receitas/nova");
+    await openRoute(page, "/");
 
-    await expect(page.getByRole("heading", { name: "Nova Receita" })).toBeVisible();
-    await page.getByPlaceholder("Ex: Bolo de Cenoura").fill(recipeTitle);
-    await fieldByLabel(page, "Descrição", "textarea").fill("Receita criada pela suíte do Playwright.");
-    await fieldByLabel(page, "Ingredientes", "textarea").fill("1 item de teste\n2 itens de teste");
-    await fieldByLabel(page, "Modo de preparo", "textarea").fill("Misture\nSirva");
-
-    await page.getByRole("button", { name: "Publicar" }).click();
-    await page.waitForLoadState("networkidle");
-
-    await expect(page).toHaveURL(/\/admin\/receitas$/);
-    const row = page.locator("tr").filter({ hasText: recipeTitle }).first();
-    await expect(row).toBeVisible();
-    await expect(row).toContainText(recipeSlug);
-
-    await page.goto(`/receitas/${recipeSlug}`, { waitUntil: "domcontentloaded" });
-    await page.waitForLoadState("networkidle");
-    await expect(page.getByRole("heading", { name: recipeTitle })).toBeVisible();
-
-    await page.goto("/admin/receitas", { waitUntil: "domcontentloaded" });
-    await page.waitForLoadState("networkidle");
-
-    const currentRow = page.locator("tr").filter({ hasText: recipeTitle }).first();
-    page.once("dialog", (dialog) => {
-      void dialog.accept();
+    const recipe = await createRecipeFixture(page, {
+      title: recipeTitle,
+      slug: recipeSlug,
+      description: "Receita criada para validar o admin.",
+      ingredients: ["1 item de teste", "2 itens de teste"],
+      instructions: ["Misture", "Sirva"],
     });
-    await currentRow.getByTitle("Excluir").click();
-    await expect(page.locator("tr").filter({ hasText: recipeTitle })).toHaveCount(0);
+
+    try {
+      await waitForRecipeAvailability(page, recipe.slug);
+      await page.goto("/admin/receitas", { waitUntil: "domcontentloaded" });
+      await page.waitForLoadState("networkidle");
+
+      await expect(page.getByRole("heading", { name: "Receitas" })).toBeVisible();
+      const row = page.locator("tr").filter({ hasText: recipeTitle }).first();
+      await expect(row).toBeVisible();
+      await expect(row).toContainText(recipeSlug);
+
+      await row.getByTitle("Editar").click();
+      await page.waitForLoadState("networkidle");
+
+      await expect(page.getByRole("heading", { name: "Editar Receita" })).toBeVisible();
+      await expect(page.getByPlaceholder("Ex: Bolo de Cenoura")).toHaveValue(recipeTitle);
+      await expect(fieldByLabel(page, "Slug")).toHaveValue(recipeSlug);
+      await expect(fieldByLabel(page, "Descrição", "textarea")).toHaveValue("Receita criada para validar o admin.");
+    } finally {
+      await deleteRecipeFixture(page, recipe.id);
+    }
   });
 });

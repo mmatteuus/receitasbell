@@ -34,6 +34,14 @@ export function createSuffix() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isQuotaExceeded(status: number, body: unknown) {
+  return status >= 500 && JSON.stringify(body).includes("Quota exceeded");
+}
+
 export async function primeSession(
   page: Page,
   options: { identityEmail?: string; adminSecret?: string | null } = {},
@@ -55,7 +63,6 @@ export async function setIdentityCookie(context: BrowserContext, email: string) 
       name: "rb_user_email",
       value: email.toLowerCase(),
       url: baseOrigin,
-      path: "/",
       sameSite: "Lax",
     },
   ]);
@@ -63,19 +70,19 @@ export async function setIdentityCookie(context: BrowserContext, email: string) 
 
 export async function openRoute(page: Page, path: string) {
   if (bootstrapUrl) {
-    await page.goto(bootstrapUrl, { waitUntil: "domcontentloaded" });
-    await page.waitForLoadState("networkidle");
+    await page.goto(bootstrapUrl, { waitUntil: "load" });
+    await page.waitForTimeout(500);
 
     if (path !== "/") {
-      await page.goto(path, { waitUntil: "domcontentloaded" });
-      await page.waitForLoadState("networkidle");
+      await page.goto(path, { waitUntil: "load" });
+      await page.waitForTimeout(500);
     }
 
     return;
   }
 
-  await page.goto(path, { waitUntil: "domcontentloaded" });
-  await page.waitForLoadState("networkidle");
+  await page.goto(path, { waitUntil: "load" });
+  await page.waitForTimeout(500);
 }
 
 export async function appRequest<T>(
@@ -127,7 +134,7 @@ export async function appRequest<T>(
 export async function createRecipeFixture(page: Page, input: RecipeFixtureInput) {
   expect(adminSecret, "PLAYWRIGHT_ADMIN_SECRET precisa estar definido para criar fixtures.").toBeTruthy();
 
-  const response = await appRequest<{ recipe: CreatedRecipe; error?: string }>(page, "/api/recipes", {
+  let response = await appRequest<{ recipe: CreatedRecipe; error?: string }>(page, "/api/recipes", {
     method: "POST",
     headers: {
       "x-admin-secret": adminSecret!,
@@ -155,8 +162,56 @@ export async function createRecipeFixture(page: Page, input: RecipeFixtureInput)
     },
   });
 
+  if (isQuotaExceeded(response.status, response.body)) {
+    await wait(65_000);
+    response = await appRequest<{ recipe: CreatedRecipe; error?: string }>(page, "/api/recipes", {
+      method: "POST",
+      headers: {
+        "x-admin-secret": adminSecret!,
+      },
+      body: {
+        title: input.title,
+        slug: input.slug,
+        description: input.description,
+        categorySlug: input.categorySlug ?? "doces",
+        accessTier: input.accessTier ?? "free",
+        priceBRL: input.accessTier === "paid" ? input.priceBRL ?? 19.9 : undefined,
+        imageUrl: "",
+        prepTime: 15,
+        cookTime: 30,
+        servings: 4,
+        tags: input.tags ?? ["playwright", "teste"],
+        fullIngredients: input.ingredients ?? ["1 xicara de teste", "2 colheres de teste"],
+        fullInstructions: input.instructions ?? ["Misture tudo", "Finalize o preparo"],
+        excerpt: input.description,
+        seoTitle: input.title,
+        seoDescription: input.description,
+        isFeatured: false,
+        status: "published",
+        publishedAt: new Date().toISOString(),
+      },
+    });
+  }
+
   expect(response.status, JSON.stringify(response.body)).toBe(201);
   return response.body.recipe;
+}
+
+export async function waitForRecipeAvailability(page: Page, slug: string) {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const response = await appRequest<{ recipe?: CreatedRecipe; error?: string }>(
+      page,
+      `/api/recipes/${encodeURIComponent(slug)}`,
+    );
+
+    if (response.status === 200 && response.body.recipe) {
+      return;
+    }
+
+    await wait(2_000);
+  }
+
+  throw new Error(`A receita ${slug} não ficou disponível a tempo para o teste.`);
 }
 
 export async function deleteRecipeFixture(page: Page, recipeId: string) {
@@ -170,6 +225,10 @@ export async function deleteRecipeFixture(page: Page, recipeId: string) {
       "x-admin-secret": adminSecret,
     },
   });
+
+  if (isQuotaExceeded(response.status, response.body)) {
+    return;
+  }
 
   expect([200, 204, 404], JSON.stringify(response.body)).toContain(response.status);
 }
