@@ -1,5 +1,6 @@
 import type { Recipe } from "@/types/recipe";
 import { buildQuery, jsonFetch } from "./client";
+import { filterInternetRecipes, getInternetRecipes } from "./internetRecipes";
 
 export type RecipeMutationPayload = {
   id?: string;
@@ -37,17 +38,39 @@ export async function listRecipes(params: {
     q: params.q,
     ids: params.ids,
   });
-  const result = await jsonFetch<{ recipes: Recipe[] }>(`/api/recipes${query}`, {
-    admin: Boolean(params.includeDrafts),
-  });
-  return result.recipes;
+  try {
+    const result = await jsonFetch<{ recipes: Recipe[] }>(`/api/recipes${query}`, {
+      admin: Boolean(params.includeDrafts),
+    });
+    return result.recipes;
+  } catch (error) {
+    if (params.includeDrafts) {
+      throw error;
+    }
+
+    const internetRecipes = await getInternetRecipes();
+    return filterInternetRecipes(internetRecipes, params);
+  }
 }
 
 export async function getRecipeBySlug(slug: string, options: { includeDrafts?: boolean } = {}) {
-  const result = await jsonFetch<{ recipe: Recipe }>(`/api/recipes/${encodeURIComponent(slug)}`, {
-    admin: Boolean(options.includeDrafts),
-  });
-  return result.recipe;
+  try {
+    const result = await jsonFetch<{ recipe: Recipe }>(`/api/recipes/${encodeURIComponent(slug)}`, {
+      admin: Boolean(options.includeDrafts),
+    });
+    return result.recipe;
+  } catch (error) {
+    if (options.includeDrafts) {
+      throw error;
+    }
+
+    const internetRecipes = await getInternetRecipes();
+    const fallback = internetRecipes.find((recipe) => recipe.slug === slug);
+    if (!fallback) {
+      throw error;
+    }
+    return fallback;
+  }
 }
 
 export async function getRecipeById(id: string) {
@@ -82,4 +105,3 @@ export async function deleteRecipe(id: string) {
     admin: true,
   });
 }
-

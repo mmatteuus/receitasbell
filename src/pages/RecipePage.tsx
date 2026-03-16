@@ -70,13 +70,21 @@ export default function RecipePage() {
           userValue: null,
         });
 
-        const [recipeComments, categoryRecipes] = await Promise.all([
-          listComments(foundRecipe.id),
-          listRecipes({ categorySlug: foundRecipe.categorySlug }),
-        ]);
+        try {
+          const recipeComments = await listComments(foundRecipe.id);
+          setComments(recipeComments);
+        } catch (error) {
+          console.error("Failed to load comments", error);
+          setComments([]);
+        }
 
-        setComments(recipeComments);
-        setRelated(categoryRecipes.filter((item) => item.id !== foundRecipe.id).slice(0, 3));
+        try {
+          const categoryRecipes = await listRecipes({ categorySlug: foundRecipe.categorySlug });
+          setRelated(categoryRecipes.filter((item) => item.id !== foundRecipe.id).slice(0, 3));
+        } catch (error) {
+          console.error("Failed to load related recipes", error);
+          setRelated([]);
+        }
 
         try {
           const stored = JSON.parse(localStorage.getItem(RECENT_RECIPES_KEY) || "[]");
