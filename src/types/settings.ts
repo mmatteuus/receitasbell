@@ -19,7 +19,8 @@ export type HomeSectionId =
   | "premium"
   | "recent"
   | "about"
-  | "newsletter";
+  | "newsletter"
+  | "gratin";
 
 export interface HomeSettings {
   heroBadge: string;
@@ -43,12 +44,14 @@ export interface HomeSettings {
   showNewsletter: boolean;
   showTrustBar: boolean;
   showAboutSection: boolean;
+  showGratinSection: boolean;
   trustBarItems: string[];
   aboutHeadline: string;
   aboutText: string;
   aboutImageUrl: string;
   homeSectionsOrder: HomeSectionId[];
 }
+
 
 export interface PaymentSettings {
   payment_mode: "sandbox" | "production";

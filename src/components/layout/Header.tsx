@@ -6,31 +6,59 @@ import { Badge } from "@/components/ui/badge";
 import { useAppContext } from "@/contexts/app-context";
 import { useCart } from "@/hooks/use-cart";
 
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+};
+
+const navLinks = [
+  { to: "/", label: "Home" },
+  { to: "/buscar", label: "Buscar", icon: Search },
+  { to: "/minha-conta", label: "Minha Conta", icon: UserCircle2 },
+  { to: "/minha-conta/favoritos", label: "Favoritos", icon: Heart },
+];
+
 export default function Header() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [deferredInstallPrompt, setDeferredInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [isAppInstalled, setIsAppInstalled] = useState(false);
   const { pathname } = useLocation();
   const { count } = useCart();
   const { categories, settings } = useAppContext();
 
-  const navLinks = [
-    { to: "/", label: "Home" },
-    { to: "/buscar", label: "Buscar", icon: Search },
-    { to: "/minha-conta", label: "Minha Conta", icon: UserCircle2 },
-    { to: "/minha-conta/favoritos", label: "Favoritos", icon: Heart },
-  ];
-
   const isActive = (path: string) => pathname === path;
 
   useEffect(() => {
-    function onScroll() {
-      setScrolled(window.scrollY > 8);
-    }
-
+    const onScroll = () => setScrolled(window.scrollY > 8);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  useEffect(() => {
+    const handleBeforeInstall = (event: Event) => {
+      event.preventDefault();
+      setDeferredInstallPrompt(event as BeforeInstallPromptEvent);
+    };
+    const handleAppInstalled = () => setIsAppInstalled(true);
+    window.addEventListener("beforeinstallprompt", handleBeforeInstall);
+    window.addEventListener("appinstalled", handleAppInstalled);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
+      window.removeEventListener("appinstalled", handleAppInstalled);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    const choice = await deferredInstallPrompt.userChoice;
+    if (choice.outcome === "accepted") {
+      setIsAppInstalled(true);
+    }
+    setDeferredInstallPrompt(null);
+  };
 
   return (
     <header
@@ -39,7 +67,6 @@ export default function Header() {
       }`}
     >
       <div className="container flex h-14 items-center justify-between px-4 sm:h-16">
-        {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
           {settings.logoUrl ? (
             <img src={settings.logoUrl} alt={settings.siteName} className="h-6 w-6 rounded object-cover sm:h-7 sm:w-7" />
@@ -51,7 +78,6 @@ export default function Header() {
           </span>
         </Link>
 
-        {/* Desktop Nav */}
         <nav className="hidden items-center gap-1 md:flex">
           {navLinks.map((link) => (
             <Link
@@ -66,7 +92,6 @@ export default function Header() {
             </Link>
           ))}
 
-          {/* Cart */}
           <Link
             to="/carrinho"
             className={`relative flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
@@ -82,7 +107,6 @@ export default function Header() {
             )}
           </Link>
 
-          {/* Categories dropdown */}
           <div className="group relative">
             <button className="flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
               Categorias
@@ -111,7 +135,6 @@ export default function Header() {
           </Link>
         </nav>
 
-        {/* Mobile: cart + toggle */}
         <div className="flex items-center gap-2 md:hidden">
           <Link to="/carrinho" className="relative p-2">
             <ShoppingCart className="h-5 w-5" />
@@ -127,7 +150,6 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Mobile Nav */}
       {open && (
         <div className="border-t bg-card md:hidden">
           <nav className="container flex flex-col gap-1 px-4 py-4">
@@ -163,6 +185,18 @@ export default function Header() {
                 <span>{cat.name}</span>
               </Link>
             ))}
+            {deferredInstallPrompt && !isAppInstalled && (
+              <Button
+                variant="outline"
+                className="mt-3 w-full justify-center"
+                onClick={() => {
+                  handleInstallClick();
+                  setOpen(false);
+                }}
+              >
+                Instalar app
+              </Button>
+            )}
             <div className="my-2 border-t" />
             <Link to="/admin" onClick={() => setOpen(false)}>
               <Button variant="outline" size="sm" className="w-full gap-1.5">

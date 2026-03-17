@@ -63,7 +63,9 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
         </div>
 
         <Link to={`/receitas/${recipe.slug}`} className="group-hover:underline">
-          <h3 className="line-clamp-2 font-heading text-base font-semibold sm:text-lg">{presentation.cardTitle}</h3>
+          <h3 className="line-clamp-2 font-heading text-base font-bold leading-tight text-foreground sm:text-lg">
+            {presentation.cardTitle}
+          </h3>
         </Link>
 
         <p className="mt-1 line-clamp-2 text-sm text-muted-foreground sm:mt-2">
@@ -83,9 +85,8 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
 
         {blocked && (
           <Button
-            variant="outline"
             size="sm"
-            className="mt-3 w-full gap-2 text-xs"
+            className="mt-3 w-full gap-2 rounded-xl bg-gradient-to-r from-primary to-secondary text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-2xl"
             onClick={(e) => { e.preventDefault(); addToCart(recipe.id); }}
             disabled={inCart(recipe.id)}
           >

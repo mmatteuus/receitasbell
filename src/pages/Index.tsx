@@ -1,6 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+
+function isGratinRecipe(recipe: Recipe) {
+  const normalizedCategory = recipe.categorySlug?.toLowerCase();
+  const tagMatch = recipe.tags?.some((tag) => tag.toLowerCase().includes("gratin"));
+  return normalizedCategory === "gratins" || tagMatch;
+}
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight, Search, Sparkles } from "lucide-react";
+import { ArrowRight, Search, Sparkles, Sun, Moon } from "lucide-react";
 import { NewsletterSignup } from "@/components/NewsletterSignup";
 import { Reveal } from "@/components/motion/Reveal";
 import RecipeCard from "@/components/RecipeCard";
@@ -15,6 +21,7 @@ import { pickFeaturedRecipes, pickPremiumRecipes } from "@/lib/home/curation";
 import { getRecipeImage, getRecipePresentation } from "@/lib/recipes/presentation";
 import { resolveCategoryDisplay } from "@/lib/categoriesDisplay";
 import { trackError, trackEvent } from "@/lib/telemetry";
+import { BackToTop } from "@/components/BackToTop";
 import type { Recipe } from "@/types/recipe";
 
 const RECENT_RECIPES_KEY = "receitas_bell_recent_recipes";
@@ -26,6 +33,7 @@ export default function HomePage() {
   const [searchTerm, setSearchTerm] = useState("");
   const navigate = useNavigate();
   const { categories, settings } = useAppContext();
+  const premiumRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     async function loadRecipes() {
@@ -58,6 +66,9 @@ export default function HomePage() {
   const featuredMainRecipe = featuredRecipes[0] ?? null;
   const featuredMainPresentation = featuredMainRecipe ? getRecipePresentation(featuredMainRecipe) : null;
   const premiumRecipes = useMemo(() => pickPremiumRecipes(recipes, featuredRecipes, 4), [featuredRecipes, recipes]);
+
+  const gratinRecipes = useMemo(() => recipes.filter(isGratinRecipe), [recipes]);
+
   const featuredCategoryDisplay = featuredMainRecipe
     ? resolveCategoryDisplay(categories, featuredMainRecipe.categorySlug)
     : null;
@@ -249,23 +260,57 @@ export default function HomePage() {
                   Conteúdos completos, combinações autorais e preparo guiado para quem quer ir além do básico.
                 </p>
               </div>
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  trackEvent("home.premium.cta", { source: "premium_section" });
-                  navigate("/buscar?tier=paid");
-                }}
-                className="gap-2"
-              >
-                Explorar premium
-                <Sparkles className="h-4 w-4" />
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleTheme}
+                  title="Alternar tema"
+                  className="border border-white/20 text-white/80 hover:text-white"
+                >
+                  {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    trackEvent("home.premium.cta", { source: "premium_section" });
+                    navigate("/buscar?tier=paid");
+                  }}
+                  className="gap-2"
+                >
+                  Explorar premium
+                  <Sparkles className="h-4 w-4" />
+                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-sm text-zinc-200"
+                    onClick={() => premiumRef.current?.scrollBy({ left: -360, behavior: "smooth" })}
+                  >
+                    ←
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-sm text-zinc-200"
+                    onClick={() => premiumRef.current?.scrollBy({ left: 360, behavior: "smooth" })}
+                  >
+                    →
+                  </Button>
+                </div>
+              </div>
             </div>
           </Reveal>
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <div
+            ref={premiumRef}
+            className="hide-scrollbar flex gap-5 overflow-x-auto pb-4 scroll-smooth snap-x snap-mandatory"
+          >
             {premiumRecipes.map((recipe, index) => (
               <Reveal key={recipe.id} delayMs={index * 50}>
-                <RecipeCard recipe={recipe} />
+                <div className="snap-start min-w-[260px] flex-1 md:min-w-[320px]">
+                  <RecipeCard recipe={recipe} />
+                </div>
               </Reveal>
             ))}
           </div>
@@ -346,6 +391,7 @@ export default function HomePage() {
           </div>
         </section>
       )}
+      <BackToTop />
     </div>
   );
 }

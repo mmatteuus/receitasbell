@@ -44,15 +44,18 @@ export default function AccountHome() {
   }, [params]);
 
   useEffect(() => {
-    async function load() {
-      const email = await requireIdentity("Digite seu e-mail para acessar sua conta e manter seus dados sincronizados.");
-      if (!email) {
-        setLoading(false);
-        return;
-      }
+    if (!identityEmail) {
+      setLoading(false);
+      return;
+    }
 
+    let isMounted = true;
+    setLoading(true);
+
+    async function load() {
       try {
         const [shoppingItems, recipes] = await Promise.all([listShoppingList(), listRecipes()]);
+        if (!isMounted) return;
         setShoppingCount(shoppingItems.length);
         setShoppingPreview(shoppingItems.slice(0, 6).map((item) => item.text));
         const unlockedPaid = recipes.filter((recipe) => recipe.accessTier === "paid" && recipe.isUnlocked);
@@ -61,12 +64,18 @@ export default function AccountHome() {
       } catch (error) {
         console.error("Failed to load account data", error);
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     }
 
     void load();
-  }, [requireIdentity]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [identityEmail]);
 
   const stats = useMemo(() => [
     { label: "Favoritos", value: favorites.length, icon: Heart, tab: "favoritos" as AccountTab },
@@ -102,6 +111,23 @@ export default function AccountHome() {
   function handleClearIdentity() {
     clearIdentity();
     toast.success("Sessão de identidade removida neste dispositivo.");
+  }
+
+  if (!identityEmail) {
+    return (
+      <div className="container flex flex-col items-center justify-center space-y-6 px-4 py-10 text-center">
+        <div className="space-y-3">
+          <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Minha Conta</p>
+          <h1 className="text-3xl font-semibold">Para acessar sua conta é preciso estar logado</h1>
+          <p className="text-muted-foreground">
+            Faça seu cadastro com e-mail para salvar favoritos, comprar receitas e acessar coleções exclusivas.
+          </p>
+        </div>
+        <Button onClick={() => void requireIdentity("Informe seu e-mail para liberar o acesso à Minha Conta")}>
+          Cadastrar / Entrar
+        </Button>
+      </div>
+    );
   }
 
   if (loading) {

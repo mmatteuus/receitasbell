@@ -44,6 +44,8 @@ type AppContextValue = {
   refreshFavorites: () => Promise<FavoriteRecord[]>;
   isFavorite: (recipeId: string) => boolean;
   toggleFavorite: (recipeId: string) => Promise<boolean>;
+  theme: "light" | "dark";
+  toggleTheme: () => void;
 };
 
 type IdentityDialogState = {
@@ -74,6 +76,12 @@ export function AppProvider({ children }: PropsWithChildren) {
     error: "",
   });
   const [identityLoading, setIdentityLoading] = useState(false);
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    if (typeof window === "undefined") return "light";
+    const stored = window.localStorage.getItem("rb_theme");
+    if (stored === "dark" || stored === "light") return stored;
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  });
   const [identityResolver, setIdentityResolver] = useState<((value: string | null) => void) | null>(null);
   const [favoriteRecords, setFavoriteRecords] = useState<FavoriteRecord[]>([]);
   const [favoritesLoading, setFavoritesLoading] = useState(false);
@@ -191,6 +199,14 @@ export function AppProvider({ children }: PropsWithChildren) {
     return true;
   }, [favoriteRecords, requireIdentity]);
 
+  const toggleTheme = useCallback(() => {
+    setTheme((current) => {
+      const next = current === "light" ? "dark" : "light";
+      trackEvent("theme.toggle", { theme: next });
+      return next;
+    });
+  }, []);
+
   useEffect(() => {
     void refreshCategories();
     void refreshSettings();
@@ -199,6 +215,12 @@ export function AppProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     applySiteSettings(settings);
   }, [settings]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    document.documentElement.classList.toggle("dark", theme === "dark");
+    window.localStorage.setItem("rb_theme", theme);
+  }, [theme]);
 
   useEffect(() => {
     if (!identityEmail) return;
@@ -237,6 +259,8 @@ export function AppProvider({ children }: PropsWithChildren) {
         throw error;
       }
     },
+    theme,
+    toggleTheme,
   }), [
     categories,
     categoriesLoading,
@@ -253,6 +277,8 @@ export function AppProvider({ children }: PropsWithChildren) {
     favoritesLoading,
     refreshFavorites,
     toggleFavorite,
+    theme,
+    toggleTheme,
   ]);
 
   async function handleIdentityConfirm() {

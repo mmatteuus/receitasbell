@@ -2,6 +2,7 @@ import { AdminSidebar, AdminSidebarProvider, AdminMobileSidebar, AdminMobileMenu
 import { Outlet } from "react-router-dom";
 import { AdminBreadcrumbs } from "./AdminBreadcrumbs";
 import { AdminNotifications } from "./AdminNotifications";
+import { BackToTop } from "@/components/BackToTop";
 export default function AdminLayout() {
   return (
     <AdminSidebarProvider>
@@ -26,15 +27,16 @@ export default function AdminLayout() {
             <Outlet />
           </main>
 
-          {/* Minimal copyright footer */}
-          <footer className="border-t py-4 text-center text-xs text-muted-foreground">
-            © {new Date().getFullYear()} Receitas do Bell. Desenvolvido por{" "}
-            <a href="https://mtsferreira.dev" target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline">
-              MtsFerreira
-            </a>
-          </footer>
-        </div>
+        {/* Minimal copyright footer */}
+        <footer className="border-t py-4 text-center text-xs text-muted-foreground">
+          © {new Date().getFullYear()} Receitas do Bell. Desenvolvido por{" "}
+          <a href="https://mtsferreira.dev" target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline">
+            MtsFerreira
+          </a>
+        </footer>
+        <BackToTop />
       </div>
-    </AdminSidebarProvider>
-  );
+    </div>
+  </AdminSidebarProvider>
+);
 }

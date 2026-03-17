@@ -63,3 +63,14 @@
     font-family: var(--rb-heading-font, 'DM Serif Display', serif);
   }
 }
+
+@layer utilities {
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}

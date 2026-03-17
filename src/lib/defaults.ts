@@ -41,6 +41,7 @@ export const DEFAULT_HOME_SETTINGS: HomeSettings = {
   showCategoriesGrid: true,
   showFeaturedRecipes: true,
   showPremiumSection: true,
+  showGratinSection: true,
   showRecentRecipes: true,
   showNewsletter: true,
   showTrustBar: true,
@@ -56,7 +57,7 @@ export const DEFAULT_HOME_SETTINGS: HomeSettings = {
     "O Receitas Bell une visual editorial e utilidade real para quem quer cozinhar com confiança, descobrir novos sabores e manter suas receitas favoritas organizadas.",
   aboutImageUrl:
     "https://images.unsplash.com/photo-1466637574441-749b8f19452f?auto=format&fit=crop&w=1200&q=80",
-  homeSectionsOrder: ["hero", "trustBar", "categories", "featured", "premium", "recent", "about", "newsletter"],
+  homeSectionsOrder: ["hero", "trustBar", "categories", "featured", "premium", "gratin", "recent", "about", "newsletter"],
 };
 
 export const DEFAULT_PAYMENT_SETTINGS: PaymentSettings = {
@@ -100,6 +101,7 @@ export const HOME_SETTING_KEYS = [
   "showCategoriesGrid",
   "showFeaturedRecipes",
   "showPremiumSection",
+  "showGratinSection",
   "showRecentRecipes",
   "showNewsletter",
   "showTrustBar",
