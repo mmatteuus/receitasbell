@@ -1,50 +1,63 @@
-import { Payment } from "./types";
+import { Payment } from './types';
 
 const statusLabels: Record<string, string> = {
-  approved: "Aprovado",
-  pending: "Pendente",
-  rejected: "Rejeitado",
-  cancelled: "Cancelado",
-  refunded: "Reembolsado",
-  in_process: "Em processo",
-  charged_back: "Chargeback",
+  approved: 'Aprovado',
+  pending: 'Pendente',
+  rejected: 'Rejeitado',
+  cancelled: 'Cancelado',
+  refunded: 'Reembolsado',
+  in_process: 'Em processo',
+  charged_back: 'Chargeback',
 };
 
 const methodLabels: Record<string, string> = {
-  pix: "PIX",
-  credit_card: "Cartão de Crédito",
-  boleto: "Boleto",
+  pix: 'PIX',
+  credit_card: 'Cartão de Crédito',
+  boleto: 'Boleto',
+  pending: 'A definir',
 };
 
 function formatDate(d: string | null) {
-  if (!d) return "—";
-  return new Date(d).toLocaleDateString("pt-BR", {
-    day: "2-digit", month: "2-digit", year: "numeric",
-    hour: "2-digit", minute: "2-digit",
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   });
 }
 
-export function exportPaymentsCSV(payments: Payment[], filename = "pagamentos") {
-  const header = ["ID", "Status", "Método", "Valor (R$)", "Email", "Itens", "Criado em", "Aprovado em"];
+export function exportPaymentsCSV(payments: Payment[], filename = 'pagamentos') {
+  const header = [
+    'ID',
+    'Status',
+    'Método',
+    'Valor (R$)',
+    'Email',
+    'Itens',
+    'Criado em',
+    'Aprovado em',
+  ];
   const rows = payments.map((p) => [
     p.id,
     statusLabels[p.status] || p.status,
     methodLabels[p.payment_method_id || p.paymentMethod] || p.payment_method_id || p.paymentMethod,
-    p.totalBRL.toFixed(2).replace(".", ","),
+    p.totalBRL.toFixed(2).replace('.', ','),
     p.payer.email,
-    p.items.map((item) => item.title).join(" | "),
+    p.items.map((item) => item.title).join(' | '),
     formatDate(p.createdAt),
     formatDate(p.approvedAt || null),
   ]);
 
-  const csv = [header, ...rows].map((r) => r.map((c) => `"${c}"`).join(";")).join("\n");
-  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+  const csv = [header, ...rows].map((r) => r.map((c) => `"${c}"`).join(';')).join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
   downloadBlob(blob, `${filename}.csv`);
 }
 
-export function exportPaymentsPDF(payments: Payment[], filename = "pagamentos") {
+export function exportPaymentsPDF(payments: Payment[], filename = 'pagamentos') {
   const totalRevenue = payments
-    .filter((p) => p.status === "approved")
+    .filter((p) => p.status === 'approved')
     .reduce((s, p) => s + p.totalBRL, 0);
 
   const rows = payments
@@ -56,11 +69,11 @@ export function exportPaymentsPDF(payments: Payment[], filename = "pagamentos") 
           <td>${methodLabels[p.payment_method_id || p.paymentMethod] || p.payment_method_id || p.paymentMethod}</td>
           <td style="text-align:right">R$ ${p.totalBRL.toFixed(2)}</td>
           <td>${p.payer.email}</td>
-          <td>${p.items.map((item) => item.title).join(", ")}</td>
+          <td>${p.items.map((item) => item.title).join(', ')}</td>
           <td>${formatDate(p.createdAt)}</td>
         </tr>`
     )
-    .join("");
+    .join('');
 
   const html = `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>Relatório de Pagamentos</title>
@@ -74,14 +87,14 @@ export function exportPaymentsPDF(payments: Payment[], filename = "pagamentos") 
   .summary{margin-top:16px;font-size:14px}
 </style></head><body>
 <h1>Relatório de Pagamentos</h1>
-<p class="meta">Gerado em ${new Date().toLocaleDateString("pt-BR")} · ${payments.length} transações</p>
+<p class="meta">Gerado em ${new Date().toLocaleDateString('pt-BR')} · ${payments.length} transações</p>
 <table><thead><tr>
   <th>ID</th><th>Status</th><th>Método</th><th>Valor</th><th>Email</th><th>Receita</th><th>Data</th>
 </tr></thead><tbody>${rows}</tbody></table>
 <p class="summary"><strong>Receita Total (Aprovados):</strong> R$ ${totalRevenue.toFixed(2)}</p>
 </body></html>`;
 
-  const win = window.open("", "_blank");
+  const win = window.open('', '_blank');
   if (win) {
     win.document.write(html);
     win.document.close();
@@ -91,7 +104,7 @@ export function exportPaymentsPDF(payments: Payment[], filename = "pagamentos") 
 
 function downloadBlob(blob: Blob, name: string) {
   const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
+  const a = document.createElement('a');
   a.href = url;
   a.download = name;
   a.click();

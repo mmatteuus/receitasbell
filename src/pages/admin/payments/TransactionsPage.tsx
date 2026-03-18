@@ -1,52 +1,59 @@
-import { useCallback, useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
-import { Payment, PaymentStatus } from "@/lib/payments/types";
-import { exportPaymentsCSV, exportPaymentsPDF } from "@/lib/payments/export";
-import { PaymentsTable } from "@/components/payments/PaymentsTable";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { useCallback, useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Payment, PaymentStatus } from '@/lib/payments/types';
+import { exportPaymentsCSV, exportPaymentsPDF } from '@/lib/payments/export';
+import { PaymentsTable } from '@/components/payments/PaymentsTable';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { DatePickerWithRange } from "@/components/ui/date-picker-with-range";
-import { DateRange } from "react-day-picker";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { Download, FileText } from "lucide-react";
-import { paymentRepo } from "@/lib/repos/paymentRepo";
+} from '@/components/ui/dropdown-menu';
+import { DatePickerWithRange } from '@/components/ui/date-picker-with-range';
+import { DateRange } from 'react-day-picker';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { Download, FileText } from 'lucide-react';
+import { paymentRepo } from '@/lib/repos/paymentRepo';
 
 const statusOptions: { label: string; value: PaymentStatus }[] = [
-  { label: "Aprovado", value: "approved" },
-  { label: "Pendente", value: "pending" },
-  { label: "Processando", value: "in_process" },
-  { label: "Rejeitado", value: "rejected" },
-  { label: "Cancelado", value: "cancelled" },
-  { label: "Devolvido", value: "refunded" },
-  { label: "Chargeback", value: "charged_back" },
+  { label: 'Aprovado', value: 'approved' },
+  { label: 'Pendente', value: 'pending' },
+  { label: 'Processando', value: 'in_process' },
+  { label: 'Rejeitado', value: 'rejected' },
+  { label: 'Cancelado', value: 'cancelled' },
+  { label: 'Devolvido', value: 'refunded' },
+  { label: 'Chargeback', value: 'charged_back' },
 ];
 
 const methodOptions = [
-  { label: "PIX", value: "pix" },
-  { label: "Cartão de Crédito", value: "credit_card" },
-  { label: "Boleto", value: "boleto" },
+  { label: 'PIX', value: 'pix' },
+  { label: 'Cartão de Crédito', value: 'credit_card' },
+  { label: 'Boleto', value: 'boleto' },
+  { label: 'A definir', value: 'pending' },
 ];
 
 export default function TransactionsPage() {
   const [searchParams] = useSearchParams();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [searchField, setSearchField] = useState("email");
+  const [search, setSearch] = useState('');
+  const [searchField, setSearchField] = useState('email');
   const [status, setStatus] = useState<PaymentStatus[]>(() => {
-    const value = searchParams.get("status");
-    return value ? value.split(",") as PaymentStatus[] : [];
+    const value = searchParams.get('status');
+    return value ? (value.split(',') as PaymentStatus[]) : [];
   });
   const [methods, setMethods] = useState<string[]>(() => {
-    const value = searchParams.get("method");
-    return value ? value.split(",") : [];
+    const value = searchParams.get('method');
+    return value ? value.split(',') : [];
   });
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
@@ -55,45 +62,50 @@ export default function TransactionsPage() {
       count: paymentsList.length,
       total: paymentsList.reduce((sum, payment) => sum + payment.totalBRL, 0),
       approved: paymentsList
-        .filter((payment) => payment.status === "approved")
+        .filter((payment) => payment.status === 'approved')
         .reduce((sum, payment) => sum + payment.totalBRL, 0),
     };
   }
 
-  const loadPayments = useCallback(async (filters: {
-    status?: PaymentStatus[];
-    paymentMethod?: string[];
-    email?: string;
-    paymentId?: string;
-    externalReference?: string;
-    dateFrom?: string;
-    dateTo?: string;
-  } = {}) => {
-    setLoading(true);
-    try {
-      const next = await paymentRepo.list({
-        status: filters.status,
-        paymentMethod: filters.paymentMethod,
-        email: filters.email,
-        paymentId: filters.paymentId,
-        external_reference: filters.externalReference,
-        dateFrom: filters.dateFrom,
-        dateTo: filters.dateTo,
-      });
-      setPayments(next);
-    } catch (error) {
-      console.error("Failed to load payments", error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const loadPayments = useCallback(
+    async (
+      filters: {
+        status?: PaymentStatus[];
+        paymentMethod?: string[];
+        email?: string;
+        paymentId?: string;
+        externalReference?: string;
+        dateFrom?: string;
+        dateTo?: string;
+      } = {}
+    ) => {
+      setLoading(true);
+      try {
+        const next = await paymentRepo.list({
+          status: filters.status,
+          paymentMethod: filters.paymentMethod,
+          email: filters.email,
+          paymentId: filters.paymentId,
+          external_reference: filters.externalReference,
+          dateFrom: filters.dateFrom,
+          dateTo: filters.dateTo,
+        });
+        setPayments(next);
+      } catch (error) {
+        console.error('Failed to load payments', error);
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
 
   useEffect(() => {
-    const initialStatus = searchParams.get("status");
-    const initialMethod = searchParams.get("method");
+    const initialStatus = searchParams.get('status');
+    const initialMethod = searchParams.get('method');
     void loadPayments({
-      status: initialStatus ? initialStatus.split(",") as PaymentStatus[] : undefined,
-      paymentMethod: initialMethod ? initialMethod.split(",") : undefined,
+      status: initialStatus ? (initialStatus.split(',') as PaymentStatus[]) : undefined,
+      paymentMethod: initialMethod ? initialMethod.split(',') : undefined,
     });
   }, [loadPayments, searchParams]);
 
@@ -101,17 +113,17 @@ export default function TransactionsPage() {
     void loadPayments({
       status,
       paymentMethod: methods,
-      email: searchField === "email" ? search : undefined,
-      paymentId: searchField === "paymentId" ? search : undefined,
-      externalReference: searchField === "external_reference" ? search : undefined,
+      email: searchField === 'email' ? search : undefined,
+      paymentId: searchField === 'paymentId' ? search : undefined,
+      externalReference: searchField === 'external_reference' ? search : undefined,
       dateFrom: dateRange?.from?.toISOString(),
       dateTo: dateRange?.to?.toISOString(),
     });
   }
 
   function clearFilters() {
-    setSearch("");
-    setSearchField("email");
+    setSearch('');
+    setSearchField('email');
     setStatus([]);
     setMethods([]);
     setDateRange(undefined);
@@ -133,13 +145,17 @@ export default function TransactionsPage() {
           <div className="rounded-lg border bg-card p-4">
             <p className="text-sm text-muted-foreground">Valor Total</p>
             <p className="text-2xl font-bold">
-              {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(totals.total)}
+              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                totals.total
+              )}
             </p>
           </div>
           <div className="rounded-lg border bg-card p-4">
             <p className="text-sm text-muted-foreground">Valor Aprovado</p>
             <p className="text-2xl font-bold">
-              {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(totals.approved)}
+              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                totals.approved
+              )}
             </p>
           </div>
         </div>
@@ -149,7 +165,13 @@ export default function TransactionsPage() {
         <div className="grid w-full max-w-sm items-center gap-1.5">
           <Label htmlFor="search">Pesquisar</Label>
           <div className="flex w-full max-w-sm items-center space-x-2">
-            <Input id="search" type="text" placeholder="Buscar..." value={search} onChange={(event) => setSearch(event.target.value)} />
+            <Input
+              id="search"
+              type="text"
+              placeholder="Buscar..."
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
             <Select value={searchField} onValueChange={setSearchField}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Buscar por..." />
@@ -168,7 +190,7 @@ export default function TransactionsPage() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="w-full justify-start font-normal">
-                {status.length > 0 ? `${status.length} selecionado(s)` : "Selecionar Status"}
+                {status.length > 0 ? `${status.length} selecionado(s)` : 'Selecionar Status'}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56">
@@ -177,7 +199,11 @@ export default function TransactionsPage() {
                   key={option.value}
                   checked={status.includes(option.value)}
                   onCheckedChange={(checked) => {
-                    setStatus((current) => checked ? [...current, option.value] : current.filter((item) => item !== option.value));
+                    setStatus((current) =>
+                      checked
+                        ? [...current, option.value]
+                        : current.filter((item) => item !== option.value)
+                    );
                   }}
                 >
                   {option.label}
@@ -192,7 +218,7 @@ export default function TransactionsPage() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="w-full justify-start font-normal">
-                {methods.length > 0 ? `${methods.length} selecionado(s)` : "Selecionar Método"}
+                {methods.length > 0 ? `${methods.length} selecionado(s)` : 'Selecionar Método'}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56">
@@ -201,7 +227,11 @@ export default function TransactionsPage() {
                   key={option.value}
                   checked={methods.includes(option.value)}
                   onCheckedChange={(checked) => {
-                    setMethods((current) => checked ? [...current, option.value] : current.filter((item) => item !== option.value));
+                    setMethods((current) =>
+                      checked
+                        ? [...current, option.value]
+                        : current.filter((item) => item !== option.value)
+                    );
                   }}
                 >
                   {option.label}
@@ -219,12 +249,24 @@ export default function TransactionsPage() {
 
       <div className="flex items-center gap-2 flex-wrap">
         <Button onClick={handleFilter}>Filtrar</Button>
-        <Button variant="outline" onClick={clearFilters}>Limpar Filtros</Button>
+        <Button variant="outline" onClick={clearFilters}>
+          Limpar Filtros
+        </Button>
         <div className="ml-auto flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => exportPaymentsCSV(payments)} className="gap-1.5">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => exportPaymentsCSV(payments)}
+            className="gap-1.5"
+          >
             <Download className="h-4 w-4" /> CSV
           </Button>
-          <Button variant="outline" size="sm" onClick={() => exportPaymentsPDF(payments)} className="gap-1.5">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => exportPaymentsPDF(payments)}
+            className="gap-1.5"
+          >
             <FileText className="h-4 w-4" /> PDF
           </Button>
         </div>

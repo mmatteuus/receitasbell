@@ -1,15 +1,15 @@
-import type { CartItem } from "@/types/recipe";
+import type { CartItem } from '@/types/recipe';
 
 export type PaymentStatus =
-  | "approved"
-  | "pending"
-  | "in_process"
-  | "rejected"
-  | "cancelled"
-  | "refunded"
-  | "charged_back";
+  | 'approved'
+  | 'pending'
+  | 'in_process'
+  | 'rejected'
+  | 'cancelled'
+  | 'refunded'
+  | 'charged_back';
 
-export type PaymentGateway = "mercado_pago" | "mock";
+export type PaymentGateway = 'mercado_pago' | 'mock';
 
 export interface Payer {
   email: string;
@@ -46,10 +46,10 @@ export interface Payment {
   user_id?: string | null;
   buyer_email?: string;
   status_detail?: string;
-  payment_method_id?: "pix" | "credit_card" | "boleto";
-  payment_type_id?: "account_money" | "ticket" | "credit_card";
+  payment_method_id?: 'pix' | 'credit_card' | 'boleto' | 'pending';
+  payment_type_id?: 'account_money' | 'ticket' | 'credit_card' | 'pending';
   transaction_amount?: number;
-  currency_id?: "BRL";
+  currency_id?: 'BRL';
   date_created?: string;
   date_approved?: string | null;
   external_reference?: string;

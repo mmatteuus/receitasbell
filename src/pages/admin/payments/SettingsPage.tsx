@@ -1,14 +1,14 @@
-import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "sonner";
-import { useAppContext } from "@/contexts/app-context";
-import { updateSettings } from "@/lib/api/settings";
+import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { toast } from 'sonner';
+import { useAppContext } from '@/contexts/app-context';
+import { updateSettings } from '@/lib/api/settings';
 
 type PaymentFlags = {
-  payment_mode: "sandbox" | "production";
+  payment_mode: 'sandbox' | 'production';
   webhooks_enabled: boolean;
   payment_topic_enabled: boolean;
 };
@@ -16,7 +16,7 @@ type PaymentFlags = {
 export default function SettingsPage() {
   const { settings, refreshSettings } = useAppContext();
   const [form, setForm] = useState<PaymentFlags>({
-    payment_mode: "sandbox",
+    payment_mode: 'sandbox',
     webhooks_enabled: true,
     payment_topic_enabled: true,
   });
@@ -37,10 +37,10 @@ export default function SettingsPage() {
     try {
       await updateSettings(form);
       await refreshSettings();
-      toast.success("Configurações de pagamento salvas");
+      toast.success('Configurações de pagamento salvas');
     } catch (error) {
-      console.error("Failed to save payment settings", error);
-      toast.error("Nao foi possivel salvar as configurações de pagamento.");
+      console.error('Failed to save payment settings', error);
+      toast.error('Nao foi possivel salvar as configurações de pagamento.');
     }
   }
 
@@ -52,12 +52,18 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle>Credenciais</CardTitle>
           <CardDescription>
-            Segredos não são salvos no Google Sheets. Configure `MP_ACCESS_TOKEN`, `MP_PUBLIC_KEY` e `MP_WEBHOOK_SECRET` nas env vars da Vercel.
+            Segredos não são salvos no Google Sheets. Configure `MP_ACCESS_TOKEN` e
+            `MP_WEBHOOK_SECRET` nas env vars da Vercel.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 text-sm text-muted-foreground">
           <p>Projeto: `matdev/receitasbell`</p>
-          <p>Webhook: {typeof window !== "undefined" ? `${window.location.origin}/api/mercadopago/webhook` : "/api/mercadopago/webhook"}</p>
+          <p>
+            Webhook:{' '}
+            {typeof window !== 'undefined'
+              ? `${window.location.origin}/api/mercadopago/webhook`
+              : '/api/mercadopago/webhook'}
+          </p>
         </CardContent>
       </Card>
 
@@ -67,21 +73,31 @@ export default function SettingsPage() {
           <CardDescription>Somente opções não sensíveis são persistidas no Sheets.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="rounded-lg border bg-muted/30 p-3 text-sm text-muted-foreground">
+            {form.payment_mode === 'production'
+              ? 'Checkout real habilitado. O fluxo só é liberado quando webhooks e o tópico payment estão ativos.'
+              : 'Modo sandbox ativo. O checkout continua local/simulado para validar o fluxo sem cobrar o cliente.'}
+          </div>
+
           <div className="flex items-center space-x-2">
             <Label htmlFor="mode-switch">Modo</Label>
             <Switch
               id="mode-switch"
-              checked={form.payment_mode === "production"}
-              onCheckedChange={(checked) => setField("payment_mode", checked ? "production" : "sandbox")}
+              checked={form.payment_mode === 'production'}
+              onCheckedChange={(checked) =>
+                setField('payment_mode', checked ? 'production' : 'sandbox')
+              }
             />
-            <span className="text-sm text-muted-foreground">{form.payment_mode === "production" ? "Produção" : "Sandbox"}</span>
+            <span className="text-sm text-muted-foreground">
+              {form.payment_mode === 'production' ? 'Produção' : 'Sandbox'}
+            </span>
           </div>
 
           <div className="flex items-center space-x-2">
             <Switch
               id="webhooks-enabled"
               checked={form.webhooks_enabled}
-              onCheckedChange={(checked) => setField("webhooks_enabled", checked)}
+              onCheckedChange={(checked) => setField('webhooks_enabled', checked)}
             />
             <Label htmlFor="webhooks-enabled">Receber notificações via Webhooks</Label>
           </div>
@@ -90,9 +106,11 @@ export default function SettingsPage() {
             <Switch
               id="payment-topic-enabled"
               checked={form.payment_topic_enabled}
-              onCheckedChange={(checked) => setField("payment_topic_enabled", checked)}
+              onCheckedChange={(checked) => setField('payment_topic_enabled', checked)}
             />
-            <Label htmlFor="payment-topic-enabled">Ativar tópico "payment"</Label>
+            <Label htmlFor="payment-topic-enabled">
+              Ativar tópico "payment" para notificações operacionais
+            </Label>
           </div>
         </CardContent>
       </Card>

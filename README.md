@@ -1,6 +1,6 @@
 # Receitas do Bell
 
-Aplicação web para catálogo de receitas com área pública, painel administrativo, carrinho, checkout simulado e gestão básica de pagamentos. A persistência principal do negócio roda em Vercel Functions com Google Sheets como banco do MVP.
+Aplicação web para catálogo de receitas com área pública, painel administrativo, carrinho, checkout com modo sandbox/real e gestão básica de pagamentos. A persistência principal do negócio roda em Vercel Functions com Google Sheets como banco do MVP.
 
 ## Executando localmente
 
@@ -26,7 +26,6 @@ O backend normaliza `\\n` para quebras de linha reais ao ler `GOOGLE_PRIVATE_KEY
 Opcionais para integração real de pagamento:
 
 - `MP_ACCESS_TOKEN`
-- `MP_PUBLIC_KEY`
 - `MP_WEBHOOK_SECRET`
 
 Nunca use prefixo `VITE_` para segredos.
@@ -83,7 +82,7 @@ Nunca use prefixo `VITE_` para segredos.
 ## Principais áreas
 
 - Catálogo público: home, busca, categorias, página de receita, favoritos e institucionais.
-- Fluxo comercial: carrinho local, checkout simulado persistente e desbloqueio de receitas pagas no Sheets.
+- Fluxo comercial: carrinho local, checkout em modo sandbox ou Mercado Pago real e desbloqueio de receitas pagas no Sheets.
 - Painel admin: listagem, criação e edição de receitas, configurações visuais e dashboard de pagamentos.
 - Persistência server-side: o frontend consome `/api`, enquanto as Functions escrevem e leem do Google Sheets.
 - Identidade leve: o usuário informa um e-mail uma vez, esse valor é salvo em cookie (`rb_user_email`) e o backend resolve/cria o `user_id` correspondente na aba `users`.
@@ -92,7 +91,7 @@ Nunca use prefixo `VITE_` para segredos.
 
 1. Criar uma receita paga em `/admin/receitas/nova` com upload de imagem, categoria dinâmica e preço em reais.
 2. Confirmar que o slug aparece apenas como preview automático e verificar o teaser bloqueado em `/receitas/{slug}`.
-3. Adicionar uma ou mais receitas ao carrinho, concluir o checkout simulado e confirmar a liberação do conteúdo completo.
+3. Adicionar uma ou mais receitas ao carrinho, concluir o checkout e confirmar a liberação do conteúdo completo.
 4. Criar uma categoria no editor e validar a aparição dela no painel e no site público.
 5. Enviar um e-mail na newsletter e confirmar o registro na aba `newsletter_subscribers`.
 6. Favoritar, comentar, avaliar e manipular a lista de compras para validar persistência nas abas correspondentes.

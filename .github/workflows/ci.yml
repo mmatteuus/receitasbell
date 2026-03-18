@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Unit tests
+        run: npm run test:unit
+
+      - name: Smoke tests
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ secrets.PLAYWRIGHT_BASE_URL }}
+          PLAYWRIGHT_BOOTSTRAP_URL: ${{ secrets.PLAYWRIGHT_BOOTSTRAP_URL }}
+          PLAYWRIGHT_ADMIN_SECRET: ${{ secrets.PLAYWRIGHT_ADMIN_SECRET }}
+        run: |
+          if [ -n "${PLAYWRIGHT_BASE_URL}" ]; then
+            npx playwright test tests/smoke.spec.ts
+          else
+            PLAYWRIGHT_DISABLE_LOCAL_ENV=1 PLAYWRIGHT_BASE_URL=http://127.0.0.1:4173 npx playwright test tests/smoke.spec.ts
+          fi

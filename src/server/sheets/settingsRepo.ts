@@ -5,34 +5,34 @@ import {
   HOME_SETTING_KEYS,
   PAYMENT_SETTING_KEYS,
   SITE_SETTING_KEYS,
-} from "../../lib/defaults.js";
-import type { HomeSectionId, SettingsMap } from "../../types/settings.js";
-import { readTable, writeTable } from "./table.js";
+} from '../../lib/defaults.js';
+import type { HomeSectionId, SettingsMap } from '../../types/settings.js';
+import { readTable, writeTable } from './table.js';
 
 function defaultSettingsMap(): Record<string, string> {
   return {
     ...Object.fromEntries(
-      Object.entries(DEFAULT_SITE_SETTINGS).map(([key, value]) => [key, String(value)]),
+      Object.entries(DEFAULT_SITE_SETTINGS).map(([key, value]) => [key, String(value)])
     ),
     ...Object.fromEntries(
-      Object.entries(DEFAULT_PAYMENT_SETTINGS).map(([key, value]) => [key, String(value)]),
+      Object.entries(DEFAULT_PAYMENT_SETTINGS).map(([key, value]) => [key, String(value)])
     ),
     ...Object.fromEntries(
       Object.entries(DEFAULT_HOME_SETTINGS).map(([key, value]) => [
         key,
         Array.isArray(value) ? JSON.stringify(value) : String(value),
-      ]),
+      ])
     ),
   };
 }
 
 export async function getSettingsMap() {
-  const rows = await readTable("settings");
+  const rows = await readTable('settings');
   if (!rows.length) {
     const defaults = defaultSettingsMap();
     await writeTable(
-      "settings",
-      Object.entries(defaults).map(([key, value]) => ({ key, value })),
+      'settings',
+      Object.entries(defaults).map(([key, value]) => ({ key, value }))
     );
     return defaults;
   }
@@ -48,8 +48,8 @@ export async function saveSettings(partial: Record<string, string>) {
   const next = { ...current, ...partial };
 
   await writeTable(
-    "settings",
-    Object.entries(next).map(([key, value]) => ({ key, value })),
+    'settings',
+    Object.entries(next).map(([key, value]) => ({ key, value }))
   );
 
   return next;
@@ -67,26 +67,28 @@ function parseStringList(raw: string | undefined, fallback: string[]) {
   }
 
   return raw
-    .split(",")
+    .split(',')
     .map((item) => item.trim())
     .filter(Boolean);
 }
 
 export function mapTypedSettings(raw: Record<string, string>): SettingsMap {
-  const homeSectionsOrder = parseStringList(raw.homeSectionsOrder, DEFAULT_HOME_SETTINGS.homeSectionsOrder).filter(
-    (value): value is HomeSectionId => {
-      return [
-        "hero",
-        "trustBar",
-        "categories",
-        "featured",
-        "premium",
-        "recent",
-        "about",
-        "newsletter",
-      ].includes(value);
-    },
-  );
+  const homeSectionsOrder = parseStringList(
+    raw.homeSectionsOrder,
+    DEFAULT_HOME_SETTINGS.homeSectionsOrder
+  ).filter((value): value is HomeSectionId => {
+    return [
+      'hero',
+      'trustBar',
+      'categories',
+      'featured',
+      'premium',
+      'gratin',
+      'recent',
+      'about',
+      'newsletter',
+    ].includes(value);
+  });
 
   return {
     siteName: raw.siteName || DEFAULT_SITE_SETTINGS.siteName,
@@ -97,9 +99,9 @@ export function mapTypedSettings(raw: Record<string, string>): SettingsMap {
     accentColor: raw.accentColor || DEFAULT_SITE_SETTINGS.accentColor,
     headingFont: raw.headingFont || DEFAULT_SITE_SETTINGS.headingFont,
     bodyFont: raw.bodyFont || DEFAULT_SITE_SETTINGS.bodyFont,
-    payment_mode: raw.payment_mode === "production" ? "production" : "sandbox",
-    webhooks_enabled: raw.webhooks_enabled === "true",
-    payment_topic_enabled: raw.payment_topic_enabled !== "false",
+    payment_mode: raw.payment_mode === 'production' ? 'production' : 'sandbox',
+    webhooks_enabled: raw.webhooks_enabled === 'true',
+    payment_topic_enabled: raw.payment_topic_enabled !== 'false',
     heroBadge: raw.heroBadge || DEFAULT_HOME_SETTINGS.heroBadge,
     heroTitle: raw.heroTitle || DEFAULT_HOME_SETTINGS.heroTitle,
     heroSubtitle: raw.heroSubtitle || DEFAULT_HOME_SETTINGS.heroSubtitle,
@@ -109,29 +111,38 @@ export function mapTypedSettings(raw: Record<string, string>): SettingsMap {
     heroSecondaryCtaLabel: raw.heroSecondaryCtaLabel || DEFAULT_HOME_SETTINGS.heroSecondaryCtaLabel,
     heroSecondaryCtaHref: raw.heroSecondaryCtaHref || DEFAULT_HOME_SETTINGS.heroSecondaryCtaHref,
     featuredSectionTitle: raw.featuredSectionTitle || DEFAULT_HOME_SETTINGS.featuredSectionTitle,
-    featuredSectionSubtitle: raw.featuredSectionSubtitle || DEFAULT_HOME_SETTINGS.featuredSectionSubtitle,
+    featuredSectionSubtitle:
+      raw.featuredSectionSubtitle || DEFAULT_HOME_SETTINGS.featuredSectionSubtitle,
     featuredMode:
-      raw.featuredMode === "manual" ||
-      raw.featuredMode === "latest" ||
-      raw.featuredMode === "category" ||
-      raw.featuredMode === "featuredFlag"
+      raw.featuredMode === 'manual' ||
+      raw.featuredMode === 'latest' ||
+      raw.featuredMode === 'category' ||
+      raw.featuredMode === 'featuredFlag'
         ? raw.featuredMode
         : DEFAULT_HOME_SETTINGS.featuredMode,
-    featuredRecipeIds: parseStringList(raw.featuredRecipeIds, DEFAULT_HOME_SETTINGS.featuredRecipeIds),
+    featuredRecipeIds: parseStringList(
+      raw.featuredRecipeIds,
+      DEFAULT_HOME_SETTINGS.featuredRecipeIds
+    ),
     featuredCategorySlug: raw.featuredCategorySlug || DEFAULT_HOME_SETTINGS.featuredCategorySlug,
-    featuredLimit: Number(raw.featuredLimit || DEFAULT_HOME_SETTINGS.featuredLimit) || DEFAULT_HOME_SETTINGS.featuredLimit,
-    showCategoriesGrid: raw.showCategoriesGrid !== "false",
-    showFeaturedRecipes: raw.showFeaturedRecipes !== "false",
-    showPremiumSection: raw.showPremiumSection !== "false",
-    showRecentRecipes: raw.showRecentRecipes !== "false",
-    showNewsletter: raw.showNewsletter !== "false",
-    showTrustBar: raw.showTrustBar !== "false",
-    showAboutSection: raw.showAboutSection !== "false",
+    featuredLimit:
+      Number(raw.featuredLimit || DEFAULT_HOME_SETTINGS.featuredLimit) ||
+      DEFAULT_HOME_SETTINGS.featuredLimit,
+    showCategoriesGrid: raw.showCategoriesGrid !== 'false',
+    showFeaturedRecipes: raw.showFeaturedRecipes !== 'false',
+    showPremiumSection: raw.showPremiumSection !== 'false',
+    showGratinSection: raw.showGratinSection !== 'false',
+    showRecentRecipes: raw.showRecentRecipes !== 'false',
+    showNewsletter: raw.showNewsletter !== 'false',
+    showTrustBar: raw.showTrustBar !== 'false',
+    showAboutSection: raw.showAboutSection !== 'false',
     trustBarItems: parseStringList(raw.trustBarItems, DEFAULT_HOME_SETTINGS.trustBarItems),
     aboutHeadline: raw.aboutHeadline || DEFAULT_HOME_SETTINGS.aboutHeadline,
     aboutText: raw.aboutText || DEFAULT_HOME_SETTINGS.aboutText,
     aboutImageUrl: raw.aboutImageUrl || DEFAULT_HOME_SETTINGS.aboutImageUrl,
-    homeSectionsOrder: homeSectionsOrder.length ? homeSectionsOrder : DEFAULT_HOME_SETTINGS.homeSectionsOrder,
+    homeSectionsOrder: homeSectionsOrder.length
+      ? homeSectionsOrder
+      : DEFAULT_HOME_SETTINGS.homeSectionsOrder,
   };
 }
 

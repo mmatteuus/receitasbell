@@ -1,5 +1,5 @@
 export const formatBRL = (val: number) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(val);
+  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
 export const COLORS: Record<string, string> = {
   approved: 'hsl(142, 71%, 45%)',
@@ -15,12 +15,14 @@ export const METHOD_COLORS: Record<string, string> = {
   pix: 'hsl(168, 76%, 42%)',
   credit_card: 'hsl(221, 83%, 53%)',
   boleto: 'hsl(25, 95%, 53%)',
+  pending: 'hsl(215, 16%, 47%)',
 };
 
 export const METHOD_LABELS: Record<string, string> = {
   pix: 'PIX',
   credit_card: 'Cartão de Crédito',
   boleto: 'Boleto',
+  pending: 'A definir',
 };
 
 export const STATUS_LABELS: Record<string, string> = {

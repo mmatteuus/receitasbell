@@ -1,38 +1,32 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight, Search, Sparkles, Sun, Moon } from "lucide-react";
-import { NewsletterSignup } from "@/components/NewsletterSignup";
-import { Reveal } from "@/components/motion/Reveal";
-import RecipeCard from "@/components/RecipeCard";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
-import SmartImage from "@/components/SmartImage";
-import { useAppContext } from "@/contexts/app-context";
-import { listPublicRecipes } from "@/lib/repos/recipeRepo";
-import { pickFeaturedRecipes, pickPremiumRecipes } from "@/lib/home/curation";
-import { getRecipeImage, getRecipePresentation } from "@/lib/recipes/presentation";
-import { resolveCategoryDisplay } from "@/lib/categoriesDisplay";
-import { trackError, trackEvent } from "@/lib/telemetry";
-import { BackToTop } from "@/components/BackToTop";
-import type { Recipe } from "@/types/recipe";
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowRight, Search, Sparkles, Sun, Moon } from 'lucide-react';
+import { NewsletterSignup } from '@/components/NewsletterSignup';
+import { Reveal } from '@/components/motion/Reveal';
+import RecipeCard from '@/components/RecipeCard';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
+import SmartImage from '@/components/SmartImage';
+import { useAppContext } from '@/contexts/app-context';
+import { listPublicRecipes } from '@/lib/repos/recipeRepo';
+import { pickFeaturedRecipes, pickGratinRecipes, pickPremiumRecipes } from '@/lib/home/curation';
+import { getRecipeImage, getRecipePresentation } from '@/lib/recipes/presentation';
+import { resolveCategoryDisplay } from '@/lib/categoriesDisplay';
+import { trackError, trackEvent } from '@/lib/telemetry';
+import { BackToTop } from '@/components/BackToTop';
+import type { Recipe } from '@/types/recipe';
 
-const RECENT_RECIPES_KEY = "receitas_bell_recent_recipes";
-
-function isGratinRecipe(recipe: Recipe) {
-  const normalizedCategory = recipe.categorySlug?.toLowerCase();
-  const tagMatch = recipe.tags?.some((tag) => tag.toLowerCase().includes("gratin"));
-  return normalizedCategory === "gratins" || tagMatch;
-}
+const RECENT_RECIPES_KEY = 'receitas_bell_recent_recipes';
 
 export default function HomePage() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [recentRecipes, setRecentRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
-  const { categories, settings } = useAppContext();
+  const { categories, settings, theme, toggleTheme } = useAppContext();
   const premiumRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -42,7 +36,7 @@ export default function HomePage() {
         setRecipes(published);
 
         try {
-          const historyIds = JSON.parse(localStorage.getItem(RECENT_RECIPES_KEY) || "[]");
+          const historyIds = JSON.parse(localStorage.getItem(RECENT_RECIPES_KEY) || '[]');
           if (Array.isArray(historyIds) && historyIds.length > 0) {
             const recent = historyIds
               .map((id: string) => published.find((recipe) => recipe.id === id))
@@ -50,10 +44,10 @@ export default function HomePage() {
             setRecentRecipes(recent);
           }
         } catch (error) {
-          console.error("Failed to load history", error);
+          console.error('Failed to load history', error);
         }
       } catch (error) {
-        trackError("home.loadRecipes", error);
+        trackError('home.loadRecipes', error);
       } finally {
         setLoading(false);
       }
@@ -62,12 +56,20 @@ export default function HomePage() {
     void loadRecipes();
   }, []);
 
-  const featuredRecipes = useMemo(() => pickFeaturedRecipes(recipes, settings), [recipes, settings]);
+  const featuredRecipes = useMemo(
+    () => pickFeaturedRecipes(recipes, settings),
+    [recipes, settings]
+  );
   const featuredMainRecipe = featuredRecipes[0] ?? null;
-  const featuredMainPresentation = featuredMainRecipe ? getRecipePresentation(featuredMainRecipe) : null;
-  const premiumRecipes = useMemo(() => pickPremiumRecipes(recipes, featuredRecipes, 4), [featuredRecipes, recipes]);
+  const featuredMainPresentation = featuredMainRecipe
+    ? getRecipePresentation(featuredMainRecipe)
+    : null;
+  const premiumRecipes = useMemo(
+    () => pickPremiumRecipes(recipes, featuredRecipes, 4),
+    [featuredRecipes, recipes]
+  );
 
-  const gratinRecipes = useMemo(() => recipes.filter(isGratinRecipe), [recipes]);
+  const gratinRecipes = useMemo(() => pickGratinRecipes(recipes, 4), [recipes]);
 
   const featuredCategoryDisplay = featuredMainRecipe
     ? resolveCategoryDisplay(categories, featuredMainRecipe.categorySlug)
@@ -76,29 +78,42 @@ export default function HomePage() {
   const handleSearch = (event: React.FormEvent) => {
     event.preventDefault();
     if (!searchTerm.trim()) return;
-    trackEvent("home.search.submit", { q: searchTerm.trim() });
+    trackEvent('home.search.submit', { q: searchTerm.trim() });
     navigate(`/buscar?q=${encodeURIComponent(searchTerm)}`);
   };
 
   const sections = {
     hero: (
-      <section key="hero" className="relative overflow-hidden border-b bg-gradient-to-b from-orange-50 via-amber-50/70 to-background py-10 sm:py-14 lg:py-20">
+      <section
+        key="hero"
+        className="relative overflow-hidden border-b bg-gradient-to-b from-orange-50 via-amber-50/70 to-background py-10 sm:py-14 lg:py-20"
+      >
         <div className="pointer-events-none absolute -top-24 right-[-140px] h-72 w-72 rounded-full bg-primary/15 blur-3xl" />
         <div className="container relative grid items-center gap-10 px-4 lg:grid-cols-[1.05fr_0.95fr]">
           <Reveal>
             <div className="space-y-6">
               {settings.heroBadge && (
-                <Badge variant="outline" className="rounded-full border-primary/30 bg-background/80 px-4 py-1 text-xs">
+                <Badge
+                  variant="outline"
+                  className="rounded-full border-primary/30 bg-background/80 px-4 py-1 text-xs"
+                >
                   {settings.heroBadge}
                 </Badge>
               )}
-              <h1 data-testid="home-hero-heading" className="max-w-[18ch] text-4xl leading-tight sm:text-5xl lg:text-6xl">{settings.heroTitle}</h1>
-              <p className="max-w-[58ch] text-base text-muted-foreground sm:text-lg">{settings.heroSubtitle}</p>
+              <h1
+                data-testid="home-hero-heading"
+                className="max-w-[18ch] text-4xl leading-tight sm:text-5xl lg:text-6xl"
+              >
+                {settings.heroTitle}
+              </h1>
+              <p className="max-w-[58ch] text-base text-muted-foreground sm:text-lg">
+                {settings.heroSubtitle}
+              </p>
               <div className="flex flex-wrap gap-3">
                 <Button
                   size="lg"
                   className="gap-2 shadow-sm transition-transform hover:-translate-y-0.5"
-                  onClick={() => navigate(settings.heroPrimaryCtaHref || "/buscar")}
+                  onClick={() => navigate(settings.heroPrimaryCtaHref || '/buscar')}
                 >
                   {settings.heroPrimaryCtaLabel}
                   <ArrowRight className="h-4 w-4" />
@@ -107,7 +122,7 @@ export default function HomePage() {
                   size="lg"
                   variant="outline"
                   className="transition-transform hover:-translate-y-0.5"
-                  onClick={() => navigate(settings.heroSecondaryCtaHref || "/buscar")}
+                  onClick={() => navigate(settings.heroSecondaryCtaHref || '/buscar')}
                 >
                   {settings.heroSecondaryCtaLabel}
                 </Button>
@@ -115,16 +130,18 @@ export default function HomePage() {
               <form onSubmit={handleSearch} className="mt-2 flex max-w-xl gap-2">
                 <div className="relative flex-1">
                   <Search className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Busque por prato, ingrediente ou ocasião"
-                  data-testid="home-search-input"
-                  className="h-11 rounded-xl pl-9"
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                />
+                  <Input
+                    type="search"
+                    placeholder="Busque por prato, ingrediente ou ocasião"
+                    data-testid="home-search-input"
+                    className="h-11 rounded-xl pl-9"
+                    value={searchTerm}
+                    onChange={(event) => setSearchTerm(event.target.value)}
+                  />
                 </div>
-                <Button type="submit" className="h-11 rounded-xl">Buscar</Button>
+                <Button type="submit" className="h-11 rounded-xl">
+                  Buscar
+                </Button>
               </form>
             </div>
           </Reveal>
@@ -151,7 +168,9 @@ export default function HomePage() {
         <div className="container grid gap-3 px-4 py-6 sm:grid-cols-2 lg:grid-cols-4">
           {settings.trustBarItems.slice(0, 4).map((item, index) => (
             <Reveal key={item} delayMs={index * 40}>
-              <div className="rounded-xl border bg-card px-4 py-3 text-sm text-muted-foreground">{item}</div>
+              <div className="rounded-xl border bg-card px-4 py-3 text-sm text-muted-foreground">
+                {item}
+              </div>
             </Reveal>
           ))}
         </div>
@@ -162,10 +181,14 @@ export default function HomePage() {
         <Reveal>
           <div className="mb-7 flex items-end justify-between gap-4">
             <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Descubra por tema</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                Descubra por tema
+              </p>
               <h2 className="text-3xl">Coleções por categoria</h2>
             </div>
-            <Button variant="link" onClick={() => navigate("/buscar")} className="px-0">Ver catálogo completo</Button>
+            <Button variant="link" onClick={() => navigate('/buscar')} className="px-0">
+              Ver catálogo completo
+            </Button>
           </div>
         </Reveal>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -175,7 +198,9 @@ export default function HomePage() {
                 to={`/categorias/${category.slug}`}
                 className="group block rounded-2xl border bg-card p-5 transition-all hover:-translate-y-0.5 hover:shadow-md"
               >
-                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 text-xl">{category.emoji}</div>
+                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 text-xl">
+                  {category.emoji}
+                </div>
                 <h3 className="text-xl">{category.name}</h3>
                 <p className="mt-2 text-sm text-muted-foreground">{category.description}</p>
                 <p className="mt-4 text-sm font-medium text-primary">Explorar categoria</p>
@@ -189,7 +214,9 @@ export default function HomePage() {
       <section key="featured" className="container px-4 py-12">
         <Reveal>
           <div className="mb-7 space-y-2">
-            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Curadoria editorial</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+              Curadoria editorial
+            </p>
             <h2 className="text-3xl">{settings.featuredSectionTitle}</h2>
             <p className="max-w-2xl text-muted-foreground">{settings.featuredSectionSubtitle}</p>
           </div>
@@ -205,24 +232,33 @@ export default function HomePage() {
             <Reveal className="lg:col-span-7">
               <article className="overflow-hidden rounded-3xl border bg-card shadow-sm">
                 <Link to={`/receitas/${featuredMainRecipe!.slug}`} className="block">
-                <SmartImage
-                  src={getRecipeImage(featuredMainRecipe!)}
-                  alt={featuredMainRecipe!.title}
-                  className="h-[320px] w-full object-cover"
-                />
+                  <SmartImage
+                    src={getRecipeImage(featuredMainRecipe!)}
+                    alt={featuredMainRecipe!.title}
+                    className="h-[320px] w-full object-cover"
+                  />
                 </Link>
                 <div className="space-y-3 p-6">
                   <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                     <Badge variant="outline" className="capitalize">
-                      {featuredCategoryDisplay ? `${featuredCategoryDisplay.emoji} ${featuredCategoryDisplay.label}` : featuredMainRecipe!.categorySlug}
+                      {featuredCategoryDisplay
+                        ? `${featuredCategoryDisplay.emoji} ${featuredCategoryDisplay.label}`
+                        : featuredMainRecipe!.categorySlug}
                     </Badge>
                     <span>{featuredMainRecipe!.totalTime} min</span>
                   </div>
-                  <h3 className="text-3xl leading-tight">{featuredMainPresentation?.cardTitle || featuredMainRecipe!.title}</h3>
-                  <p className="text-muted-foreground">{featuredMainPresentation?.marketingHeadline || featuredMainRecipe!.description}</p>
+                  <h3 className="text-3xl leading-tight">
+                    {featuredMainPresentation?.cardTitle || featuredMainRecipe!.title}
+                  </h3>
+                  <p className="text-muted-foreground">
+                    {featuredMainPresentation?.marketingHeadline || featuredMainRecipe!.description}
+                  </p>
                   <Button
                     onClick={() => {
-                      trackEvent("home.featured.click", { recipeId: featuredMainRecipe!.id, slug: featuredMainRecipe!.slug });
+                      trackEvent('home.featured.click', {
+                        recipeId: featuredMainRecipe!.id,
+                        slug: featuredMainRecipe!.slug,
+                      });
                       navigate(`/receitas/${featuredMainRecipe!.slug}`);
                     }}
                     className="gap-2"
@@ -249,15 +285,21 @@ export default function HomePage() {
       </section>
     ),
     premium: settings.showPremiumSection && premiumRecipes.length > 0 && (
-      <section key="premium" className="border-y bg-gradient-to-r from-zinc-950 via-zinc-900 to-zinc-950 py-12 text-zinc-100">
+      <section
+        key="premium"
+        className="border-y bg-gradient-to-r from-zinc-950 via-zinc-900 to-zinc-950 py-12 text-zinc-100"
+      >
         <div className="container px-4">
           <Reveal>
             <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
               <div className="space-y-2">
-                <p className="text-xs uppercase tracking-[0.2em] text-zinc-300">Coleção exclusiva</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-zinc-300">
+                  Coleção exclusiva
+                </p>
                 <h2 className="text-3xl">Receitas Premium para momentos especiais</h2>
                 <p className="max-w-2xl text-sm text-zinc-300">
-                  Conteúdos completos, combinações autorais e preparo guiado para quem quer ir além do básico.
+                  Conteúdos completos, combinações autorais e preparo guiado para quem quer ir além
+                  do básico.
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -268,13 +310,13 @@ export default function HomePage() {
                   title="Alternar tema"
                   className="border border-white/20 text-white/80 hover:text-white"
                 >
-                  {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+                  {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
                 </Button>
                 <Button
                   variant="secondary"
                   onClick={() => {
-                    trackEvent("home.premium.cta", { source: "premium_section" });
-                    navigate("/buscar?tier=paid");
+                    trackEvent('home.premium.cta', { source: 'premium_section' });
+                    navigate('/buscar?tier=paid');
                   }}
                   className="gap-2"
                 >
@@ -286,7 +328,7 @@ export default function HomePage() {
                     variant="outline"
                     size="sm"
                     className="text-sm text-zinc-200"
-                    onClick={() => premiumRef.current?.scrollBy({ left: -360, behavior: "smooth" })}
+                    onClick={() => premiumRef.current?.scrollBy({ left: -360, behavior: 'smooth' })}
                   >
                     ←
                   </Button>
@@ -294,7 +336,7 @@ export default function HomePage() {
                     variant="outline"
                     size="sm"
                     className="text-sm text-zinc-200"
-                    onClick={() => premiumRef.current?.scrollBy({ left: 360, behavior: "smooth" })}
+                    onClick={() => premiumRef.current?.scrollBy({ left: 360, behavior: 'smooth' })}
                   >
                     →
                   </Button>
@@ -317,15 +359,51 @@ export default function HomePage() {
         </div>
       </section>
     ),
+    gratin: settings.showGratinSection && gratinRecipes.length > 0 && (
+      <section key="gratin" className="container px-4 py-12">
+        <Reveal>
+          <div className="mb-7 flex items-end justify-between gap-4">
+            <div className="space-y-2">
+              <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                Conforto de forno
+              </p>
+              <h2 className="text-3xl">Receitas gratinadas para dividir à mesa</h2>
+              <p className="max-w-2xl text-muted-foreground">
+                Preparos cremosos, dourados e pensados para quem quer uma refeição generosa com cara
+                de ocasião.
+              </p>
+            </div>
+            <Button
+              variant="link"
+              onClick={() => navigate('/buscar?category=gratins')}
+              className="px-0"
+            >
+              Ver todas
+            </Button>
+          </div>
+        </Reveal>
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {gratinRecipes.map((recipe, index) => (
+            <Reveal key={recipe.id} delayMs={index * 40}>
+              <RecipeCard recipe={recipe} />
+            </Reveal>
+          ))}
+        </div>
+      </section>
+    ),
     recent: settings.showRecentRecipes && recentRecipes.length > 0 && (
       <section key="recent" className="container px-4 py-12">
         <Reveal>
           <div className="mb-7 flex items-center justify-between">
             <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Seu histórico</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                Seu histórico
+              </p>
               <h2 className="text-3xl">Continue de onde parou</h2>
             </div>
-            <Button variant="link" onClick={() => navigate("/minha-conta")} className="px-0">Ir para Minha Conta</Button>
+            <Button variant="link" onClick={() => navigate('/minha-conta')} className="px-0">
+              Ir para Minha Conta
+            </Button>
           </div>
         </Reveal>
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -342,10 +420,16 @@ export default function HomePage() {
         <Reveal>
           <div className="grid items-center gap-7 rounded-3xl border bg-card p-6 sm:p-8 lg:grid-cols-[1.1fr_0.9fr]">
             <div className="space-y-4">
-              <Badge variant="secondary" className="rounded-full px-3 py-1 text-xs">Sobre a marca</Badge>
+              <Badge variant="secondary" className="rounded-full px-3 py-1 text-xs">
+                Sobre a marca
+              </Badge>
               <h2 className="text-3xl">{settings.aboutHeadline}</h2>
               <p className="text-muted-foreground">{settings.aboutText}</p>
-              <Button variant="outline" onClick={() => navigate("/institucional/contato")} className="gap-2">
+              <Button
+                variant="outline"
+                onClick={() => navigate('/institucional/contato')}
+                className="gap-2"
+              >
                 Conhecer mais
                 <ArrowRight className="h-4 w-4" />
               </Button>
@@ -364,10 +448,13 @@ export default function HomePage() {
         <div className="container px-4">
           <Reveal>
             <div className="rounded-3xl border bg-card p-8 text-center sm:p-10">
-              <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Newsletter semanal</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                Newsletter semanal
+              </p>
               <h2 className="mt-3 text-3xl">Receba cardápios, técnicas e novidades da semana</h2>
               <p className="mx-auto mt-3 max-w-2xl text-muted-foreground">
-                Uma seleção prática para facilitar o planejamento das refeições e descobrir novas receitas com curadoria.
+                Uma seleção prática para facilitar o planejamento das refeições e descobrir novas
+                receitas com curadoria.
               </p>
               <div className="mt-6 flex justify-center">
                 <NewsletterSignup />
@@ -379,7 +466,9 @@ export default function HomePage() {
     ),
   };
 
-  const order = settings.homeSectionsOrder.length ? settings.homeSectionsOrder : ["hero", "featured", "newsletter"];
+  const order = settings.homeSectionsOrder.length
+    ? settings.homeSectionsOrder
+    : ['hero', 'featured', 'newsletter'];
 
   return (
     <div className="flex min-h-screen flex-col">

@@ -1,6 +1,6 @@
-import type { CartItem, Comment } from "@/types/recipe";
-import type { PaymentStatus } from "@/types/payment";
-import { buildQuery, jsonFetch } from "./client";
+import type { CartItem, Comment } from '@/types/recipe';
+import type { PaymentStatus } from '@/types/payment';
+import { buildQuery, jsonFetch } from './client';
 
 export interface FavoriteRecord {
   id: string;
@@ -33,28 +33,28 @@ export async function listComments(recipeId: string) {
 }
 
 export async function createComment(input: { recipeId: string; authorName: string; text: string }) {
-  const result = await jsonFetch<{ comment: Comment }>("/api/comments", {
-    method: "POST",
+  const result = await jsonFetch<{ comment: Comment }>('/api/comments', {
+    method: 'POST',
     body: input,
   });
   return result.comment;
 }
 
 export async function submitRating(input: { recipeId: string; value: number }) {
-  return jsonFetch<RatingSummary>("/api/ratings", {
-    method: "POST",
+  return jsonFetch<RatingSummary>('/api/ratings', {
+    method: 'POST',
     body: input,
   });
 }
 
 export async function listFavorites() {
-  const result = await jsonFetch<{ favorites: FavoriteRecord[] }>("/api/favorites");
+  const result = await jsonFetch<{ favorites: FavoriteRecord[] }>('/api/favorites');
   return result.favorites;
 }
 
 export async function addFavorite(recipeId: string) {
-  const result = await jsonFetch<{ favorite: FavoriteRecord }>("/api/favorites", {
-    method: "POST",
+  const result = await jsonFetch<{ favorite: FavoriteRecord }>('/api/favorites', {
+    method: 'POST',
     body: { recipeId },
   });
   return result.favorite;
@@ -62,23 +62,25 @@ export async function addFavorite(recipeId: string) {
 
 export async function deleteFavorite(favoriteId: string) {
   await jsonFetch<void>(`/api/favorites/${encodeURIComponent(favoriteId)}`, {
-    method: "DELETE",
+    method: 'DELETE',
   });
 }
 
 export async function listShoppingList() {
-  const result = await jsonFetch<{ items: ShoppingListItem[] }>("/api/shopping-list");
+  const result = await jsonFetch<{ items: ShoppingListItem[] }>('/api/shopping-list');
   return result.items;
 }
 
-export async function createShoppingListItems(items: Array<{
-  recipeId?: string | null;
-  recipeTitleSnapshot?: string;
-  text: string;
-  checked?: boolean;
-}>) {
-  const result = await jsonFetch<{ items: ShoppingListItem[] }>("/api/shopping-list", {
-    method: "POST",
+export async function createShoppingListItems(
+  items: Array<{
+    recipeId?: string | null;
+    recipeTitleSnapshot?: string;
+    text: string;
+    checked?: boolean;
+  }>
+) {
+  const result = await jsonFetch<{ items: ShoppingListItem[] }>('/api/shopping-list', {
+    method: 'POST',
     body: { items },
   });
   return result.items;
@@ -86,24 +88,31 @@ export async function createShoppingListItems(items: Array<{
 
 export async function updateShoppingListItem(
   itemId: string,
-  patch: Partial<Pick<ShoppingListItem, "text" | "checked">>,
+  patch: Partial<Pick<ShoppingListItem, 'text' | 'checked'>>
 ) {
-  const result = await jsonFetch<{ item: ShoppingListItem }>(`/api/shopping-list/${encodeURIComponent(itemId)}`, {
-    method: "PUT",
-    body: patch,
-  });
+  const result = await jsonFetch<{ item: ShoppingListItem }>(
+    `/api/shopping-list/${encodeURIComponent(itemId)}`,
+    {
+      method: 'PUT',
+      body: patch,
+    }
+  );
   return result.item;
 }
 
 export async function deleteShoppingListItem(itemId: string) {
   await jsonFetch<void>(`/api/shopping-list/${encodeURIComponent(itemId)}`, {
-    method: "DELETE",
+    method: 'DELETE',
   });
 }
 
-export async function subscribeToNewsletter(input: { email: string; name?: string; source?: string }) {
-  const result = await jsonFetch<{ subscriber: { email: string } }>("/api/newsletter", {
-    method: "POST",
+export async function subscribeToNewsletter(input: {
+  email: string;
+  name?: string;
+  source?: string;
+}) {
+  const result = await jsonFetch<{ subscriber: { email: string } }>('/api/newsletter', {
+    method: 'POST',
     body: input,
   });
   return result.subscriber;
@@ -124,8 +133,9 @@ export async function createCheckout(input: {
     primaryPaymentId: string | null;
     status: PaymentStatus;
     unlockedCount: number;
-  }>("/api/checkout", {
-    method: "POST",
+    checkoutUrl?: string | null;
+  }>('/api/checkout', {
+    method: 'POST',
     body: input,
   });
 }

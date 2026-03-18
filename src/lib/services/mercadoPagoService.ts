@@ -1,19 +1,22 @@
-import type { CartItem } from "@/types/recipe";
-import type { PaymentStatus } from "@/types/payment";
-import { jsonFetch } from "@/lib/api/client";
+import type { CartItem } from '@/types/recipe';
+import type { PaymentGateway, PaymentStatus } from '@/types/payment';
+import { jsonFetch } from '@/lib/api/client';
 
 export type CheckoutSessionInput = {
-  items: CartItem[];
-  payerName: string;
+  items?: CartItem[];
+  recipeIds?: string[];
+  payerName?: string;
   payerEmail: string;
   checkoutReference: string;
 };
 
 export type CheckoutSessionResult = {
+  gateway: PaymentGateway;
   paymentId: string | null;
   paymentIds: string[];
   status: PaymentStatus;
   unlockedCount: number;
+  checkoutUrl: string | null;
 };
 
 export async function createCheckoutSession(input: CheckoutSessionInput) {
@@ -21,12 +24,14 @@ export async function createCheckoutSession(input: CheckoutSessionInput) {
     payment: { id: string } | null;
     paymentId: string | null;
     paymentIds: string[];
+    gateway?: PaymentGateway;
     status: PaymentStatus;
     unlockedCount: number;
-  }>("/api/checkout", {
-    method: "POST",
+    checkoutUrl?: string | null;
+  }>('/api/checkout', {
+    method: 'POST',
     body: {
-      recipeIds: input.items.map((item) => item.recipeId),
+      recipeIds: input.recipeIds || input.items?.map((item) => item.recipeId) || [],
       items: input.items,
       payerName: input.payerName,
       buyerEmail: input.payerEmail,
@@ -35,15 +40,17 @@ export async function createCheckoutSession(input: CheckoutSessionInput) {
   });
 
   return {
+    gateway: result.gateway || 'mock',
     paymentId: result.paymentId ?? result.payment?.id ?? null,
     paymentIds: result.paymentIds,
     status: result.status,
     unlockedCount: result.unlockedCount,
+    checkoutUrl: result.checkoutUrl ?? null,
   } satisfies CheckoutSessionResult;
 }
 
 export function resolveCheckoutResultPath(status: PaymentStatus) {
-  if (status === "approved") return "/compra/sucesso";
-  if (status === "pending" || status === "in_process") return "/compra/pendente";
-  return "/compra/falha";
+  if (status === 'approved') return '/compra/sucesso';
+  if (status === 'pending' || status === 'in_process') return '/compra/pendente';
+  return '/compra/falha';
 }

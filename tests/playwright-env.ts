@@ -1,14 +1,14 @@
-import fs from "node:fs";
-import path from "node:path";
+import fs from 'node:fs';
+import path from 'node:path';
 
 function parseEnvFile(content: string) {
   const entries: Array<[string, string]> = [];
 
   for (const rawLine of content.split(/\r?\n/)) {
     const line = rawLine.trim();
-    if (!line || line.startsWith("#")) continue;
+    if (!line || line.startsWith('#')) continue;
 
-    const separatorIndex = line.indexOf("=");
+    const separatorIndex = line.indexOf('=');
     if (separatorIndex <= 0) continue;
 
     const key = line.slice(0, separatorIndex).trim();
@@ -26,10 +26,14 @@ function parseEnvFile(content: string) {
 }
 
 export function loadPlaywrightEnv() {
-  const filePath = path.resolve(process.cwd(), ".env.playwright.local");
+  if (process.env.PLAYWRIGHT_DISABLE_LOCAL_ENV === '1') {
+    return;
+  }
+
+  const filePath = path.resolve(process.cwd(), '.env.playwright.local');
   if (!fs.existsSync(filePath)) return;
 
-  const content = fs.readFileSync(filePath, "utf8");
+  const content = fs.readFileSync(filePath, 'utf8');
   for (const [key, value] of parseEnvFile(content)) {
     if (!process.env[key]) {
       process.env[key] = value;

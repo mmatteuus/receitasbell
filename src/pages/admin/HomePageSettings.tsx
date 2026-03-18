@@ -1,41 +1,48 @@
-import { useEffect, useState } from "react";
-import { ArrowDown, ArrowUp, Eye, Home, Save, RotateCcw } from "lucide-react";
-import { toast } from "sonner";
-import { useAppContext } from "@/contexts/app-context";
-import { DEFAULT_HOME_SETTINGS } from "@/lib/defaults";
-import { updateSettings } from "@/lib/api/settings";
-import { getRecipes } from "@/lib/repos/recipeRepo";
-import type { HomeSectionId, HomeSettings } from "@/types/settings";
-import type { Recipe } from "@/types/recipe";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useEffect, useState } from 'react';
+import { ArrowDown, ArrowUp, Eye, Home, Save, RotateCcw } from 'lucide-react';
+import { toast } from 'sonner';
+import { useAppContext } from '@/contexts/app-context';
+import { DEFAULT_HOME_SETTINGS } from '@/lib/defaults';
+import { updateSettings } from '@/lib/api/settings';
+import { getRecipes } from '@/lib/repos/recipeRepo';
+import type { HomeSectionId, HomeSettings } from '@/types/settings';
+import type { Recipe } from '@/types/recipe';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const HOME_SECTIONS: Array<{ id: HomeSectionId; label: string }> = [
-  { id: "hero", label: "Hero" },
-  { id: "trustBar", label: "Faixa de confiança" },
-  { id: "categories", label: "Categorias" },
-  { id: "featured", label: "Destaques" },
-  { id: "premium", label: "Premium" },
-  { id: "recent", label: "Recentes" },
-  { id: "about", label: "Sobre" },
-  { id: "newsletter", label: "Newsletter" },
+  { id: 'hero', label: 'Hero' },
+  { id: 'trustBar', label: 'Faixa de confiança' },
+  { id: 'categories', label: 'Categorias' },
+  { id: 'featured', label: 'Destaques' },
+  { id: 'premium', label: 'Premium' },
+  { id: 'gratin', label: 'Gratinados' },
+  { id: 'recent', label: 'Recentes' },
+  { id: 'about', label: 'Sobre' },
+  { id: 'newsletter', label: 'Newsletter' },
 ];
 
-const FEATURED_MODES: Array<{ value: HomeSettings["featuredMode"]; label: string }> = [
-  { value: "manual", label: "Manual" },
-  { value: "latest", label: "Mais recentes" },
-  { value: "category", label: "Por categoria" },
-  { value: "featuredFlag", label: "Flag de destaque (isFeatured)" },
+const FEATURED_MODES: Array<{ value: HomeSettings['featuredMode']; label: string }> = [
+  { value: 'manual', label: 'Manual' },
+  { value: 'latest', label: 'Mais recentes' },
+  { value: 'category', label: 'Por categoria' },
+  { value: 'featuredFlag', label: 'Flag de destaque (isFeatured)' },
 ];
 
 function splitLines(value: string) {
   return value
-    .split("\n")
+    .split('\n')
     .map((item) => item.trim())
     .filter(Boolean);
 }
@@ -44,9 +51,9 @@ export default function HomePageSettings() {
   const { settings, refreshSettings, categories } = useAppContext();
   const [form, setForm] = useState<HomeSettings>(DEFAULT_HOME_SETTINGS);
   const [allRecipes, setAllRecipes] = useState<Recipe[]>([]);
-  const [recipeFilter, setRecipeFilter] = useState("");
+  const [recipeFilter, setRecipeFilter] = useState('');
   const [saving, setSaving] = useState(false);
-  const [validationError, setValidationError] = useState("");
+  const [validationError, setValidationError] = useState('');
 
   useEffect(() => {
     setForm({
@@ -67,6 +74,7 @@ export default function HomePageSettings() {
       showCategoriesGrid: settings.showCategoriesGrid,
       showFeaturedRecipes: settings.showFeaturedRecipes,
       showPremiumSection: settings.showPremiumSection,
+      showGratinSection: settings.showGratinSection,
       showRecentRecipes: settings.showRecentRecipes,
       showNewsletter: settings.showNewsletter,
       showTrustBar: settings.showTrustBar,
@@ -85,7 +93,7 @@ export default function HomePageSettings() {
         const recipes = await getRecipes();
         setAllRecipes(recipes);
       } catch (error) {
-        console.error("Failed to load recipes for CMS picker", error);
+        console.error('Failed to load recipes for CMS picker', error);
       }
     }
 
@@ -109,39 +117,39 @@ export default function HomePageSettings() {
 
   async function handleSave() {
     if (form.heroImageUrl && !/^https?:\/\//i.test(form.heroImageUrl)) {
-      setValidationError("A imagem do hero precisa ser uma URL http(s).");
+      setValidationError('A imagem do hero precisa ser uma URL http(s).');
       return;
     }
     if (form.aboutImageUrl && !/^https?:\/\//i.test(form.aboutImageUrl)) {
-      setValidationError("A imagem da seção Sobre precisa ser uma URL http(s).");
+      setValidationError('A imagem da seção Sobre precisa ser uma URL http(s).');
       return;
     }
-    if (form.heroPrimaryCtaHref && !form.heroPrimaryCtaHref.startsWith("/")) {
-      setValidationError("O link do CTA primário deve começar com /");
+    if (form.heroPrimaryCtaHref && !form.heroPrimaryCtaHref.startsWith('/')) {
+      setValidationError('O link do CTA primário deve começar com /');
       return;
     }
-    if (form.heroSecondaryCtaHref && !form.heroSecondaryCtaHref.startsWith("/")) {
-      setValidationError("O link do CTA secundário deve começar com /");
+    if (form.heroSecondaryCtaHref && !form.heroSecondaryCtaHref.startsWith('/')) {
+      setValidationError('O link do CTA secundário deve começar com /');
       return;
     }
-    if (form.featuredMode === "manual" && form.featuredRecipeIds.length === 0) {
-      setValidationError("No modo manual, selecione ao menos uma receita para os destaques.");
+    if (form.featuredMode === 'manual' && form.featuredRecipeIds.length === 0) {
+      setValidationError('No modo manual, selecione ao menos uma receita para os destaques.');
       return;
     }
-    if (form.featuredMode === "category" && !form.featuredCategorySlug) {
-      setValidationError("No modo por categoria, selecione uma categoria.");
+    if (form.featuredMode === 'category' && !form.featuredCategorySlug) {
+      setValidationError('No modo por categoria, selecione uma categoria.');
       return;
     }
 
-    setValidationError("");
+    setValidationError('');
     setSaving(true);
     try {
       await updateSettings(form);
       await refreshSettings();
-      toast.success("Página inicial atualizada");
+      toast.success('Página inicial atualizada');
     } catch (error) {
-      console.error("Failed to save home settings", error);
-      toast.error("Nao foi possivel salvar a página inicial.");
+      console.error('Failed to save home settings', error);
+      toast.error('Nao foi possivel salvar a página inicial.');
     } finally {
       setSaving(false);
     }
@@ -152,10 +160,10 @@ export default function HomePageSettings() {
     try {
       await updateSettings(DEFAULT_HOME_SETTINGS);
       await refreshSettings();
-      toast.success("Configuração padrão restaurada");
+      toast.success('Configuração padrão restaurada');
     } catch (error) {
-      console.error("Failed to reset home settings", error);
-      toast.error("Nao foi possivel restaurar o padrão.");
+      console.error('Failed to reset home settings', error);
+      toast.error('Nao foi possivel restaurar o padrão.');
     } finally {
       setSaving(false);
     }
@@ -178,51 +186,78 @@ export default function HomePageSettings() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Home className="h-5 w-5 text-primary" /> Hero</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Home className="h-5 w-5 text-primary" /> Hero
+          </CardTitle>
           <CardDescription>Conteúdo principal da dobra inicial.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <Label>Badge</Label>
-            <Input value={form.heroBadge} onChange={(event) => setField("heroBadge", event.target.value)} />
+            <Input
+              value={form.heroBadge}
+              onChange={(event) => setField('heroBadge', event.target.value)}
+            />
           </div>
           <div className="space-y-2 md:col-span-2">
             <Label>Título</Label>
-            <Input value={form.heroTitle} onChange={(event) => setField("heroTitle", event.target.value)} />
+            <Input
+              value={form.heroTitle}
+              onChange={(event) => setField('heroTitle', event.target.value)}
+            />
           </div>
           <div className="space-y-2 md:col-span-2">
             <Label>Subtítulo</Label>
-            <Textarea rows={3} value={form.heroSubtitle} onChange={(event) => setField("heroSubtitle", event.target.value)} />
+            <Textarea
+              rows={3}
+              value={form.heroSubtitle}
+              onChange={(event) => setField('heroSubtitle', event.target.value)}
+            />
           </div>
           <div className="space-y-2 md:col-span-2">
             <Label>Imagem hero (URL)</Label>
-            <Input value={form.heroImageUrl} onChange={(event) => setField("heroImageUrl", event.target.value)} />
+            <Input
+              value={form.heroImageUrl}
+              onChange={(event) => setField('heroImageUrl', event.target.value)}
+            />
             {form.heroImageUrl && (
               <img
                 src={form.heroImageUrl}
                 alt="Preview hero"
                 className="mt-2 h-28 w-full rounded-lg border object-cover"
                 onError={(event) => {
-                  event.currentTarget.style.display = "none";
+                  event.currentTarget.style.display = 'none';
                 }}
               />
             )}
           </div>
           <div className="space-y-2">
             <Label>CTA primário (texto)</Label>
-            <Input value={form.heroPrimaryCtaLabel} onChange={(event) => setField("heroPrimaryCtaLabel", event.target.value)} />
+            <Input
+              value={form.heroPrimaryCtaLabel}
+              onChange={(event) => setField('heroPrimaryCtaLabel', event.target.value)}
+            />
           </div>
           <div className="space-y-2">
             <Label>CTA primário (link)</Label>
-            <Input value={form.heroPrimaryCtaHref} onChange={(event) => setField("heroPrimaryCtaHref", event.target.value)} />
+            <Input
+              value={form.heroPrimaryCtaHref}
+              onChange={(event) => setField('heroPrimaryCtaHref', event.target.value)}
+            />
           </div>
           <div className="space-y-2">
             <Label>CTA secundário (texto)</Label>
-            <Input value={form.heroSecondaryCtaLabel} onChange={(event) => setField("heroSecondaryCtaLabel", event.target.value)} />
+            <Input
+              value={form.heroSecondaryCtaLabel}
+              onChange={(event) => setField('heroSecondaryCtaLabel', event.target.value)}
+            />
           </div>
           <div className="space-y-2">
             <Label>CTA secundário (link)</Label>
-            <Input value={form.heroSecondaryCtaHref} onChange={(event) => setField("heroSecondaryCtaHref", event.target.value)} />
+            <Input
+              value={form.heroSecondaryCtaHref}
+              onChange={(event) => setField('heroSecondaryCtaHref', event.target.value)}
+            />
           </div>
         </CardContent>
       </Card>
@@ -235,21 +270,31 @@ export default function HomePageSettings() {
         <CardContent className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <Label>Título da seção</Label>
-            <Input value={form.featuredSectionTitle} onChange={(event) => setField("featuredSectionTitle", event.target.value)} />
+            <Input
+              value={form.featuredSectionTitle}
+              onChange={(event) => setField('featuredSectionTitle', event.target.value)}
+            />
           </div>
           <div className="space-y-2">
             <Label>Subtítulo da seção</Label>
-            <Input value={form.featuredSectionSubtitle} onChange={(event) => setField("featuredSectionSubtitle", event.target.value)} />
+            <Input
+              value={form.featuredSectionSubtitle}
+              onChange={(event) => setField('featuredSectionSubtitle', event.target.value)}
+            />
           </div>
           <div className="space-y-2">
             <Label>Modo</Label>
             <select
               className="flex h-10 w-full rounded-md border bg-background px-3 text-sm"
               value={form.featuredMode}
-              onChange={(event) => setField("featuredMode", event.target.value as HomeSettings["featuredMode"])}
+              onChange={(event) =>
+                setField('featuredMode', event.target.value as HomeSettings['featuredMode'])
+              }
             >
               {FEATURED_MODES.map((mode) => (
-                <option key={mode.value} value={mode.value}>{mode.label}</option>
+                <option key={mode.value} value={mode.value}>
+                  {mode.label}
+                </option>
               ))}
             </select>
           </div>
@@ -260,13 +305,20 @@ export default function HomePageSettings() {
               min={3}
               max={12}
               value={form.featuredLimit}
-              onChange={(event) => setField("featuredLimit", Number(event.target.value || 7))}
+              onChange={(event) => setField('featuredLimit', Number(event.target.value || 7))}
             />
           </div>
           <div className="space-y-2">
             <Label>Categoria (modo category)</Label>
-            <Select value={form.featuredCategorySlug || "none"} onValueChange={(value) => setField("featuredCategorySlug", value === "none" ? "" : value)}>
-              <SelectTrigger><SelectValue placeholder="Selecione uma categoria" /></SelectTrigger>
+            <Select
+              value={form.featuredCategorySlug || 'none'}
+              onValueChange={(value) =>
+                setField('featuredCategorySlug', value === 'none' ? '' : value)
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione uma categoria" />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">Nenhuma</SelectItem>
                 {categories.map((category) => (
@@ -291,17 +343,20 @@ export default function HomePageSettings() {
                 .map((recipe) => {
                   const checked = form.featuredRecipeIds.includes(recipe.id);
                   return (
-                    <label key={recipe.id} className="flex cursor-pointer items-center justify-between rounded px-2 py-1.5 text-sm hover:bg-muted/40">
+                    <label
+                      key={recipe.id}
+                      className="flex cursor-pointer items-center justify-between rounded px-2 py-1.5 text-sm hover:bg-muted/40"
+                    >
                       <span className="truncate">{recipe.title}</span>
                       <input
                         type="checkbox"
                         checked={checked}
                         onChange={(event) => {
                           setField(
-                            "featuredRecipeIds",
+                            'featuredRecipeIds',
                             event.target.checked
                               ? [...form.featuredRecipeIds, recipe.id]
-                              : form.featuredRecipeIds.filter((id) => id !== recipe.id),
+                              : form.featuredRecipeIds.filter((id) => id !== recipe.id)
                           );
                         }}
                       />
@@ -309,7 +364,9 @@ export default function HomePageSettings() {
                   );
                 })}
             </div>
-            <p className="text-xs text-muted-foreground">{form.featuredRecipeIds.length} receita(s) selecionada(s).</p>
+            <p className="text-xs text-muted-foreground">
+              {form.featuredRecipeIds.length} receita(s) selecionada(s).
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -321,15 +378,18 @@ export default function HomePageSettings() {
         </CardHeader>
         <CardContent className="space-y-5">
           <div className="grid gap-4 md:grid-cols-2">
-            {([
-              ["showTrustBar", "Exibir faixa de confiança"],
-              ["showCategoriesGrid", "Exibir grid de categorias"],
-              ["showFeaturedRecipes", "Exibir seção de destaques"],
-              ["showPremiumSection", "Exibir seção premium"],
-              ["showRecentRecipes", "Exibir vistos recentemente"],
-              ["showAboutSection", "Exibir seção sobre"],
-              ["showNewsletter", "Exibir newsletter"],
-            ] as const).map(([key, label]) => (
+            {(
+              [
+                ['showTrustBar', 'Exibir faixa de confiança'],
+                ['showCategoriesGrid', 'Exibir grid de categorias'],
+                ['showFeaturedRecipes', 'Exibir seção de destaques'],
+                ['showPremiumSection', 'Exibir seção premium'],
+                ['showGratinSection', 'Exibir seção de gratinados'],
+                ['showRecentRecipes', 'Exibir vistos recentemente'],
+                ['showAboutSection', 'Exibir seção sobre'],
+                ['showNewsletter', 'Exibir newsletter'],
+              ] as const
+            ).map(([key, label]) => (
               <div key={key} className="flex items-center justify-between rounded-lg border p-3">
                 <Label>{label}</Label>
                 <Switch checked={form[key]} onCheckedChange={(value) => setField(key, value)} />
@@ -342,13 +402,26 @@ export default function HomePageSettings() {
               {form.homeSectionsOrder.map((sectionId, index) => {
                 const section = HOME_SECTIONS.find((item) => item.id === sectionId);
                 return (
-                  <div key={sectionId} className="flex items-center justify-between rounded-md bg-muted/40 px-3 py-2">
+                  <div
+                    key={sectionId}
+                    className="flex items-center justify-between rounded-md bg-muted/40 px-3 py-2"
+                  >
                     <span className="text-sm font-medium">{section?.label || sectionId}</span>
                     <div className="flex gap-2">
-                      <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => moveSection(index, -1)}>
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        className="h-7 w-7"
+                        onClick={() => moveSection(index, -1)}
+                      >
                         <ArrowUp className="h-3.5 w-3.5" />
                       </Button>
-                      <Button size="icon" variant="outline" className="h-7 w-7" onClick={() => moveSection(index, 1)}>
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        className="h-7 w-7"
+                        onClick={() => moveSection(index, 1)}
+                      >
                         <ArrowDown className="h-3.5 w-3.5" />
                       </Button>
                     </div>
@@ -370,31 +443,41 @@ export default function HomePageSettings() {
             <Label>Trust bar (1 item por linha)</Label>
             <Textarea
               rows={4}
-              value={form.trustBarItems.join("\n")}
-              onChange={(event) => setField("trustBarItems", splitLines(event.target.value))}
+              value={form.trustBarItems.join('\n')}
+              onChange={(event) => setField('trustBarItems', splitLines(event.target.value))}
             />
           </div>
           <div className="space-y-2">
             <Label>Título do bloco sobre</Label>
-            <Input value={form.aboutHeadline} onChange={(event) => setField("aboutHeadline", event.target.value)} />
+            <Input
+              value={form.aboutHeadline}
+              onChange={(event) => setField('aboutHeadline', event.target.value)}
+            />
           </div>
           <div className="space-y-2">
             <Label>Imagem do bloco sobre (URL)</Label>
-            <Input value={form.aboutImageUrl} onChange={(event) => setField("aboutImageUrl", event.target.value)} />
+            <Input
+              value={form.aboutImageUrl}
+              onChange={(event) => setField('aboutImageUrl', event.target.value)}
+            />
             {form.aboutImageUrl && (
               <img
                 src={form.aboutImageUrl}
                 alt="Preview sobre"
                 className="mt-2 h-24 w-full rounded-lg border object-cover"
                 onError={(event) => {
-                  event.currentTarget.style.display = "none";
+                  event.currentTarget.style.display = 'none';
                 }}
               />
             )}
           </div>
           <div className="space-y-2 md:col-span-2">
             <Label>Texto do bloco sobre</Label>
-            <Textarea rows={4} value={form.aboutText} onChange={(event) => setField("aboutText", event.target.value)} />
+            <Textarea
+              rows={4}
+              value={form.aboutText}
+              onChange={(event) => setField('aboutText', event.target.value)}
+            />
           </div>
         </CardContent>
       </Card>
@@ -405,7 +488,12 @@ export default function HomePageSettings() {
           <Save className="h-4 w-4" />
           Salvar página inicial
         </Button>
-        <Button variant="outline" onClick={() => void handleReset()} disabled={saving} className="gap-2">
+        <Button
+          variant="outline"
+          onClick={() => void handleReset()}
+          disabled={saving}
+          className="gap-2"
+        >
           <RotateCcw className="h-4 w-4" />
           Restaurar padrão
         </Button>
