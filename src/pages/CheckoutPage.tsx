@@ -1,47 +1,44 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, Link, useNavigate } from "react-router-dom";
-import { getRecipeBySlug, listRecipes } from "@/lib/api/recipes";
-import { createCheckout } from "@/lib/api/interactions";
 import { formatBRL } from "@/lib/helpers";
 import { useCart } from "@/hooks/use-cart";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Lock, ShieldCheck, Zap, ArrowRight } from "lucide-react";
-import { Recipe } from "@/types/recipe";
+import type { CartItem } from "@/types/recipe";
 import { toast } from "sonner";
 import { useAppContext } from "@/contexts/app-context";
-import { getRecipeImage, getRecipePresentation } from "@/lib/recipes/presentation";
-import SmartImage from "@/components/SmartImage";
+import { getRecipeBySlug } from "@/lib/repos/recipeRepo";
+import { paymentRepo } from "@/lib/repos/paymentRepo";
+import { resolveCheckoutResultPath } from "@/lib/services/mercadoPagoService";
+import { buildCartItemFromRecipe } from "@/lib/utils/recipeAccess";
 
 export default function CheckoutPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const recipeSlug = searchParams.get("slug");
   const isCartCheckout = searchParams.get("cart") === "1";
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [items, setItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [payerName, setPayerName] = useState("");
   const { items: cartItems, clear: clearCart } = useCart();
-  const { requireIdentity } = useAppContext();
+  const { identityEmail, requireIdentity } = useAppContext();
 
   useEffect(() => {
     async function loadRecipes() {
       if (isCartCheckout) {
-        try {
-          const cartRecipes = await listRecipes({ ids: cartItems });
-          setRecipes(cartRecipes.filter((recipe) => recipe.accessTier === "paid"));
-        } catch (error) {
-          console.error("Failed to load checkout recipes", error);
-        }
+        setItems(cartItems);
         return;
       }
 
       if (recipeSlug) {
         try {
           const recipe = await getRecipeBySlug(recipeSlug);
-          setRecipes(recipe ? [recipe] : []);
+          setItems(recipe ? [buildCartItemFromRecipe(recipe)] : []);
         } catch (error) {
           console.error("Failed to load checkout recipe", error);
-          setRecipes([]);
+          setItems([]);
         }
       }
     }
@@ -49,10 +46,16 @@ export default function CheckoutPage() {
     void loadRecipes();
   }, [recipeSlug, isCartCheckout, cartItems]);
 
-  const total = recipes.reduce((sum, r) => sum + (r.priceBRL || 0), 0);
+  useEffect(() => {
+    if (identityEmail && !payerName) {
+      setPayerName(identityEmail.split("@")[0]);
+    }
+  }, [identityEmail, payerName]);
+
+  const total = items.reduce((sum, item) => sum + item.priceBRL, 0);
 
   const handleCheckout = async () => {
-    if (!recipes.length) return;
+    if (!items.length) return;
     setLoading(true);
     try {
       const buyerEmail = await requireIdentity("Digite seu e-mail para concluir a compra.");
@@ -61,17 +64,19 @@ export default function CheckoutPage() {
         return;
       }
 
-      const result = await createCheckout({
-        recipeIds: recipes.map((recipe) => recipe.id),
-        buyerEmail,
+      const result = await paymentRepo.createCheckout({
+        items,
+        payerName: payerName.trim() || buyerEmail.split("@")[0],
+        payerEmail: buyerEmail,
         checkoutReference: crypto.randomUUID(),
       });
 
       if (isCartCheckout) clearCart();
-      toast.success("Pagamento aprovado! (simulação)");
-      const slug = recipes.length === 1 ? recipes[0].slug : "";
+      toast.success(result.status === "approved" ? "Pagamento aprovado! (simulação)" : "Checkout iniciado.");
+      const slug = items.length === 1 ? items[0].slug : "";
+      const path = resolveCheckoutResultPath(result.status);
       navigate(
-        `/compra/sucesso?slug=${slug}&status=approved&payment_id=${result.primaryPaymentId || ""}&count=${result.unlockedCount}`,
+        `${path}?slug=${slug}&status=${result.status}&payment_id=${result.paymentId || ""}&count=${result.unlockedCount}`,
       );
     } catch (error) {
       console.error("Failed to complete checkout", error);
@@ -81,7 +86,7 @@ export default function CheckoutPage() {
     }
   };
 
-  if (!recipes.length) {
+  if (!items.length) {
     return (
       <div className="container max-w-lg px-4 py-20 text-center">
         <h1 className="text-xl font-bold sm:text-2xl">Nenhuma receita selecionada</h1>
@@ -95,30 +100,35 @@ export default function CheckoutPage() {
     <div className="container max-w-lg px-4 py-8 sm:py-12 animate-in fade-in duration-500">
       <h1 className="font-heading text-2xl font-bold text-center sm:text-3xl">Finalizar Compra</h1>
       <p className="text-center text-muted-foreground mt-2 text-sm">
-        {recipes.length === 1 ? "Você está prestes a desbloquear uma receita exclusiva" : `${recipes.length} receitas no pedido`}
+        {items.length === 1 ? "Você está prestes a desbloquear uma receita exclusiva" : `${items.length} receitas no pedido`}
       </p>
 
       <div className="mt-6 sm:mt-8 rounded-xl border bg-card p-4 sm:p-6 shadow-sm space-y-4">
-        {recipes.map((recipe) => (
-          <div key={recipe.id} className="flex gap-3 sm:gap-4">
-            <SmartImage
-              src={getRecipeImage(recipe)}
-              alt={recipe.title}
-              className="h-16 w-16 sm:h-20 sm:w-20 rounded-lg object-cover shrink-0"
-            />
+        {items.map((item) => (
+          <div key={item.recipeId} className="flex gap-3 sm:gap-4">
+            <img src={item.imageUrl} alt={item.title} className="h-16 w-16 rounded-lg object-cover shrink-0 sm:h-20 sm:w-20" />
             <div className="flex-1 min-w-0">
-              <h2 className="font-heading text-sm font-semibold sm:text-lg truncate">{getRecipePresentation(recipe).cardTitle}</h2>
-              <p className="text-xs text-muted-foreground line-clamp-1 sm:text-sm">{getRecipePresentation(recipe).cardSubtitle}</p>
-              <p className="text-sm font-bold mt-1">{formatBRL(recipe.priceBRL || 0)}</p>
+              <h2 className="font-heading text-sm font-semibold sm:text-lg truncate">{item.title}</h2>
+              <p className="text-xs text-muted-foreground line-clamp-1 sm:text-sm">Receita premium desbloqueada após a compra</p>
+              <p className="mt-1 text-sm font-bold">{formatBRL(item.priceBRL)}</p>
             </div>
           </div>
         ))}
 
         <Separator />
 
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Nome do pagador</label>
+          <Input
+            value={payerName}
+            onChange={(event) => setPayerName(event.target.value)}
+            placeholder="Ex: Bell Ferreira"
+          />
+        </div>
+
         <div className="flex justify-between items-center">
           <span className="text-sm text-muted-foreground">Total</span>
-          <span className="text-xl font-bold">{formatBRL(Math.round(total * 100) / 100)}</span>
+          <span className="text-xl font-bold">{formatBRL(total)}</span>
         </div>
 
         <div className="space-y-2 text-sm text-muted-foreground">
@@ -134,7 +144,7 @@ export default function CheckoutPage() {
               Processando...
             </span>
           ) : (
-            <>Pagar {formatBRL(Math.round(total * 100) / 100)} <ArrowRight className="h-4 w-4" /></>
+            <>Pagar {formatBRL(total)} <ArrowRight className="h-4 w-4" /></>
           )}
         </Button>
 
@@ -144,7 +154,7 @@ export default function CheckoutPage() {
       </div>
 
       <div className="mt-6 text-center">
-        <Link to={recipes.length === 1 ? `/receitas/${recipes[0].slug}` : "/carrinho"} className="text-sm text-muted-foreground hover:text-primary transition-colors">
+        <Link to={items.length === 1 ? `/receitas/${items[0].slug}` : "/carrinho"} className="text-sm text-muted-foreground hover:text-primary transition-colors">
           ← Voltar
         </Link>
       </div>

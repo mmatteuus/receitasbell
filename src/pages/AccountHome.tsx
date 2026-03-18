@@ -2,8 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Heart, ListChecks, LockOpen, ShoppingCart, UserRound, WalletCards } from "lucide-react";
 import { useAppContext } from "@/contexts/app-context";
-import { listShoppingList } from "@/lib/api/interactions";
-import { listRecipes } from "@/lib/api/recipes";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,6 +10,7 @@ import { getRecipeImage, getRecipePresentation } from "@/lib/recipes/presentatio
 import SmartImage from "@/components/SmartImage";
 import type { Recipe } from "@/types/recipe";
 import { ApiClientError } from "@/lib/api/client";
+import { getProfileOverview } from "@/lib/repos/profileRepo";
 import { toast } from "sonner";
 
 type AccountTab = "resumo" | "minhas-receitas" | "favoritos" | "compras";
@@ -54,13 +53,12 @@ export default function AccountHome() {
 
     async function load() {
       try {
-        const [shoppingItems, recipes] = await Promise.all([listShoppingList(), listRecipes()]);
+        const overview = await getProfileOverview();
         if (!isMounted) return;
-        setShoppingCount(shoppingItems.length);
-        setShoppingPreview(shoppingItems.slice(0, 6).map((item) => item.text));
-        const unlockedPaid = recipes.filter((recipe) => recipe.accessTier === "paid" && recipe.isUnlocked);
-        setUnlocked(unlockedPaid);
-        setPaidOwned(unlockedPaid);
+        setShoppingCount(overview.shoppingItems.length);
+        setShoppingPreview(overview.shoppingItems.slice(0, 6).map((item) => item.text));
+        setUnlocked(overview.unlockedRecipes);
+        setPaidOwned(overview.purchasedRecipes);
       } catch (error) {
         console.error("Failed to load account data", error);
       } finally {

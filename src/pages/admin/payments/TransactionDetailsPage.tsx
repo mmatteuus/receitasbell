@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Payment, PaymentEvent, PaymentNote } from "@/lib/payments/types";
-import { addPaymentNote, getPayment } from "@/lib/api/payments";
 import { StatusBadge } from "@/components/payments/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Copy } from "lucide-react";
 import { toast } from "sonner";
+import { paymentRepo } from "@/lib/repos/paymentRepo";
 
 export default function TransactionDetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -23,7 +23,7 @@ export default function TransactionDetailsPage() {
     async function loadPayment() {
       setLoading(true);
       try {
-        const details = await getPayment(id);
+        const details = await paymentRepo.getById(id);
         setPayment(details.payment);
         setEvents(details.events);
         setNotes(details.notes);
@@ -41,7 +41,7 @@ export default function TransactionDetailsPage() {
     if (!payment || !noteDraft.trim()) return;
 
     try {
-      const note = await addPaymentNote(payment.id, noteDraft.trim());
+      const note = await paymentRepo.addNote(payment.id, noteDraft.trim());
       setNotes((current) => [note, ...current]);
       setNoteDraft("");
       toast.success("Nota salva");
@@ -76,7 +76,7 @@ export default function TransactionDetailsPage() {
           </div>
           <p className="text-muted-foreground text-sm">Payment ID: {payment.id}</p>
         </div>
-        <StatusBadge status={payment.status} statusDetail={payment.status_detail} />
+        <StatusBadge status={payment.status} statusDetail={payment.statusDetail} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -84,26 +84,31 @@ export default function TransactionDetailsPage() {
           <Card>
             <CardHeader><CardTitle className="text-lg">Resumo</CardTitle></CardHeader>
             <CardContent className="space-y-3 text-sm">
-              <p><strong>Valor:</strong> {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(payment.transaction_amount)}</p>
-              <p><strong>Método:</strong> {payment.payment_method_id}</p>
-              <p><strong>Data de criação:</strong> {new Date(payment.date_created).toLocaleString()}</p>
-              {payment.date_approved && <p><strong>Data de aprovação:</strong> {new Date(payment.date_approved).toLocaleString()}</p>}
+              <p><strong>Valor:</strong> {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(payment.totalBRL)}</p>
+              <p><strong>Método:</strong> {payment.paymentMethod}</p>
+              <p><strong>Data de criação:</strong> {new Date(payment.createdAt).toLocaleString()}</p>
+              {payment.approvedAt && <p><strong>Data de aprovação:</strong> {new Date(payment.approvedAt).toLocaleString()}</p>}
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader><CardTitle className="text-lg">Pagador</CardTitle></CardHeader>
             <CardContent className="space-y-2 text-sm">
+              <p><strong>Nome:</strong> {payment.payerName}</p>
               <p><strong>Email:</strong> <span className="break-all">{payment.payer.email}</span></p>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader><CardTitle className="text-lg">Item Comprado</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-lg">Itens Comprados</CardTitle></CardHeader>
             <CardContent className="text-sm">
-              <Link to={`/receitas/${payment.external_reference}`} className="text-primary hover:underline break-all">
-                Ver receita: {payment.external_reference}
-              </Link>
+              <div className="space-y-2">
+                {payment.items.map((item) => (
+                  <Link key={`${payment.id}-${item.recipeId}`} to={`/receitas/${item.slug}`} className="block text-primary hover:underline break-all">
+                    {item.title} · {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(item.priceBRL)}
+                  </Link>
+                ))}
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -113,8 +118,8 @@ export default function TransactionDetailsPage() {
             <CardHeader><CardTitle className="text-lg">Timeline</CardTitle></CardHeader>
             <CardContent>
               <ul className="space-y-2 text-sm">
-                <li>Criado: {new Date(payment.date_created).toLocaleString()}</li>
-                {payment.date_approved && <li>Aprovado: {new Date(payment.date_approved).toLocaleString()}</li>}
+                <li>Criado: {new Date(payment.createdAt).toLocaleString()}</li>
+                {payment.approvedAt && <li>Aprovado: {new Date(payment.approvedAt).toLocaleString()}</li>}
                 {payment.webhook_received_at && <li>Webhook: {new Date(payment.webhook_received_at).toLocaleString()}</li>}
               </ul>
             </CardContent>

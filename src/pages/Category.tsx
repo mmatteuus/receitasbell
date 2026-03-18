@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { listRecipes } from "@/lib/api/recipes";
+import { listPublicRecipes } from "@/lib/repos/recipeRepo";
 import { useAppContext } from "@/contexts/app-context";
 import RecipeCard from "@/components/RecipeCard";
 import type { Recipe } from "@/types/recipe";
@@ -16,7 +16,7 @@ export default function Category() {
 
     async function loadRecipes() {
       try {
-        setRecipes(await listRecipes({ categorySlug: slug }));
+        setRecipes(await listPublicRecipes({ categorySlug: slug }));
       } catch (error) {
         console.error("Failed to load category recipes", error);
       }

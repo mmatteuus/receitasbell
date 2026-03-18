@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { getRecipeBySlug, listRecipes } from "@/lib/api/recipes";
 import {
   createComment,
   createShoppingListItems,
@@ -29,6 +28,8 @@ import { ApiClientError } from "@/lib/api/client";
 import { toast } from "sonner";
 import { getRecipeImage, getRecipePresentation } from "@/lib/recipes/presentation";
 import SmartImage from "@/components/SmartImage";
+import { buildCartItemFromRecipe, deriveRecipeTeaser } from "@/lib/utils/recipeAccess";
+import { getRecipeBySlug, listPublicRecipes } from "@/lib/repos/recipeRepo";
 
 type RatingState = {
   avg: number;
@@ -81,7 +82,7 @@ export default function RecipePage() {
         }
 
         try {
-          const categoryRecipes = await listRecipes({ categorySlug: foundRecipe.categorySlug });
+          const categoryRecipes = await listPublicRecipes({ categorySlug: foundRecipe.categorySlug });
           setRelated(categoryRecipes.filter((item) => item.id !== foundRecipe.id).slice(0, 3));
         } catch (error) {
           console.error("Failed to load related recipes", error);
@@ -153,8 +154,9 @@ export default function RecipePage() {
   const presentation = getRecipePresentation(recipe);
   const unlocked = recipe.accessTier === "free" || Boolean(recipe.isUnlocked);
   const showPaywall = !unlocked && recipe.accessTier === "paid";
-  const ingredients = showPaywall ? recipe.fullIngredients.slice(0, 2) : recipe.fullIngredients;
-  const instructions = showPaywall ? recipe.fullInstructions.slice(0, 2) : recipe.fullInstructions;
+  const teaser = deriveRecipeTeaser(recipe);
+  const ingredients = showPaywall ? teaser.ingredients : recipe.fullIngredients;
+  const instructions = showPaywall ? teaser.instructions : recipe.fullInstructions;
 
   async function handleFavorite() {
     await toggleFavorite(recipe.id);
@@ -321,7 +323,7 @@ export default function RecipePage() {
           <Button
             variant="outline"
             className="gap-2"
-            onClick={() => addToCart(recipe.id)}
+            onClick={() => addToCart(buildCartItemFromRecipe(recipe))}
             disabled={inCart(recipe.id)}
           >
             <ShoppingCart className="h-4 w-4" />
@@ -390,7 +392,13 @@ export default function RecipePage() {
 
       {showPaywall && (
         <div className="mt-8 print:hidden">
-          <PaywallBox priceBRL={recipe.priceBRL || 0} recipeId={recipe.id} recipeSlug={recipe.slug} />
+          <PaywallBox
+            priceBRL={recipe.priceBRL || 0}
+            recipeId={recipe.id}
+            recipeSlug={recipe.slug}
+            recipeTitle={recipe.title}
+            imageUrl={imageUrl}
+          />
         </div>
       )}
 

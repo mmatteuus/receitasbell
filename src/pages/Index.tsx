@@ -1,9 +1,3 @@
-
-function isGratinRecipe(recipe: Recipe) {
-  const normalizedCategory = recipe.categorySlug?.toLowerCase();
-  const tagMatch = recipe.tags?.some((tag) => tag.toLowerCase().includes("gratin"));
-  return normalizedCategory === "gratins" || tagMatch;
-}
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, Search, Sparkles, Sun, Moon } from "lucide-react";
@@ -16,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import SmartImage from "@/components/SmartImage";
 import { useAppContext } from "@/contexts/app-context";
-import { listRecipes } from "@/lib/api/recipes";
+import { listPublicRecipes } from "@/lib/repos/recipeRepo";
 import { pickFeaturedRecipes, pickPremiumRecipes } from "@/lib/home/curation";
 import { getRecipeImage, getRecipePresentation } from "@/lib/recipes/presentation";
 import { resolveCategoryDisplay } from "@/lib/categoriesDisplay";
@@ -25,6 +19,12 @@ import { BackToTop } from "@/components/BackToTop";
 import type { Recipe } from "@/types/recipe";
 
 const RECENT_RECIPES_KEY = "receitas_bell_recent_recipes";
+
+function isGratinRecipe(recipe: Recipe) {
+  const normalizedCategory = recipe.categorySlug?.toLowerCase();
+  const tagMatch = recipe.tags?.some((tag) => tag.toLowerCase().includes("gratin"));
+  return normalizedCategory === "gratins" || tagMatch;
+}
 
 export default function HomePage() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
@@ -38,7 +38,7 @@ export default function HomePage() {
   useEffect(() => {
     async function loadRecipes() {
       try {
-        const published = await listRecipes();
+        const published = await listPublicRecipes();
         setRecipes(published);
 
         try {

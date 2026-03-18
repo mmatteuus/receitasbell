@@ -1,5 +1,5 @@
-import { getSheetsClient, getSpreadsheetId } from "../googleSheetsClient.js";
 import { ApiError } from "../http.js";
+import { readSheetValues, updateSheetValues } from "../../lib/services/googleSheetsService.js";
 import { SHEET_COLUMNS, SheetColumn, SheetName, SheetRecord } from "./schema.js";
 import { asString, isBlankRecord } from "./utils.js";
 
@@ -13,11 +13,8 @@ function normalizeRecord<T extends SheetName>(sheetName: T, record: Partial<Shee
 }
 
 export async function readTable<T extends SheetName>(sheetName: T): Promise<SheetRecord<T>[]> {
-  const sheets = await getSheetsClient();
-  const spreadsheetId = getSpreadsheetId();
   const range = `${sheetName}!A:ZZ`;
-  const response = await sheets.spreadsheets.values.get({ spreadsheetId, range });
-  const values = response.data.values ?? [];
+  const values = await readSheetValues(range);
   const header = (values[0] ?? []).map((value) => String(value));
   const expectedColumns = [...SHEET_COLUMNS[sheetName]];
 
@@ -27,7 +24,19 @@ export async function readTable<T extends SheetName>(sheetName: T): Promise<Shee
 
   const missingColumns = expectedColumns.filter((column) => !header.includes(column));
   if (missingColumns.length > 0) {
-    throw new ApiError(500, `Sheet "${sheetName}" is missing required columns`, missingColumns);
+    const rawRows = values.slice(1).map((row) =>
+      header.reduce((acc, column, index) => {
+        acc[column] = asString(row[index]);
+        return acc;
+      }, {} as Record<string, string>),
+    );
+
+    await updateSheetValues(`${sheetName}!A1`, [
+      expectedColumns,
+      ...rawRows.map((row) => expectedColumns.map((column) => asString(row[column]))),
+    ]);
+
+    return readTable(sheetName);
   }
 
   return values
@@ -44,8 +53,6 @@ export async function readTable<T extends SheetName>(sheetName: T): Promise<Shee
 }
 
 export async function writeTable<T extends SheetName>(sheetName: T, records: Partial<SheetRecord<T>>[]) {
-  const sheets = await getSheetsClient();
-  const spreadsheetId = getSpreadsheetId();
   const columns = [...SHEET_COLUMNS[sheetName]];
   const values = [
     columns,
@@ -55,12 +62,7 @@ export async function writeTable<T extends SheetName>(sheetName: T, records: Par
     }),
   ];
 
-  await sheets.spreadsheets.values.update({
-    spreadsheetId,
-    range: `${sheetName}!A1`,
-    valueInputOption: "RAW",
-    requestBody: { values },
-  });
+  await updateSheetValues(`${sheetName}!A1`, values);
 }
 
 export async function mutateTable<T extends SheetName>(

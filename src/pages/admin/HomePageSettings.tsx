@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { useAppContext } from "@/contexts/app-context";
 import { DEFAULT_HOME_SETTINGS } from "@/lib/defaults";
 import { updateSettings } from "@/lib/api/settings";
-import { listRecipes } from "@/lib/api/recipes";
+import { getRecipes } from "@/lib/repos/recipeRepo";
 import type { HomeSectionId, HomeSettings } from "@/types/settings";
 import type { Recipe } from "@/types/recipe";
 import { Button } from "@/components/ui/button";
@@ -82,7 +82,7 @@ export default function HomePageSettings() {
   useEffect(() => {
     async function loadRecipesForPicker() {
       try {
-        const recipes = await listRecipes({ includeDrafts: true });
+        const recipes = await getRecipes();
         setAllRecipes(recipes);
       } catch (error) {
         console.error("Failed to load recipes for CMS picker", error);

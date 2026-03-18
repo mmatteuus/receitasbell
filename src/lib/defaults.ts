@@ -1,13 +1,15 @@
 import type { Category } from "../types/recipe.js";
 import type { HomeSettings, PaymentSettings, SiteSettings } from "../types/settings.js";
 
+const DEFAULT_CATEGORY_TIMESTAMP = "2024-01-01T00:00:00.000Z";
+
 export const DEFAULT_CATEGORIES: Category[] = [
-  { name: "Salgadas", slug: "salgadas", emoji: "🧂", description: "Receitas salgadas para qualquer ocasião" },
-  { name: "Massas", slug: "massas", emoji: "🍝", description: "Massas caseiras e molhos especiais" },
-  { name: "Doces", slug: "doces", emoji: "🍬", description: "Sobremesas e doces irresistíveis" },
-  { name: "Bolos", slug: "bolos", emoji: "🎂", description: "Bolos para todas as celebrações" },
-  { name: "Bebidas", slug: "bebidas", emoji: "🥤", description: "Bebidas refrescantes e especiais" },
-  { name: "Saudáveis", slug: "saudaveis", emoji: "🥗", description: "Receitas leves e nutritivas" },
+  { id: "cat-salgadas", name: "Salgadas", slug: "salgadas", emoji: "🧂", description: "Receitas salgadas para qualquer ocasião", createdAt: DEFAULT_CATEGORY_TIMESTAMP, updatedAt: DEFAULT_CATEGORY_TIMESTAMP },
+  { id: "cat-massas", name: "Massas", slug: "massas", emoji: "🍝", description: "Massas caseiras e molhos especiais", createdAt: DEFAULT_CATEGORY_TIMESTAMP, updatedAt: DEFAULT_CATEGORY_TIMESTAMP },
+  { id: "cat-doces", name: "Doces", slug: "doces", emoji: "🍬", description: "Sobremesas e doces irresistíveis", createdAt: DEFAULT_CATEGORY_TIMESTAMP, updatedAt: DEFAULT_CATEGORY_TIMESTAMP },
+  { id: "cat-bolos", name: "Bolos", slug: "bolos", emoji: "🎂", description: "Bolos para todas as celebrações", createdAt: DEFAULT_CATEGORY_TIMESTAMP, updatedAt: DEFAULT_CATEGORY_TIMESTAMP },
+  { id: "cat-bebidas", name: "Bebidas", slug: "bebidas", emoji: "🥤", description: "Bebidas refrescantes e especiais", createdAt: DEFAULT_CATEGORY_TIMESTAMP, updatedAt: DEFAULT_CATEGORY_TIMESTAMP },
+  { id: "cat-saudaveis", name: "Saudáveis", slug: "saudaveis", emoji: "🥗", description: "Receitas leves e nutritivas", createdAt: DEFAULT_CATEGORY_TIMESTAMP, updatedAt: DEFAULT_CATEGORY_TIMESTAMP },
 ];
 
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {

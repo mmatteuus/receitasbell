@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Payment, PaymentStatus } from "@/lib/payments/types";
-import { listPayments } from "@/lib/api/payments";
 import { exportPaymentsCSV, exportPaymentsPDF } from "@/lib/payments/export";
 import { PaymentsTable } from "@/components/payments/PaymentsTable";
 import { Input } from "@/components/ui/input";
@@ -17,6 +16,7 @@ import { DateRange } from "react-day-picker";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Download, FileText } from "lucide-react";
+import { paymentRepo } from "@/lib/repos/paymentRepo";
 
 const statusOptions: { label: string; value: PaymentStatus }[] = [
   { label: "Aprovado", value: "approved" },
@@ -53,14 +53,14 @@ export default function TransactionsPage() {
   function calculateTotals(paymentsList: Payment[]) {
     return {
       count: paymentsList.length,
-      total: paymentsList.reduce((sum, payment) => sum + payment.transaction_amount, 0),
+      total: paymentsList.reduce((sum, payment) => sum + payment.totalBRL, 0),
       approved: paymentsList
         .filter((payment) => payment.status === "approved")
-        .reduce((sum, payment) => sum + payment.transaction_amount, 0),
+        .reduce((sum, payment) => sum + payment.totalBRL, 0),
     };
   }
 
-  async function loadPayments(filters: {
+  const loadPayments = useCallback(async (filters: {
     status?: PaymentStatus[];
     paymentMethod?: string[];
     email?: string;
@@ -68,10 +68,10 @@ export default function TransactionsPage() {
     externalReference?: string;
     dateFrom?: string;
     dateTo?: string;
-  } = {}) {
+  } = {}) => {
     setLoading(true);
     try {
-      const next = await listPayments({
+      const next = await paymentRepo.list({
         status: filters.status,
         paymentMethod: filters.paymentMethod,
         email: filters.email,
@@ -86,14 +86,16 @@ export default function TransactionsPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
   useEffect(() => {
+    const initialStatus = searchParams.get("status");
+    const initialMethod = searchParams.get("method");
     void loadPayments({
-      status,
-      paymentMethod: methods,
+      status: initialStatus ? initialStatus.split(",") as PaymentStatus[] : undefined,
+      paymentMethod: initialMethod ? initialMethod.split(",") : undefined,
     });
-  }, []);
+  }, [loadPayments, searchParams]);
 
   function handleFilter() {
     void loadPayments({

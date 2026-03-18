@@ -1,7 +1,7 @@
 "use client";
 
-import { createCheckout } from "@/lib/api/interactions";
 import { useAppContext } from "@/contexts/app-context";
+import { paymentRepo } from "@/lib/repos/paymentRepo";
 
 export function useDemoPurchase() {
   const { requireIdentity } = useAppContext();
@@ -10,7 +10,7 @@ export function useDemoPurchase() {
     const buyerEmail = await requireIdentity("Digite seu e-mail para concluir a compra.");
     if (!buyerEmail) return null;
 
-    return createCheckout({
+    return paymentRepo.createCheckout({
       recipeIds,
       buyerEmail,
       checkoutReference: crypto.randomUUID(),

@@ -1,6 +1,9 @@
-import type { Payment, PaymentEvent, PaymentNote, PaymentStatus } from "../../lib/payments/types.js";
+import type { CartItem, Recipe } from "../../types/recipe.js";
+import type { Payment, PaymentEvent, PaymentNote, PaymentStatus } from "../../types/payment.js";
+import { buildCartItemFromRecipe } from "../../lib/utils/recipeAccess.js";
+import { sumBRL } from "../../lib/utils/money.js";
 import { ApiError } from "../http.js";
-import { readTable, mutateTable } from "./table.js";
+import { mutateTable, readTable } from "./table.js";
 import { ensureRecipeUnlock } from "./recipeUnlocksRepo.js";
 import { getRecipeById, getRecipeBySlug } from "./recipesRepo.js";
 import { SheetRecord } from "./schema.js";
@@ -19,32 +22,98 @@ interface ListPaymentsFilters {
 
 type MercadoPagoPayload = Record<string, unknown>;
 
+function buildLegacyItem(row: SheetRecord<"payments">): CartItem | null {
+  const recipeId = row.recipe_id?.trim();
+  const slug = row.external_reference?.trim();
+  if (!recipeId && !slug) {
+    return null;
+  }
+
+  return {
+    recipeId: recipeId || slug || row.id,
+    title: slug || "Receita",
+    slug: slug || recipeId || row.id,
+    priceBRL: asNumber(row.total_brl || row.transaction_amount),
+    imageUrl: "",
+  };
+}
+
+function getPaymentItems(row: SheetRecord<"payments">) {
+  const items = asJson<CartItem[]>(row.item_snapshots_json, []);
+  if (items.length > 0) {
+    return items;
+  }
+
+  const legacyItem = buildLegacyItem(row);
+  return legacyItem ? [legacyItem] : [];
+}
+
+function getPaymentRecipeIds(row: SheetRecord<"payments">, items: CartItem[]) {
+  const recipeIds = asJson<string[]>(row.recipe_ids_json, []);
+  if (recipeIds.length > 0) {
+    return recipeIds;
+  }
+
+  if (items.length > 0) {
+    return items.map((item) => item.recipeId);
+  }
+
+  return row.recipe_id?.trim() ? [row.recipe_id] : [];
+}
+
 function mapPayment(row: SheetRecord<"payments">): Payment {
+  const items = getPaymentItems(row);
+  const recipeIds = getPaymentRecipeIds(row, items);
+  const payerEmail = row.payer_email || row.buyer_email;
+  const payerName = row.payer_name || payerEmail.split("@")[0] || "Cliente";
+  const gateway = row.gateway === "mercado_pago" || row.provider === "mercadopago" ? "mercado_pago" : "mock";
+  const paymentMethodId = normalizePaymentMethodId(row.payment_method_id || row.payment_method);
+  const paymentTypeId = normalizePaymentTypeId(row.payment_type_id || row.payment_type);
+  const totalBRL = asNumber(row.total_brl || row.transaction_amount);
+  const createdAt = row.created_at || row.date_created || nowIso();
+  const updatedAt = row.updated_at || row.approved_at || row.date_approved || createdAt;
+  const approvedAt = asNullableString(row.approved_at || row.date_approved);
+  const primaryReference = items[0]?.slug || row.external_reference || recipeIds[0] || "";
+
   return {
     id: row.id,
-    external_payment_id: asNullableString(row.external_payment_id),
-    provider: row.provider || "mock",
-    recipe_id: asNullableString(row.recipe_id),
-    user_id: asNullableString(row.user_id),
-    buyer_email: row.buyer_email,
-    payer: {
-      email: row.buyer_email,
-    },
-    status: row.status as PaymentStatus,
-    status_detail: row.status_detail,
-    payment_method_id: (row.payment_method_id || "pix") as Payment["payment_method_id"],
-    payment_type_id: (row.payment_type_id || "account_money") as Payment["payment_type_id"],
-    transaction_amount: asNumber(row.transaction_amount),
-    currency_id: "BRL",
-    date_created: row.date_created,
-    date_approved: asNullableString(row.date_approved),
-    external_reference: row.external_reference,
-    checkout_reference: asNullableString(row.checkout_reference),
-    webhook_received_at: asNullableString(row.webhook_received_at),
-    idempotency_key: asNullableString(row.idempotency_key),
-    raw_json: asJson<Record<string, unknown> | null>(row.raw_json, null),
+    gateway,
+    externalPaymentId: asNullableString(row.external_payment_id),
+    recipeIds,
+    items,
+    totalBRL,
+    payerName,
+    payerEmail,
+    status: normalizePaymentStatus(row.status),
+    statusDetail: row.status_detail || normalizePaymentStatus(row.status),
+    paymentMethod: row.payment_method || paymentMethodId,
+    paymentType: row.payment_type || paymentTypeId,
+    checkoutReference: asNullableString(row.checkout_reference),
+    createdAt,
+    updatedAt,
+    approvedAt,
+    rawJson: asJson<Record<string, unknown> | null>(row.raw_json, null),
     refunds: [],
     chargebacks: [],
+    payer: {
+      email: payerEmail,
+    },
+
+    provider: row.provider || gateway,
+    external_payment_id: asNullableString(row.external_payment_id),
+    recipe_id: asNullableString(row.recipe_id),
+    user_id: asNullableString(row.user_id),
+    buyer_email: payerEmail,
+    status_detail: row.status_detail || normalizePaymentStatus(row.status),
+    payment_method_id: paymentMethodId,
+    payment_type_id: paymentTypeId,
+    transaction_amount: totalBRL,
+    currency_id: "BRL",
+    date_created: createdAt,
+    date_approved: approvedAt,
+    external_reference: primaryReference,
+    webhook_received_at: asNullableString(row.webhook_received_at),
+    idempotency_key: asNullableString(row.idempotency_key),
   };
 }
 
@@ -76,21 +145,24 @@ export async function listPayments(filters: ListPaymentsFilters = {}) {
     .map(mapPayment)
     .filter((payment) => {
       if (filters.status?.length && !filters.status.includes(payment.status)) return false;
-      if (filters.paymentMethod?.length && !filters.paymentMethod.includes(payment.payment_method_id)) return false;
-      if (filters.email && !payment.buyer_email.toLowerCase().includes(filters.email.toLowerCase())) return false;
+      if (filters.paymentMethod?.length && !filters.paymentMethod.includes(payment.payment_method_id || payment.paymentMethod)) {
+        return false;
+      }
+      if (filters.email && !payment.payerEmail.toLowerCase().includes(filters.email.toLowerCase())) return false;
       if (filters.paymentId && !payment.id.toLowerCase().includes(filters.paymentId.toLowerCase())) return false;
       if (
         filters.externalReference &&
-        !payment.external_reference.toLowerCase().includes(filters.externalReference.toLowerCase())
+        !payment.items.some((item) =>
+          `${item.slug} ${item.title}`.toLowerCase().includes(filters.externalReference!.toLowerCase()),
+        )
       ) {
         return false;
       }
-      if (filters.dateFrom && new Date(payment.date_created) < new Date(filters.dateFrom)) return false;
-      if (filters.dateTo && new Date(payment.date_created) > new Date(filters.dateTo)) return false;
-
+      if (filters.dateFrom && new Date(payment.createdAt) < new Date(filters.dateFrom)) return false;
+      if (filters.dateTo && new Date(payment.createdAt) > new Date(filters.dateTo)) return false;
       return true;
     })
-    .sort((left, right) => right.date_created.localeCompare(left.date_created));
+    .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
 }
 
 export async function getPaymentById(paymentId: string) {
@@ -197,14 +269,14 @@ function normalizePaymentStatus(status: string | null | undefined): PaymentStatu
   }
 }
 
-function normalizePaymentMethodId(method: string | null | undefined): Payment["payment_method_id"] {
+function normalizePaymentMethodId(method: string | null | undefined): NonNullable<Payment["payment_method_id"]> {
   const normalized = (method || "").trim().toLowerCase();
   if (normalized === "pix") return "pix";
   if (normalized === "bolbradesco" || normalized === "pec" || normalized === "boleto") return "boleto";
   return "credit_card";
 }
 
-function normalizePaymentTypeId(type: string | null | undefined): Payment["payment_type_id"] {
+function normalizePaymentTypeId(type: string | null | undefined): NonNullable<Payment["payment_type_id"]> {
   const normalized = (type || "").trim().toLowerCase();
   if (normalized === "ticket") return "ticket";
   if (normalized === "credit_card") return "credit_card";
@@ -240,6 +312,68 @@ async function resolveRecipeFromMercadoPagoPayment(payment: MercadoPagoPayload) 
   return null;
 }
 
+function toPaymentItemsFromRecipes(recipes: Recipe[]) {
+  return recipes.map((recipe) => buildCartItemFromRecipe(recipe));
+}
+
+function buildPaymentRow(input: {
+  id?: string;
+  externalPaymentId?: string | null;
+  provider: string;
+  gateway: Payment["gateway"];
+  recipeIds: string[];
+  items: CartItem[];
+  userId?: string | null;
+  buyerEmail: string;
+  payerName: string;
+  status: PaymentStatus;
+  statusDetail: string;
+  paymentMethodId: NonNullable<Payment["payment_method_id"]>;
+  paymentTypeId: NonNullable<Payment["payment_type_id"]>;
+  checkoutReference: string;
+  totalBRL: number;
+  rawJson: Record<string, unknown> | null;
+  externalReference: string;
+  idempotencyKey: string;
+  createdAt?: string;
+  approvedAt?: string | null;
+  webhookReceivedAt?: string | null;
+}) {
+  const now = nowIso();
+  return {
+    id: input.id || crypto.randomUUID(),
+    external_payment_id: input.externalPaymentId || "",
+    provider: input.provider,
+    gateway: input.gateway,
+    recipe_id: input.recipeIds[0] || "",
+    recipe_ids_json: toJsonString(input.recipeIds),
+    item_snapshots_json: toJsonString(input.items),
+    user_id: input.userId ?? "",
+    buyer_email: input.buyerEmail,
+    payer_name: input.payerName,
+    payer_email: input.buyerEmail,
+    status: input.status,
+    status_detail: input.statusDetail,
+    payment_method_id: input.paymentMethodId,
+    payment_method: input.paymentMethodId,
+    payment_type_id: input.paymentTypeId,
+    payment_type: input.paymentTypeId,
+    transaction_amount: String(input.totalBRL),
+    total_brl: String(input.totalBRL),
+    currency_id: "BRL",
+    date_created: input.createdAt || now,
+    created_at: input.createdAt || now,
+    date_approved: input.approvedAt || "",
+    approved_at: input.approvedAt || "",
+    updated_at: now,
+    raw_json: toJsonString(input.rawJson),
+    external_reference: input.externalReference,
+    checkout_reference: input.checkoutReference,
+    webhook_received_at: input.webhookReceivedAt || "",
+    idempotency_key: input.idempotencyKey,
+  } satisfies SheetRecord<"payments">;
+}
+
 export async function syncMercadoPagoPayment(paymentPayload: MercadoPagoPayload, notificationPayload: MercadoPagoPayload) {
   const externalPaymentId = asText(paymentPayload.id);
   if (!externalPaymentId) {
@@ -250,10 +384,16 @@ export async function syncMercadoPagoPayment(paymentPayload: MercadoPagoPayload,
   const metadata = asRecord(paymentPayload.metadata) ?? {};
   const recipe = await resolveRecipeFromMercadoPagoPayment(paymentPayload);
   const buyerEmail = asText(payer.email)?.toLowerCase() || "";
+  const payerName =
+    asText((payer as Record<string, unknown>).first_name) ||
+    asText(metadata.payer_name) ||
+    buyerEmail.split("@")[0] ||
+    "Cliente";
   const user = buyerEmail ? await findOrCreateUserByEmail(buyerEmail) : null;
-  const recipeId = recipe?.id || asText(metadata.recipe_id) || "";
+  const items = recipe ? [buildCartItemFromRecipe(recipe)] : [];
+  const recipeIds = recipe ? [recipe.id] : asJson<string[]>(asText(metadata.recipe_ids_json) || "", []);
   const externalReference =
-    asText(paymentPayload.external_reference) || recipe?.slug || asText(metadata.recipe_slug) || "";
+    asText(paymentPayload.external_reference) || recipe?.slug || items[0]?.slug || recipeIds[0] || "";
   const checkoutReference =
     asText(metadata.checkout_reference) ||
     asText(paymentPayload.order_id) ||
@@ -261,13 +401,12 @@ export async function syncMercadoPagoPayment(paymentPayload: MercadoPagoPayload,
     "";
   const status = normalizePaymentStatus(asText(paymentPayload.status));
   const statusDetail = asText(paymentPayload.status_detail) || status;
-  const transactionAmount = asFiniteNumber(paymentPayload.transaction_amount) ?? 0;
-  const currencyId = asText(paymentPayload.currency_id) || "BRL";
-  const dateCreated = asText(paymentPayload.date_created) || nowIso();
-  const dateApproved =
+  const totalBRL = asFiniteNumber(paymentPayload.transaction_amount) ?? sumBRL(items.map((item) => item.priceBRL));
+  const createdAt = asText(paymentPayload.date_created) || nowIso();
+  const approvedAt =
     status === "approved"
       ? asText(paymentPayload.date_approved) || asText(paymentPayload.date_last_updated) || nowIso()
-      : "";
+      : null;
   const webhookReceivedAt = nowIso();
   const idempotencyKey = `mp:${externalPaymentId}`;
 
@@ -276,27 +415,29 @@ export async function syncMercadoPagoPayment(paymentPayload: MercadoPagoPayload,
       (row) => row.external_payment_id === externalPaymentId || row.idempotency_key === idempotencyKey,
     );
 
-    const nextRow: SheetRecord<"payments"> = {
-      id: existing?.id || crypto.randomUUID(),
-      external_payment_id: externalPaymentId,
+    const nextRow = buildPaymentRow({
+      id: existing?.id,
+      externalPaymentId,
       provider: "mercadopago",
-      recipe_id: recipeId || existing?.recipe_id || "",
-      user_id: user?.id || existing?.user_id || "",
-      buyer_email: buyerEmail || existing?.buyer_email || "",
+      gateway: "mercado_pago",
+      recipeIds: recipeIds.length > 0 ? recipeIds : existing ? getPaymentRecipeIds(existing, getPaymentItems(existing)) : [],
+      items: items.length > 0 ? items : existing ? getPaymentItems(existing) : [],
+      userId: user?.id || existing?.user_id || "",
+      buyerEmail: buyerEmail || existing?.buyer_email || "",
+      payerName,
       status,
-      status_detail: statusDetail,
-      payment_method_id: normalizePaymentMethodId(asText(paymentPayload.payment_method_id)),
-      payment_type_id: normalizePaymentTypeId(asText(paymentPayload.payment_type_id)),
-      transaction_amount: String(transactionAmount),
-      currency_id: currencyId,
-      date_created: existing?.date_created || dateCreated,
-      date_approved: dateApproved || existing?.date_approved || "",
-      raw_json: toJsonString(paymentPayload),
-      external_reference: externalReference || existing?.external_reference || "",
-      checkout_reference: checkoutReference || existing?.checkout_reference || "",
-      webhook_received_at: webhookReceivedAt,
-      idempotency_key: existing?.idempotency_key || idempotencyKey,
-    };
+      statusDetail,
+      paymentMethodId: normalizePaymentMethodId(asText(paymentPayload.payment_method_id)),
+      paymentTypeId: normalizePaymentTypeId(asText(paymentPayload.payment_type_id)),
+      checkoutReference: checkoutReference || existing?.checkout_reference || "",
+      totalBRL: totalBRL || asNumber(existing?.total_brl || existing?.transaction_amount),
+      rawJson: paymentPayload,
+      externalReference: externalReference || existing?.external_reference || "",
+      idempotencyKey: existing?.idempotency_key || idempotencyKey,
+      createdAt: existing?.created_at || existing?.date_created || createdAt,
+      approvedAt: approvedAt || existing?.approved_at || existing?.date_approved || null,
+      webhookReceivedAt,
+    });
 
     if (existing) {
       return current.map((row) => (row.id === existing.id ? nextRow : row));
@@ -316,78 +457,24 @@ export async function syncMercadoPagoPayment(paymentPayload: MercadoPagoPayload,
     payment: paymentPayload,
   });
 
-  if (payment.status === "approved" && payment.recipe_id && (payment.buyer_email || payment.user_id)) {
-    await ensureRecipeUnlock({
-      recipeId: payment.recipe_id,
-      paymentId: payment.id,
-      userId: payment.user_id,
-      buyerEmail: payment.buyer_email,
-    });
+  if (payment.status === "approved" && payment.recipeIds.length > 0 && (payment.payerEmail || payment.user_id)) {
+    for (const recipeId of payment.recipeIds) {
+      await ensureRecipeUnlock({
+        recipeId,
+        paymentId: payment.id,
+        userId: payment.user_id,
+        buyerEmail: payment.payerEmail,
+      });
+    }
   }
 
   return payment;
 }
 
-async function createMockPayment(input: {
-  recipeId: string;
-  recipeSlug: string;
-  buyerEmail: string;
-  userId?: string | null;
-  checkoutReference: string;
-  amount: number;
-}) {
-  const paymentId = crypto.randomUUID();
-  const now = nowIso();
-  const idempotencyKey = `${input.checkoutReference}:${input.recipeId}`;
-
-  const rows = await mutateTable("payments", async (current) => {
-    const existing = current.find((row) => row.idempotency_key === idempotencyKey);
-    if (existing) {
-      return current;
-    }
-
-    return [
-      ...current,
-      {
-        id: paymentId,
-        external_payment_id: "",
-        provider: "mock",
-        recipe_id: input.recipeId,
-        user_id: input.userId ?? "",
-        buyer_email: input.buyerEmail,
-        status: "approved",
-        status_detail: "accredited",
-        payment_method_id: "pix",
-        payment_type_id: "account_money",
-        transaction_amount: String(input.amount),
-        currency_id: "BRL",
-        date_created: now,
-        date_approved: now,
-        raw_json: toJsonString({
-          provider: "mock",
-          checkoutReference: input.checkoutReference,
-          recipeId: input.recipeId,
-        }),
-        external_reference: input.recipeSlug,
-        checkout_reference: input.checkoutReference,
-        webhook_received_at: "",
-        idempotency_key: idempotencyKey,
-      },
-    ];
-  });
-
-  const created = rows.find((row) => row.idempotency_key === idempotencyKey)!;
-  await addPaymentEvents(created.id, ["payment.created", "payment.approved"], {
-    provider: "mock",
-    recipeId: input.recipeId,
-    buyerEmail: input.buyerEmail,
-  });
-
-  return mapPayment(created);
-}
-
 export async function createMockCheckout(input: {
   recipeIds: string[];
+  items?: CartItem[];
+  payerName?: string;
   buyerEmail: string;
   userId?: string | null;
   checkoutReference: string;
@@ -401,8 +488,7 @@ export async function createMockCheckout(input: {
     throw new ApiError(400, "At least one recipe is required for checkout");
   }
 
-  const payments: Payment[] = [];
-
+  const recipes: Recipe[] = [];
   for (const recipeId of input.recipeIds) {
     const recipe = await getRecipeById(recipeId, { includeDrafts: true });
     if (!recipe) {
@@ -413,29 +499,74 @@ export async function createMockCheckout(input: {
       throw new ApiError(400, `Recipe ${recipe.title} is not eligible for paid checkout`);
     }
 
-    const payment = await createMockPayment({
-      recipeId: recipe.id,
-      recipeSlug: recipe.slug,
-      buyerEmail,
-      userId: input.userId,
-      checkoutReference: input.checkoutReference,
-      amount: recipe.priceBRL,
-    });
-
-    await ensureRecipeUnlock({
-      recipeId: recipe.id,
-      paymentId: payment.id,
-      userId: input.userId,
-      buyerEmail,
-    });
-
-    payments.push(payment);
+    recipes.push(recipe);
   }
 
+  const items = input.items?.length === recipes.length ? input.items : toPaymentItemsFromRecipes(recipes);
+  const totalBRL = sumBRL(items.map((item) => item.priceBRL));
+  const payerName = input.payerName?.trim() || buyerEmail.split("@")[0] || "Cliente";
+  const idempotencyKey = input.checkoutReference;
+
+  const rows = await mutateTable("payments", async (current) => {
+    const existing = current.find((row) => row.idempotency_key === idempotencyKey);
+    if (existing) {
+      return current;
+    }
+
+    return [
+      ...current,
+      buildPaymentRow({
+        provider: "mock",
+        gateway: "mock",
+        recipeIds: recipes.map((recipe) => recipe.id),
+        items,
+        userId: input.userId,
+        buyerEmail,
+        payerName,
+        status: "approved",
+        statusDetail: "accredited",
+        paymentMethodId: "pix",
+        paymentTypeId: "account_money",
+        checkoutReference: input.checkoutReference,
+        totalBRL,
+        rawJson: {
+          provider: "mock",
+          checkoutReference: input.checkoutReference,
+          recipeIds: recipes.map((recipe) => recipe.id),
+          totalBRL,
+        },
+        externalReference: items[0]?.slug || recipes[0]?.slug || "",
+        idempotencyKey,
+        approvedAt: nowIso(),
+      }),
+    ];
+  });
+
+  const created = rows.find((row) => row.idempotency_key === idempotencyKey)!;
+  await addPaymentEvents(created.id, ["checkout.created", "payment.approved"], {
+    provider: "mock",
+    recipeIds: recipes.map((recipe) => recipe.id),
+    buyerEmail,
+    totalBRL,
+  });
+
+  for (const recipe of recipes) {
+    await ensureRecipeUnlock({
+      recipeId: recipe.id,
+      paymentId: created.id,
+      userId: input.userId,
+      buyerEmail,
+    });
+  }
+
+  const payment = mapPayment(created);
   return {
-    payments,
-    paymentIds: payments.map((payment) => payment.id),
-    primaryPaymentId: payments[0]?.id ?? null,
-    unlockedCount: payments.length,
+    payment,
+    payments: [payment],
+    paymentId: payment.id,
+    primaryPaymentId: payment.id,
+    paymentIds: [payment.id],
+    status: payment.status,
+    unlockedCount: recipes.length,
   };
 }

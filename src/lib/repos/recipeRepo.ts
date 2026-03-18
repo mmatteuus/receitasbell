@@ -1,4 +1,4 @@
-import type { Recipe } from "@/types/recipe";
+import type { ImageFileMeta, Recipe } from "@/types/recipe";
 import {
   createRecipe,
   deleteRecipe as deleteRecipeRequest,
@@ -8,7 +8,9 @@ import {
   type RecipeMutationPayload,
   updateRecipe as updateRecipeRequest,
 } from "@/lib/api/recipes";
+import { deleteRecipeImage, uploadRecipeImage } from "@/lib/api/uploads";
 import { generateSlug } from "@/lib/helpers";
+import { deriveRecipeTeaser } from "@/lib/utils/recipeAccess";
 
 function toPayload(recipe: Partial<Recipe>): RecipeMutationPayload {
   return {
@@ -16,6 +18,7 @@ function toPayload(recipe: Partial<Recipe>): RecipeMutationPayload {
     slug: recipe.slug,
     description: recipe.description || "",
     imageUrl: recipe.imageUrl || recipe.image || "",
+    imageFileMeta: recipe.imageFileMeta ?? null,
     categorySlug: recipe.categorySlug || "salgadas",
     tags: recipe.tags || [],
     status: recipe.status || "draft",
@@ -44,6 +47,14 @@ export async function getPublishedRecipes() {
   return listRecipes();
 }
 
+export async function listPublicRecipes(params: {
+  categorySlug?: string;
+  q?: string;
+  ids?: string[];
+} = {}) {
+  return listRecipes(params);
+}
+
 export async function getRecipeBySlug(slug: string) {
   return getRecipeBySlugRequest(slug);
 }
@@ -63,6 +74,32 @@ export async function deleteRecipe(id: string) {
   return deleteRecipeRequest(id);
 }
 
+export async function uploadRecipeImageFile(file: File) {
+  const dataBase64 = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = typeof reader.result === "string" ? reader.result : "";
+      resolve(result);
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+
+  return uploadRecipeImage({
+    fileName: file.name,
+    mimeType: file.type || "application/octet-stream",
+    dataBase64,
+  });
+}
+
+export async function removeRecipeImageFile(imageFileMeta?: ImageFileMeta | null) {
+  if (!imageFileMeta?.fileId || imageFileMeta.storage !== "google_drive") {
+    return;
+  }
+
+  await deleteRecipeImage(imageFileMeta.fileId);
+}
+
 export function isSlugTaken(slug: string, recipes: Recipe[], excludeId?: string) {
   return recipes.some((recipe) => recipe.slug === slug && recipe.id !== excludeId);
 }
@@ -78,4 +115,8 @@ export function uniqueSlug(title: string, recipes: Recipe[] = [], excludeId?: st
   }
 
   return slug;
+}
+
+export function getRecipeTeaser(recipe: Pick<Recipe, "fullIngredients" | "fullInstructions">) {
+  return deriveRecipeTeaser(recipe);
 }

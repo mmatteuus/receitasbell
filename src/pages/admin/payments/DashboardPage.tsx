@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { listPayments } from "@/lib/api/payments";
+import { paymentRepo } from "@/lib/repos/paymentRepo";
 import { Payment } from "@/lib/payments/types";
 import { exportPaymentsCSV, exportPaymentsPDF } from "@/lib/payments/export";
 import { Button } from "@/components/ui/button";
@@ -32,7 +32,7 @@ export default function DashboardPage() {
     async function loadPaymentsForDashboard() {
       setLoading(true);
       try {
-        const filtered = await listPayments({
+        const filtered = await paymentRepo.list({
           dateFrom: dateRange?.from?.toISOString(),
           dateTo: dateRange?.to?.toISOString(),
         });
@@ -48,7 +48,7 @@ export default function DashboardPage() {
   }, [dateRange]);
 
   const stats = useMemo(() => {
-    const totalRevenue = payments.reduce((acc, p) => p.status === 'approved' ? acc + p.transaction_amount : acc, 0);
+    const totalRevenue = payments.reduce((acc, p) => p.status === 'approved' ? acc + p.totalBRL : acc, 0);
     const total = payments.length;
     const approved = payments.filter(p => p.status === 'approved').length;
     const pending = payments.filter(p => p.status === 'pending' || p.status === 'in_process').length;
@@ -62,10 +62,10 @@ export default function DashboardPage() {
   const revenueByDay = useMemo(() => {
     const map: Record<string, { revenue: number; count: number }> = {};
     payments.forEach(p => {
-      if (p.status === 'approved' && p.date_approved) {
-        const day = new Date(p.date_approved).toISOString().split('T')[0];
+      if (p.status === 'approved' && p.approvedAt) {
+        const day = new Date(p.approvedAt).toISOString().split('T')[0];
         if (!map[day]) map[day] = { revenue: 0, count: 0 };
-        map[day].revenue += p.transaction_amount;
+        map[day].revenue += p.totalBRL;
         map[day].count += 1;
       }
     });
@@ -76,7 +76,7 @@ export default function DashboardPage() {
   const successRateByDay = useMemo(() => {
     const map: Record<string, { total: number; approved: number }> = {};
     payments.forEach(p => {
-      const day = new Date(p.date_created).toISOString().split('T')[0];
+      const day = new Date(p.createdAt).toISOString().split('T')[0];
       if (!map[day]) map[day] = { total: 0, approved: 0 };
       map[day].total += 1;
       if (p.status === 'approved') map[day].approved += 1;
@@ -94,7 +94,7 @@ export default function DashboardPage() {
       if (p.status === 'approved') {
         const method = p.payment_method_id;
         if (!map[method]) map[method] = { revenue: 0, count: 0 };
-        map[method].revenue += p.transaction_amount;
+        map[method].revenue += p.totalBRL;
         map[method].count += 1;
       }
     });
@@ -115,12 +115,12 @@ export default function DashboardPage() {
   const monthlyComparison = useMemo(() => {
     const map: Record<string, { revenue: number; count: number; approved: number }> = {};
     payments.forEach(p => {
-      const d = new Date(p.date_created);
+      const d = new Date(p.createdAt);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       if (!map[key]) map[key] = { revenue: 0, count: 0, approved: 0 };
       map[key].count += 1;
       if (p.status === 'approved') {
-        map[key].revenue += p.transaction_amount;
+        map[key].revenue += p.totalBRL;
         map[key].approved += 1;
       }
     });

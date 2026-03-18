@@ -1,4 +1,4 @@
-import type { Recipe } from "../../types/recipe.js";
+import type { ImageFileMeta, Recipe } from "../../types/recipe.js";
 import { ApiError } from "../http.js";
 import { SheetRecord } from "./schema.js";
 import { mutateTable, readTable } from "./table.js";
@@ -23,6 +23,7 @@ export interface RecipeMutationInput {
   title: string;
   description?: string;
   imageUrl?: string;
+  imageFileMeta?: ImageFileMeta | null;
   categorySlug: string;
   tags?: string[];
   status?: "draft" | "published";
@@ -89,6 +90,7 @@ function buildRecipeFromRow(
     .filter(Boolean);
   const summary = ratingsSummary[row.id] ?? { avg: 0, count: 0 };
   const imageUrl = row.image_url || "";
+  const imageFileMeta = asJson<ImageFileMeta | null>(row.image_file_meta_json, null);
   const accessTier = row.access_tier === "paid" ? "paid" : "free";
 
   return {
@@ -98,6 +100,7 @@ function buildRecipeFromRow(
     description: row.description,
     image: imageUrl,
     imageUrl,
+    imageFileMeta,
     categorySlug: row.category_slug,
     tags: tags.length ? tags : fallbackTags,
     status: row.status === "published" ? "published" : "draft",
@@ -106,7 +109,7 @@ function buildRecipeFromRow(
     totalTime: asNumber(row.total_time),
     servings: asNumber(row.servings, 1),
     accessTier,
-    priceBRL: accessTier === "paid" ? asNumber(row.price_brl) : undefined,
+    priceBRL: accessTier === "paid" ? asNumber(row.price_brl) : null,
     fullIngredients: ingredients,
     fullInstructions: instructions,
     excerpt: row.excerpt || undefined,
@@ -126,7 +129,7 @@ function buildRecipeFromRow(
 function normalizeRecipeInput(
   input: RecipeMutationInput,
   existingRows: SheetRecord<"recipes">[],
-  existingId?: string,
+  existingRow?: SheetRecord<"recipes">,
 ) {
   const title = input.title.trim();
   if (!title) {
@@ -139,15 +142,19 @@ function normalizeRecipeInput(
     throw new ApiError(400, "Paid recipes require a price greater than zero");
   }
 
-  const imageUrl = input.imageUrl?.trim() || "";
+  const imageUrl = input.imageUrl?.trim() || input.imageFileMeta?.publicUrl || "";
   if (imageUrl.startsWith("data:")) {
     throw new ApiError(400, "Image data URLs are not allowed. Use a remote image URL.");
   }
 
-  const slug = createUniqueSlug(
-    input.slug?.trim() || title,
-    existingRows.filter((row) => row.id !== existingId).map((row) => row.slug),
-  );
+  const slug =
+    existingRow?.published_at?.trim()
+      ? existingRow.slug
+      : createUniqueSlug(
+          title,
+          existingRows.filter((row) => row.id !== existingRow?.id).map((row) => row.slug),
+          existingRow?.slug,
+        );
   const prepTime = Math.max(0, Math.round(Number(input.prepTime ?? 0)));
   const cookTime = Math.max(0, Math.round(Number(input.cookTime ?? 0)));
   const servings = Math.max(1, Math.round(Number(input.servings ?? 1)));
@@ -168,6 +175,7 @@ function normalizeRecipeInput(
     title,
     description: input.description?.trim() || "",
     imageUrl,
+    imageFileMeta: input.imageFileMeta ?? null,
     categorySlug: input.categorySlug.trim() || "salgadas",
     tags,
     status: input.status === "published" ? "published" : "draft",
@@ -176,14 +184,17 @@ function normalizeRecipeInput(
     totalTime: prepTime + cookTime,
     servings,
     accessTier,
-    priceBRL: accessTier === "paid" ? Number(priceBRL.toFixed(2)) : undefined,
+    priceBRL: accessTier === "paid" ? Number(priceBRL.toFixed(2)) : null,
     ingredients,
     instructions,
     excerpt: input.excerpt?.trim() || "",
     seoTitle: input.seoTitle?.trim() || "",
     seoDescription: input.seoDescription?.trim() || "",
     isFeatured: Boolean(input.isFeatured),
-    publishedAt: input.status === "published" ? input.publishedAt ?? nowIso() : null,
+    publishedAt:
+      input.status === "published"
+        ? input.publishedAt ?? existingRow?.published_at ?? nowIso()
+        : existingRow?.published_at || null,
     createdAt: input.createdAt,
     createdByUserId: input.createdByUserId ?? null,
   };
@@ -311,6 +322,7 @@ export async function createRecipe(input: RecipeMutationInput) {
       title: normalized.title,
       description: normalized.description,
       image_url: normalized.imageUrl,
+      image_file_meta_json: toJsonString(normalized.imageFileMeta),
       category_slug: normalized.categorySlug,
       tags_json: toJsonString(normalized.tags),
       status: normalized.status,
@@ -319,7 +331,7 @@ export async function createRecipe(input: RecipeMutationInput) {
       total_time: String(normalized.totalTime),
       servings: String(normalized.servings),
       access_tier: normalized.accessTier,
-      price_brl: normalized.priceBRL === undefined ? "" : String(normalized.priceBRL),
+      price_brl: normalized.priceBRL === null ? "" : String(normalized.priceBRL),
       created_at: input.createdAt || now,
       updated_at: now,
       published_at: normalized.publishedAt ?? "",
@@ -343,7 +355,7 @@ export async function updateRecipe(id: string, input: RecipeMutationInput) {
     throw new ApiError(404, "Recipe not found");
   }
 
-  const normalized = normalizeRecipeInput(input, recipeRows, id);
+  const normalized = normalizeRecipeInput(input, recipeRows, existing);
   const now = nowIso();
 
   await mutateTable("recipes", async (current) =>
@@ -355,6 +367,7 @@ export async function updateRecipe(id: string, input: RecipeMutationInput) {
         title: normalized.title,
         description: normalized.description,
         image_url: normalized.imageUrl,
+        image_file_meta_json: toJsonString(normalized.imageFileMeta),
         category_slug: normalized.categorySlug,
         tags_json: toJsonString(normalized.tags),
         status: normalized.status,
@@ -363,7 +376,7 @@ export async function updateRecipe(id: string, input: RecipeMutationInput) {
         total_time: String(normalized.totalTime),
         servings: String(normalized.servings),
         access_tier: normalized.accessTier,
-        price_brl: normalized.priceBRL === undefined ? "" : String(normalized.priceBRL),
+        price_brl: normalized.priceBRL === null ? "" : String(normalized.priceBRL),
         updated_at: now,
         published_at: normalized.publishedAt ?? "",
         created_by_user_id: normalized.createdByUserId ?? row.created_by_user_id,

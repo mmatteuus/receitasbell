@@ -1,39 +1,16 @@
-import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ShoppingCart, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useCart } from "@/hooks/use-cart";
 import { formatBRL } from "@/lib/helpers";
-import { listRecipes } from "@/lib/api/recipes";
 import { PriceBadge } from "@/components/price-badge";
-import type { Recipe } from "@/types/recipe";
-import { getRecipeImage, getRecipePresentation } from "@/lib/recipes/presentation";
 
 export default function CartPage() {
-  const { items, remove, clear } = useCart();
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const { items, remove, clear, getTotal } = useCart();
+  const total = getTotal();
 
-  useEffect(() => {
-    async function loadRecipes() {
-      if (!items.length) {
-        setRecipes([]);
-        return;
-      }
-
-      try {
-        setRecipes(await listRecipes({ ids: items }));
-      } catch (error) {
-        console.error("Failed to load cart recipes", error);
-      }
-    }
-
-    void loadRecipes();
-  }, [items]);
-
-  const total = recipes.reduce((sum, r) => sum + (r.priceBRL || 0), 0);
-
-  if (recipes.length === 0) {
+  if (items.length === 0) {
     return (
       <div className="container flex min-h-[50vh] flex-col items-center justify-center gap-4 px-4 py-20 text-center">
         <ShoppingCart className="h-16 w-16 text-muted-foreground/30" />
@@ -49,24 +26,24 @@ export default function CartPage() {
   return (
     <div className="container max-w-2xl px-4 py-8 sm:py-12">
       <h1 className="font-heading text-2xl font-bold sm:text-3xl">Carrinho</h1>
-      <p className="mt-1 text-sm text-muted-foreground">{recipes.length} {recipes.length === 1 ? "receita" : "receitas"}</p>
+      <p className="mt-1 text-sm text-muted-foreground">{items.length} {items.length === 1 ? "receita" : "receitas"}</p>
 
       <div className="mt-6 space-y-4">
-        {recipes.map((r) => (
-          <div key={r.id} className="flex gap-3 rounded-xl border bg-card p-3 shadow-sm sm:gap-4 sm:p-4">
-            <Link to={`/receitas/${r.slug}`} className="h-20 w-20 shrink-0 overflow-hidden rounded-lg sm:h-24 sm:w-24">
-              <img src={getRecipeImage(r)} alt={r.title} className="h-full w-full object-cover" />
+        {items.map((item) => (
+          <div key={item.recipeId} className="flex gap-3 rounded-xl border bg-card p-3 shadow-sm sm:gap-4 sm:p-4">
+            <Link to={`/receitas/${item.slug}`} className="h-20 w-20 shrink-0 overflow-hidden rounded-lg sm:h-24 sm:w-24">
+              <img src={item.imageUrl} alt={item.title} className="h-full w-full object-cover" />
             </Link>
             <div className="flex flex-1 flex-col justify-between min-w-0">
               <div>
-                <Link to={`/receitas/${r.slug}`} className="font-semibold text-sm sm:text-base line-clamp-1 hover:underline">
-                  {getRecipePresentation(r).cardTitle}
+                <Link to={`/receitas/${item.slug}`} className="font-semibold text-sm sm:text-base line-clamp-1 hover:underline">
+                  {item.title}
                 </Link>
-                <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{getRecipePresentation(r).cardSubtitle}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground line-clamp-1">Receita premium pronta para checkout</p>
               </div>
               <div className="flex items-center justify-between mt-2">
-                <PriceBadge accessTier={r.accessTier} priceBRL={r.priceBRL} />
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(r.id)}>
+                <PriceBadge accessTier="paid" priceBRL={item.priceBRL} />
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => remove(item.recipeId)}>
                   <X className="h-4 w-4" />
                 </Button>
               </div>
@@ -79,7 +56,7 @@ export default function CartPage() {
 
       <div className="flex items-center justify-between text-lg font-bold">
         <span>Total</span>
-        <span>{formatBRL(Math.round(total * 100) / 100)}</span>
+        <span>{formatBRL(total)}</span>
       </div>
 
       <div className="mt-6 flex flex-col gap-3 sm:flex-row">

@@ -1,7 +1,17 @@
-import { createCategory as createCategoryRequest, listCategories } from "@/lib/api/categories";
+import {
+  createCategory as createCategoryRequest,
+  deleteCategory as deleteCategoryRequest,
+  listCategories,
+  updateCategory as updateCategoryRequest,
+} from "@/lib/api/categories";
 
 export async function getCategories() {
   return listCategories();
+}
+
+export async function getCategoryById(id: string) {
+  const categories = await getCategories();
+  return categories.find((category) => category.id === id);
 }
 
 export async function getCategoryBySlug(slug: string) {
@@ -13,6 +23,10 @@ export async function addCategory(cat: { name: string; emoji?: string; descripti
   return createCategoryRequest(cat);
 }
 
-export async function removeCategory() {
-  throw new Error("Category removal is not implemented in this migration.");
+export async function editCategory(id: string, cat: { name: string; emoji?: string; description?: string }) {
+  return updateCategoryRequest(id, cat);
+}
+
+export async function removeCategory(id: string) {
+  return deleteCategoryRequest(id);
 }

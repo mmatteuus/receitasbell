@@ -16,7 +16,7 @@ import {
   withApiHandler,
 } from "../src/server/http.js";
 import { consumeAdminRateLimit } from "../src/server/rateLimit.js";
-import { createCategory, listCategories } from "../src/server/sheets/categoriesRepo.js";
+import { createCategory, deleteCategory, listCategories, updateCategory } from "../src/server/sheets/categoriesRepo.js";
 import { createComment, listCommentsByRecipeId } from "../src/server/sheets/commentsRepo.js";
 import { createFavorite, deleteFavorite, listFavoritesByUserId } from "../src/server/sheets/favoritesRepo.js";
 import { subscribeToNewsletter } from "../src/server/sheets/newsletterRepo.js";
@@ -37,6 +37,7 @@ import {
 } from "../src/server/sheets/shoppingListRepo.js";
 import { findOrCreateUserByEmail } from "../src/server/sheets/usersRepo.js";
 import { upsertRating } from "../src/server/sheets/ratingsRepo.js";
+import { deleteRecipeImage, uploadRecipeImage } from "../src/lib/services/googleDriveService.js";
 import {
   categorySchema,
   checkoutSchema,
@@ -48,6 +49,7 @@ import {
   settingsSchema,
   shoppingListCreateSchema,
   shoppingListUpdateSchema,
+  uploadRecipeImageSchema,
 } from "../src/server/validators.js";
 
 function getApiPathSegments(request: VercelRequest) {
@@ -257,6 +259,20 @@ export default async function handler(request: VercelRequest, response: VercelRe
       return sendJson(response, 201, { category });
     }
 
+    if (resource === "categories" && resourceId) {
+      if (request.method === "PUT") {
+        requireAdminAccess(request);
+        const body = categorySchema.parse(await readJsonBody(request));
+        const category = await updateCategory(resourceId, body);
+        return sendJson(response, 200, { category });
+      }
+
+      assertMethod(request, ["DELETE"]);
+      requireAdminAccess(request);
+      await deleteCategory(resourceId);
+      return sendNoContent(response);
+    }
+
     if (resource === "comments" && !resourceId) {
       if (request.method === "GET") {
         const recipeId = requireQueryParam(request, "recipeId");
@@ -412,12 +428,32 @@ export default async function handler(request: VercelRequest, response: VercelRe
       const user = await findOrCreateUserByEmail(buyerEmail);
       const result = await createMockCheckout({
         recipeIds: body.recipeIds,
+        items: body.items,
+        payerName: body.payerName,
         buyerEmail,
         userId: user.id,
         checkoutReference: body.checkoutReference,
       });
 
       return sendJson(response, 201, result);
+    }
+
+    if (resource === "uploads" && resourceId === "recipe-image") {
+      if (request.method === "POST") {
+        requireAdminAccess(request);
+        const body = uploadRecipeImageSchema.parse(await readJsonBody(request));
+        const imageFileMeta = await uploadRecipeImage(body);
+        return sendJson(response, 201, {
+          imageUrl: imageFileMeta.publicUrl,
+          imageFileMeta,
+        });
+      }
+
+      assertMethod(request, ["DELETE"]);
+      requireAdminAccess(request);
+      const fileId = requireQueryParam(request, "fileId");
+      await deleteRecipeImage(fileId);
+      return sendNoContent(response);
     }
 
     if (resource === "newsletter" && !resourceId) {

@@ -3,14 +3,17 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { formatBRL } from "@/lib/helpers";
 import { useCart } from "@/hooks/use-cart";
+import { buildCartItemFromRecipe } from "@/lib/utils/recipeAccess";
 
 interface PaywallBoxProps {
   priceBRL: number;
   recipeId: string;
   recipeSlug: string;
+  recipeTitle?: string;
+  imageUrl?: string;
 }
 
-export function PaywallBox({ priceBRL, recipeId, recipeSlug }: PaywallBoxProps) {
+export function PaywallBox({ priceBRL, recipeId, recipeSlug, recipeTitle = "Receita premium", imageUrl = "/placeholder.svg" }: PaywallBoxProps) {
   const { has, add } = useCart();
   const inCart = has(recipeId);
 
@@ -33,7 +36,17 @@ export function PaywallBox({ priceBRL, recipeId, recipeSlug }: PaywallBoxProps) 
             variant="outline"
             size="lg"
             className="flex-1 gap-2"
-            onClick={() => add(recipeId)}
+            onClick={() =>
+              add(
+                buildCartItemFromRecipe({
+                  id: recipeId,
+                  title: recipeTitle,
+                  slug: recipeSlug,
+                  priceBRL,
+                  imageUrl,
+                }),
+              )
+            }
             disabled={inCart}
           >
             <ShoppingCart className="h-4 w-4" />

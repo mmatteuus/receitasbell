@@ -10,6 +10,7 @@ import { getRecipeImage, getRecipePresentation } from "@/lib/recipes/presentatio
 import { useAppContext } from "@/contexts/app-context";
 import { resolveCategoryDisplay } from "@/lib/categoriesDisplay";
 import SmartImage from "@/components/SmartImage";
+import { buildCartItemFromRecipe } from "@/lib/utils/recipeAccess";
 
 interface RecipeCardProps {
   recipe: Recipe;
@@ -87,7 +88,7 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
           <Button
             size="sm"
             className="mt-3 w-full gap-2 rounded-xl bg-gradient-to-r from-primary to-secondary text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-2xl"
-            onClick={(e) => { e.preventDefault(); addToCart(recipe.id); }}
+            onClick={(e) => { e.preventDefault(); addToCart(buildCartItemFromRecipe(recipe)); }}
             disabled={inCart(recipe.id)}
           >
             <ShoppingCart className="h-3.5 w-3.5" />

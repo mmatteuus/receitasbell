@@ -1,4 +1,4 @@
-import type { Recipe } from "@/types/recipe";
+import type { ImageFileMeta, Recipe } from "@/types/recipe";
 import { buildQuery, jsonFetch } from "./client";
 import { filterInternetRecipes, getInternetRecipes, isInternetFallbackEnabled } from "./internetRecipes";
 import { normalizeRecipeForUI } from "@/lib/recipes/presentation";
@@ -9,6 +9,7 @@ export type RecipeMutationPayload = {
   title: string;
   description?: string;
   imageUrl?: string;
+  imageFileMeta?: ImageFileMeta | null;
   categorySlug: string;
   tags?: string[];
   status?: "draft" | "published";

@@ -58,7 +58,7 @@ export function PaymentsTable({ data }: PaymentsTableProps) {
             )
         },
         {
-            accessorKey: "date_created",
+            accessorKey: "createdAt",
             header: ({ column }) => {
                 return (
                   <Button
@@ -70,22 +70,27 @@ export function PaymentsTable({ data }: PaymentsTableProps) {
                   </Button>
                 )
             },
-            cell: ({ row }) => new Date(row.original.date_created).toLocaleDateString()
+            cell: ({ row }) => new Date(row.original.createdAt).toLocaleDateString()
         },
         {
-            accessorKey: "external_reference",
-            header: "Receita"
+            accessorKey: "items",
+            header: "Itens",
+            cell: ({ row }) => (
+                <div className="max-w-[240px] truncate">
+                    {row.original.items.map((item) => item.title).join(", ")}
+                </div>
+            )
         },
         {
             accessorKey: "payer.email",
             header: "Cliente"
         },
         {
-            accessorKey: "payment_method_id",
+            accessorKey: "paymentMethod",
             header: "Método"
         },
         {
-            accessorKey: "transaction_amount",
+            accessorKey: "totalBRL",
             header: ({ column }) => {
                 return (
                   <Button
@@ -101,7 +106,7 @@ export function PaymentsTable({ data }: PaymentsTableProps) {
                 const formatted = new Intl.NumberFormat("pt-BR", {
                   style: "currency",
                   currency: "BRL",
-                }).format(row.original.transaction_amount)
+                }).format(row.original.totalBRL)
            
                 return <div className="text-right font-medium">{formatted}</div>
             }
@@ -109,7 +114,7 @@ export function PaymentsTable({ data }: PaymentsTableProps) {
         {
             accessorKey: "status",
             header: "Status",
-            cell: ({ row }) => <StatusBadge status={row.original.status} statusDetail={row.original.status_detail} />
+            cell: ({ row }) => <StatusBadge status={row.original.status} statusDetail={row.original.statusDetail} />
         },
         {
             id: "actions",
@@ -123,8 +128,8 @@ export function PaymentsTable({ data }: PaymentsTableProps) {
 
     useEffect(() => {
         setColumnVisibility({
-            external_reference: !isMobile,
-            payment_method_id: !isMobile,
+            items: !isMobile,
+            paymentMethod: !isMobile,
             actions: !isMobile,
         })
     }, [isMobile])

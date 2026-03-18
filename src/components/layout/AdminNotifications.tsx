@@ -6,7 +6,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { listPayments } from "@/lib/api/payments";
+import { paymentRepo } from "@/lib/repos/paymentRepo";
 import type { Payment } from "@/lib/payments/types";
 import { cn } from "@/lib/utils";
 
@@ -22,7 +22,7 @@ export function AdminNotifications() {
       try {
         const cutoff = new Date();
         cutoff.setDate(cutoff.getDate() - 7);
-        const payments = await listPayments({ dateFrom: cutoff.toISOString() });
+        const payments = await paymentRepo.list({ dateFrom: cutoff.toISOString() });
         setRecentPayments(payments.slice(0, 10));
       } catch (error) {
         console.error("Failed to load admin notifications", error);
@@ -35,7 +35,7 @@ export function AdminNotifications() {
   const unseenCount = useMemo(() => {
     if (!lastSeen) return recentPayments.length;
     return recentPayments.filter(
-      (p) => new Date(p.date_created) > new Date(lastSeen)
+      (p) => new Date(p.createdAt) > new Date(lastSeen)
     ).length;
   }, [recentPayments, lastSeen]);
 
@@ -93,7 +93,7 @@ export function AdminNotifications() {
                 key={p.id}
                 className={cn(
                   "flex items-start gap-3 border-b last:border-0 px-4 py-3 text-sm",
-                  !lastSeen || new Date(p.date_created) > new Date(lastSeen)
+                  !lastSeen || new Date(p.createdAt) > new Date(lastSeen)
                     ? "bg-muted/40"
                     : ""
                 )}
@@ -106,10 +106,10 @@ export function AdminNotifications() {
                     </span>
                   </p>
                   <p className="text-xs text-muted-foreground truncate">
-                    {p.payer.email} · R$ {p.transaction_amount.toFixed(2)}
+                    {p.payer.email} · R$ {p.totalBRL.toFixed(2)}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {new Date(p.date_created).toLocaleDateString("pt-BR", {
+                    {new Date(p.createdAt).toLocaleDateString("pt-BR", {
                       day: "2-digit",
                       month: "2-digit",
                       hour: "2-digit",

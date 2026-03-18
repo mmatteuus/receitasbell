@@ -1,4 +1,5 @@
-import type { Comment } from "@/types/recipe";
+import type { CartItem, Comment } from "@/types/recipe";
+import type { PaymentStatus } from "@/types/payment";
 import { buildQuery, jsonFetch } from "./client";
 
 export interface FavoriteRecord {
@@ -110,17 +111,21 @@ export async function subscribeToNewsletter(input: { email: string; name?: strin
 
 export async function createCheckout(input: {
   recipeIds: string[];
+  items?: CartItem[];
+  payerName?: string;
   buyerEmail: string;
   checkoutReference: string;
 }) {
   return jsonFetch<{
-    payments: Array<{ id: string; external_reference: string }>;
+    payment: { id: string } | null;
+    payments: Array<{ id: string; external_reference?: string }>;
+    paymentId: string | null;
     paymentIds: string[];
     primaryPaymentId: string | null;
+    status: PaymentStatus;
     unlockedCount: number;
   }>("/api/checkout", {
     method: "POST",
     body: input,
   });
 }
-

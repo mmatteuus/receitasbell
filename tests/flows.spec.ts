@@ -180,7 +180,8 @@ test.describe("ReceitasBell user flows", () => {
 
       await expect(page.getByRole("heading", { name: "Editar Receita" })).toBeVisible();
       await expect(page.getByPlaceholder("Ex: Bolo de Cenoura")).toHaveValue(recipeTitle);
-      await expect(fieldByLabel(page, "Slug")).toHaveValue(recipeSlug);
+      await expect(page.getByText(`/${recipeSlug}`)).toBeVisible();
+      await expect(page.getByText("O slug é gerado a partir do título e fica fixo após a primeira publicação.")).toBeVisible();
       await expect(fieldByLabel(page, "Descrição", "textarea")).toHaveValue("Receita criada para validar o admin.");
     } finally {
       await deleteRecipeFixture(page, recipe.id);

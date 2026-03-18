@@ -1,11 +1,27 @@
-export type RecipeStatus = 'draft' | 'published';
-export type AccessTier = 'free' | 'paid';
+export type RecipeStatus = "draft" | "published";
+export type AccessTier = "free" | "paid";
+export type StorageProvider = "google_drive" | "fallback";
+
+export interface ImageFileMeta {
+  storage: StorageProvider;
+  fileId: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+  uploadedAt: string;
+  publicUrl: string;
+  thumbnailUrl?: string | null;
+  driveFolderId?: string | null;
+}
 
 export interface Category {
+  id: string;
   name: string;
   slug: string;
-  emoji: string;
   description: string;
+  createdAt: string;
+  updatedAt?: string | null;
+  emoji?: string | null;
 }
 
 export interface Comment {
@@ -24,8 +40,9 @@ export interface Recipe {
   slug: string;
   title: string;
   description: string;
-  image?: string; // compatible fallback for legacy consumers
+  image?: string; // legacy alias kept for existing consumers
   imageUrl?: string;
+  imageFileMeta?: ImageFileMeta | null;
 
   categorySlug: string;
   tags: string[];
@@ -37,7 +54,7 @@ export interface Recipe {
   servings: number;
 
   accessTier: AccessTier;
-  priceBRL?: number; // e.g. 9.90
+  priceBRL?: number | null; // canonical value in reais
 
   fullIngredients: string[];
   fullInstructions: string[];
@@ -53,4 +70,12 @@ export interface Recipe {
   createdAt: string;
   updatedAt: string;
   publishedAt?: string | null;
+}
+
+export interface CartItem {
+  recipeId: string;
+  title: string;
+  slug: string;
+  priceBRL: number;
+  imageUrl: string;
 }

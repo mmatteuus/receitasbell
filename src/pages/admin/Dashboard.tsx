@@ -7,7 +7,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { getRecipes } from "@/lib/repos/recipeRepo";
-import { listPayments } from "@/lib/api/payments";
+import { paymentRepo } from "@/lib/repos/paymentRepo";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -30,7 +30,7 @@ export default function Dashboard() {
       try {
         const [recipeRows, paymentRows] = await Promise.all([
           getRecipes(),
-          listPayments(),
+          paymentRepo.list(),
         ]);
         setRecipes(recipeRows);
         setAllPayments(paymentRows);
@@ -53,7 +53,7 @@ export default function Dashboard() {
   }, [days]);
 
   const payments = useMemo(
-    () => allPayments.filter((payment) => new Date(payment.date_created) >= cutoff),
+    () => allPayments.filter((payment) => new Date(payment.createdAt) >= cutoff),
     [allPayments, cutoff],
   );
   const approvedPayments = useMemo(
@@ -61,7 +61,7 @@ export default function Dashboard() {
     [payments],
   );
 
-  const totalRevenue = approvedPayments.reduce((sum, payment) => sum + payment.transaction_amount, 0);
+  const totalRevenue = approvedPayments.reduce((sum, payment) => sum + payment.totalBRL, 0);
   const avgTicket = approvedPayments.length > 0 ? totalRevenue / approvedPayments.length : 0;
 
   const stats = [
@@ -82,8 +82,8 @@ export default function Dashboard() {
       bucket[date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })] = 0;
     }
     approvedPayments.forEach((payment) => {
-      const key = new Date(payment.date_created).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
-      if (key in bucket) bucket[key] += payment.transaction_amount;
+      const key = new Date(payment.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+      if (key in bucket) bucket[key] += payment.totalBRL;
     });
     return Object.entries(bucket).map(([date, amount]) => ({ date, amount: Number(amount.toFixed(2)) }));
   }, [approvedPayments, days]);
@@ -91,9 +91,11 @@ export default function Dashboard() {
   const popularRecipes = useMemo(() => {
     const counts: Record<string, { count: number; revenue: number }> = {};
     approvedPayments.forEach((payment) => {
-      if (!counts[payment.external_reference]) counts[payment.external_reference] = { count: 0, revenue: 0 };
-      counts[payment.external_reference].count += 1;
-      counts[payment.external_reference].revenue += payment.transaction_amount;
+      payment.items.forEach((item) => {
+        if (!counts[item.slug]) counts[item.slug] = { count: 0, revenue: 0 };
+        counts[item.slug].count += 1;
+        counts[item.slug].revenue += item.priceBRL;
+      });
     });
     return Object.entries(counts)
       .map(([name, data]) => ({ name: name.replace(/-/g, " ").replace(/\b\w/g, (char) => char.toUpperCase()), ...data }))

@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { Search as SearchIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { listRecipes } from "@/lib/api/recipes";
+import { listPublicRecipes } from "@/lib/repos/recipeRepo";
 import { useAppContext } from "@/contexts/app-context";
 import RecipeCard from "@/components/RecipeCard";
 import type { Recipe } from "@/types/recipe";
@@ -83,7 +83,7 @@ export default function SearchPage() {
     async function fetchResults() {
       setLoading(true);
       try {
-        const recipes = await listRecipes({
+        const recipes = await listPublicRecipes({
           q: searchParams.get("q") || undefined,
           categorySlug: readCategoryParam(searchParams) || undefined,
         });

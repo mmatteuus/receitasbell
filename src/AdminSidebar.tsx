@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Utensils, CreditCard, LogOut,
-  ChevronLeft, ChevronRight, Moon, Sun, Menu, X, Settings, Home
+  ChevronLeft, ChevronRight, Moon, Sun, Menu, X, Settings, Home, FolderTree
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { logoutAdmin } from "@/lib/api/adminSession";
@@ -54,6 +54,7 @@ export function AdminSidebarProvider({ children }: { children: ReactNode }) {
 const sidebarItems = [
   { title: "Dashboard", href: "/admin", icon: LayoutDashboard, exact: true },
   { title: "Receitas", href: "/admin/receitas", icon: Utensils },
+  { title: "Categorias", href: "/admin/categorias", icon: FolderTree },
   { title: "Pagamentos", href: "/admin/pagamentos", icon: CreditCard },
   { title: "Configurações", href: "/admin/configuracoes", icon: Settings },
   { title: "Página Inicial", href: "/admin/configuracoes/pagina-inicial", icon: Home },

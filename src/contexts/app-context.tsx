@@ -10,7 +10,6 @@ import {
 import { toast } from "sonner";
 import { DEFAULT_CATEGORIES, DEFAULT_HOME_SETTINGS, DEFAULT_PAYMENT_SETTINGS, DEFAULT_SITE_SETTINGS } from "@/lib/defaults";
 import { addFavorite, deleteFavorite, type FavoriteRecord, listFavorites } from "@/lib/api/interactions";
-import { listCategories } from "@/lib/api/categories";
 import { getSettings } from "@/lib/api/settings";
 import { ApiClientError } from "@/lib/api/client";
 import {
@@ -26,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { trackEvent } from "@/lib/telemetry";
+import { getCategories } from "@/lib/repos/categoryRepo";
 
 type AppContextValue = {
   categories: Category[];
@@ -89,7 +89,7 @@ export function AppProvider({ children }: PropsWithChildren) {
   const refreshCategories = useCallback(async () => {
     setCategoriesLoading(true);
     try {
-      const next = await listCategories();
+      const next = await getCategories();
       setCategories(next);
       return next;
     } catch (error) {

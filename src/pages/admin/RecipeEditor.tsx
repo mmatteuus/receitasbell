@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Plus, Save, Globe, AlertCircle } from "lucide-react";
+import { Plus, Save, Globe, AlertCircle, ImagePlus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,10 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getRecipeById, getRecipes, saveRecipe, uniqueSlug } from "@/lib/repos/recipeRepo";
+import { getRecipeById, getRecipes, removeRecipeImageFile, saveRecipe, uniqueSlug, uploadRecipeImageFile } from "@/lib/repos/recipeRepo";
 import { addCategory } from "@/lib/repos/categoryRepo";
 import { useAppContext } from "@/contexts/app-context";
-import type { AccessTier, Recipe, RecipeStatus } from "@/types/recipe";
+import type { AccessTier, ImageFileMeta, Recipe, RecipeStatus } from "@/types/recipe";
+import { normalizeBRLInput, parseBRLInput } from "@/lib/helpers";
+import { createImagePreview, revokeImagePreview } from "@/lib/services/storageFallback";
 import { toast } from "sonner";
 
 type EditorState = {
@@ -22,12 +24,15 @@ type EditorState = {
   slug: string;
   description: string;
   imageUrl: string;
+  imageFileMeta: ImageFileMeta | null;
+  imagePreviewUrl: string;
   categorySlug: string;
   prepTime: number;
   cookTime: number;
   servings: number;
   accessTier: AccessTier;
-  priceBRL?: number;
+  priceBRL: number | null;
+  priceInput: string;
   ingredientsText: string;
   instructionsText: string;
   tagsText: string;
@@ -45,11 +50,15 @@ const EMPTY_STATE: EditorState = {
   slug: "",
   description: "",
   imageUrl: "",
+  imageFileMeta: null,
+  imagePreviewUrl: "",
   categorySlug: "salgadas",
   prepTime: 0,
   cookTime: 0,
   servings: 1,
   accessTier: "free",
+  priceBRL: null,
+  priceInput: "",
   ingredientsText: "",
   instructionsText: "",
   tagsText: "",
@@ -67,12 +76,15 @@ function mapRecipeToState(recipe: Recipe): EditorState {
     slug: recipe.slug,
     description: recipe.description,
     imageUrl: recipe.imageUrl || recipe.image || "",
+    imageFileMeta: recipe.imageFileMeta ?? null,
+    imagePreviewUrl: recipe.imageUrl || recipe.image || "",
     categorySlug: recipe.categorySlug,
     prepTime: recipe.prepTime,
     cookTime: recipe.cookTime,
     servings: recipe.servings,
     accessTier: recipe.accessTier,
-    priceBRL: recipe.priceBRL,
+    priceBRL: recipe.priceBRL ?? null,
+    priceInput: recipe.priceBRL ? normalizeBRLInput(recipe.priceBRL) : "",
     ingredientsText: recipe.fullIngredients.join("\n"),
     instructionsText: recipe.fullInstructions.join("\n"),
     tagsText: recipe.tags.join(", "),
@@ -102,6 +114,7 @@ export default function RecipeEditor() {
   const [existingRecipes, setExistingRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [newCategoryOpen, setNewCategoryOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCategoryEmoji, setNewCategoryEmoji] = useState("");
@@ -138,10 +151,12 @@ export default function RecipeEditor() {
   const errors = useMemo(() => {
     const next: string[] = [];
     if (!form.title.trim()) next.push("Título é obrigatório");
+    if (!form.imageUrl.trim()) next.push("Imagem é obrigatória");
     if (!parseLines(form.ingredientsText).length) next.push("Adicione pelo menos 1 ingrediente");
     if (!parseLines(form.instructionsText).length) next.push("Adicione pelo menos 1 passo");
-    if (form.accessTier === "paid" && (!form.priceBRL || form.priceBRL <= 0)) next.push("Receita paga precisa de preço");
-    if (form.imageUrl.trim().startsWith("data:")) next.push("Use uma URL remota de imagem, não base64");
+    if (form.accessTier === "paid" && (!parseBRLInput(form.priceInput) || parseBRLInput(form.priceInput)! <= 0)) {
+      next.push("Receita paga precisa de preço");
+    }
     return next;
   }, [form]);
 
@@ -153,7 +168,61 @@ export default function RecipeEditor() {
     setForm((current) => ({
       ...current,
       title,
-      slug: uniqueSlug(title, existingRecipes, current.id),
+      slug: current.publishedAt ? current.slug : uniqueSlug(title, existingRecipes, current.id),
+    }));
+  }
+
+  async function handleImageSelect(file: File | null) {
+    if (!file) {
+      return;
+    }
+
+    const previousImageMeta = form.imageFileMeta;
+    const localPreviewUrl = createImagePreview(file);
+    setUploadingImage(true);
+    setForm((current) => ({
+      ...current,
+      imagePreviewUrl: localPreviewUrl,
+    }));
+
+    try {
+      const uploaded = await uploadRecipeImageFile(file);
+      setForm((current) => ({
+        ...current,
+        imageUrl: uploaded.imageUrl,
+        imageFileMeta: uploaded.imageFileMeta,
+        imagePreviewUrl: uploaded.imageUrl,
+      }));
+      revokeImagePreview(localPreviewUrl);
+      if (previousImageMeta?.storage === "google_drive" && previousImageMeta.fileId !== uploaded.imageFileMeta.fileId) {
+        await removeRecipeImageFile(previousImageMeta);
+      }
+      toast.success("Imagem enviada");
+    } catch (error) {
+      console.error("Failed to upload image", error);
+      revokeImagePreview(localPreviewUrl);
+      setForm((current) => ({
+        ...current,
+        imagePreviewUrl: current.imageUrl,
+      }));
+      toast.error("Nao foi possivel enviar a imagem.");
+    } finally {
+      setUploadingImage(false);
+    }
+  }
+
+  async function handleRemoveImage() {
+    try {
+      await removeRecipeImageFile(form.imageFileMeta);
+    } catch (error) {
+      console.error("Failed to delete image", error);
+    }
+
+    setForm((current) => ({
+      ...current,
+      imageUrl: "",
+      imageFileMeta: null,
+      imagePreviewUrl: "",
     }));
   }
 
@@ -187,18 +256,21 @@ export default function RecipeEditor() {
 
     setSaving(true);
     try {
+      const parsedPrice = parseBRLInput(form.priceInput);
+      const nextSlug = form.publishedAt ? form.slug : uniqueSlug(form.title, existingRecipes, form.id);
       await saveRecipe({
         id: form.id,
         title: form.title.trim(),
-        slug: form.slug.trim() || uniqueSlug(form.title, existingRecipes, form.id),
+        slug: nextSlug,
         description: form.description.trim(),
         imageUrl: form.imageUrl.trim(),
+        imageFileMeta: form.imageFileMeta,
         categorySlug: form.categorySlug,
         prepTime: Number(form.prepTime || 0),
         cookTime: Number(form.cookTime || 0),
         servings: Number(form.servings || 1),
         accessTier: form.accessTier,
-        priceBRL: form.accessTier === "paid" ? Number(form.priceBRL || 0) : undefined,
+        priceBRL: form.accessTier === "paid" ? parsedPrice : null,
         fullIngredients: parseLines(form.ingredientsText),
         fullInstructions: parseLines(form.instructionsText),
         tags: form.tagsText.split(",").map((item) => item.trim()).filter(Boolean),
@@ -236,10 +308,10 @@ export default function RecipeEditor() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => void handleSave("draft")} disabled={saving}>
+          <Button variant="outline" onClick={() => void handleSave("draft")} disabled={saving || uploadingImage}>
             <Save className="mr-2 h-4 w-4" /> Salvar rascunho
           </Button>
-          <Button onClick={() => void handleSave("published")} disabled={saving}>
+          <Button onClick={() => void handleSave("published")} disabled={saving || uploadingImage}>
             <Globe className="mr-2 h-4 w-4" /> Publicar
           </Button>
         </div>
@@ -267,8 +339,11 @@ export default function RecipeEditor() {
           </div>
 
           <div className="space-y-2">
-            <Label>Slug</Label>
-            <Input value={form.slug} onChange={(event) => setField("slug", event.target.value)} placeholder="bolo-de-cenoura" />
+            <Label>Slug automático</Label>
+            <div className="rounded-lg border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+              /{form.publishedAt ? form.slug : uniqueSlug(form.title || "receita", existingRecipes, form.id)}
+            </div>
+            <p className="text-xs text-muted-foreground">O slug é gerado a partir do título e fica fixo após a primeira publicação.</p>
           </div>
 
           <div className="space-y-2">
@@ -312,15 +387,28 @@ export default function RecipeEditor() {
             </div>
 
             <div className="space-y-2">
-              <Label>URL da imagem</Label>
-              <Input value={form.imageUrl} onChange={(event) => setField("imageUrl", event.target.value)} placeholder="https://..." />
-              <p className="text-xs text-muted-foreground">Use apenas URL remota. Upload local/base64 não é persistido no banco.</p>
+              <Label>Imagem da receita</Label>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  disabled={uploadingImage}
+                  onChange={(event) => void handleImageSelect(event.target.files?.[0] || null)}
+                />
+                <Button type="button" variant="outline" disabled={!form.imageUrl || uploadingImage} onClick={() => void handleRemoveImage()}>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Remover
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                A imagem é enviada para storage externo e o Google Sheets guarda apenas URL e metadados.
+              </p>
             </div>
           </div>
 
-          {form.imageUrl && (
+          {(form.imagePreviewUrl || form.imageUrl) && (
             <div className="overflow-hidden rounded-xl border">
-              <img src={form.imageUrl} alt="Preview" className="h-56 w-full object-cover" />
+              <img src={form.imagePreviewUrl || form.imageUrl} alt="Preview" className="h-56 w-full object-cover" />
             </div>
           )}
 
@@ -353,12 +441,13 @@ export default function RecipeEditor() {
             <div className="space-y-2">
               <Label>Preço (R$)</Label>
               <Input
-                type="number"
-                min="0"
-                step="0.01"
-                value={form.priceBRL ?? ""}
+                type="text"
+                inputMode="decimal"
+                value={form.priceInput}
                 disabled={form.accessTier !== "paid"}
-                onChange={(event) => setField("priceBRL", Number(event.target.value || 0))}
+                onChange={(event) => setField("priceInput", event.target.value)}
+                onBlur={() => setField("priceInput", normalizeBRLInput(form.priceInput))}
+                placeholder="7,90"
               />
             </div>
           </div>

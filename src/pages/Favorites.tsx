@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Heart } from "lucide-react";
-import { listRecipes } from "@/lib/api/recipes";
+import { listPublicRecipes } from "@/lib/repos/recipeRepo";
 import { useAppContext } from "@/contexts/app-context";
 import { useFavorites } from "@/hooks/use-favorites";
 import RecipeCard from "@/components/RecipeCard";
@@ -25,7 +25,7 @@ export default function Favorites() {
       }
 
       try {
-        setRecipes(await listRecipes({ ids: favorites }));
+        setRecipes(await listPublicRecipes({ ids: favorites }));
       } catch (error) {
         console.error("Failed to load favorites", error);
       }

@@ -17,6 +17,7 @@ Obrigatórias:
 - `GOOGLE_CLIENT_EMAIL`
 - `GOOGLE_PRIVATE_KEY`
 - `GOOGLE_SPREADSHEET_ID`
+- `GOOGLE_DRIVE_FOLDER_ID` para upload de imagens do admin
 - `APP_BASE_URL`
 - `ADMIN_API_SECRET`
 
@@ -33,7 +34,11 @@ Nunca use prefixo `VITE_` para segredos.
 ## Arquitetura
 
 - `api/`: Vercel Functions expostas para o frontend.
-- `src/server/googleSheetsClient.ts`: autenticação com Google Sheets via service account.
+- `src/pages/public` e `src/pages/admin`: pontos de entrada de rotas públicas e administrativas.
+- `src/features`: barrels por domínio (`recipes`, `cart`, `categories`, `payments`, `account`) para desacoplar UI, regras e repositórios.
+- `src/lib/repos`: camada de acesso a dados no frontend, isolando chamadas HTTP da UI.
+- `src/lib/services/googleSheetsService.ts`: autenticação compartilhada com Google Sheets e Google Drive via service account.
+- `src/lib/services/mercadoPagoService.ts`: boundary do checkout e dos estados de pagamento, pronta para evolução gradual da integração.
 - `src/server/sheets/`: repositórios por domínio para receitas, categorias, comentários, ratings, favoritos, pagamentos, lista de compras, newsletter e settings.
 - `src/lib/api/`: cliente HTTP do frontend para consumir `/api`.
 - `src/contexts/app-context.tsx`: settings/categorias globais, tema e identidade leve por e-mail.
@@ -58,6 +63,8 @@ Nunca use prefixo `VITE_` para segredos.
 - `GET /api/payments`
 - `GET /api/payments/:id`
 - `POST /api/payments/:id/note`
+- `POST /api/uploads/recipe-image`
+- `DELETE /api/uploads/recipe-image`
 - `GET /api/shopping-list`
 - `POST /api/shopping-list`
 - `PUT /api/shopping-list/:id`
@@ -83,15 +90,16 @@ Nunca use prefixo `VITE_` para segredos.
 
 ## Fluxos para validação manual
 
-1. Criar uma receita paga em `/admin/receitas/nova` com URL de imagem, categoria e preço em reais.
-2. Confirmar a presença da receita na home e verificar o teaser bloqueado em `/receitas/{slug}`.
-3. Adicionar a receita ao carrinho, concluir o checkout simulado e confirmar a liberação do conteúdo completo.
+1. Criar uma receita paga em `/admin/receitas/nova` com upload de imagem, categoria dinâmica e preço em reais.
+2. Confirmar que o slug aparece apenas como preview automático e verificar o teaser bloqueado em `/receitas/{slug}`.
+3. Adicionar uma ou mais receitas ao carrinho, concluir o checkout simulado e confirmar a liberação do conteúdo completo.
 4. Criar uma categoria no editor e validar a aparição dela no painel e no site público.
 5. Enviar um e-mail na newsletter e confirmar o registro na aba `newsletter_subscribers`.
 6. Favoritar, comentar, avaliar e manipular a lista de compras para validar persistência nas abas correspondentes.
 
 ## Observações técnicas
 
-- O editor normaliza slug, ingredientes, instruções, URL de imagem e preço antes de persistir.
+- O editor normaliza slug, ingredientes, instruções e preço antes de persistir; a imagem é enviada por upload e o Sheets guarda apenas URL e metadados.
+- O slug é automático, não editável no admin e fica congelado após a primeira publicação.
 - Receitas pagas bloqueadas exibem apenas os dois primeiros ingredientes e passos até a compra.
-- O carrinho continua local por enquanto; dados persistentes de negócio não dependem mais de `localStorage`.
+- O carrinho continua local por enquanto, mas já usa snapshots multi-itens preparados para preferências do Mercado Pago.
