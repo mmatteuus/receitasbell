@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAppContext } from "@/contexts/app-context";
 import { useCart } from "@/hooks/use-cart";
+import ThemeColorPicker from "@/components/layout/ThemeColorPicker";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -133,6 +134,7 @@ export default function Header() {
               Admin
             </Button>
           </Link>
+          <ThemeColorPicker />
         </nav>
 
         <div className="flex items-center gap-2 md:hidden">
@@ -144,6 +146,7 @@ export default function Header() {
               </span>
             )}
           </Link>
+          <ThemeColorPicker compact />
           <button onClick={() => setOpen(!open)} aria-label="Menu">
             {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
@@ -185,6 +188,8 @@ export default function Header() {
                 <span>{cat.name}</span>
               </Link>
             ))}
+            <div className="my-2 border-t" />
+            <ThemeColorPicker mobile onSelect={() => setOpen(false)} />
             {deferredInstallPrompt && !isAppInstalled && (
               <Button
                 variant="outline"
