@@ -18,12 +18,7 @@ import {
   isValidEmail,
   setIdentityEmail,
 } from "@/lib/api/identity";
-import {
-  applySiteSettings,
-  isThemePaletteId,
-  resolveSiteSettings,
-  type ThemePaletteId,
-} from "@/lib/theme";
+import { applySiteSettings } from "@/lib/theme";
 import type { Category } from "@/types/recipe";
 import type { SettingsMap } from "@/types/settings";
 import { Button } from "@/components/ui/button";
@@ -51,8 +46,6 @@ type AppContextValue = {
   toggleFavorite: (recipeId: string) => Promise<boolean>;
   theme: "light" | "dark";
   toggleTheme: () => void;
-  themePalette: ThemePaletteId;
-  setThemePalette: (palette: ThemePaletteId) => void;
 };
 
 type IdentityDialogState = {
@@ -88,11 +81,6 @@ export function AppProvider({ children }: PropsWithChildren) {
     const stored = window.localStorage.getItem("rb_theme");
     if (stored === "dark" || stored === "light") return stored;
     return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-  });
-  const [themePalette, setThemePaletteState] = useState<ThemePaletteId>(() => {
-    if (typeof window === "undefined") return "default";
-    const stored = window.localStorage.getItem("rb_theme_palette");
-    return stored && isThemePaletteId(stored) ? stored : "default";
   });
   const [identityResolver, setIdentityResolver] = useState<((value: string | null) => void) | null>(null);
   const [favoriteRecords, setFavoriteRecords] = useState<FavoriteRecord[]>([]);
@@ -219,30 +207,20 @@ export function AppProvider({ children }: PropsWithChildren) {
     });
   }, []);
 
-  const setThemePalette = useCallback((palette: ThemePaletteId) => {
-    setThemePaletteState(palette);
-    trackEvent("theme.palette", { palette });
-  }, []);
-
   useEffect(() => {
     void refreshCategories();
     void refreshSettings();
   }, [refreshCategories, refreshSettings]);
 
   useEffect(() => {
-    applySiteSettings(resolveSiteSettings(settings, themePalette));
-  }, [settings, themePalette]);
+    applySiteSettings(settings);
+  }, [settings]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     document.documentElement.classList.toggle("dark", theme === "dark");
     window.localStorage.setItem("rb_theme", theme);
   }, [theme]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    window.localStorage.setItem("rb_theme_palette", themePalette);
-  }, [themePalette]);
 
   useEffect(() => {
     if (!identityEmail) return;
@@ -283,8 +261,6 @@ export function AppProvider({ children }: PropsWithChildren) {
     },
     theme,
     toggleTheme,
-    themePalette,
-    setThemePalette,
   }), [
     categories,
     categoriesLoading,
@@ -303,8 +279,6 @@ export function AppProvider({ children }: PropsWithChildren) {
     toggleFavorite,
     theme,
     toggleTheme,
-    themePalette,
-    setThemePalette,
   ]);
 
   async function handleIdentityConfirm() {
