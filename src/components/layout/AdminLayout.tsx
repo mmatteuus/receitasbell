@@ -26,6 +26,18 @@ export default function AdminLayout() {
           <main className="flex-1 bg-background p-4 md:p-8">
             <Outlet />
           </main>
+          
+          <footer className="mt-auto border-t bg-card px-4 py-4 text-center text-xs text-muted-foreground md:px-8">
+            Desenvolvido por{' '}
+            <a 
+              href="https://mtsferreira.dev" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="font-medium text-primary hover:underline"
+            >
+              MtsFerreira
+            </a>
+          </footer>
           <BackToTop />
         </div>
       </div>

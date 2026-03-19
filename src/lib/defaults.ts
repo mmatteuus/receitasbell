@@ -59,6 +59,8 @@ export const DEFAULT_HOME_SETTINGS: HomeSettings = {
     "O Receitas Bell une visual editorial e utilidade real para quem quer cozinhar com confiança, descobrir novos sabores e manter suas receitas favoritas organizadas.",
   aboutImageUrl:
     "https://images.unsplash.com/photo-1466637574441-749b8f19452f?auto=format&fit=crop&w=1200&q=80",
+  heroImageCaption: "Seleção da Casa",
+  heroImageSubtitle: "Receitas para impressionar sem complicar",
   homeSectionsOrder: ["hero", "trustBar", "categories", "featured", "premium", "gratin", "recent", "about", "newsletter"],
 };
 
@@ -112,5 +114,7 @@ export const HOME_SETTING_KEYS = [
   "aboutHeadline",
   "aboutText",
   "aboutImageUrl",
+  "heroImageCaption",
+  "heroImageSubtitle",
   "homeSectionsOrder",
 ] as const;

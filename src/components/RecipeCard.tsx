@@ -28,29 +28,38 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
   const presentation = getRecipePresentation(recipe);
   const category = resolveCategoryDisplay(categories, recipe.categorySlug);
 
+  function handleMouseMove(e: React.MouseEvent<HTMLDivElement>) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
+    e.currentTarget.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
+  }
+
   return (
-    <div className="group relative flex flex-col overflow-hidden rounded-2xl border bg-card shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl">
+    <div
+      className="card-glow group relative flex flex-col overflow-hidden rounded-2xl border bg-card shadow-sm transition-all duration-500 hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/5"
+      onMouseMove={handleMouseMove}
+    >
       <Link to={`/receitas/${recipe.slug}`} className="relative aspect-[4/3] overflow-hidden">
         <SmartImage
           src={imageUrl}
           alt={recipe.title}
-          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
         />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/45 to-transparent" />
-        <div className="absolute left-2 top-2">
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/50 via-black/5 to-transparent" />
+        <div className="absolute left-2.5 top-2.5">
           <PriceBadge accessTier={recipe.accessTier} priceBRL={recipe.priceBRL} />
         </div>
-        <div className="absolute right-2 top-2">
+        <div className="absolute right-2.5 top-2.5">
           <Button
             variant="secondary"
             size="icon"
-            className="h-8 w-8 rounded-full bg-white/90 shadow-sm hover:bg-white hover:text-red-500 dark:bg-black/60 dark:hover:bg-black/80"
+            className="h-8 w-8 rounded-full bg-white/90 shadow-md backdrop-blur-sm transition-all hover:scale-110 hover:bg-white hover:text-red-500 dark:bg-black/60 dark:hover:bg-black/80"
             onClick={(e) => {
               e.preventDefault();
               void toggleFavorite(recipe.id);
             }}
           >
-            <Heart className={`h-4 w-4 transition-colors ${isFav ? "fill-red-500 text-red-500" : "text-muted-foreground"}`} />
+            <Heart className={`h-4 w-4 transition-all duration-300 ${isFav ? "fill-red-500 text-red-500 scale-110" : "text-muted-foreground"}`} />
             <span className="sr-only">Favoritar</span>
           </Button>
         </div>
@@ -58,28 +67,28 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
 
       <div className="flex flex-1 flex-col p-4 sm:p-5">
         <div className="mb-2">
-          <Badge variant="outline" className="text-xs font-normal capitalize">
+          <Badge variant="outline" className="text-xs font-normal capitalize transition-colors group-hover:border-primary/30 group-hover:text-primary">
             {category.label}
           </Badge>
         </div>
 
-        <Link to={`/receitas/${recipe.slug}`} className="group-hover:underline">
+        <Link to={`/receitas/${recipe.slug}`} className="link-underline">
           <h3 className="line-clamp-2 font-heading text-base font-bold leading-tight text-foreground sm:text-lg">
             {presentation.cardTitle}
           </h3>
         </Link>
 
-        <p className="mt-1 line-clamp-2 text-sm text-muted-foreground sm:mt-2">
+        <p className="mt-1.5 line-clamp-2 text-sm text-muted-foreground sm:mt-2">
           {presentation.cardSubtitle}
         </p>
 
         <div className="mt-auto flex items-center gap-4 pt-4 text-xs text-muted-foreground">
-          <div className="flex items-center gap-1">
-            <Clock className="h-3.5 w-3.5" />
+          <div className="flex items-center gap-1.5">
+            <Clock className="h-3.5 w-3.5 text-primary/60" />
             <span>{recipe.totalTime} min</span>
           </div>
-          <div className="flex items-center gap-1">
-            <Users className="h-3.5 w-3.5" />
+          <div className="flex items-center gap-1.5">
+            <Users className="h-3.5 w-3.5 text-primary/60" />
             <span>{recipe.servings} porções</span>
           </div>
         </div>
@@ -87,7 +96,7 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
         {blocked && (
           <Button
             size="sm"
-            className="mt-3 w-full gap-2 rounded-xl bg-gradient-to-r from-primary to-secondary text-white shadow-lg transition hover:-translate-y-0.5 hover:shadow-2xl"
+            className="mt-3 w-full gap-2 rounded-xl bg-gradient-to-r from-primary to-orange-600 text-white shadow-lg transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/20 disabled:opacity-75 disabled:dark:opacity-80"
             onClick={(e) => { e.preventDefault(); addToCart(buildCartItemFromRecipe(recipe)); }}
             disabled={inCart(recipe.id)}
           >

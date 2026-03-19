@@ -49,6 +49,8 @@ export interface HomeSettings {
   aboutHeadline: string;
   aboutText: string;
   aboutImageUrl: string;
+  heroImageCaption: string;
+  heroImageSubtitle: string;
   homeSectionsOrder: HomeSectionId[];
 }
 

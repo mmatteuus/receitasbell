@@ -1,5 +1,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
+import { VitePWA } from "vite-plugin-pwa";
 import path from "path";
 
 export default defineConfig(() => ({
@@ -10,7 +11,33 @@ export default defineConfig(() => ({
       overlay: false,
     },
   },
-  plugins: [react()],
+  plugins: [
+    react(),
+    VitePWA({
+      registerType: "autoUpdate",
+      includeAssets: ["favicon.svg", "apple-touch-icon.png", "masked-icon.svg"],
+      manifest: {
+        name: "Receitas do Bell",
+        short_name: "Receitas Bell",
+        description: "Receitas caseiras testadas e aprovadas",
+        theme_color: "#ffffff",
+        background_color: "#ffffff",
+        display: "standalone",
+        icons: [
+          {
+            src: "favicon.svg",
+            sizes: "192x192",
+            type: "image/svg+xml"
+          },
+          {
+            src: "favicon.svg",
+            sizes: "512x512",
+            type: "image/svg+xml"
+          }
+        ]
+      }
+    })
+  ],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

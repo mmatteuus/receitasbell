@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { trackEvent } from "@/lib/telemetry";
+import { logger } from "@/lib/logger";
 import { getCategories } from "@/lib/repos/categoryRepo";
 
 type AppContextValue = {
@@ -93,7 +94,7 @@ export function AppProvider({ children }: PropsWithChildren) {
       setCategories(next);
       return next;
     } catch (error) {
-      console.error("Failed to load categories", error);
+      logger.error("categories", error);
       return DEFAULT_CATEGORIES;
     } finally {
       setCategoriesLoading(false);
@@ -107,7 +108,7 @@ export function AppProvider({ children }: PropsWithChildren) {
       setSettings(next);
       return next;
     } catch (error) {
-      console.error("Failed to load settings", error);
+      logger.error("settings", error);
       return defaultSettings;
     } finally {
       setSettingsLoading(false);
@@ -132,7 +133,7 @@ export function AppProvider({ children }: PropsWithChildren) {
         setFavoriteRecords([]);
         return [];
       }
-      console.error("Failed to load favorites", error);
+      logger.error("favorites", error);
       return [];
     } finally {
       setFavoritesLoading(false);
@@ -182,7 +183,7 @@ export function AppProvider({ children }: PropsWithChildren) {
   const toggleFavorite = useCallback(async (recipeId: string) => {
     const email = await requireIdentity("Digite seu e-mail para salvar favoritos.");
     if (!email) {
-      throw new ApiClientError(401, "E-mail obrigatorio para salvar favoritos.");
+      throw new ApiClientError(401, "E-mail obrigatório para salvar favoritos.");
     }
 
     const existing = favoriteRecords.find((item) => item.recipeId === recipeId);

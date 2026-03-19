@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, Search, Sparkles, Sun, Moon } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Search, Sparkles, Sun, Moon } from 'lucide-react';
 import { NewsletterSignup } from '@/components/NewsletterSignup';
+import { PageHead } from '@/components/PageHead';
 import { Reveal } from '@/components/motion/Reveal';
 import RecipeCard from '@/components/RecipeCard';
 import { Badge } from '@/components/ui/badge';
@@ -10,51 +11,35 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import SmartImage from '@/components/SmartImage';
 import { useAppContext } from '@/contexts/app-context';
-import { listPublicRecipes } from '@/lib/repos/recipeRepo';
+import { usePublicRecipes } from '@/features/recipes/use-recipes';
 import { pickFeaturedRecipes, pickGratinRecipes, pickPremiumRecipes } from '@/lib/home/curation';
 import { getRecipeImage, getRecipePresentation } from '@/lib/recipes/presentation';
 import { resolveCategoryDisplay } from '@/lib/categoriesDisplay';
-import { trackError, trackEvent } from '@/lib/telemetry';
+import { trackEvent } from '@/lib/telemetry';
 import { BackToTop } from '@/components/BackToTop';
+import { RECENT_RECIPES_KEY } from '@/lib/constants';
 import type { RecipeRecord } from '@/lib/recipes/types';
 
-const RECENT_RECIPES_KEY = 'receitas_bell_recent_recipes';
+
 
 export default function HomePage() {
-  const [recipes, setRecipes] = useState<RecipeRecord[]>([]);
-  const [recentRecipes, setRecentRecipes] = useState<RecipeRecord[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: recipes = [], isLoading: loading, isError, refetch } = usePublicRecipes();
   const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
   const { categories, settings, theme, toggleTheme } = useAppContext();
   const premiumRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    async function loadRecipes() {
-      try {
-        const published = await listPublicRecipes();
-        setRecipes(published);
-
-        try {
-          const historyIds = JSON.parse(localStorage.getItem(RECENT_RECIPES_KEY) || '[]');
-          if (Array.isArray(historyIds) && historyIds.length > 0) {
-            const recent = historyIds
-              .map((id: string) => published.find((recipe) => recipe.id === id))
-              .filter((recipe): recipe is RecipeRecord => Boolean(recipe));
-            setRecentRecipes(recent);
-          }
-        } catch (error) {
-          console.error('Failed to load history', error);
-        }
-      } catch (error) {
-        trackError('home.loadRecipes', error);
-      } finally {
-        setLoading(false);
-      }
+  const recentRecipes = useMemo(() => {
+    try {
+      const historyIds = JSON.parse(localStorage.getItem(RECENT_RECIPES_KEY) || '[]');
+      if (!Array.isArray(historyIds) || historyIds.length === 0) return [];
+      return historyIds
+        .map((id: string) => recipes.find((recipe) => recipe.id === id))
+        .filter((recipe): recipe is RecipeRecord => Boolean(recipe));
+    } catch {
+      return [];
     }
-
-    void loadRecipes();
-  }, []);
+  }, [recipes]);
 
   const featuredRecipes = useMemo(
     () => pickFeaturedRecipes(recipes, settings),
@@ -102,7 +87,7 @@ export default function HomePage() {
               )}
               <h1
                 data-testid="home-hero-heading"
-                className="max-w-[18ch] text-4xl leading-tight sm:text-5xl lg:text-6xl"
+                className="max-w-[18ch] text-4xl leading-tight text-foreground dark:text-gray-100 sm:text-5xl lg:text-6xl"
               >
                 {settings.heroTitle}
               </h1>
@@ -155,8 +140,8 @@ export default function HomePage() {
                 data-testid="home-hero-visual"
               />
               <div className="absolute bottom-5 left-5 rounded-2xl border border-white/30 bg-black/35 px-4 py-3 text-white backdrop-blur">
-                <p className="text-xs uppercase tracking-[0.2em] text-white/80">Selecao da Casa</p>
-                <p className="font-heading text-xl">Receitas para impressionar sem complicar</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-white/80">{settings.heroImageCaption || 'Seleção da Casa'}</p>
+                <p className="font-heading text-xl">{settings.heroImageSubtitle || 'Receitas para impressionar sem complicar'}</p>
               </div>
             </div>
           </Reveal>
@@ -313,12 +298,11 @@ export default function HomePage() {
                   {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
                 </Button>
                 <Button
-                  variant="secondary"
                   onClick={() => {
                     trackEvent('home.premium.cta', { source: 'premium_section' });
                     navigate('/buscar?tier=paid');
                   }}
-                  className="gap-2"
+                  className="gap-2 bg-white text-zinc-950 hover:bg-zinc-200 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200"
                 >
                   Explorar premium
                   <Sparkles className="h-4 w-4" />
@@ -420,7 +404,7 @@ export default function HomePage() {
         <Reveal>
           <div className="grid items-center gap-7 rounded-3xl border bg-card p-6 sm:p-8 lg:grid-cols-[1.1fr_0.9fr]">
             <div className="space-y-4">
-              <Badge variant="secondary" className="rounded-full px-3 py-1 text-xs">
+              <Badge variant="outline" className="rounded-full border-primary/30 bg-primary/10 px-3 py-1 text-xs text-primary dark:bg-primary/20 dark:text-orange-400">
                 Sobre a marca
               </Badge>
               <h2 className="text-3xl">{settings.aboutHeadline}</h2>
@@ -472,8 +456,27 @@ export default function HomePage() {
 
   return (
     <div className="flex min-h-screen flex-col">
+      <PageHead
+        title={settings.siteName}
+        description={settings.siteDescription || settings.heroSubtitle}
+        canonicalPath="/"
+      />
       {order.map((sectionId) => sections[sectionId]).filter(Boolean)}
-      {!loading && recipes.length === 0 && (
+      {isError && (
+        <section className="container px-4 py-14">
+          <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed px-6 py-12 text-center">
+            <AlertTriangle className="h-8 w-8 text-destructive" />
+            <p className="text-muted-foreground">Não foi possível carregar as receitas.</p>
+            <button
+              onClick={() => void refetch()}
+              className="rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+            >
+              Tentar novamente
+            </button>
+          </div>
+        </section>
+      )}
+      {!loading && !isError && recipes.length === 0 && (
         <section className="container px-4 py-14">
           <div className="rounded-2xl border border-dashed px-6 py-12 text-center text-muted-foreground">
             Nenhuma receita disponível no momento.

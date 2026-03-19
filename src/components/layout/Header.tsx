@@ -65,8 +65,10 @@ export default function Header() {
 
   return (
     <header
-      className={`sticky top-0 z-50 border-b backdrop-blur supports-[backdrop-filter]:bg-card/80 transition-all duration-300 ${
-        scrolled ? "bg-card/95 shadow-sm" : "bg-card/85"
+      className={`sticky top-0 z-50 border-b transition-all duration-500 ${
+        scrolled
+          ? "glass-strong shadow-lg shadow-black/[0.03] dark:shadow-black/20"
+          : "glass"
       }`}
     >
       <div className="container flex h-14 items-center justify-between px-4 sm:h-16">
@@ -97,8 +99,11 @@ export default function Header() {
 
           <CartButton />
 
-          <div className="group relative">
-            <button className="flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
+          <div className="group relative" role="navigation" aria-label="Categorias">
+            <button
+              className="flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              aria-haspopup="true"
+            >
               Categorias
             </button>
             <div className="invisible absolute left-0 top-full pt-1 opacity-0 transition-all group-hover:visible group-hover:opacity-100">
@@ -128,7 +133,7 @@ export default function Header() {
         <div className="flex items-center gap-2 lg:hidden">
           <CartButton mobile />
           <ThemeModeToggle compact />
-          <button onClick={() => setOpen(!open)} aria-label="Menu">
+          <button onClick={() => setOpen(!open)} aria-label="Menu de navegação" aria-expanded={open}>
             {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
         </div>
