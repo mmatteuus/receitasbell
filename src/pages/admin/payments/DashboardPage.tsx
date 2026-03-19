@@ -92,7 +92,7 @@ export default function DashboardPage() {
     const map: Record<string, { revenue: number; count: number }> = {};
     payments.forEach(p => {
       if (p.status === 'approved') {
-        const method = p.payment_method_id;
+        const method = p.paymentMethodKey;
         if (!map[method]) map[method] = { revenue: 0, count: 0 };
         map[method].revenue += p.totalBRL;
         map[method].count += 1;

@@ -19,7 +19,8 @@ export async function readTable<T extends SheetName>(sheetName: T): Promise<Shee
   const expectedColumns = [...SHEET_COLUMNS[sheetName]];
 
   if (!header.length) {
-    throw new ApiError(500, `Sheet "${sheetName}" is empty or missing a header row`);
+    await updateSheetValues(`${sheetName}!A1`, [expectedColumns]);
+    return [];
   }
 
   const missingColumns = expectedColumns.filter((column) => !header.includes(column));

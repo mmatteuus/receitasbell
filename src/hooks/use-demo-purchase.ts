@@ -17,13 +17,13 @@ export function useDemoPurchase() {
     });
   }
 
-  function isUnlocked(_recipeId: string, tier: 'free' | 'paid', unlocked?: boolean) {
+  function hasAccess(_recipeId: string, tier: 'free' | 'paid', unlocked?: boolean) {
     if (tier === 'free') return true;
     return Boolean(unlocked);
   }
 
   return {
     unlockRecipes,
-    isUnlocked,
+    hasAccess,
   };
 }

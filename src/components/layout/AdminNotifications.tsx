@@ -106,7 +106,7 @@ export function AdminNotifications() {
                     </span>
                   </p>
                   <p className="text-xs text-muted-foreground truncate">
-                    {p.payer.email} · R$ {p.totalBRL.toFixed(2)}
+                    {p.payerEmail} · R$ {p.totalBRL.toFixed(2)}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {new Date(p.createdAt).toLocaleDateString("pt-BR", {

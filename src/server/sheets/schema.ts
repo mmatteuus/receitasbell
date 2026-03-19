@@ -39,6 +39,8 @@ export const SHEET_COLUMNS = {
     "servings",
     "access_tier",
     "price_brl",
+    "full_ingredients_json",
+    "full_instructions_json",
     "created_at",
     "updated_at",
     "published_at",
@@ -53,6 +55,7 @@ export const SHEET_COLUMNS = {
   recipe_tags: ["id", "recipe_id", "tag"],
   payments: [
     "id",
+    "payment_id_gateway",
     "external_payment_id",
     "provider",
     "gateway",
@@ -82,6 +85,15 @@ export const SHEET_COLUMNS = {
     "checkout_reference",
     "webhook_received_at",
     "idempotency_key",
+  ],
+  entitlements: [
+    "id",
+    "paymentId",
+    "payerEmail",
+    "recipeSlug",
+    "accessStatus",
+    "createdAt",
+    "updatedAt",
   ],
   recipe_unlocks: [
     "id",

@@ -6,7 +6,7 @@ export async function listCategories() {
   return result.categories;
 }
 
-export async function createCategory(input: { name: string; emoji?: string; description?: string }) {
+export async function createCategory(input: { name: string; description?: string }) {
   const result = await jsonFetch<{ category: Category }>("/api/categories", {
     method: "POST",
     admin: true,
@@ -15,7 +15,7 @@ export async function createCategory(input: { name: string; emoji?: string; desc
   return result.category;
 }
 
-export async function updateCategory(id: string, input: { name: string; emoji?: string; description?: string }) {
+export async function updateCategory(id: string, input: { name: string; description?: string }) {
   const result = await jsonFetch<{ category: Category }>(`/api/categories/${encodeURIComponent(id)}`, {
     method: "PUT",
     admin: true,

@@ -1,4 +1,4 @@
-export { PaywallBox } from "@/hooks/paywall-box";
+export { PaywallBox } from "@/components/recipe/PaywallBox";
 export {
   deleteRecipe,
   getPublishedRecipes,

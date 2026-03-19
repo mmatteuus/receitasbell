@@ -1,19 +1,19 @@
-import type { Recipe } from '@/types/recipe';
+import type { RecipeRecord } from '@/lib/recipes/types';
 import type { SettingsMap } from '@/types/settings';
 
-function sortByRecency(recipes: Recipe[]) {
+function sortByRecency(recipes: RecipeRecord[]) {
   return [...recipes].sort((a, b) => {
     return (b.publishedAt || b.updatedAt || '').localeCompare(a.publishedAt || a.updatedAt || '');
   });
 }
 
-export function pickFeaturedRecipes(recipes: Recipe[], settings: SettingsMap) {
+export function pickFeaturedRecipes(recipes: RecipeRecord[], settings: SettingsMap) {
   const limit = Math.max(3, Math.min(settings.featuredLimit || 7, 12));
   if (settings.featuredMode === 'manual' && settings.featuredRecipeIds.length > 0) {
     const map = new Map(recipes.map((recipe) => [recipe.id, recipe]));
     return settings.featuredRecipeIds
       .map((id) => map.get(id))
-      .filter((recipe): recipe is Recipe => Boolean(recipe))
+      .filter((recipe): recipe is RecipeRecord => Boolean(recipe))
       .slice(0, limit);
   }
 
@@ -31,14 +31,14 @@ export function pickFeaturedRecipes(recipes: Recipe[], settings: SettingsMap) {
   return sortByRecency(recipes).slice(0, limit);
 }
 
-export function pickPremiumRecipes(recipes: Recipe[], featuredRecipes: Recipe[], limit = 4) {
+export function pickPremiumRecipes(recipes: RecipeRecord[], featuredRecipes: RecipeRecord[], limit = 4) {
   const featuredIds = new Set(featuredRecipes.map((recipe) => recipe.id));
   return recipes
     .filter((recipe) => recipe.accessTier === 'paid' && !featuredIds.has(recipe.id))
     .slice(0, limit);
 }
 
-export function pickGratinRecipes(recipes: Recipe[], limit = 4) {
+export function pickGratinRecipes(recipes: RecipeRecord[], limit = 4) {
   return recipes
     .filter((recipe) => {
       const normalizedCategory = recipe.categorySlug?.toLowerCase();

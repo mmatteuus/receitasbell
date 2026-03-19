@@ -1,4 +1,5 @@
-import type { ImageFileMeta, Recipe } from "@/types/recipe";
+import type { ImageFileMeta } from "@/types/recipe";
+import type { RecipeRecord } from "@/lib/recipes/types";
 import { buildQuery, jsonFetch } from "./client";
 import { filterInternetRecipes, getInternetRecipes, isInternetFallbackEnabled } from "./internetRecipes";
 import { normalizeRecipeForUI } from "@/lib/recipes/presentation";
@@ -41,7 +42,7 @@ export async function listRecipes(params: {
     ids: params.ids,
   });
   try {
-    const result = await jsonFetch<{ recipes: Recipe[] }>(`/api/recipes${query}`, {
+  const result = await jsonFetch<{ recipes: RecipeRecord[] }>(`/api/recipes${query}`, {
       admin: Boolean(params.includeDrafts),
     });
     return result.recipes.map(normalizeRecipeForUI);
@@ -58,7 +59,7 @@ export async function listRecipes(params: {
 
 export async function getRecipeBySlug(slug: string, options: { includeDrafts?: boolean } = {}) {
   try {
-    const result = await jsonFetch<{ recipe: Recipe }>(`/api/recipes/${encodeURIComponent(slug)}`, {
+    const result = await jsonFetch<{ recipe: RecipeRecord }>(`/api/recipes/${encodeURIComponent(slug)}`, {
       admin: Boolean(options.includeDrafts),
     });
     return normalizeRecipeForUI(result.recipe);
@@ -79,14 +80,14 @@ export async function getRecipeBySlug(slug: string, options: { includeDrafts?: b
 
 export async function getRecipeById(id: string) {
   const query = buildQuery({ by: "id" });
-  const result = await jsonFetch<{ recipe: Recipe }>(`/api/recipes/${encodeURIComponent(id)}${query}`, {
+  const result = await jsonFetch<{ recipe: RecipeRecord }>(`/api/recipes/${encodeURIComponent(id)}${query}`, {
     admin: true,
   });
   return normalizeRecipeForUI(result.recipe);
 }
 
 export async function createRecipe(input: RecipeMutationPayload) {
-  const result = await jsonFetch<{ recipe: Recipe }>("/api/recipes", {
+  const result = await jsonFetch<{ recipe: RecipeRecord }>("/api/recipes", {
     method: "POST",
     admin: true,
     body: input,
@@ -95,7 +96,7 @@ export async function createRecipe(input: RecipeMutationPayload) {
 }
 
 export async function updateRecipe(id: string, input: RecipeMutationPayload) {
-  const result = await jsonFetch<{ recipe: Recipe }>(`/api/recipes/${encodeURIComponent(id)}`, {
+  const result = await jsonFetch<{ recipe: RecipeRecord }>(`/api/recipes/${encodeURIComponent(id)}`, {
     method: "PUT",
     admin: true,
     body: input,

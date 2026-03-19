@@ -1,7 +1,8 @@
 import type { CartItem, Recipe } from "@/types/recipe";
+import type { RecipeRecord } from "@/lib/recipes/types";
 
-export function isRecipeUnlocked(recipe: Pick<Recipe, "accessTier" | "isUnlocked">) {
-  return recipe.accessTier === "free" || Boolean(recipe.isUnlocked);
+export function isRecipeUnlocked(recipe: Pick<Recipe, "accessTier"> & { hasAccess?: boolean }) {
+  return recipe.accessTier === "free" || Boolean(recipe.hasAccess);
 }
 
 export function deriveRecipeTeaser(recipe: Pick<Recipe, "fullIngredients" | "fullInstructions">, previewCount = 2) {
@@ -11,12 +12,14 @@ export function deriveRecipeTeaser(recipe: Pick<Recipe, "fullIngredients" | "ful
   };
 }
 
-export function buildCartItemFromRecipe(recipe: Pick<Recipe, "id" | "title" | "slug" | "priceBRL" | "imageUrl" | "image">): CartItem {
+export function buildCartItemFromRecipe(
+  recipe: Pick<Recipe | RecipeRecord, "id" | "title" | "slug" | "priceBRL" | "imageUrl">,
+): CartItem {
   return {
     recipeId: recipe.id,
     title: recipe.title,
     slug: recipe.slug,
     priceBRL: recipe.priceBRL ?? 0,
-    imageUrl: recipe.imageUrl || recipe.image || "/placeholder.svg",
+    imageUrl: recipe.imageUrl || "/placeholder.svg",
   };
 }

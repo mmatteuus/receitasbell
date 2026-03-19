@@ -133,7 +133,9 @@ export async function createCheckout(input: {
     primaryPaymentId: string | null;
     status: PaymentStatus;
     unlockedCount: number;
-    checkoutUrl?: string | null;
+    preferenceId?: string | null;
+    initPoint?: string | null;
+    sandboxInitPoint?: string | null;
   }>('/api/checkout', {
     method: 'POST',
     body: input,

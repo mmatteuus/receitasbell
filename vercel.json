@@ -5,8 +5,8 @@
     }
   },
   "routes": [
-    { "src": "/api/(.*)", "dest": "/api/router?route=$1" },
     { "handle": "filesystem" },
+    { "src": "/api/(.*)", "dest": "/api/router?route=$1" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
 }

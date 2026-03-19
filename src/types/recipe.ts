@@ -20,8 +20,35 @@ export interface Category {
   slug: string;
   description: string;
   createdAt: string;
-  updatedAt?: string | null;
-  emoji?: string | null;
+}
+
+export interface Recipe {
+  id: string;
+  title: string;
+  slug: string;
+  description: string;
+  imageUrl: string | null;
+  categorySlug: string;
+  prepTime: number | null;
+  cookTime: number | null;
+  totalTime: number | null;
+  servings: number | null;
+  accessTier: AccessTier;
+  priceBRL: number | null;
+  fullIngredients: string[];
+  fullInstructions: string[];
+  status: RecipeStatus;
+  createdAt: string;
+  updatedAt: string;
+  publishedAt: string | null;
+}
+
+export interface CartItem {
+  recipeId: string;
+  title: string;
+  slug: string;
+  imageUrl: string | null;
+  priceBRL: number;
 }
 
 export interface Comment {
@@ -33,49 +60,4 @@ export interface Comment {
   text: string;
   status?: string;
   createdAt: string;
-}
-
-export interface Recipe {
-  id: string;
-  slug: string;
-  title: string;
-  description: string;
-  image?: string; // legacy alias kept for existing consumers
-  imageUrl?: string;
-  imageFileMeta?: ImageFileMeta | null;
-
-  categorySlug: string;
-  tags: string[];
-  status: RecipeStatus;
-
-  prepTime: number;
-  cookTime: number;
-  totalTime: number;
-  servings: number;
-
-  accessTier: AccessTier;
-  priceBRL?: number | null; // canonical value in reais
-
-  fullIngredients: string[];
-  fullInstructions: string[];
-  excerpt?: string;
-  seoTitle?: string;
-  seoDescription?: string;
-  isFeatured?: boolean;
-  createdByUserId?: string | null;
-  ratingAvg?: number;
-  ratingCount?: number;
-  isUnlocked?: boolean;
-
-  createdAt: string;
-  updatedAt: string;
-  publishedAt?: string | null;
-}
-
-export interface CartItem {
-  recipeId: string;
-  title: string;
-  slug: string;
-  priceBRL: number;
-  imageUrl: string;
 }

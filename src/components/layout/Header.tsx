@@ -124,7 +124,6 @@ export default function Header() {
                     to={`/categorias/${cat.slug}`}
                     className="flex items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-muted"
                   >
-                    <span>{cat.emoji}</span>
                     <span>{cat.name}</span>
                   </Link>
                 ))}
@@ -188,7 +187,6 @@ export default function Header() {
                 onClick={() => setOpen(false)}
                 className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:text-foreground"
               >
-                <span>{cat.emoji}</span>
                 <span>{cat.name}</span>
               </Link>
             ))}

@@ -6,12 +6,12 @@ import { useAppContext } from "@/contexts/app-context";
 import { useFavorites } from "@/hooks/use-favorites";
 import RecipeCard from "@/components/RecipeCard";
 import { Button } from "@/components/ui/button";
-import type { Recipe } from "@/types/recipe";
+import type { RecipeRecord } from "@/lib/recipes/types";
 
 export default function Favorites() {
   const { favorites } = useFavorites();
   const { requireIdentity } = useAppContext();
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [recipes, setRecipes] = useState<RecipeRecord[]>([]);
 
   useEffect(() => {
     void requireIdentity("Digite seu e-mail para acessar seus favoritos.");

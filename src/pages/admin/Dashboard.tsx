@@ -10,6 +10,7 @@ import {
   Users,
   ShoppingCart,
 } from 'lucide-react';
+import type { RecipeRecord } from '@/lib/recipes/types';
 import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { getRecipes } from '@/lib/repos/recipeRepo';
@@ -28,7 +29,6 @@ import {
   Area,
   ResponsiveContainer,
 } from 'recharts';
-import type { Recipe } from '@/types/recipe';
 import type { Payment } from '@/lib/payments/types';
 import { METHOD_LABELS } from '@/pages/admin/payments/constants';
 
@@ -36,7 +36,7 @@ type Period = '7' | '30' | '90';
 
 export default function Dashboard() {
   const [period, setPeriod] = useState<Period>('30');
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [recipes, setRecipes] = useState<RecipeRecord[]>([]);
   const [allPayments, setAllPayments] = useState<Payment[]>([]);
   const days = Number(period);
 
@@ -142,7 +142,7 @@ export default function Dashboard() {
   const methodBreakdown = useMemo(() => {
     const methods: Record<string, number> = {};
     payments.forEach((payment) => {
-      const label = METHOD_LABELS[payment.payment_method_id || 'pending'] || 'A definir';
+      const label = METHOD_LABELS[payment.paymentMethodKey || 'pending'] || 'A definir';
       methods[label] = (methods[label] || 0) + 1;
     });
     return Object.entries(methods).map(([name, value]) => ({ name, value }));

@@ -10,10 +10,8 @@ function mapCategory(row: SheetRecord<"categories">): Category {
     id: row.id || `cat-${row.slug}`,
     slug: row.slug,
     name: row.name,
-    emoji: row.emoji || null,
     description: row.description,
     createdAt: row.created_at,
-    updatedAt: row.updated_at || null,
   };
 }
 
@@ -22,10 +20,9 @@ function buildCategoryRow(category: Category) {
     id: category.id,
     slug: category.slug,
     name: category.name,
-    emoji: category.emoji || "",
     description: category.description,
     created_at: category.createdAt,
-    updated_at: category.updatedAt || category.createdAt,
+    updated_at: category.createdAt,
   } satisfies SheetRecord<"categories">;
 }
 
@@ -56,7 +53,7 @@ export async function getCategoryBySlug(slug: string) {
   return categories.find((category) => category.slug === slug) ?? null;
 }
 
-export async function createCategory(input: { name: string; emoji?: string; description?: string }) {
+export async function createCategory(input: { name: string; description?: string }) {
   const name = input.name.trim();
   if (!name) {
     throw new ApiError(400, "Category name is required");
@@ -73,7 +70,7 @@ export async function createCategory(input: { name: string; emoji?: string; desc
         id: crypto.randomUUID(),
         slug,
         name,
-        emoji: input.emoji?.trim() || "📁",
+        emoji: "",
         description: input.description?.trim() || "",
         created_at: now,
         updated_at: now,
@@ -86,7 +83,7 @@ export async function createCategory(input: { name: string; emoji?: string; desc
 
 export async function updateCategory(
   categoryId: string,
-  input: { name: string; emoji?: string; description?: string },
+  input: { name: string; description?: string },
 ) {
   const name = input.name.trim();
   if (!name) {
@@ -113,7 +110,7 @@ export async function updateCategory(
             ...row,
             slug,
             name,
-            emoji: input.emoji?.trim() || row.emoji || "📁",
+            emoji: row.emoji || "",
             description: input.description?.trim() || "",
             updated_at: now,
           },
@@ -139,4 +136,9 @@ export async function deleteCategory(categoryId: string) {
     "categories",
     categories.filter((row) => row.id !== categoryId),
   );
+}
+
+export async function hasRecipes(categorySlug: string) {
+  const recipes = await readTable("recipes");
+  return recipes.some((recipe) => recipe.category_slug === categorySlug);
 }

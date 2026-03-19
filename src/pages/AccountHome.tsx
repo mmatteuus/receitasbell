@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getRecipeImage, getRecipePresentation } from "@/lib/recipes/presentation";
 import SmartImage from "@/components/SmartImage";
-import type { Recipe } from "@/types/recipe";
+import type { RecipeRecord } from "@/lib/recipes/types";
 import { ApiClientError } from "@/lib/api/client";
 import { getProfileOverview } from "@/lib/repos/profileRepo";
 import { toast } from "sonner";
@@ -30,8 +30,8 @@ export default function AccountHome() {
   const [savingIdentity, setSavingIdentity] = useState(false);
   const [shoppingCount, setShoppingCount] = useState(0);
   const [shoppingPreview, setShoppingPreview] = useState<string[]>([]);
-  const [unlocked, setUnlocked] = useState<Recipe[]>([]);
-  const [paidOwned, setPaidOwned] = useState<Recipe[]>([]);
+  const [unlocked, setUnlocked] = useState<RecipeRecord[]>([]);
+  const [paidOwned, setPaidOwned] = useState<RecipeRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

@@ -12,11 +12,12 @@ import {
   listComments,
   submitRating,
 } from "@/lib/api/interactions";
-import type { Comment, Recipe } from "@/types/recipe";
+import type { Comment } from "@/types/recipe";
+import type { RecipeRecord } from "@/lib/recipes/types";
 import RatingStars from "@/components/RatingStars";
 import RecipeCard from "@/components/RecipeCard";
 import { PriceBadge } from "@/components/price-badge";
-import { PaywallBox } from "@/hooks/paywall-box";
+import { PaywallBox } from "@/components/recipe/PaywallBox";
 import { useCart } from "@/hooks/use-cart";
 import { ShareButtons } from "@/components/ShareButtons";
 import { BackToTop } from "@/components/BackToTop";
@@ -28,7 +29,7 @@ import { ApiClientError } from "@/lib/api/client";
 import { toast } from "sonner";
 import { getRecipeImage, getRecipePresentation } from "@/lib/recipes/presentation";
 import SmartImage from "@/components/SmartImage";
-import { buildCartItemFromRecipe, deriveRecipeTeaser } from "@/lib/utils/recipeAccess";
+import { buildCartItemFromRecipe } from "@/lib/utils/recipeAccess";
 import { getRecipeBySlug, listPublicRecipes } from "@/lib/repos/recipeRepo";
 import { exportRecipeToPDF } from "@/lib/recipes/export";
 
@@ -45,8 +46,8 @@ export default function RecipePage() {
   const [params] = useSearchParams();
   const isPreview = params.get("preview") === "1";
 
-  const [recipe, setRecipe] = useState<Recipe | null>(null);
-  const [related, setRelated] = useState<Recipe[]>([]);
+  const [recipe, setRecipe] = useState<RecipeRecord | null>(null);
+  const [related, setRelated] = useState<RecipeRecord[]>([]);
   const [rating, setRating] = useState<RatingState>({ avg: 0, count: 0, userValue: null });
   const [comments, setComments] = useState<Comment[]>([]);
   const [customServings, setCustomServings] = useState(1);
@@ -153,11 +154,10 @@ export default function RecipePage() {
   const favorite = isFavorite(recipe.id);
   const imageUrl = getRecipeImage(recipe);
   const presentation = getRecipePresentation(recipe);
-  const unlocked = recipe.accessTier === "free" || Boolean(recipe.isUnlocked);
+  const unlocked = recipe.accessTier === "free" || Boolean(recipe.hasAccess);
   const showPaywall = !unlocked && recipe.accessTier === "paid";
-  const teaser = deriveRecipeTeaser(recipe);
-  const ingredients = showPaywall ? teaser.ingredients : recipe.fullIngredients;
-  const instructions = showPaywall ? teaser.instructions : recipe.fullInstructions;
+  const ingredients = recipe.fullIngredients;
+  const instructions = recipe.fullInstructions;
 
   async function handleFavorite() {
     await toggleFavorite(recipe.id);

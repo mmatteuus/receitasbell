@@ -1,4 +1,5 @@
-import type { ImageFileMeta, Recipe } from '@/types/recipe';
+import type { ImageFileMeta } from '@/types/recipe';
+import type { RecipeRecord } from '@/lib/recipes/types';
 import {
   createRecipe,
   deleteRecipe as deleteRecipeRequest,
@@ -12,12 +13,12 @@ import { deleteRecipeImage, uploadRecipeImage } from '@/lib/api/uploads';
 import { generateSlug } from '@/lib/helpers';
 import { deriveRecipeTeaser } from '@/lib/utils/recipeAccess';
 
-function toPayload(recipe: Partial<Recipe>): RecipeMutationPayload {
+function toPayload(recipe: Partial<RecipeRecord>): RecipeMutationPayload {
   return {
     title: recipe.title || '',
     slug: recipe.slug,
     description: recipe.description || '',
-    imageUrl: recipe.imageUrl || recipe.image || '',
+    imageUrl: recipe.imageUrl || '',
     imageFileMeta: recipe.imageFileMeta ?? null,
     categorySlug: recipe.categorySlug || '',
     tags: recipe.tags || [],
@@ -39,12 +40,20 @@ function toPayload(recipe: Partial<Recipe>): RecipeMutationPayload {
   };
 }
 
-export async function getRecipes() {
+export async function listAllAdmin() {
   return listRecipes({ includeDrafts: true });
 }
 
-export async function getPublishedRecipes() {
+export async function getRecipes() {
+  return listAllAdmin();
+}
+
+export async function listPublished() {
   return listRecipes();
+}
+
+export async function getPublishedRecipes() {
+  return listPublished();
 }
 
 export async function listPublicRecipes(
@@ -65,11 +74,31 @@ export async function getRecipeById(id: string) {
   return getRecipeByIdRequest(id);
 }
 
-export async function saveRecipe(recipe: Partial<Recipe> & { id?: string }) {
-  if (recipe.id) {
-    return updateRecipeRequest(recipe.id, toPayload(recipe));
-  }
+export async function getBySlug(slug: string) {
+  return getRecipeBySlug(slug);
+}
+
+export async function getById(id: string) {
+  return getRecipeById(id);
+}
+
+export async function create(recipe: Partial<RecipeRecord>) {
   return createRecipe(toPayload(recipe));
+}
+
+export async function update(id: string, patch: Partial<RecipeRecord>) {
+  return updateRecipeRequest(id, toPayload(patch));
+}
+
+export async function saveRecipe(recipe: Partial<RecipeRecord> & { id?: string }) {
+  if (recipe.id) {
+    return update(recipe.id, recipe);
+  }
+  return create(recipe);
+}
+
+export async function deleteById(id: string, imageFileMeta?: ImageFileMeta | null) {
+  return deleteRecipe(id, imageFileMeta);
 }
 
 export async function deleteRecipe(id: string, imageFileMeta?: ImageFileMeta | null) {
@@ -107,11 +136,16 @@ export async function removeRecipeImageFile(imageFileMeta?: ImageFileMeta | null
   await deleteRecipeImage(imageFileMeta.fileId);
 }
 
-export function isSlugTaken(slug: string, recipes: Recipe[], excludeId?: string) {
+export async function slugExists(slug: string, excludeId?: string) {
+  const recipes = await listAllAdmin();
   return recipes.some((recipe) => recipe.slug === slug && recipe.id !== excludeId);
 }
 
-export function uniqueSlug(title: string, recipes: Recipe[] = [], excludeId?: string) {
+export function isSlugTaken(slug: string, recipes: RecipeRecord[], excludeId?: string) {
+  return recipes.some((recipe) => recipe.slug === slug && recipe.id !== excludeId);
+}
+
+export function uniqueSlug(title: string, recipes: RecipeRecord[] = [], excludeId?: string) {
   const base = generateSlug(title) || 'receita';
   let slug = base;
   let suffix = 2;
@@ -124,6 +158,17 @@ export function uniqueSlug(title: string, recipes: Recipe[] = [], excludeId?: st
   return slug;
 }
 
-export function getRecipeTeaser(recipe: Pick<Recipe, 'fullIngredients' | 'fullInstructions'>) {
+export function getRecipeTeaser(recipe: Pick<RecipeRecord, 'fullIngredients' | 'fullInstructions'>) {
   return deriveRecipeTeaser(recipe);
 }
+
+export const recipeRepo = {
+  listPublished,
+  listAllAdmin,
+  getBySlug,
+  getById,
+  create,
+  update,
+  delete: deleteById,
+  slugExists,
+};

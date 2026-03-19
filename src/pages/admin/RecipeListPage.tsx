@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { PlusCircle, Eye, Pencil, Copy, Trash2, Globe, FileText } from 'lucide-react';
+import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -13,13 +14,13 @@ import {
 } from '@/components/ui/table';
 import { deleteRecipe, getRecipes, saveRecipe, uniqueSlug } from '@/lib/repos/recipeRepo';
 import { useAppContext } from '@/contexts/app-context';
-import type { Recipe } from '@/types/recipe';
+import type { RecipeRecord } from '@/lib/recipes/types';
 import { PriceBadge } from '@/components/price-badge';
 import { toast } from 'sonner';
 import { getRecipeImage, getRecipePresentation } from '@/lib/recipes/presentation';
 
 export default function RecipeListPage() {
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [recipes, setRecipes] = useState<RecipeRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const { categories } = useAppContext();
 
@@ -46,7 +47,7 @@ export default function RecipeListPage() {
     }
   }
 
-  async function handleTogglePublish(recipe: Recipe) {
+  async function handleTogglePublish(recipe: RecipeRecord) {
     const now = new Date().toISOString();
     await saveRecipe({
       ...recipe,
@@ -59,7 +60,7 @@ export default function RecipeListPage() {
     await refresh();
   }
 
-  async function handleDuplicate(recipe: Recipe) {
+  async function handleDuplicate(recipe: RecipeRecord) {
     await saveRecipe({
       ...recipe,
       id: undefined,
@@ -73,7 +74,7 @@ export default function RecipeListPage() {
     await refresh();
   }
 
-  async function handleDelete(recipe: Recipe) {
+  async function handleDelete(recipe: RecipeRecord) {
     if (!confirm('Tem certeza que deseja excluir esta receita?')) return;
 
     try {
@@ -88,19 +89,17 @@ export default function RecipeListPage() {
 
   return (
     <div>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="font-heading text-2xl font-bold sm:text-3xl">Receitas</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {recipes.length} receita{recipes.length !== 1 && 's'}
-          </p>
-        </div>
-        <Link to="/admin/receitas/nova">
-          <Button className="gap-2 w-full sm:w-auto">
-            <PlusCircle className="h-4 w-4" /> Nova Receita
-          </Button>
-        </Link>
-      </div>
+      <AdminPageHeader
+        title="Receitas"
+        description={`${recipes.length} receita${recipes.length !== 1 ? 's' : ''}`}
+        actions={
+          <Link to="/admin/receitas/nova">
+            <Button className="w-full gap-2 sm:w-auto">
+              <PlusCircle className="h-4 w-4" /> Nova Receita
+            </Button>
+          </Link>
+        }
+      />
 
       {loading ? (
         <div className="mt-6 rounded-xl border bg-card p-6 text-sm text-muted-foreground">
@@ -130,13 +129,7 @@ export default function RecipeListPage() {
                         <p className="text-xs text-muted-foreground">/{recipe.slug}</p>
                       </TableCell>
                       <TableCell className="hidden md:table-cell">
-                        {category ? (
-                          <span>
-                            {category.emoji} {category.name}
-                          </span>
-                        ) : (
-                          '-'
-                        )}
+                        {category ? <span>{category.name}</span> : '-'}
                       </TableCell>
                       <TableCell>
                         <PriceBadge accessTier={recipe.accessTier} priceBRL={recipe.priceBRL} />
@@ -216,9 +209,7 @@ export default function RecipeListPage() {
                       <p className="text-xs text-muted-foreground">/{recipe.slug}</p>
                       <div className="mt-2 flex flex-wrap gap-2">
                         {category && (
-                          <span className="text-xs">
-                            {category.emoji} {category.name}
-                          </span>
+                          <span className="text-xs">{category.name}</span>
                         )}
                         <Badge
                           variant={recipe.status === 'published' ? 'default' : 'secondary'}

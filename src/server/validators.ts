@@ -40,7 +40,6 @@ export const recipeMutationSchema = z.object({
 
 export const categorySchema = z.object({
   name: z.string().trim().min(1),
-  emoji: z.string().trim().optional(),
   description: z.string().trim().optional(),
 });
 

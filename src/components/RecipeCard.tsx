@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Clock, Users, Heart, ShoppingCart } from "lucide-react";
-import { Recipe } from "@/types/recipe";
+import type { RecipeRecord } from "@/lib/recipes/types";
 import { PriceBadge } from "@/components/price-badge";
 import { useFavorites } from "@/hooks/use-favorites";
 import { useCart } from "@/hooks/use-cart";
@@ -13,7 +13,7 @@ import SmartImage from "@/components/SmartImage";
 import { buildCartItemFromRecipe } from "@/lib/utils/recipeAccess";
 
 interface RecipeCardProps {
-  recipe: Recipe;
+  recipe: RecipeRecord;
 }
 
 export default function RecipeCard({ recipe }: RecipeCardProps) {
@@ -22,7 +22,7 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
   const { categories } = useAppContext();
   const isFav = isFavorite(recipe.id);
   const isPaid = recipe.accessTier === "paid";
-  const unlocked = recipe.accessTier === "free" || Boolean(recipe.isUnlocked);
+  const unlocked = recipe.accessTier === "free" || Boolean(recipe.hasAccess);
   const blocked = isPaid && !unlocked;
   const imageUrl = getRecipeImage(recipe);
   const presentation = getRecipePresentation(recipe);
@@ -59,7 +59,7 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
       <div className="flex flex-1 flex-col p-4 sm:p-5">
         <div className="mb-2">
           <Badge variant="outline" className="text-xs font-normal capitalize">
-            {category.emoji ? `${category.emoji} ${category.label}` : category.label}
+            {category.label}
           </Badge>
         </div>
 

@@ -16,13 +16,13 @@ import { getRecipeImage, getRecipePresentation } from '@/lib/recipes/presentatio
 import { resolveCategoryDisplay } from '@/lib/categoriesDisplay';
 import { trackError, trackEvent } from '@/lib/telemetry';
 import { BackToTop } from '@/components/BackToTop';
-import type { Recipe } from '@/types/recipe';
+import type { RecipeRecord } from '@/lib/recipes/types';
 
 const RECENT_RECIPES_KEY = 'receitas_bell_recent_recipes';
 
 export default function HomePage() {
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
-  const [recentRecipes, setRecentRecipes] = useState<Recipe[]>([]);
+  const [recipes, setRecipes] = useState<RecipeRecord[]>([]);
+  const [recentRecipes, setRecentRecipes] = useState<RecipeRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
@@ -40,7 +40,7 @@ export default function HomePage() {
           if (Array.isArray(historyIds) && historyIds.length > 0) {
             const recent = historyIds
               .map((id: string) => published.find((recipe) => recipe.id === id))
-              .filter((recipe): recipe is Recipe => Boolean(recipe));
+              .filter((recipe): recipe is RecipeRecord => Boolean(recipe));
             setRecentRecipes(recent);
           }
         } catch (error) {
@@ -199,7 +199,7 @@ export default function HomePage() {
                 className="group block rounded-2xl border bg-card p-5 transition-all hover:-translate-y-0.5 hover:shadow-md"
               >
                 <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 text-xl">
-                  {category.emoji}
+                  {category.name.slice(0, 1)}
                 </div>
                 <h3 className="text-xl">{category.name}</h3>
                 <p className="mt-2 text-sm text-muted-foreground">{category.description}</p>
@@ -242,7 +242,7 @@ export default function HomePage() {
                   <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                     <Badge variant="outline" className="capitalize">
                       {featuredCategoryDisplay
-                        ? `${featuredCategoryDisplay.emoji} ${featuredCategoryDisplay.label}`
+                        ? featuredCategoryDisplay.label
                         : featuredMainRecipe!.categorySlug}
                     </Badge>
                     <span>{featuredMainRecipe!.totalTime} min</span>

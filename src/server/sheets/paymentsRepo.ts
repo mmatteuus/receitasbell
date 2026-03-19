@@ -1,10 +1,11 @@
 import type { CartItem, Recipe } from '../../types/recipe.js';
-import type { Payment, PaymentEvent, PaymentNote, PaymentStatus } from '../../types/payment.js';
+import type { Payment, PaymentEvent, PaymentNote } from '../../lib/payments/types.js';
+import type { PaymentStatus } from '../../types/payment.js';
 import { buildCartItemFromRecipe } from '../../lib/utils/recipeAccess.js';
 import { sumBRL } from '../../lib/utils/money.js';
 import { ApiError } from '../http.js';
 import { mutateTable, readTable } from './table.js';
-import { ensureRecipeUnlock } from './recipeUnlocksRepo.js';
+import { createEntitlement, revokeEntitlement } from './entitlementsRepo.js';
 import { getRecipeById, getRecipeBySlug } from './recipesRepo.js';
 import { SheetRecord } from './schema.js';
 import { nowIso, asJson, asNumber, asNullableString, toJsonString } from './utils.js';
@@ -79,8 +80,8 @@ function mapPayment(row: SheetRecord<'payments'>): Payment {
 
   return {
     id: row.id,
+    paymentIdGateway: asNullableString(row.payment_id_gateway || row.external_payment_id) || '',
     gateway,
-    externalPaymentId: asNullableString(row.external_payment_id),
     recipeIds,
     items,
     totalBRL,
@@ -90,32 +91,15 @@ function mapPayment(row: SheetRecord<'payments'>): Payment {
     statusDetail: row.status_detail || normalizePaymentStatus(row.status),
     paymentMethod: row.payment_method || paymentMethodId,
     paymentType: row.payment_type || paymentTypeId,
+    paymentMethodKey: paymentMethodId,
     checkoutReference: asNullableString(row.checkout_reference),
     createdAt,
     updatedAt,
     approvedAt,
-    rawJson: asJson<Record<string, unknown> | null>(row.raw_json, null),
-    refunds: [],
-    chargebacks: [],
+    webhookReceivedAt: asNullableString(row.webhook_received_at),
     payer: {
       email: payerEmail,
     },
-
-    provider: row.provider || gateway,
-    external_payment_id: asNullableString(row.external_payment_id),
-    recipe_id: asNullableString(row.recipe_id),
-    user_id: asNullableString(row.user_id),
-    buyer_email: payerEmail,
-    status_detail: row.status_detail || normalizePaymentStatus(row.status),
-    payment_method_id: paymentMethodId,
-    payment_type_id: paymentTypeId,
-    transaction_amount: totalBRL,
-    currency_id: 'BRL',
-    date_created: createdAt,
-    date_approved: approvedAt,
-    external_reference: primaryReference,
-    webhook_received_at: asNullableString(row.webhook_received_at),
-    idempotency_key: asNullableString(row.idempotency_key),
   };
 }
 
@@ -149,7 +133,7 @@ export async function listPayments(filters: ListPaymentsFilters = {}) {
       if (filters.status?.length && !filters.status.includes(payment.status)) return false;
       if (
         filters.paymentMethod?.length &&
-        !filters.paymentMethod.includes(payment.payment_method_id || payment.paymentMethod)
+        !filters.paymentMethod.includes(payment.paymentMethodKey || payment.paymentMethod)
       ) {
         return false;
       }
@@ -157,7 +141,7 @@ export async function listPayments(filters: ListPaymentsFilters = {}) {
         return false;
       if (
         filters.paymentId &&
-        !`${payment.id} ${payment.externalPaymentId || ''}`
+        !`${payment.id} ${payment.paymentIdGateway || ''}`
           .toLowerCase()
           .includes(filters.paymentId.toLowerCase())
       ) {
@@ -297,7 +281,7 @@ function normalizePaymentStatus(status: string | null | undefined): PaymentStatu
 
 function normalizePaymentMethodId(
   method: string | null | undefined
-): NonNullable<Payment['payment_method_id']> {
+): string {
   const normalized = (method || '').trim().toLowerCase();
   if (!normalized || normalized === 'pending') return 'pending';
   if (normalized === 'pix') return 'pix';
@@ -308,7 +292,7 @@ function normalizePaymentMethodId(
 
 function normalizePaymentTypeId(
   type: string | null | undefined
-): NonNullable<Payment['payment_type_id']> {
+): string {
   const normalized = (type || '').trim().toLowerCase();
   if (!normalized || normalized === 'pending') return 'pending';
   if (normalized === 'ticket') return 'ticket';
@@ -387,6 +371,19 @@ function toPaymentItemsFromRecipes(recipes: Recipe[]) {
   return recipes.map((recipe) => buildCartItemFromRecipe(recipe));
 }
 
+async function resolveRecipeSlugsFromPaymentData(input: {
+  recipeIds: string[];
+  items: CartItem[];
+}) {
+  const slugsFromItems = input.items.map((item) => item.slug).filter(Boolean);
+  if (slugsFromItems.length > 0) {
+    return [...new Set(slugsFromItems)];
+  }
+
+  const recipes = await resolveRecipesByIds(input.recipeIds);
+  return recipes.map((recipe) => recipe.slug);
+}
+
 function buildPaymentRow(input: {
   id?: string;
   externalPaymentId?: string | null;
@@ -399,8 +396,8 @@ function buildPaymentRow(input: {
   payerName: string;
   status: PaymentStatus;
   statusDetail: string;
-  paymentMethodId: NonNullable<Payment['payment_method_id']>;
-  paymentTypeId: NonNullable<Payment['payment_type_id']>;
+  paymentMethodId: string;
+  paymentTypeId: string;
   checkoutReference: string;
   totalBRL: number;
   rawJson: Record<string, unknown> | null;
@@ -413,6 +410,7 @@ function buildPaymentRow(input: {
   const now = nowIso();
   return {
     id: input.id || crypto.randomUUID(),
+    payment_id_gateway: input.externalPaymentId || '',
     external_payment_id: input.externalPaymentId || '',
     provider: input.provider,
     gateway: input.gateway,
@@ -605,19 +603,23 @@ export async function syncMercadoPagoPayment(
     }
   );
 
-  if (
-    payment.status === 'approved' &&
-    payment.recipeIds.length > 0 &&
-    (payment.payerEmail || payment.user_id)
-  ) {
-    for (const recipeId of payment.recipeIds) {
-      await ensureRecipeUnlock({
-        recipeId,
+  if (payment.status === 'approved' && payment.recipeIds.length > 0 && payment.payerEmail) {
+    const recipeSlugs = await resolveRecipeSlugsFromPaymentData({
+      recipeIds: payment.recipeIds,
+      items: payment.items,
+    });
+
+    for (const recipeSlug of recipeSlugs) {
+      await createEntitlement({
         paymentId: payment.id,
-        userId: payment.user_id,
-        buyerEmail: payment.payerEmail,
+        payerEmail: payment.payerEmail,
+        recipeSlug,
       });
     }
+  }
+
+  if (['cancelled', 'refunded', 'charged_back'].includes(payment.status)) {
+    await revokeEntitlement(payment.id);
   }
 
   return payment;
@@ -704,11 +706,10 @@ export async function createMockCheckout(input: {
   });
 
   for (const recipe of recipes) {
-    await ensureRecipeUnlock({
-      recipeId: recipe.id,
+    await createEntitlement({
       paymentId: created.id,
-      userId: input.userId,
-      buyerEmail,
+      payerEmail: buyerEmail,
+      recipeSlug: recipe.slug,
     });
   }
 
@@ -722,6 +723,9 @@ export async function createMockCheckout(input: {
     paymentIds: [payment.id],
     status: payment.status,
     unlockedCount: recipes.length,
+    preferenceId: null,
+    initPoint: null,
+    sandboxInitPoint: null,
   };
 }
 
@@ -740,6 +744,11 @@ function appendQuery(
 function extractInitPoint(rawJson: Record<string, unknown> | null) {
   const preference = asRecord(rawJson?.preference);
   return asText(preference?.init_point);
+}
+
+function extractSandboxInitPoint(rawJson: Record<string, unknown> | null) {
+  const preference = asRecord(rawJson?.preference);
+  return asText(preference?.sandbox_init_point);
 }
 
 export async function createMercadoPagoCheckout(input: {
@@ -774,7 +783,9 @@ export async function createMercadoPagoCheckout(input: {
       paymentIds: [payment.id],
       status: payment.status,
       unlockedCount: payment.status === 'approved' ? payment.recipeIds.length : 0,
-      checkoutUrl: extractInitPoint(payment.rawJson || null),
+      preferenceId: asText(asRecord(asRecord(asJson<Record<string, unknown> | null>(existing.raw_json, null))?.preference)?.id),
+      initPoint: extractInitPoint(asJson<Record<string, unknown> | null>(existing.raw_json, null)),
+      sandboxInitPoint: extractSandboxInitPoint(asJson<Record<string, unknown> | null>(existing.raw_json, null)),
     };
   }
 
@@ -880,6 +891,8 @@ export async function createMercadoPagoCheckout(input: {
     paymentIds: [payment.id],
     status: payment.status,
     unlockedCount: 0,
-    checkoutUrl: preference.initPoint,
+    preferenceId: preference.preferenceId,
+    initPoint: preference.initPoint,
+    sandboxInitPoint: preference.sandboxInitPoint,
   };
 }

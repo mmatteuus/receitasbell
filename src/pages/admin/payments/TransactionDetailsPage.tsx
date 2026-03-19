@@ -95,7 +95,7 @@ export default function TransactionDetailsPage() {
               </p>
               <p>
                 <strong>Método:</strong>{' '}
-                {METHOD_LABELS[payment.payment_method_id || payment.paymentMethod] ||
+                {METHOD_LABELS[payment.paymentMethodKey || payment.paymentMethod] ||
                   payment.paymentMethod}
               </p>
               <p>
@@ -119,7 +119,7 @@ export default function TransactionDetailsPage() {
                 <strong>Nome:</strong> {payment.payerName}
               </p>
               <p>
-                <strong>Email:</strong> <span className="break-all">{payment.payer.email}</span>
+                <strong>Email:</strong> <span className="break-all">{payment.payerEmail}</span>
               </p>
             </CardContent>
           </Card>
@@ -158,8 +158,8 @@ export default function TransactionDetailsPage() {
                 {payment.approvedAt && (
                   <li>Aprovado: {new Date(payment.approvedAt).toLocaleString()}</li>
                 )}
-                {payment.webhook_received_at && (
-                  <li>Webhook: {new Date(payment.webhook_received_at).toLocaleString()}</li>
+                {payment.webhookReceivedAt && (
+                  <li>Webhook: {new Date(payment.webhookReceivedAt).toLocaleString()}</li>
                 )}
               </ul>
             </CardContent>

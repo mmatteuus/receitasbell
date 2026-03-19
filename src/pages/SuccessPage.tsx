@@ -1,13 +1,20 @@
+import { useEffect } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { CheckCircle, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useCart } from "@/hooks/use-cart";
 
 export default function SuccessPage() {
   const [searchParams] = useSearchParams();
+  const { clear } = useCart();
   const slug = searchParams.get("slug");
   const paymentId = searchParams.get("payment_id");
   const count = Number(searchParams.get("count") || "1");
   const isMulti = count > 1 || !slug;
+
+  useEffect(() => {
+    clear();
+  }, [clear]);
 
   return (
     <div className="container max-w-lg px-4 py-20 text-center animate-in zoom-in-95 duration-500">

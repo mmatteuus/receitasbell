@@ -52,6 +52,43 @@ export async function getSheetsClient() {
   return sheetsPromise;
 }
 
+function getSheetNameFromRange(range: string) {
+  const [sheetName] = range.split("!");
+  return sheetName?.trim() || null;
+}
+
+async function ensureSheetExists(sheetName: string) {
+  const sheets = await getSheetsClient();
+  const spreadsheetId = getSpreadsheetId();
+  const metadata = await sheets.spreadsheets.get({
+    spreadsheetId,
+    fields: "sheets.properties.title",
+  });
+
+  const exists = metadata.data.sheets?.some(
+    (sheet) => sheet.properties?.title?.trim() === sheetName,
+  );
+
+  if (exists) {
+    return;
+  }
+
+  await sheets.spreadsheets.batchUpdate({
+    spreadsheetId,
+    requestBody: {
+      requests: [
+        {
+          addSheet: {
+            properties: {
+              title: sheetName,
+            },
+          },
+        },
+      ],
+    },
+  });
+}
+
 export async function getDriveClient() {
   if (!drivePromise) {
     drivePromise = getGoogleAuth().then((auth) =>
@@ -66,6 +103,11 @@ export async function getDriveClient() {
 }
 
 export async function readSheetValues(range: string) {
+  const sheetName = getSheetNameFromRange(range);
+  if (sheetName) {
+    await ensureSheetExists(sheetName);
+  }
+
   const sheets = await getSheetsClient();
   const spreadsheetId = getSpreadsheetId();
   const response = await sheets.spreadsheets.values.get({ spreadsheetId, range });
@@ -73,6 +115,11 @@ export async function readSheetValues(range: string) {
 }
 
 export async function updateSheetValues(range: string, values: string[][]) {
+  const sheetName = getSheetNameFromRange(range);
+  if (sheetName) {
+    await ensureSheetExists(sheetName);
+  }
+
   const sheets = await getSheetsClient();
   const spreadsheetId = getSpreadsheetId();
 
@@ -82,4 +129,98 @@ export async function updateSheetValues(range: string, values: string[][]) {
     valueInputOption: "RAW",
     requestBody: { values },
   });
+}
+
+type SheetRow = Record<string, string>;
+
+function mapSheetRows(values: string[][]): SheetRow[] {
+  const header = (values[0] ?? []).map((value) => String(value));
+  if (!header.length) {
+    return [];
+  }
+
+  return values.slice(1).map((row) =>
+    header.reduce<SheetRow>((acc, column, index) => {
+      acc[column] = String(row[index] ?? "");
+      return acc;
+    }, {}),
+  );
+}
+
+export async function getRows(sheetName: string) {
+  const values = await readSheetValues(`${sheetName}!A:ZZ`);
+  return mapSheetRows(values);
+}
+
+export async function appendRow(sheetName: string, row: SheetRow) {
+  await ensureSheetExists(sheetName);
+  const rows = await getRows(sheetName);
+  const headers = rows.length > 0 ? Object.keys(rows[0]) : Object.keys(row);
+
+  if (!headers.length) {
+    await updateSheetValues(`${sheetName}!A1`, [Object.keys(row), Object.values(row).map(String)]);
+    return row;
+  }
+
+  const sheets = await getSheetsClient();
+  const spreadsheetId = getSpreadsheetId();
+  await sheets.spreadsheets.values.append({
+    spreadsheetId,
+    range: `${sheetName}!A:ZZ`,
+    valueInputOption: "RAW",
+    insertDataOption: "INSERT_ROWS",
+    requestBody: {
+      values: [headers.map((header) => String(row[header] ?? ""))],
+    },
+  });
+
+  return row;
+}
+
+export async function findRowBy(sheetName: string, field: string, value: string) {
+  const rows = await getRows(sheetName);
+  return rows.find((row) => String(row[field] ?? "") === value) ?? null;
+}
+
+export async function listRowsBy(sheetName: string, filters: Record<string, string | undefined>) {
+  const rows = await getRows(sheetName);
+  const activeFilters = Object.entries(filters).filter(([, value]) => value !== undefined);
+
+  if (!activeFilters.length) {
+    return rows;
+  }
+
+  return rows.filter((row) =>
+    activeFilters.every(([field, value]) => String(row[field] ?? "") === String(value ?? "")),
+  );
+}
+
+export async function updateRow(sheetName: string, rowId: string, patch: SheetRow) {
+  const values = await readSheetValues(`${sheetName}!A:ZZ`);
+  const header = (values[0] ?? []).map((value) => String(value));
+
+  if (!header.length) {
+    return null;
+  }
+
+  const idField = header.includes("id") ? "id" : header.includes("key") ? "key" : null;
+  if (!idField) {
+    return null;
+  }
+
+  const rowIndex = values
+    .slice(1)
+    .findIndex((row) => String(row[header.indexOf(idField)] ?? "") === rowId);
+
+  if (rowIndex < 0) {
+    return null;
+  }
+
+  const current = mapSheetRows(values)[rowIndex] ?? {};
+  const next = { ...current, ...patch };
+  const absoluteRowIndex = rowIndex + 2;
+  await updateSheetValues(`${sheetName}!A${absoluteRowIndex}`, [
+    header.map((column) => String(next[column] ?? "")),
+  ]);
+  return next;
 }

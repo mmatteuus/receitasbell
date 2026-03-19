@@ -22,7 +22,7 @@ export function useCart() {
   }, []);
 
   const has = useCallback((recipeId: string) => cartRepo.has(recipeId), []);
-  const getTotal = useCallback(() => cartRepo.getTotal(), [items]);
+  const getTotal = useCallback(() => cartRepo.getTotal(), []);
 
   return { items, add, remove, clear, has, count: items.length, getTotal };
 }

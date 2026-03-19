@@ -5,8 +5,8 @@ import { useAppContext } from '@/contexts/app-context';
 import { DEFAULT_HOME_SETTINGS } from '@/lib/defaults';
 import { updateSettings } from '@/lib/api/settings';
 import { getRecipes } from '@/lib/repos/recipeRepo';
+import type { RecipeRecord } from '@/lib/recipes/types';
 import type { HomeSectionId, HomeSettings } from '@/types/settings';
-import type { Recipe } from '@/types/recipe';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -50,7 +50,7 @@ function splitLines(value: string) {
 export default function HomePageSettings() {
   const { settings, refreshSettings, categories } = useAppContext();
   const [form, setForm] = useState<HomeSettings>(DEFAULT_HOME_SETTINGS);
-  const [allRecipes, setAllRecipes] = useState<Recipe[]>([]);
+  const [allRecipes, setAllRecipes] = useState<RecipeRecord[]>([]);
   const [recipeFilter, setRecipeFilter] = useState('');
   const [saving, setSaving] = useState(false);
   const [validationError, setValidationError] = useState('');
@@ -323,7 +323,7 @@ export default function HomePageSettings() {
                 <SelectItem value="none">Nenhuma</SelectItem>
                 {categories.map((category) => (
                   <SelectItem key={category.slug} value={category.slug}>
-                    {category.emoji} {category.name}
+                    {category.name}
                   </SelectItem>
                 ))}
               </SelectContent>

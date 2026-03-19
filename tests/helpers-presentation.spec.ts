@@ -5,17 +5,16 @@ import {
   pickGratinRecipes,
   pickPremiumRecipes,
 } from '../src/lib/home/curation';
-import type { Recipe } from '../src/types/recipe';
+import type { RecipeRecord } from '../src/lib/recipes/types';
 import type { SettingsMap } from '../src/types/settings';
 
-function makeRecipe(overrides: Partial<Recipe> = {}): Recipe {
+function makeRecipe(overrides: Partial<RecipeRecord> = {}): RecipeRecord {
   return {
     id: overrides.id || crypto.randomUUID(),
     slug: overrides.slug || 'receita-teste',
     title: overrides.title || 'Receita Teste',
     description: overrides.description || 'Descricao',
-    image: overrides.image,
-    imageUrl: overrides.imageUrl,
+    imageUrl: overrides.imageUrl ?? null,
     categorySlug: overrides.categorySlug || 'doces',
     tags: overrides.tags || [],
     status: overrides.status || 'published',
@@ -34,7 +33,7 @@ function makeRecipe(overrides: Partial<Recipe> = {}): Recipe {
     createdByUserId: overrides.createdByUserId,
     ratingAvg: overrides.ratingAvg,
     ratingCount: overrides.ratingCount,
-    isUnlocked: overrides.isUnlocked,
+    hasAccess: overrides.hasAccess,
     createdAt: overrides.createdAt || new Date().toISOString(),
     updatedAt: overrides.updatedAt || new Date().toISOString(),
     publishedAt: overrides.publishedAt || new Date().toISOString(),
@@ -82,14 +81,11 @@ const baseSettings: SettingsMap = {
   homeSectionsOrder: ['hero', 'featured', 'newsletter'],
 };
 
-test('getRecipeImage resolve prioridade imageUrl -> image -> placeholder', async () => {
-  expect(
-    getRecipeImage(makeRecipe({ imageUrl: 'https://img/a.jpg', image: 'https://img/legacy.jpg' }))
-  ).toBe('https://img/a.jpg');
-  expect(getRecipeImage(makeRecipe({ imageUrl: '', image: 'https://img/legacy.jpg' }))).toBe(
-    'https://img/legacy.jpg'
+test('getRecipeImage resolve imageUrl -> placeholder', async () => {
+  expect(getRecipeImage(makeRecipe({ imageUrl: 'https://img/a.jpg' }))).toBe(
+    'https://img/a.jpg'
   );
-  expect(getRecipeImage(makeRecipe({ imageUrl: '', image: '' }))).toBe('/placeholder.svg');
+  expect(getRecipeImage(makeRecipe({ imageUrl: '' }))).toBe('/placeholder.svg');
 });
 
 test('getRecipePresentation melhora titulo genérico', async () => {

@@ -36,7 +36,7 @@ function read(): CartItem[] {
         typeof item.title === "string" &&
         typeof item.slug === "string" &&
         typeof item.priceBRL === "number" &&
-        typeof item.imageUrl === "string",
+        (typeof item.imageUrl === "string" || item.imageUrl === null),
     );
     cachedRaw = raw;
     return cachedItems;

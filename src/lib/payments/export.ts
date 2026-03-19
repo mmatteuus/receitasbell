@@ -42,9 +42,9 @@ export function exportPaymentsCSV(payments: Payment[], filename = 'pagamentos') 
   const rows = payments.map((p) => [
     p.id,
     statusLabels[p.status] || p.status,
-    methodLabels[p.payment_method_id || p.paymentMethod] || p.payment_method_id || p.paymentMethod,
+    methodLabels[p.paymentMethodKey || p.paymentMethod] || p.paymentMethod,
     p.totalBRL.toFixed(2).replace('.', ','),
-    p.payer.email,
+    p.payerEmail,
     p.items.map((item) => item.title).join(' | '),
     formatDate(p.createdAt),
     formatDate(p.approvedAt || null),
@@ -66,9 +66,9 @@ export function exportPaymentsPDF(payments: Payment[], filename = 'pagamentos') 
         `<tr>
           <td>${p.id}</td>
           <td>${statusLabels[p.status] || p.status}</td>
-          <td>${methodLabels[p.payment_method_id || p.paymentMethod] || p.payment_method_id || p.paymentMethod}</td>
+          <td>${methodLabels[p.paymentMethodKey || p.paymentMethod] || p.paymentMethod}</td>
           <td style="text-align:right">R$ ${p.totalBRL.toFixed(2)}</td>
-          <td>${p.payer.email}</td>
+          <td>${p.payerEmail}</td>
           <td>${p.items.map((item) => item.title).join(', ')}</td>
           <td>${formatDate(p.createdAt)}</td>
         </tr>`

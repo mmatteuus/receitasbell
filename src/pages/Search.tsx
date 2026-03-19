@@ -4,9 +4,9 @@ import { Search as SearchIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { listPublicRecipes } from "@/lib/repos/recipeRepo";
+import type { RecipeRecord } from "@/lib/recipes/types";
 import { useAppContext } from "@/contexts/app-context";
 import RecipeCard from "@/components/RecipeCard";
-import type { Recipe } from "@/types/recipe";
 import { trackError, trackEvent } from "@/lib/telemetry";
 
 function normalizeTier(value: string | null) {
@@ -35,7 +35,7 @@ export default function SearchPage() {
   const [tierFilter, setTierFilter] = useState(normalizeTier(searchParams.get("tier")));
   const [timeFilter, setTimeFilter] = useState(normalizeTime(searchParams.get("tempo")));
   const [sortBy, setSortBy] = useState(normalizeSort(searchParams.get("ordem")));
-  const [results, setResults] = useState<Recipe[]>([]);
+  const [results, setResults] = useState<RecipeRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const { categories } = useAppContext();
 
@@ -144,7 +144,7 @@ export default function SearchPage() {
           <SelectTrigger><SelectValue placeholder="Categoria" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas</SelectItem>
-            {categories.map((c) => <SelectItem key={c.slug} value={c.slug}>{c.emoji} {c.name}</SelectItem>)}
+            {categories.map((c) => <SelectItem key={c.slug} value={c.slug}>{c.name}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={tierFilter} onValueChange={setTierFilter}>

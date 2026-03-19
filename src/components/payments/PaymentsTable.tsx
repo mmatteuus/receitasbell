@@ -49,9 +49,7 @@ function formatPaymentDate(value: string) {
 }
 
 function getPaymentMethodLabel(payment: Payment) {
-  return (
-    METHOD_LABELS[payment.payment_method_id || payment.paymentMethod] || payment.paymentMethod
-  );
+  return METHOD_LABELS[payment.paymentMethodKey || payment.paymentMethod] || payment.paymentMethod;
 }
 
 export function PaymentsTable({ data }: PaymentsTableProps) {
@@ -109,7 +107,7 @@ export function PaymentsTable({ data }: PaymentsTableProps) {
         ),
       },
       {
-        accessorKey: 'payer.email',
+        accessorKey: 'payerEmail',
         header: 'Cliente',
       },
       {
@@ -207,7 +205,7 @@ export function PaymentsTable({ data }: PaymentsTableProps) {
                       <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
                         Cliente
                       </p>
-                      <p className="mt-1 break-all font-medium">{payment.payer.email}</p>
+                      <p className="mt-1 break-all font-medium">{payment.payerEmail}</p>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>

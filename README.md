@@ -38,9 +38,10 @@ Nunca use prefixo `VITE_` para segredos.
 - `src/lib/repos`: camada de acesso a dados no frontend, isolando chamadas HTTP da UI.
 - `src/lib/services/googleSheetsService.ts`: autenticação compartilhada com Google Sheets e Google Drive via service account.
 - `src/lib/services/mercadoPagoService.ts`: boundary do checkout e dos estados de pagamento, preparada para Mercado Pago via contrato `create-preference`.
-- `src/server/sheets/`: repositórios por domínio para receitas, categorias, comentários, ratings, favoritos, pagamentos, lista de compras, newsletter e settings.
+- `src/server/sheets/`: repositórios por domínio para receitas, categorias, entitlements, comentários, ratings, favoritos, pagamentos, lista de compras, newsletter e settings.
 - `src/lib/api/`: cliente HTTP do frontend para consumir `/api`.
 - `src/contexts/app-context.tsx`: settings/categorias globais, tema e identidade leve por e-mail.
+- `vercel.json`: mantém o fallback SPA para o React Router sem capturar `/api/*`, preservando Functions reais em `api/`.
 
 ## Diagnóstico desta etapa
 
@@ -55,19 +56,23 @@ Nunca use prefixo `VITE_` para segredos.
   - `Recipe`: slug automático, preço em reais com centavos, `accessTier`, `status`, `publishedAt`.
   - `Category`: criada dinamicamente no admin e reaproveitada em todo o site.
   - `Payment`: pagamento multi-item com `recipeIds[]`, `totalBRL`, pagador, status e metadados do gateway.
+  - `Entitlement`: liberação por e-mail do comprador com `paymentId`, `recipeSlug` e `accessStatus`.
 - Repositórios principais do frontend:
   - `recipeRepo.ts`
   - `categoryRepo.ts`
   - `paymentRepo.ts`
+  - `entitlementRepo.ts`
   - `cartRepo.ts`
   - `profileRepo.ts`
 - Abas centrais do Google Sheets:
   - `recipes`
   - `categories`
   - `payments`
+  - `entitlements`
   - `settings`
 - Abas auxiliares do MVP:
   - `recipe_ingredients`, `recipe_instructions`, `recipe_tags`, `recipe_unlocks`, `payment_events`, `payment_notes` e outras de interação.
+  - `recipe_unlocks` permanece apenas como legado de backfill para popular `entitlements`.
 
 ## Endpoints principais
 
@@ -91,6 +96,9 @@ Nunca use prefixo `VITE_` para segredos.
 - `POST /api/payments/:id/note`
 - `POST /api/payments/mercadopago/create-preference`
 - `POST /api/payments/mercadopago/webhook`
+- `GET /api/entitlements`
+- `POST /api/entitlements`
+- `DELETE /api/entitlements`
 - `GET /api/admin/payments`
 - `GET /api/admin/payments/:id`
 - `POST /api/admin/payments/:id/note`
@@ -114,6 +122,7 @@ Nunca use prefixo `VITE_` para segredos.
 
 - Catálogo público: home, busca, categorias, página de receita, favoritos e institucionais.
 - Fluxo comercial: carrinho local, checkout em modo sandbox ou Mercado Pago real e desbloqueio de receitas pagas no Sheets.
+- Paywall real: receitas pagas só devolvem conteúdo completo quando existe entitlement ativo para o e-mail do comprador.
 - Painel admin: listagem, criação e edição de receitas, categorias dinâmicas, configurações visuais e dashboard de pagamentos.
 - Persistência server-side: o frontend consome `/api`, enquanto as Functions escrevem e leem do Google Sheets.
 - Identidade leve: o usuário informa um e-mail uma vez, esse valor é salvo em cookie (`rb_user_email`) e o backend resolve/cria o `user_id` correspondente na aba `users`.
@@ -136,6 +145,7 @@ Nunca use prefixo `VITE_` para segredos.
 - O slug é automático, não editável no admin e fica congelado após a primeira publicação.
 - Categoria agora é obrigatória e validada tanto no frontend quanto no repositório server-side.
 - Receitas pagas bloqueadas exibem apenas os dois primeiros ingredientes e passos até a compra, inclusive no PDF exportado.
+- O webhook do Mercado Pago grava `payments` e sincroniza `entitlements`; `approved` ativa acesso e `cancelled/refunded/charged_back` revoga.
 - O carrinho continua local por enquanto, mas já usa snapshots multi-itens preparados para preferências do Mercado Pago.
 - O checkout principal do frontend aponta para `POST /api/payments/mercadopago/create-preference`, enquanto `POST /api/checkout` permanece como alias compatível.
 - O admin de pagamentos passou a consumir `GET /api/admin/payments` e `GET /api/admin/payments/:id`, deixando a estrutura pronta para troca futura do banco do MVP.

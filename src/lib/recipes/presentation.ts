@@ -1,4 +1,5 @@
 import type { Recipe } from "@/types/recipe";
+import type { RecipeRecord } from "@/lib/recipes/types";
 
 const RECIPE_PLACEHOLDER = "/placeholder.svg";
 
@@ -23,7 +24,9 @@ function isGenericTitle(title: string) {
   return normalized.length <= 24 && normalized.split(" ").length <= 3;
 }
 
-function themedNameByCategory(recipe: Recipe) {
+type PresentableRecipe = Recipe & Partial<Pick<RecipeRecord, "excerpt" | "tags">>;
+
+function themedNameByCategory(recipe: PresentableRecipe) {
   const category = (recipe.categorySlug || "").toLowerCase();
 
   if (category === "doces" || category === "bolos") {
@@ -57,7 +60,7 @@ function themedNameByCategory(recipe: Recipe) {
     : "Receita caseira com sabor, praticidade e ótima apresentação";
 }
 
-function buildSmartTitle(recipe: Recipe) {
+function buildSmartTitle(recipe: PresentableRecipe) {
   const base = normalizeSpaces(recipe.title || "");
   if (!base) return "Receita da casa";
   if (!isGenericTitle(base)) return base;
@@ -78,7 +81,7 @@ function buildSmartTitle(recipe: Recipe) {
   return themedNameByCategory(recipe);
 }
 
-function buildSubtitle(recipe: Recipe) {
+function buildSubtitle(recipe: PresentableRecipe) {
   const source = normalizeSpaces(recipe.excerpt || recipe.description || "");
   if (source.length >= 45) return source;
 
@@ -99,13 +102,9 @@ function buildHeadline(recipe: Recipe, cardTitle: string) {
   return `${cardTitle} para cozinhar com confiança e prazer`;
 }
 
-export function getRecipeImage(recipe: Pick<Recipe, "imageUrl" | "image">) {
+export function getRecipeImage(recipe: Pick<Recipe, "imageUrl">) {
   const url = recipe.imageUrl?.trim();
   if (url) return url;
-
-  const legacy = recipe.image?.trim();
-  if (legacy) return legacy;
-
   return RECIPE_PLACEHOLDER;
 }
 
@@ -116,7 +115,7 @@ export type RecipePresentation = {
   imageUrl: string;
 };
 
-export function getRecipePresentation(recipe: Recipe): RecipePresentation {
+export function getRecipePresentation(recipe: PresentableRecipe): RecipePresentation {
   const cardTitle = buildSmartTitle(recipe);
   const cardSubtitle = buildSubtitle(recipe);
 
@@ -128,11 +127,10 @@ export function getRecipePresentation(recipe: Recipe): RecipePresentation {
   };
 }
 
-export function normalizeRecipeForUI(recipe: Recipe): Recipe {
+export function normalizeRecipeForUI(recipe: RecipeRecord): RecipeRecord {
   const imageUrl = getRecipeImage(recipe);
   return {
     ...recipe,
     imageUrl,
-    image: imageUrl,
   };
 }

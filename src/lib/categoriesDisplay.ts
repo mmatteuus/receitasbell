@@ -5,12 +5,10 @@ export function resolveCategoryDisplay(categories: Category[], categorySlug: str
   if (!match) {
     return {
       label: categorySlug.replace(/[-_]+/g, " "),
-      emoji: "",
     };
   }
 
   return {
     label: match.name,
-    emoji: match.emoji,
   };
 }

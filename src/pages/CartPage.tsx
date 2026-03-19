@@ -1,15 +1,13 @@
 import { Link } from 'react-router-dom';
-import { ShoppingCart, Trash2, X } from 'lucide-react';
+import { ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { CartItemsList } from '@/components/cart/CartItemsList';
+import { CartSummary } from '@/components/cart/CartSummary';
 import { useCart } from '@/hooks/use-cart';
-import { formatBRL } from '@/lib/helpers';
-import { PriceBadge } from '@/components/price-badge';
-import { useAppContext } from '@/contexts/app-context';
 
 export default function CartPage() {
   const { items, remove, clear, getTotal } = useCart();
-  const { settings } = useAppContext();
   const total = getTotal();
 
   if (items.length === 0) {
@@ -35,64 +33,12 @@ export default function CartPage() {
       </p>
 
       <div className="mt-6 space-y-4">
-        {items.map((item) => (
-          <div
-            key={item.recipeId}
-            className="flex gap-3 rounded-xl border bg-card p-3 shadow-sm sm:gap-4 sm:p-4"
-          >
-            <Link
-              to={`/receitas/${item.slug}`}
-              className="h-20 w-20 shrink-0 overflow-hidden rounded-lg sm:h-24 sm:w-24"
-            >
-              <img src={item.imageUrl} alt={item.title} className="h-full w-full object-cover" />
-            </Link>
-            <div className="flex flex-1 flex-col justify-between min-w-0">
-              <div>
-                <Link
-                  to={`/receitas/${item.slug}`}
-                  className="font-semibold text-sm sm:text-base line-clamp-1 hover:underline"
-                >
-                  {item.title}
-                </Link>
-                <p className="mt-0.5 text-xs text-muted-foreground line-clamp-1">
-                  Receita premium pronta para checkout
-                </p>
-              </div>
-              <div className="flex items-center justify-between mt-2">
-                <PriceBadge accessTier="paid" priceBRL={item.priceBRL} />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-destructive"
-                  onClick={() => remove(item.recipeId)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
-        ))}
+        <CartItemsList items={items} onRemove={remove} />
       </div>
 
       <Separator className="my-6" />
 
-      <div className="flex items-center justify-between text-lg font-bold">
-        <span>Total</span>
-        <span>{formatBRL(total)}</span>
-      </div>
-
-      <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-        <Button asChild size="lg" className="flex-1 bg-orange-600 hover:bg-orange-700">
-          <Link to={`/checkout?cart=1`}>
-            {settings.payment_mode === 'production'
-              ? 'Finalizar Compra'
-              : 'Finalizar Compra (simulada)'}
-          </Link>
-        </Button>
-        <Button variant="outline" size="lg" className="gap-2" onClick={clear}>
-          <Trash2 className="h-4 w-4" /> Limpar
-        </Button>
-      </div>
+      <CartSummary total={total} onClear={clear} />
     </div>
   );
 }

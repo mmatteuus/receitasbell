@@ -71,9 +71,10 @@ export default function CheckoutPage() {
         checkoutReference: crypto.randomUUID(),
       });
 
-      if (result.checkoutUrl) {
+      const initPoint = result.initPoint || result.sandboxInitPoint;
+      if (initPoint) {
         toast.success('Redirecionando para o checkout seguro do Mercado Pago...');
-        window.location.assign(result.checkoutUrl);
+        window.location.assign(initPoint);
         return;
       }
 

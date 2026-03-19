@@ -12,13 +12,11 @@ import { toast } from "sonner";
 type FormState = {
   id?: string;
   name: string;
-  emoji: string;
   description: string;
 };
 
 const EMPTY_FORM: FormState = {
   name: "",
-  emoji: "",
   description: "",
 };
 
@@ -114,15 +112,9 @@ export default function CategoriesPage() {
           <CardTitle>{form.id ? "Editar categoria" : "Nova categoria"}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-[1fr,120px]">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Nome</label>
-              <Input value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Emoji</label>
-              <Input value={form.emoji} onChange={(event) => setForm((current) => ({ ...current, emoji: event.target.value }))} />
-            </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Nome</label>
+            <Input value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} />
           </div>
 
           <div className="space-y-2">
@@ -158,10 +150,7 @@ export default function CategoriesPage() {
               <CardContent className="space-y-4 p-5">
                 <div>
                   <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">/{category.slug}</p>
-                  <h2 className="mt-2 text-lg font-semibold">
-                    {category.emoji ? `${category.emoji} ` : ""}
-                    {category.name}
-                  </h2>
+                  <h2 className="mt-2 text-lg font-semibold">{category.name}</h2>
                   <p className="mt-2 text-sm text-muted-foreground">{category.description || "Sem descrição"}</p>
                 </div>
 
@@ -173,7 +162,6 @@ export default function CategoriesPage() {
                       setForm({
                         id: category.id,
                         name: category.name,
-                        emoji: category.emoji || "",
                         description: category.description,
                       })
                     }

@@ -1,4 +1,4 @@
-import type { Recipe } from "@/types/recipe";
+import type { RecipeRecord } from "@/lib/recipes/types";
 import { generateSlug } from "@/lib/helpers";
 
 type MealDbMeal = {
@@ -13,7 +13,7 @@ type MealDbMeal = {
 const MEALDB_SEARCH_URL = "https://www.themealdb.com/api/json/v1/1/search.php?s=";
 const CACHE_TTL_MS = 10 * 60 * 1000;
 
-let cachedRecipes: Recipe[] | null = null;
+let cachedRecipes: RecipeRecord[] | null = null;
 let cachedAt = 0;
 
 function parseBoolean(value: string | undefined) {
@@ -57,7 +57,7 @@ function toIngredients(meal: MealDbMeal): string[] {
   return ingredients.length > 0 ? ingredients : ["Ingredientes indisponiveis."];
 }
 
-function mapMealToRecipe(meal: MealDbMeal, index: number): Recipe {
+function mapMealToRecipe(meal: MealDbMeal, index: number): RecipeRecord {
   const createdAt = new Date().toISOString();
   const prepTime = 20 + (index % 3) * 10;
   const cookTime = 25 + (index % 4) * 10;
@@ -67,14 +67,13 @@ function mapMealToRecipe(meal: MealDbMeal, index: number): Recipe {
   const instructions = toInstructionSteps(meal.strInstructions);
   const ingredients = toIngredients(meal);
   const isPaid = index % 5 === 0;
-  const priceBRL = isPaid ? 19.9 + (index % 3) * 5 : undefined;
+  const priceBRL = isPaid ? 19.9 + (index % 3) * 5 : null;
 
   return {
     id: `internet-${meal.idMeal}`,
     slug: `internet-${slugBase}-${meal.idMeal}`,
     title,
     description: meal.strInstructions?.slice(0, 140) || "Receita importada automaticamente.",
-    image: meal.strMealThumb || "/placeholder.svg",
     imageUrl: meal.strMealThumb || "/placeholder.svg",
     categorySlug,
     tags: [categorySlug, "internet", "fallback", ...(isPaid ? ["premium"] : [])],
@@ -95,11 +94,11 @@ function mapMealToRecipe(meal: MealDbMeal, index: number): Recipe {
     isFeatured: index < 8,
     ratingAvg: 0,
     ratingCount: 0,
-    isUnlocked: !isPaid,
+    hasAccess: !isPaid,
   };
 }
 
-export async function getInternetRecipes(): Promise<Recipe[]> {
+export async function getInternetRecipes(): Promise<RecipeRecord[]> {
   if (cachedRecipes && Date.now() - cachedAt < CACHE_TTL_MS) {
     return cachedRecipes;
   }
@@ -118,9 +117,9 @@ export async function getInternetRecipes(): Promise<Recipe[]> {
 }
 
 export function filterInternetRecipes(
-  recipes: Recipe[],
+  recipes: RecipeRecord[],
   params: { categorySlug?: string; q?: string; ids?: string[] } = {},
-): Recipe[] {
+): RecipeRecord[] {
   const ids = params.ids && params.ids.length > 0 ? new Set(params.ids) : null;
   const q = params.q?.trim().toLowerCase();
 

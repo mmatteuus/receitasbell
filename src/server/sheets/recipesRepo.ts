@@ -1,10 +1,11 @@
-import type { ImageFileMeta, Recipe } from "../../types/recipe.js";
+import type { ImageFileMeta } from "../../types/recipe.js";
+import type { RecipeRecord } from "../../lib/recipes/types.js";
 import { ApiError } from "../http.js";
 import { SheetRecord } from "./schema.js";
 import { mutateTable, readTable } from "./table.js";
 import { getCategoryBySlug } from "./categoriesRepo.js";
+import { listEntitlementsByEmail } from "./entitlementsRepo.js";
 import { getRatingsSummaryByRecipeIds } from "./ratingsRepo.js";
-import { listRecipeUnlocksForIdentity } from "./recipeUnlocksRepo.js";
 import { asBoolean, asJson, asNullableString, asNumber, createUniqueSlug, nowIso, toJsonString } from "./utils.js";
 
 export interface ListRecipesOptions {
@@ -71,35 +72,42 @@ function buildRecipeFromRow(
   row: SheetRecord<"recipes">,
   tables: RecipeTables,
   ratingsSummary: Record<string, { avg: number; count: number }>,
-  unlockedRecipeIds: Set<string>,
-): Recipe {
+  entitledRecipeSlugs: Set<string>,
+): RecipeRecord {
   const tags = tables.tagRows
     .filter((tagRow) => tagRow.recipe_id === row.id)
     .map((tagRow) => tagRow.tag)
     .filter(Boolean);
 
   const fallbackTags = asJson<string[]>(row.tags_json, []);
-  const ingredients = tables.ingredientRows
+  const ingredientsFromChildRows = tables.ingredientRows
     .filter((ingredientRow) => ingredientRow.recipe_id === row.id)
     .sort((left, right) => asNumber(left.position) - asNumber(right.position))
     .map((ingredientRow) => ingredientRow.text)
     .filter(Boolean);
-  const instructions = tables.instructionRows
+  const instructionsFromChildRows = tables.instructionRows
     .filter((instructionRow) => instructionRow.recipe_id === row.id)
     .sort((left, right) => asNumber(left.position) - asNumber(right.position))
     .map((instructionRow) => instructionRow.text)
     .filter(Boolean);
   const summary = ratingsSummary[row.id] ?? { avg: 0, count: 0 };
-  const imageUrl = row.image_url || "";
+  const imageUrl = row.image_url?.trim() || null;
   const imageFileMeta = asJson<ImageFileMeta | null>(row.image_file_meta_json, null);
   const accessTier = row.access_tier === "paid" ? "paid" : "free";
+  const fullIngredients = asJson<string[]>(row.full_ingredients_json, ingredientsFromChildRows);
+  const fullInstructions = asJson<string[]>(
+    row.full_instructions_json,
+    instructionsFromChildRows,
+  );
+  const hasAccess = accessTier === "free" || entitledRecipeSlugs.has(row.slug);
+  const teaserIngredients = fullIngredients.slice(0, 2);
+  const teaserInstructions = fullInstructions.slice(0, 2);
 
   return {
     id: row.id,
     slug: row.slug,
     title: row.title,
     description: row.description,
-    image: imageUrl,
     imageUrl,
     imageFileMeta,
     categorySlug: row.category_slug,
@@ -111,8 +119,8 @@ function buildRecipeFromRow(
     servings: asNumber(row.servings, 1),
     accessTier,
     priceBRL: accessTier === "paid" ? asNumber(row.price_brl) : null,
-    fullIngredients: ingredients,
-    fullInstructions: instructions,
+    fullIngredients: hasAccess ? fullIngredients : teaserIngredients,
+    fullInstructions: hasAccess ? fullInstructions : teaserInstructions,
     excerpt: row.excerpt || undefined,
     seoTitle: row.seo_title || undefined,
     seoDescription: row.seo_description || undefined,
@@ -120,7 +128,7 @@ function buildRecipeFromRow(
     createdByUserId: asNullableString(row.created_by_user_id),
     ratingAvg: summary.avg,
     ratingCount: summary.count,
-    isUnlocked: accessTier === "free" || unlockedRecipeIds.has(row.id),
+    hasAccess,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     publishedAt: asNullableString(row.published_at),
@@ -244,7 +252,7 @@ async function replaceChildRows(recipeId: string, normalized: ReturnType<typeof 
   ]);
 }
 
-function sortRecipes(recipes: Recipe[]) {
+function sortRecipes(recipes: RecipeRecord[]) {
   return [...recipes].sort((left, right) => {
     if (Boolean(left.isFeatured) !== Boolean(right.isFeatured)) {
       return left.isFeatured ? -1 : 1;
@@ -257,13 +265,19 @@ function sortRecipes(recipes: Recipe[]) {
 export async function listRecipes(options: ListRecipesOptions = {}) {
   const tables = await loadRecipeTables();
   const recipeIds = tables.recipeRows.map((row) => row.id);
-  const [ratingsSummary, unlocks] = await Promise.all([
+  const [ratingsSummary, entitlements] = await Promise.all([
     getRatingsSummaryByRecipeIds(recipeIds, options.identity),
-    listRecipeUnlocksForIdentity(options.identity ?? {}),
+    options.identity?.email ? listEntitlementsByEmail(options.identity.email) : Promise.resolve([]),
   ]);
-  const unlockedRecipeIds = new Set<string>(unlocks.map((unlock) => unlock.recipeId));
+  const entitledRecipeSlugs = new Set(
+    entitlements
+      .filter((entitlement) => entitlement.accessStatus === "active")
+      .map((entitlement) => entitlement.recipeSlug),
+  );
 
-  const recipes = tables.recipeRows.map((row) => buildRecipeFromRow(row, tables, ratingsSummary, unlockedRecipeIds));
+  const recipes = tables.recipeRows.map((row) =>
+    buildRecipeFromRow(row, tables, ratingsSummary, entitledRecipeSlugs),
+  );
   const q = options.q?.trim().toLowerCase();
   const ids = new Set<string>(options.ids ?? []);
 
@@ -346,6 +360,8 @@ export async function createRecipe(input: RecipeMutationInput) {
       servings: String(normalized.servings),
       access_tier: normalized.accessTier,
       price_brl: normalized.priceBRL === null ? "" : String(normalized.priceBRL),
+      full_ingredients_json: toJsonString(normalized.ingredients),
+      full_instructions_json: toJsonString(normalized.instructions),
       created_at: input.createdAt || now,
       updated_at: now,
       published_at: normalized.publishedAt ?? "",
@@ -392,6 +408,8 @@ export async function updateRecipe(id: string, input: RecipeMutationInput) {
         servings: String(normalized.servings),
         access_tier: normalized.accessTier,
         price_brl: normalized.priceBRL === null ? "" : String(normalized.priceBRL),
+        full_ingredients_json: toJsonString(normalized.ingredients),
+        full_instructions_json: toJsonString(normalized.instructions),
         updated_at: now,
         published_at: normalized.publishedAt ?? "",
         created_by_user_id: normalized.createdByUserId ?? row.created_by_user_id,

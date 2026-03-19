@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Plus, Save, Globe, AlertCircle, Trash2 } from "lucide-react";
+import type { RecipeRecord } from "@/lib/recipes/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,7 +22,7 @@ import {
 } from "@/lib/repos/recipeRepo";
 import { addCategory } from "@/lib/repos/categoryRepo";
 import { useAppContext } from "@/contexts/app-context";
-import type { AccessTier, ImageFileMeta, Recipe, RecipeStatus } from "@/types/recipe";
+import type { AccessTier, ImageFileMeta, RecipeStatus } from "@/types/recipe";
 import { normalizeBRLInput, parseBRLInput } from "@/lib/helpers";
 import { createImagePreview, revokeImagePreview } from "@/lib/services/storageFallback";
 import { toast } from "sonner";
@@ -77,15 +78,15 @@ const EMPTY_STATE: EditorState = {
   status: "draft",
 };
 
-function mapRecipeToState(recipe: Recipe): EditorState {
+function mapRecipeToState(recipe: RecipeRecord): EditorState {
   return {
     id: recipe.id,
     title: recipe.title,
     slug: recipe.slug,
     description: recipe.description,
-    imageUrl: recipe.imageUrl || recipe.image || "",
+    imageUrl: recipe.imageUrl || "",
     imageFileMeta: recipe.imageFileMeta ?? null,
-    imagePreviewUrl: recipe.imageUrl || recipe.image || "",
+    imagePreviewUrl: recipe.imageUrl || "",
     categorySlug: recipe.categorySlug,
     prepTime: recipe.prepTime,
     cookTime: recipe.cookTime,
@@ -119,13 +120,12 @@ export default function RecipeEditor() {
   const isEditing = Boolean(id);
   const { categories, refreshCategories } = useAppContext();
   const [form, setForm] = useState<EditorState>(EMPTY_STATE);
-  const [existingRecipes, setExistingRecipes] = useState<Recipe[]>([]);
+  const [existingRecipes, setExistingRecipes] = useState<RecipeRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [newCategoryOpen, setNewCategoryOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
-  const [newCategoryEmoji, setNewCategoryEmoji] = useState("");
   const [newCategoryDescription, setNewCategoryDescription] = useState("");
 
   useEffect(() => {
@@ -270,13 +270,11 @@ export default function RecipeEditor() {
     try {
       const category = await addCategory({
         name: newCategoryName.trim(),
-        emoji: newCategoryEmoji.trim() || "📁",
         description: newCategoryDescription.trim(),
       });
       await refreshCategories();
       setField("categorySlug", category.slug);
       setNewCategoryName("");
-      setNewCategoryEmoji("");
       setNewCategoryDescription("");
       setNewCategoryOpen(false);
       toast.success("Categoria criada");
@@ -411,7 +409,7 @@ export default function RecipeEditor() {
                   <SelectContent>
                     {categories.map((category) => (
                       <SelectItem key={category.slug} value={category.slug}>
-                        {category.emoji} {category.name}
+                        {category.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -429,7 +427,6 @@ export default function RecipeEditor() {
                     </DialogHeader>
                     <div className="space-y-3">
                       <Input value={newCategoryName} onChange={(event) => setNewCategoryName(event.target.value)} placeholder="Nome" />
-                      <Input value={newCategoryEmoji} onChange={(event) => setNewCategoryEmoji(event.target.value)} placeholder="Emoji" maxLength={4} />
                       <Input value={newCategoryDescription} onChange={(event) => setNewCategoryDescription(event.target.value)} placeholder="Descrição" />
                       <Button onClick={() => void handleCreateCategory()} className="w-full">Criar categoria</Button>
                     </div>
