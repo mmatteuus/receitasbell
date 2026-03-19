@@ -10,12 +10,21 @@ function readPaymentsFilters(request: VercelRequest) {
   const status = parseStringArray(request.query.status);
   const paymentMethod = parseStringArray(request.query.method || request.query.paymentMethod);
   const email = getQueryValue(request.query.email as string | string[] | undefined);
-  const paymentId = getQueryValue(request.query.paymentId as string | string[] | undefined);
+  const paymentIdGateway = getQueryValue(
+    request.query.paymentIdGateway as string | string[] | undefined,
+  );
+  const paymentId =
+    getQueryValue(request.query.paymentId as string | string[] | undefined) ||
+    paymentIdGateway;
   const externalReference =
     getQueryValue(request.query.externalReference as string | string[] | undefined) ||
     getQueryValue(request.query.external_reference as string | string[] | undefined);
-  const dateFrom = getQueryValue(request.query.dateFrom as string | string[] | undefined);
-  const dateTo = getQueryValue(request.query.dateTo as string | string[] | undefined);
+  const dateFrom =
+    getQueryValue(request.query.from as string | string[] | undefined) ||
+    getQueryValue(request.query.dateFrom as string | string[] | undefined);
+  const dateTo =
+    getQueryValue(request.query.to as string | string[] | undefined) ||
+    getQueryValue(request.query.dateTo as string | string[] | undefined);
 
   return {
     status: status as never,

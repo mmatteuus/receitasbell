@@ -1,4 +1,4 @@
-import type { Category } from "../types/recipe.js";
+import type { Category } from "../types/category.js";
 import type { HomeSettings, PaymentSettings, SiteSettings } from "../types/settings.js";
 
 const DEFAULT_CATEGORY_TIMESTAMP = "2024-01-01T00:00:00.000Z";

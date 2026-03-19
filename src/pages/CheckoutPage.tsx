@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Lock, ShieldCheck, Zap, ArrowRight } from 'lucide-react';
-import type { CartItem } from '@/types/recipe';
+import type { CartItem } from '@/types/cart';
 import { toast } from 'sonner';
 import { useAppContext } from '@/contexts/app-context';
 import { getRecipeBySlug } from '@/lib/repos/recipeRepo';

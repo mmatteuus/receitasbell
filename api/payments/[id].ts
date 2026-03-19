@@ -17,6 +17,11 @@ export default async function handler(request: VercelRequest, response: VercelRe
       throw new ApiError(404, "Payment not found");
     }
 
-    return sendJson(response, 200, details);
+    return sendJson(response, 200, {
+      ...details.payment,
+      payment: details.payment,
+      events: details.events,
+      notes: details.notes,
+    });
   });
 }

@@ -8,13 +8,20 @@ export type ListPaymentsFilters = {
   paymentMethod?: string[];
   email?: string;
   paymentId?: string;
+  paymentIdGateway?: string;
   dateFrom?: string;
   dateTo?: string;
+  from?: string;
+  to?: string;
   externalReference?: string;
 };
 
-export async function listAdminPayments(filters: ListPaymentsFilters = {}) {
+export async function list(filters: ListPaymentsFilters = {}) {
   return listPayments(filters);
+}
+
+export async function listAdminPayments(filters: ListPaymentsFilters = {}) {
+  return list(filters);
 }
 
 export async function getAdminPaymentById(id: string) {
@@ -31,21 +38,33 @@ export async function createPaymentPreference(
 }
 
 export async function getByPaymentIdGateway(paymentIdGateway: string) {
-  const details = await getPayment(paymentIdGateway);
-  return details.payment;
+  const payments = await listPayments({
+    paymentId: paymentIdGateway,
+  });
+  return payments.find((payment) => payment.paymentIdGateway === paymentIdGateway) ?? null;
 }
 
 export async function create(payment: Payment) {
+  // A criação efetiva acontece no checkout/webhook no backend.
+  // Este método mantém o contrato do repo para usos internos do front.
   return payment;
 }
 
 export async function updateStatus(paymentIdGateway: string, patch: Partial<Payment>) {
   const current = await getByPaymentIdGateway(paymentIdGateway);
-  return current ? { ...current, ...patch } : null;
+  if (!current) {
+    return null;
+  }
+
+  return {
+    ...current,
+    ...patch,
+    updatedAt: new Date().toISOString(),
+  };
 }
 
 export const paymentRepo = {
-  list: listAdminPayments,
+  list,
   listAdmin: listAdminPayments,
   getById: getAdminPaymentById,
   getByPaymentIdGateway,

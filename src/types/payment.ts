@@ -14,9 +14,12 @@ export interface AdminPaymentsFilters {
   paymentMethod?: string[];
   email?: string;
   paymentId?: string;
+  paymentIdGateway?: string;
   externalReference?: string;
   dateFrom?: string;
   dateTo?: string;
+  from?: string;
+  to?: string;
 }
 
 export interface CreatePaymentPreferenceInput {

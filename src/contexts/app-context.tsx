@@ -19,7 +19,7 @@ import {
   setIdentityEmail,
 } from "@/lib/api/identity";
 import { applySiteSettings } from "@/lib/theme";
-import type { Category } from "@/types/recipe";
+import type { Category } from "@/types/category";
 import type { SettingsMap } from "@/types/settings";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";

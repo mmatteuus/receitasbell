@@ -1,4 +1,4 @@
-import type { CartItem } from '@/types/recipe';
+import type { CartItem } from '@/types/cart';
 import type {
   CreatePaymentPreferenceInput,
   CreatePaymentPreferenceResult,

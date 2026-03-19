@@ -1,4 +1,5 @@
-import type { CartItem, Recipe } from '../../types/recipe.js';
+import type { Recipe } from '../../types/recipe.js';
+import type { CartItem } from '../../types/cart.js';
 import type { Payment, PaymentEvent, PaymentNote } from '../../lib/payments/types.js';
 import type { PaymentStatus } from '../../types/payment.js';
 import { buildCartItemFromRecipe } from '../../lib/utils/recipeAccess.js';
@@ -371,6 +372,35 @@ function toPaymentItemsFromRecipes(recipes: Recipe[]) {
   return recipes.map((recipe) => buildCartItemFromRecipe(recipe));
 }
 
+function asRoundedBRL(value: number) {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
+}
+
+function normalizeCheckoutItems(inputItems: CartItem[] | undefined, recipes: Recipe[]) {
+  if (!inputItems?.length || inputItems.length !== recipes.length) {
+    return toPaymentItemsFromRecipes(recipes);
+  }
+
+  const recipesById = new Map(recipes.map((recipe) => [recipe.id, recipe]));
+  return inputItems.map((item) => {
+    const recipe = recipesById.get(item.recipeId);
+    if (!recipe) {
+      throw new ApiError(400, `Checkout item inválido: ${item.recipeId}`);
+    }
+
+    const expectedPrice = asRoundedBRL(recipe.priceBRL ?? 0);
+    const receivedPrice = asRoundedBRL(Number(item.priceBRL ?? 0));
+    if (Math.abs(receivedPrice - expectedPrice) > 0.009) {
+      throw new ApiError(
+        409,
+        `Preço divergente para ${recipe.title}. Atualize o carrinho e tente novamente.`,
+      );
+    }
+
+    return buildCartItemFromRecipe(recipe);
+  });
+}
+
 async function resolveRecipeSlugsFromPaymentData(input: {
   recipeIds: string[];
   items: CartItem[];
@@ -656,8 +686,7 @@ export async function createMockCheckout(input: {
     recipes.push(recipe);
   }
 
-  const items =
-    input.items?.length === recipes.length ? input.items : toPaymentItemsFromRecipes(recipes);
+  const items = normalizeCheckoutItems(input.items, recipes);
   const totalBRL = sumBRL(items.map((item) => item.priceBRL));
   const payerName = input.payerName?.trim() || buyerEmail.split('@')[0] || 'Cliente';
   const idempotencyKey = input.checkoutReference;
@@ -803,8 +832,7 @@ export async function createMercadoPagoCheckout(input: {
     recipes.push(recipe);
   }
 
-  const items =
-    input.items?.length === recipes.length ? input.items : toPaymentItemsFromRecipes(recipes);
+  const items = normalizeCheckoutItems(input.items, recipes);
   const totalBRL = sumBRL(items.map((item) => item.priceBRL));
   const payerName = input.payerName?.trim() || buyerEmail.split('@')[0] || 'Cliente';
   const slug = items.length === 1 ? items[0].slug : '';

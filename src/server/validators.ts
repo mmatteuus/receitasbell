@@ -80,7 +80,7 @@ export const shoppingListUpdateSchema = z.object({
   checked: z.boolean().optional(),
 });
 
-export const checkoutSchema = z.object({
+const checkoutLegacySchema = z.object({
   recipeIds: z.array(z.string().trim().min(1)).min(1),
   items: z
     .array(
@@ -96,7 +96,53 @@ export const checkoutSchema = z.object({
     .optional(),
   payerName: z.string().trim().min(1).optional(),
   buyerEmail: z.string().trim().email(),
-  checkoutReference: z.string().trim().min(1),
+  checkoutReference: z.string().trim().min(1).optional(),
+});
+
+const mercadoPagoContractSchema = z.object({
+  items: z
+    .array(
+      z.object({
+        id: z.string().trim().min(1),
+        title: z.string().trim().min(1),
+        quantity: z.number().int().positive().max(1).default(1),
+        unit_price: z.number().positive(),
+      }),
+    )
+    .min(1),
+  payer: z.object({
+    name: z.string().trim().min(1).optional(),
+    email: z.string().trim().email(),
+  }),
+  checkoutReference: z.string().trim().min(1).optional(),
+});
+
+export const checkoutSchema = z
+  .union([checkoutLegacySchema, mercadoPagoContractSchema])
+  .transform((input) => {
+    if ("payer" in input) {
+      return {
+        recipeIds: input.items.map((item) => item.id),
+        items: input.items.map((item) => ({
+          recipeId: item.id,
+          title: item.title,
+          slug: item.id,
+          priceBRL: item.unit_price,
+          imageUrl: "",
+        })),
+        payerName: input.payer.name?.trim() || undefined,
+        buyerEmail: input.payer.email.trim().toLowerCase(),
+        checkoutReference: input.checkoutReference?.trim() || crypto.randomUUID(),
+      };
+    }
+
+    return {
+      recipeIds: input.recipeIds,
+      items: input.items,
+      payerName: input.payerName?.trim() || undefined,
+      buyerEmail: input.buyerEmail.trim().toLowerCase(),
+      checkoutReference: input.checkoutReference?.trim() || crypto.randomUUID(),
+    };
 });
 
 export const uploadRecipeImageSchema = z.object({

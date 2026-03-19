@@ -1,4 +1,4 @@
-import type { CartItem } from "@/types/recipe";
+import type { CartItem } from "@/types/cart";
 import { sumBRL } from "@/lib/utils/money";
 
 const KEY = "rdb_cart_v2";

@@ -1,6 +1,6 @@
 import type { VercelRequest } from '@vercel/node';
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import type { CartItem } from '../../types/recipe.js';
+import type { CartItem } from '../../types/cart.js';
 import { ApiError } from '../http.js';
 import { getMercadoPagoEnv } from '../env.js';
 

@@ -1,4 +1,5 @@
-import type { CartItem, Comment } from '@/types/recipe';
+import type { CartItem } from '@/types/cart';
+import type { Comment } from '@/types/recipe';
 import type { PaymentStatus } from '@/types/payment';
 import { buildQuery, jsonFetch } from './client';
 

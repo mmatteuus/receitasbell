@@ -1,5 +1,5 @@
 import { DEFAULT_CATEGORIES } from "../../lib/defaults.js";
-import type { Category } from "../../types/recipe.js";
+import type { Category } from "../../types/category.js";
 import { ApiError } from "../http.js";
 import { SheetRecord } from "./schema.js";
 import { mutateTable, readTable, writeTable } from "./table.js";

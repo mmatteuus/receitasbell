@@ -2,6 +2,9 @@ export type RecipeStatus = "draft" | "published";
 export type AccessTier = "free" | "paid";
 export type StorageProvider = "google_drive" | "fallback";
 
+export type { Category } from "./category";
+export type { CartItem } from "./cart";
+
 export interface ImageFileMeta {
   storage: StorageProvider;
   fileId: string;
@@ -12,14 +15,6 @@ export interface ImageFileMeta {
   publicUrl: string;
   thumbnailUrl?: string | null;
   driveFolderId?: string | null;
-}
-
-export interface Category {
-  id: string;
-  name: string;
-  slug: string;
-  description: string;
-  createdAt: string;
 }
 
 export interface Recipe {
@@ -41,14 +36,6 @@ export interface Recipe {
   createdAt: string;
   updatedAt: string;
   publishedAt: string | null;
-}
-
-export interface CartItem {
-  recipeId: string;
-  title: string;
-  slug: string;
-  imageUrl: string | null;
-  priceBRL: number;
 }
 
 export interface Comment {

@@ -1,4 +1,6 @@
 import type { AdminPaymentsFilters, CreatePaymentPreferenceResult, Payment, PaymentNote } from "@/lib/payments/types";
+import type { RecipeRecord } from "@/lib/recipes/types";
+import type { Entitlement } from "@/types/entitlement";
 import { buildQuery, jsonFetch } from "./client";
 
 export interface PaymentDetailResponse {
@@ -11,6 +13,8 @@ export interface PaymentDetailResponse {
     payload_json?: Record<string, unknown> | null;
   }>;
   notes: PaymentNote[];
+  recipes?: RecipeRecord[];
+  entitlements?: Entitlement[];
 }
 
 export async function listPayments(filters: AdminPaymentsFilters = {}) {
@@ -18,10 +22,13 @@ export async function listPayments(filters: AdminPaymentsFilters = {}) {
     status: filters.status,
     method: filters.paymentMethod,
     email: filters.email,
-    paymentId: filters.paymentId,
+    paymentId: filters.paymentId || filters.paymentIdGateway,
+    paymentIdGateway: filters.paymentIdGateway,
     externalReference: filters.externalReference,
-    dateFrom: filters.dateFrom,
-    dateTo: filters.dateTo,
+    dateFrom: filters.dateFrom || filters.from,
+    dateTo: filters.dateTo || filters.to,
+    from: filters.from,
+    to: filters.to,
   });
   const result = await jsonFetch<{ payments: Payment[] }>(`/api/admin/payments${query}`, {
     admin: true,

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Plus, Save, Globe, AlertCircle, Trash2 } from "lucide-react";
+import { Save, Globe, AlertCircle, Trash2 } from "lucide-react";
 import type { RecipeRecord } from "@/lib/recipes/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,9 +8,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { NewCategoryDialog } from "@/components/admin/NewCategoryDialog";
 import {
   getRecipeById,
   getRecipeTeaser,
@@ -414,24 +414,16 @@ export default function RecipeEditor() {
                     ))}
                   </SelectContent>
                 </Select>
-                <Dialog open={newCategoryOpen} onOpenChange={setNewCategoryOpen}>
-                  <DialogTrigger asChild>
-                    <Button type="button" variant="outline" className="w-full sm:w-10 sm:px-0">
-                      <Plus className="h-4 w-4" />
-                      <span className="ml-2 sm:hidden">Nova categoria</span>
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="w-[calc(100vw-2rem)] max-w-md">
-                    <DialogHeader>
-                      <DialogTitle>Nova Categoria</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-3">
-                      <Input value={newCategoryName} onChange={(event) => setNewCategoryName(event.target.value)} placeholder="Nome" />
-                      <Input value={newCategoryDescription} onChange={(event) => setNewCategoryDescription(event.target.value)} placeholder="Descrição" />
-                      <Button onClick={() => void handleCreateCategory()} className="w-full">Criar categoria</Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
+                <NewCategoryDialog
+                  open={newCategoryOpen}
+                  onOpenChange={setNewCategoryOpen}
+                  name={newCategoryName}
+                  description={newCategoryDescription}
+                  onNameChange={setNewCategoryName}
+                  onDescriptionChange={setNewCategoryDescription}
+                  onCreate={handleCreateCategory}
+                  disabled={saving || uploadingImage}
+                />
               </div>
             </div>
 

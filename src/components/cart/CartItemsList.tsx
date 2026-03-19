@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { X } from "lucide-react";
-import type { CartItem } from "@/types/recipe";
+import type { CartItem } from "@/types/cart";
 import { Button } from "@/components/ui/button";
 import { PriceBadge } from "@/components/price-badge";
 

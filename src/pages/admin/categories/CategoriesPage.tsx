@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { addCategory, editCategory, getCategories, removeCategory } from "@/lib/repos/categoryRepo";
-import type { Category } from "@/types/recipe";
+import type { Category } from "@/types/category";
 import { useAppContext } from "@/contexts/app-context";
 import { toast } from "sonner";
 

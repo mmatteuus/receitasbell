@@ -34,9 +34,9 @@ export const router = createBrowserRouter([
       { path: "carrinho", lazy: lazyRoute(() => import("@/pages/public/CartPage")) },
       { path: "institucional/:page", lazy: lazyRoute(() => import("@/pages/public/InstitutionalPage")) },
       { path: "checkout", lazy: lazyRoute(() => import("@/pages/public/CheckoutPage")) },
-      { path: "compra/sucesso", lazy: lazyRoute(() => import("@/pages/public/SuccessPage")) },
-      { path: "compra/pendente", lazy: lazyRoute(() => import("@/pages/public/PendingPage")) },
-      { path: "compra/falha", lazy: lazyRoute(() => import("@/pages/public/FailurePage")) },
+      { path: "compra/sucesso", lazy: lazyRoute(() => import("@/pages/public/PurchaseSuccessPage")) },
+      { path: "compra/pendente", lazy: lazyRoute(() => import("@/pages/public/PurchasePendingPage")) },
+      { path: "compra/falha", lazy: lazyRoute(() => import("@/pages/public/PurchaseFailurePage")) },
     ],
   },
   {
@@ -55,7 +55,7 @@ export const router = createBrowserRouter([
       { path: "receitas", lazy: lazyRoute(() => import("@/pages/admin/RecipeListPage")) },
       { path: "receitas/nova", lazy: lazyRoute(() => import("@/pages/admin/RecipeEditor")) },
       { path: "receitas/:id/editar", lazy: lazyRoute(() => import("@/pages/admin/RecipeEditor")) },
-      { path: "categorias", lazy: lazyRoute(() => import("@/pages/admin/categories/CategoriesPage")) },
+      { path: "categorias", lazy: lazyRoute(() => import("@/pages/admin/CategoriesPage")) },
       {
         path: "pagamentos",
         children: [

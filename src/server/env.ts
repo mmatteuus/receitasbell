@@ -7,11 +7,14 @@ export function getRequiredEnv(name: string) {
 }
 
 export function getGoogleEnv() {
+  const spreadsheetId =
+    process.env.GOOGLE_SPREADSHEET_ID?.trim() || "16Bl040rdAjh1NKy4olidNk99F5vrsXIeyn3JeMcKWT4";
+
   return {
     projectId: getRequiredEnv("GOOGLE_PROJECT_ID"),
     clientEmail: getRequiredEnv("GOOGLE_CLIENT_EMAIL"),
     privateKey: getRequiredEnv("GOOGLE_PRIVATE_KEY").replace(/\\n/g, "\n"),
-    spreadsheetId: getRequiredEnv("GOOGLE_SPREADSHEET_ID"),
+    spreadsheetId,
   };
 }
 

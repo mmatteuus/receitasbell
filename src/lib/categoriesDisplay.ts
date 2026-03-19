@@ -1,4 +1,4 @@
-import type { Category } from "@/types/recipe";
+import type { Category } from "@/types/category";
 
 export function resolveCategoryDisplay(categories: Category[], categorySlug: string) {
   const match = categories.find((category) => category.slug === categorySlug);

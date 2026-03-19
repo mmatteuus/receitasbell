@@ -5,6 +5,7 @@ const SHEETS_SCOPES = [
   "https://www.googleapis.com/auth/spreadsheets",
   "https://www.googleapis.com/auth/drive.file",
 ];
+export const OFFICIAL_MVP_SPREADSHEET_ID = "16Bl040rdAjh1NKy4olidNk99F5vrsXIeyn3JeMcKWT4";
 
 let authPromise: Promise<InstanceType<typeof google.auth.JWT>> | null = null;
 let sheetsPromise: Promise<sheets_v4.Sheets> | null = null;
@@ -32,7 +33,7 @@ export async function getGoogleAuth() {
 }
 
 export function getSpreadsheetId() {
-  return getGoogleEnv().spreadsheetId;
+  return getGoogleEnv().spreadsheetId || OFFICIAL_MVP_SPREADSHEET_ID;
 }
 
 export function getDriveFolderId() {
@@ -154,11 +155,15 @@ export async function getRows(sheetName: string) {
 
 export async function appendRow(sheetName: string, row: SheetRow) {
   await ensureSheetExists(sheetName);
-  const rows = await getRows(sheetName);
-  const headers = rows.length > 0 ? Object.keys(rows[0]) : Object.keys(row);
+  const values = await readSheetValues(`${sheetName}!A:ZZ`);
+  const header = (values[0] ?? []).map((value) => String(value).trim()).filter(Boolean);
+  const headers = header.length > 0 ? header : Object.keys(row);
 
   if (!headers.length) {
-    await updateSheetValues(`${sheetName}!A1`, [Object.keys(row), Object.values(row).map(String)]);
+    await updateSheetValues(`${sheetName}!A1`, [
+      Object.keys(row),
+      Object.values(row).map(String),
+    ]);
     return row;
   }
 
@@ -182,7 +187,10 @@ export async function findRowBy(sheetName: string, field: string, value: string)
   return rows.find((row) => String(row[field] ?? "") === value) ?? null;
 }
 
-export async function listRowsBy(sheetName: string, filters: Record<string, string | undefined>) {
+export async function listRowsBy(
+  sheetName: string,
+  filters: Record<string, string | number | boolean | null | undefined>,
+) {
   const rows = await getRows(sheetName);
   const activeFilters = Object.entries(filters).filter(([, value]) => value !== undefined);
 
@@ -195,7 +203,11 @@ export async function listRowsBy(sheetName: string, filters: Record<string, stri
   );
 }
 
-export async function updateRow(sheetName: string, rowId: string, patch: SheetRow) {
+export async function updateRow(
+  sheetName: string,
+  rowId: string,
+  patch: Record<string, string | number | boolean | null | undefined>,
+) {
   const values = await readSheetValues(`${sheetName}!A:ZZ`);
   const header = (values[0] ?? []).map((value) => String(value));
 
@@ -217,7 +229,11 @@ export async function updateRow(sheetName: string, rowId: string, patch: SheetRo
   }
 
   const current = mapSheetRows(values)[rowIndex] ?? {};
-  const next = { ...current, ...patch };
+  const serializedPatch = Object.entries(patch).reduce<SheetRow>((acc, [key, value]) => {
+    acc[key] = value === null || value === undefined ? "" : String(value);
+    return acc;
+  }, {});
+  const next = { ...current, ...serializedPatch };
   const absoluteRowIndex = rowIndex + 2;
   await updateSheetValues(`${sheetName}!A${absoluteRowIndex}`, [
     header.map((column) => String(next[column] ?? "")),

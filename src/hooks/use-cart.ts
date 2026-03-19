@@ -1,5 +1,5 @@
 import { useCallback, useSyncExternalStore } from "react";
-import type { CartItem } from "@/types/recipe";
+import type { CartItem } from "@/types/cart";
 import { cartRepo } from "@/lib/repos/cartRepo";
 import { trackEvent } from "@/lib/telemetry";
 

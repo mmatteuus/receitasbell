@@ -1,4 +1,5 @@
-import type { CartItem, Recipe } from "@/types/recipe";
+import type { Recipe } from "@/types/recipe";
+import type { CartItem } from "@/types/cart";
 import type { RecipeRecord } from "@/lib/recipes/types";
 
 export function isRecipeUnlocked(recipe: Pick<Recipe, "accessTier"> & { hasAccess?: boolean }) {

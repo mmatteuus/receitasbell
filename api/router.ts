@@ -6,6 +6,7 @@ import {
   assertMethod,
   clearAdminSessionCookie,
   getAppBaseUrl,
+  getIdentityEmail,
   hasAdminAccess,
   parseStringArray,
   readJsonBody,
@@ -23,6 +24,7 @@ import {
   listCategories,
   updateCategory,
 } from '../src/server/sheets/categoriesRepo.js';
+import { listEntitlementsByEmail } from '../src/server/sheets/entitlementsRepo.js';
 import { createComment, listCommentsByRecipeId } from '../src/server/sheets/commentsRepo.js';
 import {
   createFavorite,
@@ -158,12 +160,21 @@ function readPaymentsFilters(request: VercelRequest) {
   const status = parseStringArray(request.query.status);
   const paymentMethod = parseStringArray(request.query.method || request.query.paymentMethod);
   const email = getQueryValue(request.query.email as string | string[] | undefined);
-  const paymentId = getQueryValue(request.query.paymentId as string | string[] | undefined);
+  const paymentIdGateway = getQueryValue(
+    request.query.paymentIdGateway as string | string[] | undefined,
+  );
+  const paymentId =
+    getQueryValue(request.query.paymentId as string | string[] | undefined) ||
+    paymentIdGateway;
   const externalReference =
     getQueryValue(request.query.externalReference as string | string[] | undefined) ||
     getQueryValue(request.query.external_reference as string | string[] | undefined);
-  const dateFrom = getQueryValue(request.query.dateFrom as string | string[] | undefined);
-  const dateTo = getQueryValue(request.query.dateTo as string | string[] | undefined);
+  const dateFrom =
+    getQueryValue(request.query.from as string | string[] | undefined) ||
+    getQueryValue(request.query.dateFrom as string | string[] | undefined);
+  const dateTo =
+    getQueryValue(request.query.to as string | string[] | undefined) ||
+    getQueryValue(request.query.dateTo as string | string[] | undefined);
 
   return {
     status: status as never,
@@ -332,7 +343,28 @@ export default async function handler(request: VercelRequest, response: VercelRe
           throw new ApiError(404, 'Payment not found');
         }
 
-        return sendJson(response, 200, details);
+        const recipes = (
+          await Promise.all(
+            details.payment.recipeIds.map((recipeId) =>
+              getRecipeById(recipeId, {
+                includeDrafts: true,
+              })
+            )
+          )
+        ).filter((recipe) => Boolean(recipe));
+        const entitlements = (await listEntitlementsByEmail(details.payment.payerEmail)).filter(
+          (entitlement) =>
+            entitlement.paymentId === details.payment.id ||
+            details.payment.items.some((item) => item.slug === entitlement.recipeSlug)
+        );
+
+        return sendJson(response, 200, {
+          payment: details.payment,
+          recipes,
+          entitlements,
+          events: details.events,
+          notes: details.notes,
+        });
       }
 
       if (request.method === 'POST' && action && subaction === 'note') {
@@ -551,13 +583,22 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
     if (resource === 'payments' && resourceId && !action) {
       assertMethod(request, ['GET']);
-      requireAdminAccess(request);
       const details = await getPaymentById(resourceId);
       if (!details) {
         throw new ApiError(404, 'Payment not found');
       }
 
-      return sendJson(response, 200, details);
+      const identityEmail = getIdentityEmail(request);
+      if (!hasAdminAccess(request) && identityEmail !== details.payment.payerEmail) {
+        throw new ApiError(404, 'Payment not found');
+      }
+
+      return sendJson(response, 200, {
+        ...details.payment,
+        payment: details.payment,
+        events: details.events,
+        notes: details.notes,
+      });
     }
 
     if (resource === 'shopping-list' && !resourceId) {

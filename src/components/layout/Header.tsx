@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, Search, Heart, ChefHat, Settings, ShoppingCart, UserCircle2 } from "lucide-react";
+import { Menu, X, Search, Heart, ChefHat, Settings, UserCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { useAppContext } from "@/contexts/app-context";
-import { useCart } from "@/hooks/use-cart";
 import ThemeModeToggle from "@/components/layout/ThemeModeToggle";
+import { CartButton } from "@/components/cart/CartButton";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -25,7 +24,6 @@ export default function Header() {
   const [deferredInstallPrompt, setDeferredInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isAppInstalled, setIsAppInstalled] = useState(false);
   const { pathname } = useLocation();
-  const { count } = useCart();
   const { categories, settings } = useAppContext();
 
   const isActive = (path: string) => pathname === path;
@@ -97,20 +95,7 @@ export default function Header() {
             </Link>
           ))}
 
-          <Link
-            to="/carrinho"
-            className={`relative flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-              isActive("/carrinho") ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <ShoppingCart className="h-4 w-4" />
-            Carrinho
-            {count > 0 && (
-              <Badge className="ml-1 h-5 min-w-[20px] justify-center rounded-full px-1.5 text-[10px]">
-                {count}
-              </Badge>
-            )}
-          </Link>
+          <CartButton />
 
           <div className="group relative">
             <button className="flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
@@ -141,14 +126,7 @@ export default function Header() {
         </nav>
 
         <div className="flex items-center gap-2 lg:hidden">
-          <Link to="/carrinho" className="relative p-2">
-            <ShoppingCart className="h-5 w-5" />
-            {count > 0 && (
-              <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
-                {count}
-              </span>
-            )}
-          </Link>
+          <CartButton mobile />
           <ThemeModeToggle compact />
           <button onClick={() => setOpen(!open)} aria-label="Menu">
             {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -175,9 +153,7 @@ export default function Header() {
             <Link to="/minha-conta" onClick={() => setOpen(false)} className="flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground">
               <UserCircle2 className="h-4 w-4" /> Minha Conta
             </Link>
-            <Link to="/carrinho" onClick={() => setOpen(false)} className="flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground">
-              <ShoppingCart className="h-4 w-4" /> Carrinho {count > 0 && `(${count})`}
-            </Link>
+            <CartButton onClick={() => setOpen(false)} />
             <div className="my-2 border-t" />
             <p className="px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Categorias</p>
             {categories.map((cat) => (
