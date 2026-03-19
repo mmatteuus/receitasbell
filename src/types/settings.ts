@@ -59,6 +59,10 @@ export interface PaymentSettings {
   payment_mode: "sandbox" | "production";
   webhooks_enabled: boolean;
   payment_topic_enabled: boolean;
+  mp_access_token: string;
+  mp_refresh_token: string;
+  mp_public_key: string;
+  mp_user_id: string;
 }
 
 export type SettingsMap = SiteSettings & HomeSettings & PaymentSettings;

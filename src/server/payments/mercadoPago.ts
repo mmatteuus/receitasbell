@@ -96,18 +96,18 @@ export function buildMercadoPagoWebhookManifest(paymentId: string, requestId: st
   return `id:${paymentId};request-id:${requestId};ts:${ts};`;
 }
 
-export function verifyMercadoPagoWebhookSignature(
+export async function verifyMercadoPagoWebhookSignature(
   paymentId: string,
   requestId: string,
   signature: MercadoPagoSignatureParts
 ) {
-  const { webhookSecret } = getMercadoPagoEnv();
+  const { webhookSecret } = await getMercadoPagoEnv();
   const manifest = buildMercadoPagoWebhookManifest(paymentId, requestId, signature.ts);
   const digest = createHmac('sha256', webhookSecret).update(manifest).digest('hex');
   return signaturesMatch(digest, signature.v1.toLowerCase());
 }
 
-export function assertMercadoPagoWebhookSignature(request: VercelRequest, paymentId: string) {
+export async function assertMercadoPagoWebhookSignature(request: VercelRequest, paymentId: string) {
   const signatureHeader = asSingleHeader(request.headers['x-signature']);
   const requestId = asSingleHeader(request.headers['x-request-id']);
 
@@ -116,7 +116,8 @@ export function assertMercadoPagoWebhookSignature(request: VercelRequest, paymen
   }
 
   const signature = parseSignatureHeader(signatureHeader);
-  if (!verifyMercadoPagoWebhookSignature(paymentId, requestId, signature)) {
+  const isValid = await verifyMercadoPagoWebhookSignature(paymentId, requestId, signature);
+  if (!isValid) {
     throw new ApiError(401, 'Invalid Mercado Pago webhook signature');
   }
 }
@@ -131,7 +132,7 @@ export async function createMercadoPagoPreference(input: {
   notificationUrl?: string;
   metadata: Record<string, unknown>;
 }) {
-  const { accessToken } = getMercadoPagoEnv();
+  const { accessToken } = await getMercadoPagoEnv();
   const payload: MercadoPagoPreferencePayload = {
     external_reference: input.externalReference,
     items: buildPreferenceItems(input.items),

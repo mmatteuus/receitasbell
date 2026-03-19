@@ -68,6 +68,10 @@ export const DEFAULT_PAYMENT_SETTINGS: PaymentSettings = {
   payment_mode: "sandbox",
   webhooks_enabled: true,
   payment_topic_enabled: true,
+  mp_access_token: "",
+  mp_refresh_token: "",
+  mp_public_key: "",
+  mp_user_id: "",
 };
 
 export const SITE_SETTING_KEYS = [
@@ -85,6 +89,10 @@ export const PAYMENT_SETTING_KEYS = [
   "payment_mode",
   "webhooks_enabled",
   "payment_topic_enabled",
+  "mp_access_token",
+  "mp_refresh_token",
+  "mp_public_key",
+  "mp_user_id",
 ] as const;
 
 export const HOME_SETTING_KEYS = [

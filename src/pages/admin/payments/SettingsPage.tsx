@@ -50,20 +50,56 @@ export default function SettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Credenciais</CardTitle>
+          <CardTitle>Integração com Mercado Pago</CardTitle>
           <CardDescription>
-            Segredos não são salvos no Google Sheets. Configure `MP_ACCESS_TOKEN` e
-            `MP_WEBHOOK_SECRET` nas env vars da Vercel.
+            Conecte sua conta oficial do Mercado Pago para habilitar o recebimento de pagamentos reais.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 text-sm text-muted-foreground">
-          <p>Projeto: `matdev/receitasbell`</p>
-          <p>
-            Webhook:{' '}
-            {typeof window !== 'undefined'
-              ? `${window.location.origin}/api/payments/mercadopago/webhook`
-              : '/api/payments/mercadopago/webhook'}
-          </p>
+          {settings.mp_access_token ? (
+            <div className="rounded-lg border border-green-500/30 bg-green-500/10 p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-medium text-green-700 dark:text-green-400">Conta conectada com Sucesso</h3>
+                  <p className="text-sm text-green-600/80 dark:text-green-400/80">
+                    ID da Conta: {settings.mp_user_id}
+                  </p>
+                </div>
+                <Button 
+                  variant="destructive" 
+                  size="sm"
+                  onClick={async () => {
+                    if (confirm('Tem certeza que deseja desconectar a conta do Mercado Pago? Você deixará de receber pagamentos.')) {
+                      await updateSettings({ mp_access_token: '', mp_refresh_token: '', mp_public_key: '', mp_user_id: '' });
+                      await refreshSettings();
+                      toast.success('Desconectado do Mercado Pago com sucesso');
+                    }
+                  }}
+                >
+                  Desconectar
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-lg border bg-muted/30 p-4 space-y-4">
+              <p className="text-sm">
+                Sua aplicação não está autorizada a processar pagamentos. Clique no botão abaixo para logar no Mercado Pago e configurar tudo automaticamente.
+              </p>
+              <Button asChild className="bg-blue-600 font-semibold text-white hover:bg-blue-700 border-none transition-all shadow-md">
+                <a href="/api/mercadopago/login" data-astro-reload>
+                  Conectar conta do Mercado Pago
+                </a>
+              </Button>
+            </div>
+          )}
+          <div className="mt-4 border-t pt-4">
+            <p>
+              Webhook interno (referência):{' '}
+              {typeof window !== 'undefined'
+                ? `${window.location.origin}/api/mercadopago/webhook`
+                : '/api/mercadopago/webhook'}
+            </p>
+          </div>
         </CardContent>
       </Card>
 

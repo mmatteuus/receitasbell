@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getAdminApiSecret, getMercadoPagoEnv, hasMercadoPagoConfig } from '../src/server/env.js';
+import { getAdminApiSecret, getMercadoPagoEnv, getMercadoPagoAppEnv, hasMercadoPagoConfig } from '../src/server/env.js';
 import { requireIdentityUser, resolveOptionalIdentityUser } from '../src/server/identity.js';
 import {
   ApiError,
@@ -138,7 +138,7 @@ function extractMercadoPagoPaymentId(request: VercelRequest, payload: Record<str
 }
 
 async function fetchMercadoPagoPayment(paymentId: string) {
-  const { accessToken } = getMercadoPagoEnv();
+  const { accessToken } = await getMercadoPagoEnv();
   const response = await fetch(
     `https://api.mercadopago.com/v1/payments/${encodeURIComponent(paymentId)}`,
     {
@@ -208,7 +208,7 @@ async function createCheckoutResponse(
   const user = await findOrCreateUserByEmail(buyerEmail);
   const checkoutInput = {
     recipeIds: body.recipeIds,
-    items: body.items,
+    items: body.items?.map(item => ({ ...item, imageUrl: item.imageUrl ?? null })),
     payerName: body.payerName,
     buyerEmail,
     userId: user.id,
@@ -216,7 +216,8 @@ async function createCheckoutResponse(
   };
 
   if (settings.payment_mode === 'production') {
-    if (!hasMercadoPagoConfig()) {
+    const hasConfig = await hasMercadoPagoConfig();
+    if (!hasConfig) {
       throw new ApiError(501, 'Mercado Pago is not configured for production checkout');
     }
 
@@ -240,8 +241,9 @@ async function createCheckoutResponse(
 
 async function processMercadoPagoWebhook(request: VercelRequest) {
   const settings = mapTypedSettings(await getSettingsMap());
+  const hasConfig = await hasMercadoPagoConfig();
 
-  if (!hasMercadoPagoConfig()) {
+  if (!hasConfig) {
     throw new ApiError(501, 'Mercado Pago webhook is not enabled in this environment');
   }
 
@@ -661,10 +663,60 @@ export default async function handler(request: VercelRequest, response: VercelRe
       return sendJson(response, 201, { subscriber });
     }
 
+    if (resource === 'mercadopago' && resourceId === 'login') {
+      const { clientId } = getMercadoPagoAppEnv();
+      const redirectUri = getAppBaseUrl(request) + '/api/mercadopago/oauth';
+      const authUrl = `https://auth.mercadopago.com/authorization?client_id=${clientId}&response_type=code&platform_id=mp&redirect_uri=${redirectUri}`;
+      response.redirect(authUrl);
+      return;
+    }
+
     if (resource === 'mercadopago' && resourceId === 'webhook') {
       assertMethod(request, ['POST']);
       const result = await processMercadoPagoWebhook(request);
       return sendJson(response, 202, result);
+    }
+
+    if (resource === 'mercadopago' && resourceId === 'oauth') {
+      assertMethod(request, ['GET']);
+      const { code } = request.query;
+      if (!code || typeof code !== 'string') {
+        throw new ApiError(400, 'Missing or invalid authorization code');
+      }
+
+      const { clientId, clientSecret } = getMercadoPagoAppEnv();
+      const redirectUri = getAppBaseUrl(request) + '/api/mercadopago/oauth';
+      
+      const tokenResponse = await fetch('https://api.mercadopago.com/oauth/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          client_secret: clientSecret,
+          client_id: clientId,
+          grant_type: 'authorization_code',
+          code,
+          redirect_uri: redirectUri,
+        }),
+      });
+
+      if (!tokenResponse.ok) {
+        console.error('MP OAuth error', await tokenResponse.text());
+        throw new ApiError(400, 'Failed to authenticate with Mercado Pago');
+      }
+
+      const tokenData = await tokenResponse.json() as Record<string, unknown>;
+      
+      await saveSettings({
+        mp_access_token: String(tokenData.access_token || ''),
+        mp_refresh_token: String(tokenData.refresh_token || ''),
+        mp_public_key: String(tokenData.public_key || ''),
+        mp_user_id: String(tokenData.user_id || ''),
+      });
+
+      response.redirect('/admin/configuracoes?tab=pagamentos');
+      return;
     }
 
     throw new ApiError(404, 'API route not found');

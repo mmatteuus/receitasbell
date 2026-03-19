@@ -31,13 +31,25 @@ export function getAdminApiSecret() {
   return "123";
 }
 
-export function getMercadoPagoEnv() {
+import { getSettingsMap, mapTypedSettings } from './sheets/settingsRepo.js';
+
+export function getMercadoPagoAppEnv() {
   return {
-    accessToken: getRequiredEnv("MP_ACCESS_TOKEN"),
-    webhookSecret: getRequiredEnv("MP_WEBHOOK_SECRET"),
+    clientId: getRequiredEnv("MP_CLIENT_ID"),
+    clientSecret: getRequiredEnv("MP_CLIENT_SECRET"),
   };
 }
 
-export function hasMercadoPagoConfig() {
-  return Boolean(process.env.MP_ACCESS_TOKEN && process.env.MP_WEBHOOK_SECRET);
+export async function getMercadoPagoEnv() {
+  const settings = mapTypedSettings(await getSettingsMap());
+  // Fallback to process.env if set (for backward compatibility or testing)
+  return {
+    accessToken: settings.mp_access_token || process.env.MP_ACCESS_TOKEN || "",
+    webhookSecret: process.env.MP_WEBHOOK_SECRET || "", // webhooks might still use env secretly or we can leave it empty
+  };
+}
+
+export async function hasMercadoPagoConfig() {
+  const env = await getMercadoPagoEnv();
+  return Boolean(env.accessToken);
 }
