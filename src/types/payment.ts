@@ -11,6 +11,33 @@ export type PaymentStatus =
 
 export type PaymentGateway = 'mercado_pago' | 'mock';
 
+export interface AdminPaymentsFilters {
+  status?: PaymentStatus[];
+  paymentMethod?: string[];
+  email?: string;
+  paymentId?: string;
+  externalReference?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}
+
+export interface CreatePaymentPreferenceInput {
+  recipeIds: string[];
+  items?: CartItem[];
+  payerName?: string;
+  payerEmail: string;
+  checkoutReference: string;
+}
+
+export interface CreatePaymentPreferenceResult {
+  gateway: PaymentGateway;
+  paymentId: string | null;
+  paymentIds: string[];
+  status: PaymentStatus;
+  unlockedCount: number;
+  checkoutUrl: string | null;
+}
+
 export interface Payer {
   email: string;
   first_name?: string;

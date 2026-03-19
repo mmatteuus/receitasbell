@@ -33,7 +33,7 @@ export default function Institutional() {
   }
 
   return (
-    <div className="container max-w-2xl py-10">
+    <div className="container max-w-2xl px-4 py-10">
       <div className="mb-2 text-sm text-muted-foreground">
         <Link to="/" className="hover:text-primary">Home</Link> › {info.title}
       </div>

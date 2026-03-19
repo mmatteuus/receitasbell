@@ -188,7 +188,7 @@ export function AdminMobileSidebar() {
       <aside
         className={cn(
           "fixed inset-y-0 left-0 z-50 w-64 flex flex-col bg-card border-r transition-transform duration-300 md:hidden",
-          mobileOpen ? "translate-x-0" : "-translate-x-full"
+          mobileOpen ? "translate-x-0" : "-translate-x-full invisible pointer-events-none"
         )}
       >
         <div className="flex items-center gap-2 border-b p-4">

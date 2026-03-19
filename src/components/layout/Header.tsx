@@ -38,6 +38,10 @@ export default function Header() {
   }, []);
 
   useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
     const handleBeforeInstall = (event: Event) => {
       event.preventDefault();
       setDeferredInstallPrompt(event as BeforeInstallPromptEvent);
@@ -79,7 +83,7 @@ export default function Header() {
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-1 md:flex">
+        <nav className="hidden items-center gap-1 lg:flex">
           {navLinks.map((link) => (
             <Link
               key={link.to}
@@ -137,7 +141,7 @@ export default function Header() {
           </Link>
         </nav>
 
-        <div className="flex items-center gap-2 md:hidden">
+        <div className="flex items-center gap-2 lg:hidden">
           <Link to="/carrinho" className="relative p-2">
             <ShoppingCart className="h-5 w-5" />
             {count > 0 && (
@@ -154,7 +158,7 @@ export default function Header() {
       </div>
 
       {open && (
-        <div className="border-t bg-card md:hidden">
+        <div className="border-t bg-card lg:hidden">
           <nav className="container flex flex-col gap-1 px-4 py-4">
             {navLinks.map((link) => (
               <Link

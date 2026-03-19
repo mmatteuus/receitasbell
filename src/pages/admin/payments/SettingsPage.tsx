@@ -61,8 +61,8 @@ export default function SettingsPage() {
           <p>
             Webhook:{' '}
             {typeof window !== 'undefined'
-              ? `${window.location.origin}/api/mercadopago/webhook`
-              : '/api/mercadopago/webhook'}
+              ? `${window.location.origin}/api/payments/mercadopago/webhook`
+              : '/api/payments/mercadopago/webhook'}
           </p>
         </CardContent>
       </Card>

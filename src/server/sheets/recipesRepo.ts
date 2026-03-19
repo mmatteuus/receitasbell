@@ -2,6 +2,7 @@ import type { ImageFileMeta, Recipe } from "../../types/recipe.js";
 import { ApiError } from "../http.js";
 import { SheetRecord } from "./schema.js";
 import { mutateTable, readTable } from "./table.js";
+import { getCategoryBySlug } from "./categoriesRepo.js";
 import { getRatingsSummaryByRecipeIds } from "./ratingsRepo.js";
 import { listRecipeUnlocksForIdentity } from "./recipeUnlocksRepo.js";
 import { asBoolean, asJson, asNullableString, asNumber, createUniqueSlug, nowIso, toJsonString } from "./utils.js";
@@ -158,9 +159,14 @@ function normalizeRecipeInput(
   const prepTime = Math.max(0, Math.round(Number(input.prepTime ?? 0)));
   const cookTime = Math.max(0, Math.round(Number(input.cookTime ?? 0)));
   const servings = Math.max(1, Math.round(Number(input.servings ?? 1)));
+  const categorySlug = input.categorySlug.trim();
   const tags = (input.tags ?? []).map((tag) => tag.trim()).filter(Boolean);
   const ingredients = (input.fullIngredients ?? []).map((value) => value.trim()).filter(Boolean);
   const instructions = (input.fullInstructions ?? []).map((value) => value.trim()).filter(Boolean);
+
+  if (!categorySlug) {
+    throw new ApiError(400, "Category is required");
+  }
 
   if (!ingredients.length) {
     throw new ApiError(400, "At least one ingredient is required");
@@ -176,7 +182,7 @@ function normalizeRecipeInput(
     description: input.description?.trim() || "",
     imageUrl,
     imageFileMeta: input.imageFileMeta ?? null,
-    categorySlug: input.categorySlug.trim() || "salgadas",
+    categorySlug,
     tags,
     status: input.status === "published" ? "published" : "draft",
     prepTime,
@@ -198,6 +204,13 @@ function normalizeRecipeInput(
     createdAt: input.createdAt,
     createdByUserId: input.createdByUserId ?? null,
   };
+}
+
+async function assertCategoryExists(categorySlug: string) {
+  const category = await getCategoryBySlug(categorySlug);
+  if (!category) {
+    throw new ApiError(400, "Recipe category is invalid");
+  }
 }
 
 async function replaceChildRows(recipeId: string, normalized: ReturnType<typeof normalizeRecipeInput>) {
@@ -311,6 +324,7 @@ export async function getRecipeById(
 export async function createRecipe(input: RecipeMutationInput) {
   const { recipeRows } = await loadRecipeTables();
   const normalized = normalizeRecipeInput(input, recipeRows);
+  await assertCategoryExists(normalized.categorySlug);
   const id = crypto.randomUUID();
   const now = nowIso();
 
@@ -356,6 +370,7 @@ export async function updateRecipe(id: string, input: RecipeMutationInput) {
   }
 
   const normalized = normalizeRecipeInput(input, recipeRows, existing);
+  await assertCategoryExists(normalized.categorySlug);
   const now = nowIso();
 
   await mutateTable("recipes", async (current) =>

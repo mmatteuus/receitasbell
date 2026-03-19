@@ -19,7 +19,7 @@ function toPayload(recipe: Partial<Recipe>): RecipeMutationPayload {
     description: recipe.description || '',
     imageUrl: recipe.imageUrl || recipe.image || '',
     imageFileMeta: recipe.imageFileMeta ?? null,
-    categorySlug: recipe.categorySlug || 'salgadas',
+    categorySlug: recipe.categorySlug || '',
     tags: recipe.tags || [],
     status: recipe.status || 'draft',
     prepTime: recipe.prepTime || 0,

@@ -86,7 +86,7 @@ export default function TransactionsPage() {
           paymentMethod: filters.paymentMethod,
           email: filters.email,
           paymentId: filters.paymentId,
-          external_reference: filters.externalReference,
+          externalReference: filters.externalReference,
           dateFrom: filters.dateFrom,
           dateTo: filters.dateTo,
         });
@@ -133,11 +133,16 @@ export default function TransactionsPage() {
   const totals = calculateTotals(payments);
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Transações</h1>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold">Transações</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Acompanhe pagamentos, filtre por período e abra os detalhes sem depender de planilhas no front.
+        </p>
+      </div>
 
       {!loading && payments.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <div className="rounded-lg border bg-card p-4">
             <p className="text-sm text-muted-foreground">Total de Transações</p>
             <p className="text-2xl font-bold">{totals.count}</p>
@@ -161,10 +166,10 @@ export default function TransactionsPage() {
         </div>
       )}
 
-      <div className="flex items-start gap-2 flex-wrap">
-        <div className="grid w-full max-w-sm items-center gap-1.5">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_220px_220px_minmax(0,1fr)]">
+        <div className="grid w-full items-center gap-1.5">
           <Label htmlFor="search">Pesquisar</Label>
-          <div className="flex w-full max-w-sm items-center space-x-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <Input
               id="search"
               type="text"
@@ -173,7 +178,7 @@ export default function TransactionsPage() {
               onChange={(event) => setSearch(event.target.value)}
             />
             <Select value={searchField} onValueChange={setSearchField}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Buscar por..." />
               </SelectTrigger>
               <SelectContent>
@@ -185,7 +190,7 @@ export default function TransactionsPage() {
           </div>
         </div>
 
-        <div className="grid w-full max-w-[200px] items-center gap-1.5">
+        <div className="grid w-full items-center gap-1.5">
           <Label>Status</Label>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -213,7 +218,7 @@ export default function TransactionsPage() {
           </DropdownMenu>
         </div>
 
-        <div className="grid w-full max-w-[200px] items-center gap-1.5">
+        <div className="grid w-full items-center gap-1.5">
           <Label>Método</Label>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -241,23 +246,23 @@ export default function TransactionsPage() {
           </DropdownMenu>
         </div>
 
-        <div className="grid w-full max-w-sm items-center gap-1.5">
+        <div className="grid w-full items-center gap-1.5">
           <Label>Período</Label>
           <DatePickerWithRange onSelect={setDateRange} />
         </div>
       </div>
 
-      <div className="flex items-center gap-2 flex-wrap">
-        <Button onClick={handleFilter}>Filtrar</Button>
-        <Button variant="outline" onClick={clearFilters}>
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+        <Button className="w-full sm:w-auto" onClick={handleFilter}>Filtrar</Button>
+        <Button className="w-full sm:w-auto" variant="outline" onClick={clearFilters}>
           Limpar Filtros
         </Button>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="flex w-full flex-col gap-2 sm:ml-auto sm:w-auto sm:flex-row">
           <Button
             variant="outline"
             size="sm"
             onClick={() => exportPaymentsCSV(payments)}
-            className="gap-1.5"
+            className="w-full gap-1.5 sm:w-auto"
           >
             <Download className="h-4 w-4" /> CSV
           </Button>
@@ -265,14 +270,20 @@ export default function TransactionsPage() {
             variant="outline"
             size="sm"
             onClick={() => exportPaymentsPDF(payments)}
-            className="gap-1.5"
+            className="w-full gap-1.5 sm:w-auto"
           >
             <FileText className="h-4 w-4" /> PDF
           </Button>
         </div>
       </div>
 
-      {loading ? <p>Carregando...</p> : <PaymentsTable data={payments} />}
+      {loading ? (
+        <div className="rounded-xl border bg-card p-6 text-sm text-muted-foreground">
+          Carregando transações...
+        </div>
+      ) : (
+        <PaymentsTable data={payments} />
+      )}
     </div>
   );
 }

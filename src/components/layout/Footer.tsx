@@ -2,63 +2,78 @@ import { Link } from "react-router-dom";
 import { ChefHat } from "lucide-react";
 import { useAppContext } from "@/contexts/app-context";
 
+const publicLinks = [
+  { to: "/", label: "Início" },
+  { to: "/buscar", label: "Buscar" },
+  { to: "/minha-conta/favoritos", label: "Favoritos" },
+  { to: "/carrinho", label: "Carrinho" },
+];
+
+const legalLinks = [
+  { to: "/institucional/termos", label: "Termos" },
+  { to: "/institucional/privacidade", label: "Privacidade" },
+  { to: "/institucional/contato", label: "Contato" },
+];
+
 export function Footer() {
   const { settings } = useAppContext();
 
   return (
-    <footer className="border-t bg-muted/30 py-8 mt-auto">
-      <div className="container px-4">
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-          {/* Brand */}
-          <div>
-            <div className="flex items-center gap-2 mb-3">
+    <footer className="mt-auto border-t bg-muted/30">
+      <div className="container px-4 py-8 sm:py-10">
+        <div className="grid gap-8 md:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)_minmax(0,0.8fr)]">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
               {settings.logoUrl ? (
-                <img src={settings.logoUrl} alt={settings.siteName} className="h-5 w-5 rounded object-cover" />
+                <img
+                  src={settings.logoUrl}
+                  alt={settings.siteName}
+                  className="h-6 w-6 rounded object-cover"
+                />
               ) : (
-                <ChefHat className="h-5 w-5 text-primary" />
+                <ChefHat className="h-6 w-6 text-primary" />
               )}
               <span className="font-heading text-lg font-bold">{settings.siteName}</span>
             </div>
-            <p className="text-sm text-muted-foreground">{settings.siteDescription}</p>
+            <p className="max-w-md text-sm text-muted-foreground">
+              {settings.siteDescription}
+            </p>
           </div>
 
-          {/* Navegação */}
-          <div>
-            <h3 className="mb-3 text-sm font-semibold">Navegação</h3>
-            <ul className="space-y-2 text-sm">
-              <li><Link to="/" className="text-muted-foreground hover:text-foreground transition-colors">Início</Link></li>
-              <li><Link to="/buscar" className="text-muted-foreground hover:text-foreground transition-colors">Buscar</Link></li>
-              <li><Link to="/minha-conta/favoritos" className="text-muted-foreground hover:text-foreground transition-colors">Favoritos</Link></li>
-              <li><Link to="/carrinho" className="text-muted-foreground hover:text-foreground transition-colors">Carrinho</Link></li>
-            </ul>
-          </div>
+          <nav aria-label="Links públicos" className="space-y-3">
+            <h2 className="text-sm font-semibold">Explorar</h2>
+            <div className="flex flex-col gap-2 text-sm">
+              {publicLinks.map((link) => (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  className="text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+          </nav>
 
-          {/* Institucional */}
-          <div>
-            <h3 className="mb-3 text-sm font-semibold">Institucional</h3>
-            <ul className="space-y-2 text-sm">
-              <li><Link to="/institucional/termos" className="text-muted-foreground hover:text-foreground transition-colors">Termos</Link></li>
-              <li><Link to="/institucional/privacidade" className="text-muted-foreground hover:text-foreground transition-colors">Privacidade</Link></li>
-              <li><Link to="/institucional/contato" className="text-muted-foreground hover:text-foreground transition-colors">Contato</Link></li>
-            </ul>
-          </div>
-
-          {/* Admin (desktop only) */}
-          <div className="hidden lg:block">
-            <h3 className="mb-3 text-sm font-semibold">Administração</h3>
-            <ul className="space-y-2 text-sm">
-              <li><Link to="/admin" className="text-muted-foreground hover:text-foreground transition-colors">Painel Admin</Link></li>
-            </ul>
-          </div>
+          <nav aria-label="Links institucionais" className="space-y-3">
+            <h2 className="text-sm font-semibold">Informações</h2>
+            <div className="flex flex-col gap-2 text-sm">
+              {legalLinks.map((link) => (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  className="text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+          </nav>
         </div>
 
-        <div className="mt-8 border-t pt-4 text-center text-xs text-muted-foreground">
-          <p>
-            © {new Date().getFullYear()} {settings.siteName}. Desenvolvido por{" "}
-            <a href="https://mtsferreira.dev" target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline">
-              MtsFerreira
-            </a>
-          </p>
+        <div className="mt-8 border-t pt-4 text-center text-xs text-muted-foreground sm:text-left">
+          © {new Date().getFullYear()} {settings.siteName}. Portal de receitas com catálogo,
+          carrinho e checkout em evolução.
         </div>
       </div>
     </footer>

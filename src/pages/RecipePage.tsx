@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams, Link } from "react-router-dom";
-import { Heart, Clock, Users, ChevronRight, Printer, Minus, Plus, ChefHat, ShoppingCart, ListPlus } from "lucide-react";
+import { Heart, Clock, Users, ChevronRight, Printer, Minus, Plus, ChefHat, ShoppingCart, ListPlus, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -30,6 +30,7 @@ import { getRecipeImage, getRecipePresentation } from "@/lib/recipes/presentatio
 import SmartImage from "@/components/SmartImage";
 import { buildCartItemFromRecipe, deriveRecipeTeaser } from "@/lib/utils/recipeAccess";
 import { getRecipeBySlug, listPublicRecipes } from "@/lib/repos/recipeRepo";
+import { exportRecipeToPDF } from "@/lib/recipes/export";
 
 type RatingState = {
   avg: number;
@@ -75,7 +76,7 @@ export default function RecipePage() {
 
         try {
           const recipeComments = await listComments(foundRecipe.id);
-          setComments(recipeComments);
+          setComments(Array.isArray(recipeComments) ? recipeComments : []);
         } catch (error) {
           console.error("Failed to load comments", error);
           setComments([]);
@@ -233,6 +234,19 @@ export default function RecipePage() {
     }
   }
 
+  function handleExportPdf() {
+    const opened = exportRecipeToPDF({
+      recipe,
+      ingredients: ingredients.map((ingredient) => scaleIngredient(ingredient)),
+      instructions,
+      isTeaserOnly: showPaywall,
+    });
+
+    if (!opened) {
+      toast.error("Nao foi possivel abrir a janela de exportação. Verifique o bloqueador de pop-up.");
+    }
+  }
+
   return (
     <FocusContainer isFocused={isFocused} onClose={() => setIsFocused(false)} className="container max-w-3xl px-4 py-8 sm:py-10 animate-in fade-in duration-500 print:py-0 print:max-w-none">
       {!isFocused && <ReadingProgress />}
@@ -264,6 +278,10 @@ export default function RecipePage() {
           <ShareButtons title={recipe.title} slug={recipe.slug} />
           <Button variant="outline" size="icon" onClick={() => setIsFocused(true)} title="Modo Leitura">
             <ChefHat className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" className="gap-2" onClick={handleExportPdf} title="Exportar PDF">
+            <FileText className="h-4 w-4" />
+            PDF
           </Button>
           <Button variant="outline" size="icon" onClick={() => window.print()} title="Imprimir">
             <Printer className="h-4 w-4" />

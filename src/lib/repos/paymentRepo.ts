@@ -1,28 +1,32 @@
+import type { AdminPaymentsFilters, CreatePaymentPreferenceInput } from "@/types/payment";
 import { addPaymentNote, getPayment, listPayments } from "@/lib/api/payments";
 import { createCheckoutSession, type CheckoutSessionInput } from "@/lib/services/mercadoPagoService";
 
-interface ListPaymentsFilters {
-  status?: string[];
-  paymentMethod?: string[];
-  email?: string;
-  paymentId?: string;
-  externalReference?: string;
-  dateFrom?: string;
-  dateTo?: string;
+export type ListPaymentsFilters = AdminPaymentsFilters;
+
+export async function listAdminPayments(filters: ListPaymentsFilters = {}) {
+  return listPayments(filters);
+}
+
+export async function getAdminPaymentById(id: string) {
+  return getPayment(id);
+}
+
+export async function createPaymentPreference(
+  input: CheckoutSessionInput | CreatePaymentPreferenceInput,
+) {
+  return createCheckoutSession({
+    ...input,
+    recipeIds: input.recipeIds || input.items?.map((item) => item.recipeId) || [],
+  });
 }
 
 export const paymentRepo = {
-  list: (filters: ListPaymentsFilters = {}) =>
-    listPayments({
-      status: filters.status,
-      paymentMethod: filters.paymentMethod,
-      email: filters.email,
-      paymentId: filters.paymentId,
-      external_reference: filters.externalReference,
-      dateFrom: filters.dateFrom,
-      dateTo: filters.dateTo,
-    }),
-  getById: (id: string) => getPayment(id),
+  list: listAdminPayments,
+  listAdmin: listAdminPayments,
+  getById: getAdminPaymentById,
+  getAdminById: getAdminPaymentById,
   addNote: (paymentId: string, note: string) => addPaymentNote(paymentId, note),
-  createCheckout: (input: CheckoutSessionInput) => createCheckoutSession(input),
+  createCheckout: createPaymentPreference,
+  createPreference: createPaymentPreference,
 };

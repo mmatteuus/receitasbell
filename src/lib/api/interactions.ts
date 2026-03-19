@@ -29,7 +29,7 @@ export interface ShoppingListItem {
 export async function listComments(recipeId: string) {
   const query = buildQuery({ recipeId });
   const result = await jsonFetch<{ comments: Comment[] }>(`/api/comments${query}`);
-  return result.comments;
+  return Array.isArray(result.comments) ? result.comments : [];
 }
 
 export async function createComment(input: { recipeId: string; authorName: string; text: string }) {
@@ -49,7 +49,7 @@ export async function submitRating(input: { recipeId: string; value: number }) {
 
 export async function listFavorites() {
   const result = await jsonFetch<{ favorites: FavoriteRecord[] }>('/api/favorites');
-  return result.favorites;
+  return Array.isArray(result.favorites) ? result.favorites : [];
 }
 
 export async function addFavorite(recipeId: string) {
@@ -68,7 +68,7 @@ export async function deleteFavorite(favoriteId: string) {
 
 export async function listShoppingList() {
   const result = await jsonFetch<{ items: ShoppingListItem[] }>('/api/shopping-list');
-  return result.items;
+  return Array.isArray(result.items) ? result.items : [];
 }
 
 export async function createShoppingListItems(

@@ -37,6 +37,23 @@ interface PaymentsTableProps {
   data: Payment[];
 }
 
+function formatPaymentAmount(value: number) {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(value);
+}
+
+function formatPaymentDate(value: string) {
+  return new Date(value).toLocaleDateString('pt-BR');
+}
+
+function getPaymentMethodLabel(payment: Payment) {
+  return (
+    METHOD_LABELS[payment.payment_method_id || payment.paymentMethod] || payment.paymentMethod
+  );
+}
+
 export function PaymentsTable({ data }: PaymentsTableProps) {
   const navigate = useNavigate();
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -80,7 +97,7 @@ export function PaymentsTable({ data }: PaymentsTableProps) {
             </Button>
           );
         },
-        cell: ({ row }) => new Date(row.original.createdAt).toLocaleDateString(),
+        cell: ({ row }) => formatPaymentDate(row.original.createdAt),
       },
       {
         accessorKey: 'items',
@@ -98,9 +115,7 @@ export function PaymentsTable({ data }: PaymentsTableProps) {
       {
         accessorKey: 'paymentMethod',
         header: 'Método',
-        cell: ({ row }) =>
-          METHOD_LABELS[row.original.payment_method_id || row.original.paymentMethod] ||
-          row.original.paymentMethod,
+        cell: ({ row }) => getPaymentMethodLabel(row.original),
       },
       {
         accessorKey: 'totalBRL',
@@ -115,14 +130,7 @@ export function PaymentsTable({ data }: PaymentsTableProps) {
             </Button>
           );
         },
-        cell: ({ row }) => {
-          const formatted = new Intl.NumberFormat('pt-BR', {
-            style: 'currency',
-            currency: 'BRL',
-          }).format(row.original.totalBRL);
-
-          return <div className="text-right font-medium">{formatted}</div>;
-        },
+        cell: ({ row }) => <div className="text-right font-medium">{formatPaymentAmount(row.original.totalBRL)}</div>,
       },
       {
         accessorKey: 'status',
@@ -171,44 +179,115 @@ export function PaymentsTable({ data }: PaymentsTableProps) {
 
   return (
     <div>
-      <div className="rounded-md border overflow-x-auto">
-        <Table className="min-w-[700px]">
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(header.column.columnDef.header, header.getContext())}
-                    </TableHead>
-                  );
-                })}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'}>
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
+      {isMobile ? (
+        <div className="space-y-3">
+          {table.getRowModel().rows.length ? (
+            table.getRowModel().rows.map((row) => {
+              const payment = row.original;
+              return (
+                <div key={row.id} className="rounded-2xl border bg-card p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/admin/pagamentos/transacoes/${payment.id}`)}
+                        className="truncate text-left text-sm font-semibold text-primary hover:underline"
+                      >
+                        {payment.id}
+                      </button>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {formatPaymentDate(payment.createdAt)}
+                      </p>
+                    </div>
+                    <StatusBadge status={payment.status} statusDetail={payment.statusDetail} />
+                  </div>
+
+                  <div className="mt-4 grid gap-3 rounded-xl bg-muted/20 p-3 text-sm">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                        Cliente
+                      </p>
+                      <p className="mt-1 break-all font-medium">{payment.payer.email}</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                          Método
+                        </p>
+                        <p className="mt-1 font-medium">{getPaymentMethodLabel(payment)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                          Valor
+                        </p>
+                        <p className="mt-1 font-medium">{formatPaymentAmount(payment.totalBRL)}</p>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                        Itens
+                      </p>
+                      <p className="mt-1 text-sm">{payment.items.map((item) => item.title).join(', ')}</p>
+                    </div>
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    className="mt-3 w-full"
+                    onClick={() => navigate(`/admin/pagamentos/transacoes/${payment.id}`)}
+                  >
+                    Ver detalhes
+                  </Button>
+                </div>
+              );
+            })
+          ) : (
+            <div className="rounded-2xl border border-dashed px-4 py-10 text-center text-sm text-muted-foreground">
+              Nenhum resultado.
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="rounded-md border overflow-x-auto">
+          <Table className="min-w-[700px]">
+            <TableHeader>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => {
+                    return (
+                      <TableHead key={header.id}>
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(header.column.columnDef.header, header.getContext())}
+                      </TableHead>
+                    );
+                  })}
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
-                  Nenhum resultado.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'}>
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="h-24 text-center">
+                    Nenhum resultado.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 py-4">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <span className="whitespace-nowrap">Linhas por página</span>

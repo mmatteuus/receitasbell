@@ -27,10 +27,10 @@ export default function SmartImage({
   return (
     <img
       {...props}
+      {...({ fetchpriority: priority ? "high" : "auto" } as Record<string, string>)}
       src={currentSrc}
       loading={priority ? "eager" : props.loading ?? "lazy"}
       decoding="async"
-      fetchPriority={priority ? "high" : props.fetchPriority ?? "auto"}
       onError={(event) => {
         props.onError?.(event);
         handleError();

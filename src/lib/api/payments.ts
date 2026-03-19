@@ -1,4 +1,4 @@
-import type { Payment, PaymentNote } from "@/lib/payments/types";
+import type { AdminPaymentsFilters, CreatePaymentPreferenceResult, Payment, PaymentNote } from "@/lib/payments/types";
 import { buildQuery, jsonFetch } from "./client";
 
 export interface PaymentDetailResponse {
@@ -13,38 +13,58 @@ export interface PaymentDetailResponse {
   notes: PaymentNote[];
 }
 
-export async function listPayments(filters: {
-  status?: string[];
-  paymentMethod?: string[];
-  email?: string;
-  paymentId?: string;
-  external_reference?: string;
-  dateFrom?: string;
-  dateTo?: string;
-} = {}) {
+export async function listPayments(filters: AdminPaymentsFilters = {}) {
   const query = buildQuery({
     status: filters.status,
     method: filters.paymentMethod,
     email: filters.email,
     paymentId: filters.paymentId,
-    external_reference: filters.external_reference,
+    externalReference: filters.externalReference,
     dateFrom: filters.dateFrom,
     dateTo: filters.dateTo,
   });
-  const result = await jsonFetch<{ payments: Payment[] }>(`/api/payments${query}`, { admin: true });
+  const result = await jsonFetch<{ payments: Payment[] }>(`/api/admin/payments${query}`, {
+    admin: true,
+  });
   return result.payments;
 }
 
 export async function getPayment(id: string) {
-  return jsonFetch<PaymentDetailResponse>(`/api/payments/${encodeURIComponent(id)}`, { admin: true });
+  return jsonFetch<PaymentDetailResponse>(`/api/admin/payments/${encodeURIComponent(id)}`, {
+    admin: true,
+  });
 }
 
 export async function addPaymentNote(paymentId: string, note: string) {
-  const result = await jsonFetch<{ note: PaymentNote }>(`/api/payments/${encodeURIComponent(paymentId)}/note`, {
-    method: "POST",
-    admin: true,
-    body: { note },
-  });
+  const result = await jsonFetch<{ note: PaymentNote }>(
+    `/api/admin/payments/${encodeURIComponent(paymentId)}/note`,
+    {
+      method: "POST",
+      admin: true,
+      body: { note },
+    },
+  );
   return result.note;
 }
 
+export async function createMercadoPagoPreference(input: {
+  recipeIds: string[];
+  items?: Array<{
+    recipeId: string;
+    title: string;
+    slug: string;
+    priceBRL: number;
+    imageUrl: string;
+  }>;
+  payerName?: string;
+  payerEmail: string;
+  checkoutReference: string;
+}) {
+  return jsonFetch<CreatePaymentPreferenceResult>(
+    "/api/payments/mercadopago/create-preference",
+    {
+      method: "POST",
+      body: input,
+    },
+  );
+}

@@ -807,7 +807,7 @@ export async function createMercadoPagoCheckout(input: {
     payer_name: payerName,
   };
   const notificationUrl = input.enableNotifications
-    ? `${basePath}/api/mercadopago/webhook`
+    ? `${basePath}/api/payments/mercadopago/webhook`
     : undefined;
 
   const preference = await createMercadoPagoPreference({

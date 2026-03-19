@@ -154,10 +154,117 @@ async function fetchMercadoPagoPayment(paymentId: string) {
   return (await response.json()) as Record<string, unknown>;
 }
 
+function readPaymentsFilters(request: VercelRequest) {
+  const status = parseStringArray(request.query.status);
+  const paymentMethod = parseStringArray(request.query.method || request.query.paymentMethod);
+  const email = getQueryValue(request.query.email as string | string[] | undefined);
+  const paymentId = getQueryValue(request.query.paymentId as string | string[] | undefined);
+  const externalReference =
+    getQueryValue(request.query.externalReference as string | string[] | undefined) ||
+    getQueryValue(request.query.external_reference as string | string[] | undefined);
+  const dateFrom = getQueryValue(request.query.dateFrom as string | string[] | undefined);
+  const dateTo = getQueryValue(request.query.dateTo as string | string[] | undefined);
+
+  return {
+    status: status as never,
+    paymentMethod,
+    email: email ? String(email) : undefined,
+    paymentId: paymentId ? String(paymentId) : undefined,
+    externalReference: externalReference ? String(externalReference) : undefined,
+    dateFrom: dateFrom ? String(dateFrom) : undefined,
+    dateTo: dateTo ? String(dateTo) : undefined,
+  };
+}
+
+async function createCheckoutResponse(
+  request: VercelRequest,
+  body: {
+    recipeIds: string[];
+    items?: {
+      recipeId: string;
+      title: string;
+      slug: string;
+      priceBRL: number;
+      imageUrl?: string;
+    }[];
+    payerName?: string;
+    buyerEmail: string;
+    checkoutReference: string;
+  },
+) {
+  const buyerEmail = body.buyerEmail.trim().toLowerCase();
+  const settings = mapTypedSettings(await getSettingsMap());
+  const user = await findOrCreateUserByEmail(buyerEmail);
+  const checkoutInput = {
+    recipeIds: body.recipeIds,
+    items: body.items,
+    payerName: body.payerName,
+    buyerEmail,
+    userId: user.id,
+    checkoutReference: body.checkoutReference,
+  };
+
+  if (settings.payment_mode === 'production') {
+    if (!hasMercadoPagoConfig()) {
+      throw new ApiError(501, 'Mercado Pago is not configured for production checkout');
+    }
+
+    if (!settings.webhooks_enabled) {
+      throw new ApiError(409, 'Ative os webhooks para usar o checkout real do Mercado Pago.');
+    }
+
+    if (!settings.payment_topic_enabled) {
+      throw new ApiError(409, 'Ative o tópico payment antes de habilitar o checkout real.');
+    }
+
+    return createMercadoPagoCheckout({
+      ...checkoutInput,
+      baseUrl: getAppBaseUrl(request),
+      enableNotifications: settings.webhooks_enabled && settings.payment_topic_enabled,
+    });
+  }
+
+  return createMockCheckout(checkoutInput);
+}
+
+async function processMercadoPagoWebhook(request: VercelRequest) {
+  const settings = mapTypedSettings(await getSettingsMap());
+
+  if (!hasMercadoPagoConfig()) {
+    throw new ApiError(501, 'Mercado Pago webhook is not enabled in this environment');
+  }
+
+  if (!settings.webhooks_enabled) {
+    throw new ApiError(503, 'Mercado Pago webhook processing is disabled');
+  }
+
+  const payload = await readJsonBody<Record<string, unknown>>(request);
+  const paymentId = extractMercadoPagoPaymentId(request, payload);
+
+  if (!paymentId) {
+    return {
+      received: true,
+      ignored: true,
+      message: 'Webhook received without a payment id',
+    };
+  }
+
+  assertMercadoPagoWebhookSignature(request, paymentId);
+  const paymentPayload = await fetchMercadoPagoPayment(paymentId);
+  const payment = await syncMercadoPagoPayment(paymentPayload, payload);
+
+  return {
+    received: true,
+    paymentId,
+    internalPaymentId: payment.id,
+    status: payment.status,
+  };
+}
+
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   return withApiHandler(request, response, async () => {
     const segments = getApiPathSegments(request);
-    const [resource, resourceId, action] = segments;
+    const [resource, resourceId, action, subaction] = segments;
 
     if (!resource) {
       throw new ApiError(404, 'API route not found');
@@ -209,6 +316,32 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
       setAdminSessionCookie(request, response, password);
       return sendJson(response, 200, { authenticated: true });
+    }
+
+    if (resource === 'admin' && resourceId === 'payments') {
+      requireAdminAccess(request);
+
+      if (request.method === 'GET' && !action) {
+        const payments = await listPayments(readPaymentsFilters(request));
+        return sendJson(response, 200, { payments });
+      }
+
+      if (request.method === 'GET' && action && !subaction) {
+        const details = await getPaymentById(action);
+        if (!details) {
+          throw new ApiError(404, 'Payment not found');
+        }
+
+        return sendJson(response, 200, details);
+      }
+
+      if (request.method === 'POST' && action && subaction === 'note') {
+        const body = noteSchema.parse(await readJsonBody(request));
+        const note = await addPaymentNote(action, body.note);
+        return sendJson(response, 201, { note });
+      }
+
+      throw new ApiError(404, 'Admin payments route not found');
     }
 
     if (resource === 'recipes' && !resourceId) {
@@ -390,28 +523,22 @@ export default async function handler(request: VercelRequest, response: VercelRe
     if (resource === 'payments' && !resourceId) {
       assertMethod(request, ['GET']);
       requireAdminAccess(request);
-
-      const status = parseStringArray(request.query.status);
-      const paymentMethod = parseStringArray(request.query.method || request.query.paymentMethod);
-      const email = getQueryValue(request.query.email as string | string[] | undefined);
-      const paymentId = getQueryValue(request.query.paymentId as string | string[] | undefined);
-      const externalReference = getQueryValue(
-        request.query.external_reference as string | string[] | undefined
-      );
-      const dateFrom = getQueryValue(request.query.dateFrom as string | string[] | undefined);
-      const dateTo = getQueryValue(request.query.dateTo as string | string[] | undefined);
-
-      const payments = await listPayments({
-        status: status as never,
-        paymentMethod,
-        email: email ? String(email) : undefined,
-        paymentId: paymentId ? String(paymentId) : undefined,
-        externalReference: externalReference ? String(externalReference) : undefined,
-        dateFrom: dateFrom ? String(dateFrom) : undefined,
-        dateTo: dateTo ? String(dateTo) : undefined,
-      });
+      const payments = await listPayments(readPaymentsFilters(request));
 
       return sendJson(response, 200, { payments });
+    }
+
+    if (resource === 'payments' && resourceId === 'mercadopago' && action === 'create-preference') {
+      assertMethod(request, ['POST']);
+      const body = checkoutSchema.parse(await readJsonBody(request));
+      const result = await createCheckoutResponse(request, body);
+      return sendJson(response, 201, result);
+    }
+
+    if (resource === 'payments' && resourceId === 'mercadopago' && action === 'webhook') {
+      assertMethod(request, ['POST']);
+      const result = await processMercadoPagoWebhook(request);
+      return sendJson(response, 202, result);
     }
 
     if (resource === 'payments' && resourceId && action === 'note') {
@@ -464,46 +591,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
     if (resource === 'checkout' && !resourceId) {
       assertMethod(request, ['POST']);
       const body = checkoutSchema.parse(await readJsonBody(request));
-      const buyerEmail = body.buyerEmail.trim().toLowerCase();
-      const settings = mapTypedSettings(await getSettingsMap());
-      const user = await findOrCreateUserByEmail(buyerEmail);
-      const checkoutInput = {
-        recipeIds: body.recipeIds,
-        items: body.items,
-        payerName: body.payerName,
-        buyerEmail,
-        userId: user.id,
-        checkoutReference: body.checkoutReference,
-      };
-      const result =
-        settings.payment_mode === 'production'
-          ? await (() => {
-              if (!hasMercadoPagoConfig()) {
-                throw new ApiError(501, 'Mercado Pago is not configured for production checkout');
-              }
-
-              if (!settings.webhooks_enabled) {
-                throw new ApiError(
-                  409,
-                  'Ative os webhooks para usar o checkout real do Mercado Pago.'
-                );
-              }
-
-              if (!settings.payment_topic_enabled) {
-                throw new ApiError(
-                  409,
-                  'Ative o tópico payment antes de habilitar o checkout real.'
-                );
-              }
-
-              return createMercadoPagoCheckout({
-                ...checkoutInput,
-                baseUrl: getAppBaseUrl(request),
-                enableNotifications: settings.webhooks_enabled && settings.payment_topic_enabled,
-              });
-            })()
-          : await createMockCheckout(checkoutInput);
-
+      const result = await createCheckoutResponse(request, body);
       return sendJson(response, 201, result);
     }
 
@@ -534,37 +622,8 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
     if (resource === 'mercadopago' && resourceId === 'webhook') {
       assertMethod(request, ['POST']);
-      const settings = mapTypedSettings(await getSettingsMap());
-
-      if (!hasMercadoPagoConfig()) {
-        throw new ApiError(501, 'Mercado Pago webhook is not enabled in this environment');
-      }
-
-      if (!settings.webhooks_enabled) {
-        throw new ApiError(503, 'Mercado Pago webhook processing is disabled');
-      }
-
-      const payload = await readJsonBody<Record<string, unknown>>(request);
-      const paymentId = extractMercadoPagoPaymentId(request, payload);
-
-      if (!paymentId) {
-        return sendJson(response, 202, {
-          received: true,
-          ignored: true,
-          message: 'Webhook received without a payment id',
-        });
-      }
-
-      assertMercadoPagoWebhookSignature(request, paymentId);
-      const paymentPayload = await fetchMercadoPagoPayment(paymentId);
-      const payment = await syncMercadoPagoPayment(paymentPayload, payload);
-
-      return sendJson(response, 202, {
-        received: true,
-        paymentId,
-        internalPaymentId: payment.id,
-        status: payment.status,
-      });
+      const result = await processMercadoPagoWebhook(request);
+      return sendJson(response, 202, result);
     }
 
     throw new ApiError(404, 'API route not found');

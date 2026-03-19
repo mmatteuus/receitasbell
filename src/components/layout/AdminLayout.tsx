@@ -6,14 +6,14 @@ import { BackToTop } from "@/components/BackToTop";
 export default function AdminLayout() {
   return (
     <AdminSidebarProvider>
-      <div className="flex min-h-screen">
+      <div className="flex min-h-screen overflow-x-hidden">
         {/* Desktop sidebar */}
         <AdminSidebar />
         {/* Mobile sidebar drawer */}
         <AdminMobileSidebar />
 
         {/* Main column */}
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex-1 flex min-w-0 flex-col overflow-x-hidden">
           {/* Top header bar */}
           <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b bg-card/80 backdrop-blur-sm px-4 md:px-8">
             <AdminMobileMenuButton />
