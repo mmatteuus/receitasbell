@@ -54,6 +54,7 @@ export interface AdminPaymentSettingsResponse {
   accessTokenConfigured: boolean;
   oauthConfigured: boolean;
   webhookSecretConfigured: boolean;
+  missingConfig?: string[];
   connectionStatus: string;
   connectedAt: string | null;
   disconnectedAt: string | null;

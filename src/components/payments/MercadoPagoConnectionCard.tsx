@@ -74,6 +74,16 @@ export function MercadoPagoConnectionCard({
               <p className="mt-0.5 text-xs opacity-80">
                 Configure as credenciais OAuth do aplicativo Mercado Pago no servidor para liberar a conexão.
               </p>
+              {settings.missingConfig && settings.missingConfig.length > 0 && (
+                <div className="mt-2 text-[10px] font-mono opacity-70">
+                  <p>Faltando:</p>
+                  <ul className="list-disc list-inside">
+                    {settings.missingConfig.map(c => (
+                      <li key={c}>{c}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           </div>
         )}
