@@ -34,8 +34,10 @@ export default async function handler(request: VercelRequest, response: VercelRe
       });
       const separator = result.returnTo.includes("?") ? "&" : "?";
       redirect(response, buildRedirectUrl(request, `${result.returnTo}${separator}connected=1`));
-    } catch {
-      redirect(response, buildRedirectUrl(request, "/admin/pagamentos/configuracoes?error=mp_oauth_failed"));
+    } catch (error) {
+      console.error("Mercado Pago OAuth Error:", error);
+      const fallback = "/admin/pagamentos/configuracoes?error=mp_oauth_failed";
+      redirect(response, buildRedirectUrl(request, fallback));
     }
   });
 }

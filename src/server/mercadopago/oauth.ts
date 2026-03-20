@@ -14,11 +14,7 @@ type OAuthTokenResponse = {
 };
 
 function sanitizeReturnTo(value: string | undefined | null) {
-  if (!value) return "/admin/pagamentos/configuracoes";
-  if (!value.startsWith("/")) {
-    return "/admin/pagamentos/configuracoes";
-  }
-  if (value.startsWith("//")) {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) {
     return "/admin/pagamentos/configuracoes";
   }
   return value;

@@ -42,6 +42,7 @@ export async function resolveTenantFromRequest(request: VercelRequest) {
       return {
         tenant: byHost,
         resolution: "host" as const,
+        publicBasePath: "",
       };
     }
   }
@@ -53,6 +54,7 @@ export async function resolveTenantFromRequest(request: VercelRequest) {
       return {
         tenant: bySlug,
         resolution: "slug" as const,
+        publicBasePath: `/t/${bySlug.slug}`,
       };
     }
   }
@@ -64,6 +66,7 @@ export async function resolveTenantFromRequest(request: VercelRequest) {
       return {
         tenant: bySession,
         resolution: "session" as const,
+        publicBasePath: "",
       };
     }
   }

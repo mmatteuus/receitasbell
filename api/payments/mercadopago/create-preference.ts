@@ -48,8 +48,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
             return createTenantMercadoPagoCheckout({
               ...checkoutInput,
               baseUrl: getAppBaseUrl(request),
-              publicBasePath:
-                resolved.resolution === "slug" ? `/t/${resolved.tenant.slug}` : undefined,
+              publicBasePath: resolved.publicBasePath,
               enableNotifications: settings.webhooks_enabled && settings.payment_topic_enabled,
             });
           })()
