@@ -63,6 +63,11 @@ export interface PaymentSettings {
   mp_refresh_token: string;
   mp_public_key: string;
   mp_user_id: string;
+  mp_client_id: string;
+  mp_client_secret: string;
+  mp_redirect_uri: string;
+  mp_webhook_secret: string;
+  app_base_url: string;
 }
 
 export type SettingsMap = SiteSettings & HomeSettings & PaymentSettings;

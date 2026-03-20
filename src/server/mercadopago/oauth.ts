@@ -1,5 +1,5 @@
 import { getPrisma, isDatabaseConfigured } from "../db/prisma.js";
-import { getMercadoPagoAppEnv } from "../env.js";
+import { getMercadoPagoAppEnvAsync } from "../env.js";
 import { ApiError } from "../http.js";
 import { createOpaqueState, hashOpaqueState, stateMatches } from "../security/state.js";
 import { getSettingsMap, saveSettings } from "../sheets/settingsRepo.js";
@@ -27,7 +27,7 @@ export async function createMercadoPagoOAuthStart(input: {
   returnTo?: string | null;
   mode?: "connect" | "login";
 }) {
-  const { clientId, redirectUri } = getMercadoPagoAppEnv();
+  const { clientId, redirectUri } = await getMercadoPagoAppEnvAsync();
   const state = createOpaqueState();
 
   if (!isDatabaseConfigured()) {
@@ -109,7 +109,7 @@ export async function completeMercadoPagoOAuth(input: {
     throw new ApiError(410, "OAuth state expirado.");
   }
 
-  const { clientId, clientSecret, redirectUri } = getMercadoPagoAppEnv();
+  const { clientId, clientSecret, redirectUri } = await getMercadoPagoAppEnvAsync();
   const tokenResponse = await fetch("https://api.mercadopago.com/oauth/token", {
     method: "POST",
     headers: {

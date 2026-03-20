@@ -3,7 +3,7 @@ import { getPrisma, isDatabaseConfigured } from "../db/prisma.js";
 import { decryptSecret, encryptSecret } from "../security/crypto.js";
 import { redactErrorMessage } from "../security/masking.js";
 import { ApiError } from "../http.js";
-import { getMercadoPagoAppEnv } from "../env.js";
+import { getMercadoPagoAppEnvAsync } from "../env.js";
 import { getSettingsMap, saveSettings } from "../sheets/settingsRepo.js";
 
 type OAuthTokenResponse = {
@@ -226,7 +226,7 @@ export async function refreshMercadoPagoConnection(connectionId: string) {
     throw new ApiError(409, "A conexão com o Mercado Pago precisa ser refeita.");
   }
 
-  const { clientId, clientSecret } = getMercadoPagoAppEnv();
+  const { clientId, clientSecret } = await getMercadoPagoAppEnvAsync();
   const response = await fetch("https://api.mercadopago.com/oauth/token", {
     method: "POST",
     headers: {

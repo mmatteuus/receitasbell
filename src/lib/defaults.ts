@@ -72,6 +72,11 @@ export const DEFAULT_PAYMENT_SETTINGS: PaymentSettings = {
   mp_refresh_token: "",
   mp_public_key: "",
   mp_user_id: "",
+  mp_client_id: "",
+  mp_client_secret: "",
+  mp_redirect_uri: "",
+  mp_webhook_secret: "",
+  app_base_url: "",
 };
 
 export const SITE_SETTING_KEYS = [
@@ -93,6 +98,11 @@ export const PAYMENT_SETTING_KEYS = [
   "mp_refresh_token",
   "mp_public_key",
   "mp_user_id",
+  "mp_client_id",
+  "mp_client_secret",
+  "mp_redirect_uri",
+  "mp_webhook_secret",
+  "app_base_url",
 ] as const;
 
 export const HOME_SETTING_KEYS = [

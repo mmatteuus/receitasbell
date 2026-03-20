@@ -4,13 +4,13 @@ function normalizeBaseUrl(value: string) {
   return value.trim().replace(/\/+$/, "");
 }
 
-function resolveMercadoPagoRedirectUri() {
-  const explicit = getOptionalEnv("MERCADO_PAGO_REDIRECT_URI", ["MP_REDIRECT_URI"]).trim();
+function resolveMercadoPagoRedirectUri(overrides?: { redirectUri?: string; baseUrl?: string }) {
+  const explicit = (overrides?.redirectUri || getOptionalEnv("MERCADO_PAGO_REDIRECT_URI", ["MP_REDIRECT_URI"])).trim();
   if (explicit) {
     return normalizeBaseUrl(explicit);
   }
 
-  const baseUrl = getOptionalEnv("APP_BASE_URL").trim();
+  const baseUrl = (overrides?.baseUrl || getOptionalEnv("APP_BASE_URL")).trim();
   if (baseUrl) {
     return `${normalizeBaseUrl(baseUrl)}/api/mercadopago/oauth/callback`;
   }
@@ -76,6 +76,26 @@ export function getMercadoPagoAppEnv() {
   };
 }
 
+export async function getMercadoPagoAppEnvAsync() {
+  const settings = mapTypedSettings(await getSettingsMap());
+  
+  const clientId = getOptionalEnv("MERCADO_PAGO_CLIENT_ID", ["MP_CLIENT_ID"]).trim() || settings.mp_client_id;
+  const clientSecret = getOptionalEnv("MERCADO_PAGO_CLIENT_SECRET", ["MP_CLIENT_SECRET"]).trim() || settings.mp_client_secret;
+  
+  if (!clientId || !clientSecret) {
+    throw new Error("Mercado Pago App Client ID and Secret are required (Env or Sheets).");
+  }
+
+  return {
+    clientId,
+    clientSecret,
+    redirectUri: resolveMercadoPagoRedirectUri({ 
+      redirectUri: settings.mp_redirect_uri, 
+      baseUrl: settings.app_base_url 
+    }),
+  };
+}
+
 export function hasMercadoPagoAppConfig() {
   return Boolean(
     getOptionalEnv("MERCADO_PAGO_CLIENT_ID", ["MP_CLIENT_ID"]).trim() &&
@@ -85,12 +105,42 @@ export function hasMercadoPagoAppConfig() {
   );
 }
 
+export async function hasMercadoPagoAppConfigAsync() {
+  try {
+    const settings = mapTypedSettings(await getSettingsMap());
+    const hasClientId = Boolean(getOptionalEnv("MERCADO_PAGO_CLIENT_ID", ["MP_CLIENT_ID"]).trim() || settings.mp_client_id);
+    const hasClientSecret = Boolean(getOptionalEnv("MERCADO_PAGO_CLIENT_SECRET", ["MP_CLIENT_SECRET"]).trim() || settings.mp_client_secret);
+    const hasRedirect = Boolean(
+      getOptionalEnv("MERCADO_PAGO_REDIRECT_URI", ["MP_REDIRECT_URI"]).trim() || 
+      getOptionalEnv("APP_BASE_URL").trim() ||
+      settings.mp_redirect_uri ||
+      settings.app_base_url
+    );
+    return hasClientId && hasClientSecret && hasRedirect;
+  } catch {
+    return false;
+  }
+}
+
 export function getMercadoPagoWebhookSecret() {
   return getRequiredEnv("MERCADO_PAGO_WEBHOOK_SECRET", ["MP_WEBHOOK_SECRET"]);
 }
 
+export async function getMercadoPagoWebhookSecretAsync() {
+  const settings = mapTypedSettings(await getSettingsMap());
+  return getOptionalEnv("MERCADO_PAGO_WEBHOOK_SECRET", ["MP_WEBHOOK_SECRET"]).trim() || settings.mp_webhook_secret;
+}
+
 export function hasMercadoPagoWebhookSecret() {
   return Boolean(getOptionalEnv("MERCADO_PAGO_WEBHOOK_SECRET", ["MP_WEBHOOK_SECRET"]).trim());
+}
+
+export async function hasMercadoPagoWebhookSecretAsync() {
+  const settings = mapTypedSettings(await getSettingsMap());
+  return Boolean(
+    getOptionalEnv("MERCADO_PAGO_WEBHOOK_SECRET", ["MP_WEBHOOK_SECRET"]).trim() || 
+    settings.mp_webhook_secret
+  );
 }
 
 export async function getMercadoPagoEnv() {

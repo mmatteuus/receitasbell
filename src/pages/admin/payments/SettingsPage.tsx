@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { useAppContext } from '@/contexts/app-context';
 import {
@@ -20,6 +21,10 @@ type PaymentFlags = {
   payment_mode: 'sandbox' | 'production';
   webhooks_enabled: boolean;
   payment_topic_enabled: boolean;
+  mp_client_id: string;
+  mp_client_secret: string;
+  mp_webhook_secret: string;
+  app_base_url: string;
 };
 
 export default function SettingsPage() {
@@ -29,6 +34,10 @@ export default function SettingsPage() {
     payment_mode: 'sandbox',
     webhooks_enabled: true,
     payment_topic_enabled: true,
+    mp_client_id: '',
+    mp_client_secret: '',
+    mp_webhook_secret: '',
+    app_base_url: '',
   });
   const [adminSettings, setAdminSettings] = useState<AdminPaymentSettingsResponse | null>(null);
   const [loadingAdminSettings, setLoadingAdminSettings] = useState(true);
@@ -41,6 +50,10 @@ export default function SettingsPage() {
       payment_mode: settings.payment_mode,
       webhooks_enabled: settings.webhooks_enabled,
       payment_topic_enabled: settings.payment_topic_enabled,
+      mp_client_id: settings.mp_client_id || '',
+      mp_client_secret: settings.mp_client_secret || '',
+      mp_webhook_secret: settings.mp_webhook_secret || '',
+      app_base_url: settings.app_base_url || '',
     });
 
     if (typeof window !== 'undefined') {
@@ -175,6 +188,59 @@ export default function SettingsPage() {
           <CardDescription>Controle o comportamento do checkout e dos webhooks.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
+          <div className="space-y-4 rounded-lg border bg-muted/20 p-4">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Credenciais da Aplicação</h3>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="mp-client-id" className="text-xs">Client ID do Mercado Pago</Label>
+              <Input
+                id="mp-client-id"
+                value={form.mp_client_id}
+                onChange={(e) => setField('mp_client_id', e.target.value)}
+                placeholder="Ex: 852..."
+                className="h-9 text-xs"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="mp-client-secret" className="text-xs">Client Secret do Mercado Pago</Label>
+              <Input
+                id="mp-client-secret"
+                type="password"
+                value={form.mp_client_secret}
+                onChange={(e) => setField('mp_client_secret', e.target.value)}
+                placeholder="Ex: oZ9..."
+                className="h-9 text-xs"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="mp-webhook-secret" className="text-xs">Webhook Secret (Assinatura)</Label>
+              <Input
+                id="mp-webhook-secret"
+                type="password"
+                value={form.mp_webhook_secret}
+                onChange={(e) => setField('mp_webhook_secret', e.target.value)}
+                placeholder="Configurar na Vercel"
+                className="h-9 text-xs"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="app-base-url" className="text-xs">URL Base do Site (https://...)</Label>
+              <Input
+                id="app-base-url"
+                value={form.app_base_url}
+                onChange={(e) => setField('app_base_url', e.target.value)}
+                placeholder="https://receitasbell.mtsferreira.dev"
+                className="h-9 text-xs"
+              />
+              <p className="text-[10px] text-muted-foreground">
+                Usado para gerar as URLs de redirecionamento e Webhook.
+              </p>
+            </div>
+          </div>
+
           <div className={`rounded-lg border p-3 text-sm ${
             form.payment_mode === 'production'
               ? 'border-green-500/30 bg-green-500/5 text-green-800 dark:text-green-300'
