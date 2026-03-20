@@ -1,6 +1,6 @@
-import type { Recipe } from "@/types/recipe";
-import type { CartItem } from "@/types/cart";
-import type { RecipeRecord } from "@/lib/recipes/types";
+import type { Recipe } from "../../types/recipe.js";
+import type { CartItem } from "../../types/cart.js";
+import type { RecipeRecord } from "../recipes/types.js";
 
 export function isRecipeUnlocked(recipe: Pick<Recipe, "accessTier"> & { hasAccess?: boolean }) {
   return recipe.accessTier === "free" || Boolean(recipe.hasAccess);

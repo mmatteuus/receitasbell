@@ -1,4 +1,4 @@
-import type { Recipe } from '../../types/recipe.js';
+import type { RecipeRecord } from '../../lib/recipes/types.js';
 import type { CartItem } from '../../types/cart.js';
 import type { Payment, PaymentEvent, PaymentNote } from '../../lib/payments/types.js';
 import type { PaymentStatus } from '../../types/payment.js';
@@ -340,7 +340,7 @@ async function resolveRecipesByIds(recipeIds: string[]) {
     uniqueIds.map((recipeId) => getRecipeById(recipeId, { includeDrafts: true }))
   );
 
-  return resolved.filter((recipe): recipe is Recipe => Boolean(recipe));
+  return resolved.filter((recipe): recipe is RecipeRecord => recipe !== null);
 }
 
 async function resolveRecipesFromMercadoPagoPayment(
@@ -368,7 +368,7 @@ async function resolveRecipesFromMercadoPagoPayment(
   return singleRecipe ? [singleRecipe] : [];
 }
 
-function toPaymentItemsFromRecipes(recipes: Recipe[]) {
+function toPaymentItemsFromRecipes(recipes: RecipeRecord[]) {
   return recipes.map((recipe) => buildCartItemFromRecipe(recipe));
 }
 
@@ -376,7 +376,7 @@ function asRoundedBRL(value: number) {
   return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
-function normalizeCheckoutItems(inputItems: CartItem[] | undefined, recipes: Recipe[]) {
+function normalizeCheckoutItems(inputItems: CartItem[] | undefined, recipes: RecipeRecord[]) {
   if (!inputItems?.length || inputItems.length !== recipes.length) {
     return toPaymentItemsFromRecipes(recipes);
   }
@@ -672,7 +672,7 @@ export async function createMockCheckout(input: {
     throw new ApiError(400, 'At least one recipe is required for checkout');
   }
 
-  const recipes: Recipe[] = [];
+  const recipes: RecipeRecord[] = [];
   for (const recipeId of input.recipeIds) {
     const recipe = await getRecipeById(recipeId, { includeDrafts: true });
     if (!recipe) {
@@ -818,7 +818,7 @@ export async function createMercadoPagoCheckout(input: {
     };
   }
 
-  const recipes: Recipe[] = [];
+  const recipes: RecipeRecord[] = [];
   for (const recipeId of input.recipeIds) {
     const recipe = await getRecipeById(recipeId, { includeDrafts: true });
     if (!recipe) {

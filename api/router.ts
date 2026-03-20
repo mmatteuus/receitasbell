@@ -1,4 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import {
+  DEFAULT_CATEGORIES,
+  DEFAULT_HOME_SETTINGS,
+  DEFAULT_PAYMENT_SETTINGS,
+  DEFAULT_SITE_SETTINGS,
+} from '../src/lib/defaults.js';
 import { getAdminApiSecret, getMercadoPagoEnv, getMercadoPagoAppEnv, hasMercadoPagoConfig } from '../src/server/env.js';
 import { requireIdentityUser, resolveOptionalIdentityUser } from '../src/server/identity.js';
 import {
@@ -76,6 +82,83 @@ import {
   uploadRecipeImageSchema,
 } from '../src/server/validators.js';
 import { assertMercadoPagoWebhookSignature } from '../src/server/payments/mercadoPago.js';
+import type { Category } from '../src/types/category.js';
+import type { SettingsMap } from '../src/types/settings.js';
+
+const fallbackPublicSettings: SettingsMap = {
+  ...DEFAULT_SITE_SETTINGS,
+  ...DEFAULT_HOME_SETTINGS,
+  ...DEFAULT_PAYMENT_SETTINGS,
+};
+
+function sortCategories(categories: Category[]) {
+  return [...categories].sort((left, right) => left.name.localeCompare(right.name));
+}
+
+const fallbackPublicCategories = sortCategories(DEFAULT_CATEGORIES);
+
+let cachedPublicSettings: SettingsMap = fallbackPublicSettings;
+let cachedPublicCategories: Category[] = fallbackPublicCategories;
+
+function getErrorCode(error: unknown) {
+  if (typeof error !== 'object' || !error) {
+    return NaN;
+  }
+
+  if ('code' in error) {
+    return Number((error as { code?: unknown }).code);
+  }
+
+  if ('status' in error) {
+    return Number((error as { status?: unknown }).status);
+  }
+
+  return NaN;
+}
+
+function isRecoverablePublicReadError(error: unknown) {
+  if (error instanceof ApiError) {
+    return false;
+  }
+
+  const code = getErrorCode(error);
+  if ([408, 429, 500, 502, 503, 504].includes(code)) {
+    return true;
+  }
+
+  const message = error instanceof Error ? error.message : String(error ?? '');
+  return /timeout|timed out|ECONNRESET|EAI_AGAIN|ENOTFOUND|socket hang up|google|spreadsheet/i.test(message);
+}
+
+async function loadPublicSettings() {
+  try {
+    const settings = mapTypedSettings(await getSettingsMap());
+    cachedPublicSettings = settings;
+    return settings;
+  } catch (error) {
+    if (!isRecoverablePublicReadError(error)) {
+      throw error;
+    }
+
+    console.warn('[api/settings] Falling back to cached/default settings after read failure.', error);
+    return { ...cachedPublicSettings };
+  }
+}
+
+async function loadPublicCategories() {
+  try {
+    const categories = sortCategories(await listCategories());
+    cachedPublicCategories = categories;
+    return categories;
+  } catch (error) {
+    if (!isRecoverablePublicReadError(error)) {
+      throw error;
+    }
+
+    console.warn('[api/categories] Falling back to cached/default categories after read failure.', error);
+    return sortCategories(cachedPublicCategories);
+  }
+}
 
 function getApiPathSegments(request: VercelRequest) {
   const routedPath = getQueryValue(request.query.route as string | string[] | undefined);
@@ -450,7 +533,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
     if (resource === 'categories' && !resourceId) {
       if (request.method === 'GET') {
-        const categories = await listCategories();
+        const categories = await loadPublicCategories();
         return sendJson(response, 200, { categories });
       }
 
@@ -458,6 +541,10 @@ export default async function handler(request: VercelRequest, response: VercelRe
       requireAdminAccess(request);
       const body = categorySchema.parse(await readJsonBody(request));
       const category = await createCategory(body);
+      cachedPublicCategories = sortCategories([
+        ...cachedPublicCategories.filter((item) => item.id !== category.id),
+        category,
+      ]);
       return sendJson(response, 201, { category });
     }
 
@@ -466,12 +553,19 @@ export default async function handler(request: VercelRequest, response: VercelRe
         requireAdminAccess(request);
         const body = categorySchema.parse(await readJsonBody(request));
         const category = await updateCategory(resourceId, body);
+        cachedPublicCategories = sortCategories([
+          ...cachedPublicCategories.filter((item) => item.id !== category.id),
+          category,
+        ]);
         return sendJson(response, 200, { category });
       }
 
       assertMethod(request, ['DELETE']);
       requireAdminAccess(request);
       await deleteCategory(resourceId);
+      cachedPublicCategories = sortCategories(
+        cachedPublicCategories.filter((item) => item.id !== resourceId),
+      );
       return sendNoContent(response);
     }
 
@@ -537,7 +631,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
     if (resource === 'settings' && !resourceId) {
       if (request.method === 'GET') {
-        const settings = mapTypedSettings(await getSettingsMap());
+        const settings = await loadPublicSettings();
         return sendJson(response, 200, { settings });
       }
 
@@ -551,6 +645,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
         ])
       );
       const settings = mapTypedSettings(await saveSettings(normalized));
+      cachedPublicSettings = settings;
       return sendJson(response, 200, { settings });
     }
 

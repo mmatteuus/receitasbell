@@ -17,7 +17,7 @@ if (UPSTASH_URL && UPSTASH_TOKEN) {
   const redis = new Redis({ url: UPSTASH_URL, token: UPSTASH_TOKEN });
   upstashLimiter = new Ratelimit({
     redis,
-    limiter: Ratelimit.slidingWindow(LIMIT, "minute"),
+    limiter: Ratelimit.slidingWindow(LIMIT, "1 m"),
   });
 }
 
@@ -79,7 +79,7 @@ export async function consumeAdminRateLimit(key: string): Promise<RateLimitResul
     return {
       success: result.success,
       remaining: result.remaining ?? 0,
-      resetAfter: result.resetAfter ? Math.ceil(result.resetAfter / 1000) : WINDOW_SECONDS,
+      resetAfter: result.reset ? Math.max(1, Math.ceil((result.reset - Date.now()) / 1000)) : WINDOW_SECONDS,
     };
   }
 

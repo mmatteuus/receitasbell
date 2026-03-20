@@ -46,5 +46,5 @@ export function normalizeBRLInput(value: string | number | null | undefined) {
 }
 
 export function sumBRL(values: Array<number | null | undefined>) {
-  return roundBRL(values.reduce((sum, value) => sum + (value ?? 0), 0));
+  return roundBRL(values.reduce<number>((sum, value) => sum + (value ?? 0), 0));
 }

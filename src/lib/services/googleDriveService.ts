@@ -1,7 +1,7 @@
 import { Buffer } from "node:buffer";
 import { Readable } from "node:stream";
 import { ApiError } from "../../server/http.js";
-import type { ImageFileMeta } from "@/types/recipe";
+import type { ImageFileMeta } from "../../types/recipe.js";
 import { getDriveClient, getDriveFolderId } from "./googleSheetsService.js";
 
 type UploadRecipeImageInput = {

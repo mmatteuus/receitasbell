@@ -1,4 +1,4 @@
-import type { CartItem } from "@/types/cart";
+import type { CartItem } from "../../types/cart.js";
 import type {
   AdminPaymentsFilters,
   CreatePaymentPreferenceInput,
@@ -6,7 +6,7 @@ import type {
   Payment as CanonicalPayment,
   PaymentGateway,
   PaymentStatus,
-} from "@/types/payment";
+} from "../../types/payment.js";
 
 export type { AdminPaymentsFilters, CreatePaymentPreferenceInput, CreatePaymentPreferenceResult };
 export type { PaymentGateway, PaymentStatus };

@@ -1,5 +1,6 @@
 import type { ComponentType } from "react";
 import { Navigate, createBrowserRouter } from "react-router-dom";
+import { LegacyAdminRedirect } from "@/components/auth/LegacyAdminRedirect";
 import { RequireAdminAuth } from "@/components/auth/RequireAdminAuth";
 import AdminLayout from "@/components/layout/AdminLayout";
 import PublicLayout from "@/components/layout/PublicLayout";
@@ -52,10 +53,15 @@ export const router = createBrowserRouter([
     ),
     children: [
       { index: true, lazy: lazyRoute(() => import("@/pages/admin/Dashboard")) },
+      { path: "dashboard", element: <Navigate to="/admin" replace /> },
+      { path: "home", element: <Navigate to="/admin" replace /> },
       { path: "receitas", lazy: lazyRoute(() => import("@/pages/admin/RecipeListPage")) },
       { path: "receitas/nova", lazy: lazyRoute(() => import("@/pages/admin/RecipeEditor")) },
       { path: "receitas/:id/editar", lazy: lazyRoute(() => import("@/pages/admin/RecipeEditor")) },
       { path: "categorias", lazy: lazyRoute(() => import("@/pages/admin/CategoriesPage")) },
+      { path: "recipes", element: <LegacyAdminRedirect /> },
+      { path: "recipes/*", element: <LegacyAdminRedirect /> },
+      { path: "categories", element: <LegacyAdminRedirect /> },
       {
         path: "pagamentos",
         children: [
@@ -70,6 +76,11 @@ export const router = createBrowserRouter([
       },
       { path: "configuracoes", lazy: lazyRoute(() => import("@/pages/admin/SettingsPage")) },
       { path: "configuracoes/pagina-inicial", lazy: lazyRoute(() => import("@/pages/admin/HomePageSettings")) },
+      { path: "payments", element: <LegacyAdminRedirect /> },
+      { path: "payments/*", element: <LegacyAdminRedirect /> },
+      { path: "settings", element: <LegacyAdminRedirect /> },
+      { path: "settings/*", element: <LegacyAdminRedirect /> },
+      { path: "*", element: <Navigate to="/admin" replace /> },
     ],
   },
 ]);

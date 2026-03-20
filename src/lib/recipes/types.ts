@@ -1,4 +1,4 @@
-import type { ImageFileMeta, Recipe } from "@/types/recipe";
+import type { ImageFileMeta, Recipe } from "../../types/recipe.js";
 
 export interface RecipeRecord extends Recipe {
   imageFileMeta?: ImageFileMeta | null;
