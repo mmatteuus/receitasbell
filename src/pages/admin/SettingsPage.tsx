@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Settings, Palette, Type, Save, RotateCcw, Link2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import { DEFAULT_SITE_SETTINGS } from "@/lib/defaults";
 import type { SiteSettings } from "@/types/settings";
 import { updateSettings } from "@/lib/api/settings";
 import { useAppContext } from "@/contexts/app-context";
+import { buildTenantAdminPath, extractTenantSlugFromPath } from "@/lib/tenant";
 
 const FONT_OPTIONS = [
   "DM Serif Display",
@@ -27,6 +28,8 @@ const FONT_OPTIONS = [
 ];
 
 export default function SettingsPage() {
+  const location = useLocation();
+  const tenantSlug = extractTenantSlugFromPath(location.pathname);
   const { settings, refreshSettings } = useAppContext();
   const [form, setForm] = useState<SiteSettings>(DEFAULT_SITE_SETTINGS);
   const [saving, setSaving] = useState(false);
@@ -81,7 +84,10 @@ export default function SettingsPage() {
       <div>
         <h1 className="text-3xl font-heading font-bold">Configurações</h1>
         <p className="text-muted-foreground mt-1">Personalize o nome, logo, cores e fontes do seu site.</p>
-        <Link to="/admin/configuracoes/pagina-inicial" className="mt-3 inline-flex text-sm font-medium text-primary hover:underline">
+        <Link
+          to={buildTenantAdminPath("configuracoes/pagina-inicial", tenantSlug)}
+          className="mt-3 inline-flex text-sm font-medium text-primary hover:underline"
+        >
           Editar conteúdo da Página Inicial
         </Link>
       </div>

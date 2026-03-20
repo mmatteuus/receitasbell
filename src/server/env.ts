@@ -1,9 +1,46 @@
-export function getRequiredEnv(name: string) {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(`Missing required environment variable: ${name}`);
+import { getSettingsMap, mapTypedSettings } from "./sheets/settingsRepo.js";
+
+function normalizeBaseUrl(value: string) {
+  return value.trim().replace(/\/+$/, "");
+}
+
+function resolveMercadoPagoRedirectUri() {
+  const explicit = getOptionalEnv("MERCADO_PAGO_REDIRECT_URI", ["MP_REDIRECT_URI"]).trim();
+  if (explicit) {
+    return normalizeBaseUrl(explicit);
   }
-  return value;
+
+  const baseUrl = getOptionalEnv("APP_BASE_URL").trim();
+  if (baseUrl) {
+    return `${normalizeBaseUrl(baseUrl)}/api/mercadopago/oauth/callback`;
+  }
+
+  throw new Error(
+    "Missing required environment variable: MERCADO_PAGO_REDIRECT_URI",
+  );
+}
+
+export function getRequiredEnv(name: string, fallbacks: string[] = []) {
+  const candidates = [name, ...fallbacks];
+  for (const candidate of candidates) {
+    const value = process.env[candidate];
+    if (value) {
+      return value;
+    }
+  }
+
+  throw new Error(`Missing required environment variable: ${name}`);
+}
+
+export function getOptionalEnv(name: string, fallbacks: string[] = []) {
+  const candidates = [name, ...fallbacks];
+  for (const candidate of candidates) {
+    const value = process.env[candidate];
+    if (value) {
+      return value;
+    }
+  }
+  return "";
 }
 
 export function getGoogleEnv() {
@@ -31,32 +68,36 @@ export function getAdminApiSecret() {
   return "123";
 }
 
-import { getSettingsMap, mapTypedSettings } from './sheets/settingsRepo.js';
-
 export function getMercadoPagoAppEnv() {
   return {
-    clientId: getRequiredEnv("MP_CLIENT_ID"),
-    clientSecret: getRequiredEnv("MP_CLIENT_SECRET"),
+    clientId: getRequiredEnv("MERCADO_PAGO_CLIENT_ID", ["MP_CLIENT_ID"]),
+    clientSecret: getRequiredEnv("MERCADO_PAGO_CLIENT_SECRET", ["MP_CLIENT_SECRET"]),
+    redirectUri: resolveMercadoPagoRedirectUri(),
   };
 }
 
 export function hasMercadoPagoAppConfig() {
   return Boolean(
-    process.env.MP_CLIENT_ID?.trim() &&
-    process.env.MP_CLIENT_SECRET?.trim(),
+    getOptionalEnv("MERCADO_PAGO_CLIENT_ID", ["MP_CLIENT_ID"]).trim() &&
+      getOptionalEnv("MERCADO_PAGO_CLIENT_SECRET", ["MP_CLIENT_SECRET"]).trim() &&
+      (getOptionalEnv("MERCADO_PAGO_REDIRECT_URI", ["MP_REDIRECT_URI"]).trim() ||
+        getOptionalEnv("APP_BASE_URL").trim()),
   );
 }
 
+export function getMercadoPagoWebhookSecret() {
+  return getRequiredEnv("MERCADO_PAGO_WEBHOOK_SECRET", ["MP_WEBHOOK_SECRET"]);
+}
+
 export function hasMercadoPagoWebhookSecret() {
-  return Boolean(process.env.MP_WEBHOOK_SECRET?.trim());
+  return Boolean(getOptionalEnv("MERCADO_PAGO_WEBHOOK_SECRET", ["MP_WEBHOOK_SECRET"]).trim());
 }
 
 export async function getMercadoPagoEnv() {
   const settings = mapTypedSettings(await getSettingsMap());
-  // Fallback to process.env if set (for backward compatibility or testing)
   return {
-    accessToken: settings.mp_access_token || process.env.MP_ACCESS_TOKEN || "",
-    webhookSecret: process.env.MP_WEBHOOK_SECRET || "", // webhooks might still use env secretly or we can leave it empty
+    accessToken: settings.mp_access_token || getOptionalEnv("MP_ACCESS_TOKEN"),
+    webhookSecret: getOptionalEnv("MERCADO_PAGO_WEBHOOK_SECRET", ["MP_WEBHOOK_SECRET"]),
   };
 }
 

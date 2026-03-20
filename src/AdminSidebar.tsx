@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { logoutAdmin } from "@/lib/api/adminSession";
+import { buildTenantAdminPath, extractTenantSlugFromPath } from "@/lib/tenant";
 import { trackEvent } from "@/lib/telemetry";
 
 /* ── Context ── */
@@ -52,18 +53,19 @@ export function AdminSidebarProvider({ children }: { children: ReactNode }) {
 
 /* ── Sidebar items ── */
 const sidebarItems = [
-  { title: "Dashboard", href: "/admin", icon: LayoutDashboard, exact: true },
-  { title: "Receitas", href: "/admin/receitas", icon: Utensils },
-  { title: "Categorias", href: "/admin/categorias", icon: FolderTree },
-  { title: "Pagamentos", href: "/admin/pagamentos", icon: CreditCard },
-  { title: "Configurações", href: "/admin/configuracoes", icon: Settings },
-  { title: "Página Inicial", href: "/admin/configuracoes/pagina-inicial", icon: Home },
+  { title: "Dashboard", path: "", icon: LayoutDashboard, exact: true },
+  { title: "Receitas", path: "receitas", icon: Utensils },
+  { title: "Categorias", path: "categorias", icon: FolderTree },
+  { title: "Pagamentos", path: "pagamentos", icon: CreditCard },
+  { title: "Configurações", path: "configuracoes", icon: Settings },
+  { title: "Página Inicial", path: "configuracoes/pagina-inicial", icon: Home },
 ];
 
 /* ── Sidebar nav content (shared between desktop and mobile) ── */
 function SidebarNav({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: () => void }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const tenantSlug = extractTenantSlugFromPath(location.pathname);
 
   async function handleLogout() {
     try {
@@ -73,21 +75,22 @@ function SidebarNav({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?
       // Ignora erro de logout para não bloquear saída.
     }
     onNavigate?.();
-    navigate("/admin/login", { replace: true });
+    navigate(buildTenantAdminPath("login", tenantSlug), { replace: true });
   }
 
   return (
     <>
       <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
         {sidebarItems.map((item) => {
+          const href = buildTenantAdminPath(item.path, tenantSlug);
           const isActive = item.exact
-            ? location.pathname === item.href
-            : location.pathname.startsWith(item.href);
+            ? location.pathname === href
+            : location.pathname.startsWith(href);
 
           return (
             <Link
-              key={item.href}
-              to={item.href}
+              key={item.path || "dashboard"}
+              to={href}
               title={item.title}
               onClick={onNavigate}
               className={cn(

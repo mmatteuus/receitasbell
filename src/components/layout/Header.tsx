@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useAppContext } from "@/contexts/app-context";
 import ThemeModeToggle from "@/components/layout/ThemeModeToggle";
 import { CartButton } from "@/components/cart/CartButton";
+import { buildTenantAdminPath, extractTenantSlugFromPath } from "@/lib/tenant";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -25,6 +26,8 @@ export default function Header() {
   const [isAppInstalled, setIsAppInstalled] = useState(false);
   const { pathname } = useLocation();
   const { categories, settings } = useAppContext();
+  const tenantSlug = extractTenantSlugFromPath(pathname);
+  const adminPath = buildTenantAdminPath("", tenantSlug);
 
   const isActive = (path: string) => pathname === path;
 
@@ -122,7 +125,7 @@ export default function Header() {
           </div>
 
           <ThemeModeToggle />
-          <Link to="/admin">
+          <Link to={adminPath}>
             <Button variant="outline" size="sm" className="ml-2 gap-1.5">
               <Settings className="h-3.5 w-3.5" />
               Admin
@@ -186,7 +189,7 @@ export default function Header() {
               </Button>
             )}
             <div className="my-2 border-t" />
-            <Link to="/admin" onClick={() => setOpen(false)}>
+            <Link to={adminPath} onClick={() => setOpen(false)}>
               <Button variant="outline" size="sm" className="w-full gap-1.5">
                 <Settings className="h-3.5 w-3.5" />
                 Admin

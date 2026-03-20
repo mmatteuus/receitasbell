@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { PlusCircle, Eye, Pencil, Copy, Trash2, Globe, FileText } from 'lucide-react';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Button } from '@/components/ui/button';
@@ -18,8 +18,11 @@ import type { RecipeRecord } from '@/lib/recipes/types';
 import { PriceBadge } from '@/components/price-badge';
 import { toast } from 'sonner';
 import { getRecipeImage, getRecipePresentation } from '@/lib/recipes/presentation';
+import { buildTenantAdminPath, extractTenantSlugFromPath } from '@/lib/tenant';
 
 export default function RecipeListPage() {
+  const location = useLocation();
+  const tenantSlug = extractTenantSlugFromPath(location.pathname);
   const [recipes, setRecipes] = useState<RecipeRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const { categories } = useAppContext();
@@ -93,7 +96,7 @@ export default function RecipeListPage() {
         title="Receitas"
         description={`${recipes.length} receita${recipes.length !== 1 ? 's' : ''}`}
         actions={
-          <Link to="/admin/receitas/nova">
+          <Link to={buildTenantAdminPath('receitas/nova', tenantSlug)}>
             <Button className="w-full gap-2 sm:w-auto">
               <PlusCircle className="h-4 w-4" /> Nova Receita
             </Button>
@@ -144,7 +147,7 @@ export default function RecipeListPage() {
                       </TableCell>
                       <TableCell>
                         <div className="flex justify-end gap-1">
-                          <Link to={`/admin/receitas/${recipe.id}/editar`}>
+                          <Link to={buildTenantAdminPath(`receitas/${recipe.id}/editar`, tenantSlug)}>
                             <Button variant="ghost" size="icon" title="Editar">
                               <Pencil className="h-4 w-4" />
                             </Button>
@@ -227,7 +230,7 @@ export default function RecipeListPage() {
                     />
                   </div>
                   <div className="mt-3 flex flex-wrap gap-1">
-                    <Link to={`/admin/receitas/${recipe.id}/editar`}>
+                    <Link to={buildTenantAdminPath(`receitas/${recipe.id}/editar`, tenantSlug)}>
                       <Button variant="outline" size="sm" className="h-8 gap-1 text-xs">
                         <Pencil className="h-3 w-3" /> Editar
                       </Button>

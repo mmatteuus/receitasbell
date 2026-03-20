@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Save, Globe, AlertCircle, Trash2 } from "lucide-react";
 import type { RecipeRecord } from "@/lib/recipes/types";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ import type { AccessTier, ImageFileMeta, RecipeStatus } from "@/types/recipe";
 import { normalizeBRLInput, parseBRLInput } from "@/lib/helpers";
 import { createImagePreview, revokeImagePreview } from "@/lib/services/storageFallback";
 import { toast } from "sonner";
+import { buildTenantAdminPath, extractTenantSlugFromPath } from "@/lib/tenant";
 
 type EditorState = {
   id?: string;
@@ -126,6 +127,8 @@ function parseLines(value: string) {
 export default function RecipeEditor() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const tenantSlug = extractTenantSlugFromPath(location.pathname);
   const isEditing = Boolean(id);
   const { categories, refreshCategories } = useAppContext();
   const [form, setForm] = useState<EditorState>(EMPTY_STATE);
@@ -147,7 +150,7 @@ export default function RecipeEditor() {
         if (id) {
           const recipe = await getRecipeById(id);
           if (!recipe) {
-            navigate("/admin/receitas");
+            navigate(buildTenantAdminPath("receitas", tenantSlug));
             return;
           }
           setForm(mapRecipeToState(recipe));
@@ -163,7 +166,7 @@ export default function RecipeEditor() {
     }
 
     void loadEditor();
-  }, [id, navigate]);
+  }, [id, navigate, tenantSlug]);
 
   useEffect(() => {
     if (loading || form.categorySlug || categories.length === 0) {
@@ -331,7 +334,7 @@ export default function RecipeEditor() {
         publishedAt: status === "published" ? form.publishedAt || new Date().toISOString() : form.publishedAt ?? null,
       });
       toast.success(status === "published" ? "Receita publicada" : "Rascunho salvo");
-      navigate("/admin/receitas");
+      navigate(buildTenantAdminPath("receitas", tenantSlug));
     } catch (error) {
       console.error("Failed to save recipe", error);
       toast.error("Nao foi possivel salvar a receita.");

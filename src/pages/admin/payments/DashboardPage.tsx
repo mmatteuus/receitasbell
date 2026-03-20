@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { paymentRepo } from "@/lib/repos/paymentRepo";
 import { Payment } from "@/lib/payments/types";
 import { exportPaymentsCSV, exportPaymentsPDF } from "@/lib/payments/export";
@@ -16,9 +16,12 @@ import { SuccessRateChart } from "./charts/SuccessRateChart";
 import { MethodsChart } from "./charts/MethodsChart";
 import { MonthlyChart } from "./charts/MonthlyChart";
 import type { MethodChartClickData, StatusChartClickData } from "./charts/MethodsChart";
+import { buildTenantAdminPath, extractTenantSlugFromPath } from "@/lib/tenant";
 
 export default function DashboardPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const tenantSlug = extractTenantSlugFromPath(location.pathname);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
@@ -145,19 +148,19 @@ export default function DashboardPage() {
     if (!data) return;
     const statusKey = data.statusKey || data.payload?.statusKey || STATUS_LABELS_REVERSE[data.name || data.payload?.name || ""];
     if (statusKey) {
-      navigate(`/admin/pagamentos/transacoes?status=${statusKey}`);
+      navigate(`${buildTenantAdminPath("pagamentos/transacoes", tenantSlug)}?status=${statusKey}`);
       toast.info(`Filtrando transações por: ${STATUS_LABELS[statusKey] || statusKey}`);
     }
-  }, [navigate]);
+  }, [navigate, tenantSlug]);
 
   const handleMethodBarClick = useCallback((data?: MethodChartClickData) => {
     if (!data) return;
     const method = data.method || data.payload?.method;
     if (method) {
-      navigate(`/admin/pagamentos/transacoes?method=${method}`);
+      navigate(`${buildTenantAdminPath("pagamentos/transacoes", tenantSlug)}?method=${method}`);
       toast.info(`Filtrando transações por: ${METHOD_LABELS[method] || method}`);
     }
-  }, [navigate]);
+  }, [navigate, tenantSlug]);
 
   return (
     <div className="space-y-6">

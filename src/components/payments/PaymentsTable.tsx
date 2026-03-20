@@ -28,10 +28,11 @@ import { Payment } from '@/lib/payments/types';
 import { useEffect, useMemo, useState } from 'react';
 import { Button } from '../ui/button';
 import { StatusBadge } from './StatusBadge';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowUpDown } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { METHOD_LABELS } from '@/pages/admin/payments/constants';
+import { buildTenantAdminPath, extractTenantSlugFromPath } from '@/lib/tenant';
 
 interface PaymentsTableProps {
   data: Payment[];
@@ -54,6 +55,9 @@ function getPaymentMethodLabel(payment: Payment) {
 
 export function PaymentsTable({ data }: PaymentsTableProps) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const tenantSlug = extractTenantSlugFromPath(location.pathname);
+  const detailsPath = (paymentId: string) => buildTenantAdminPath(`pagamentos/transacoes/${paymentId}`, tenantSlug);
   const [sorting, setSorting] = useState<SortingState>([]);
   const isMobile = useIsMobile();
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -76,7 +80,7 @@ export function PaymentsTable({ data }: PaymentsTableProps) {
         cell: ({ row }) => (
           <Button
             variant="link"
-            onClick={() => navigate(`/admin/pagamentos/transacoes/${row.original.id}`)}
+            onClick={() => navigate(detailsPath(row.original.id))}
           >
             {row.original.id}
           </Button>
@@ -143,14 +147,14 @@ export function PaymentsTable({ data }: PaymentsTableProps) {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => navigate(`/admin/pagamentos/transacoes/${row.original.id}`)}
+            onClick={() => navigate(detailsPath(row.original.id))}
           >
             Ver detalhes
           </Button>
         ),
       },
     ],
-    [navigate]
+    [detailsPath, navigate]
   );
 
   useEffect(() => {
@@ -188,7 +192,7 @@ export function PaymentsTable({ data }: PaymentsTableProps) {
                     <div className="min-w-0 flex-1">
                       <button
                         type="button"
-                        onClick={() => navigate(`/admin/pagamentos/transacoes/${payment.id}`)}
+                        onClick={() => navigate(detailsPath(payment.id))}
                         className="truncate text-left text-sm font-semibold text-primary hover:underline"
                       >
                         {payment.id}
@@ -232,7 +236,7 @@ export function PaymentsTable({ data }: PaymentsTableProps) {
                   <Button
                     variant="outline"
                     className="mt-3 w-full"
-                    onClick={() => navigate(`/admin/pagamentos/transacoes/${payment.id}`)}
+                    onClick={() => navigate(detailsPath(payment.id))}
                   >
                     Ver detalhes
                   </Button>

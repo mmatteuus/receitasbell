@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { listPayments } from "../../../src/server/sheets/paymentsRepo.js";
-import { ApiError, assertMethod, parseStringArray, requireAdminAccess, sendJson, withApiHandler } from "../../../src/server/http.js";
+import { listTenantPayments } from "../../../src/server/mercadopago/payments.js";
+import { assertMethod, parseStringArray, sendJson, withApiHandler } from "../../../src/server/http.js";
+import { requireTenantAdminAccess } from "../../../src/server/admin/tenantAccess.js";
 
 function getQueryValue(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
@@ -40,8 +41,8 @@ function readPaymentsFilters(request: VercelRequest) {
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   return withApiHandler(request, response, async () => {
     assertMethod(request, ["GET"]);
-    requireAdminAccess(request);
-    const payments = await listPayments(readPaymentsFilters(request));
+    const access = await requireTenantAdminAccess(request);
+    const payments = await listTenantPayments(access.tenant.id, readPaymentsFilters(request));
     return sendJson(response, 200, { payments });
   });
 }

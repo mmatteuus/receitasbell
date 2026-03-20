@@ -1,151 +1,135 @@
 # Receitas do Bell
 
-Aplicação web para catálogo de receitas com área pública, painel administrativo, carrinho multi-itens, checkout com modo sandbox/real, exportação para PDF e gestão básica de pagamentos. A persistência principal do negócio roda em Vercel Functions com Google Sheets como banco do MVP, mas o frontend permanece isolado dessa integração por meio de repositórios e endpoints HTTP.
+Fase 1 da integracao Mercado Pago OAuth multi-tenant com Checkout Pro. O catalogo continua em Google Sheets, e a nova camada de tenants, auth, conexoes OAuth, pagamentos e webhooks roda em Postgres via Prisma.
 
-## Executando localmente
+## Pre-requisitos
 
-1. `npm install`
-2. Configure as variáveis de ambiente do backend.
-3. `npm run dev`
-4. Abra a URL local exibida no terminal.
+- Node.js 20+
+- PostgreSQL
+- Conta/app Mercado Pago com OAuth habilitado
+- Credenciais Google ja usadas pelo projeto
 
-## Variáveis de ambiente
+## Variaveis de ambiente
 
-Obrigatórias:
+Obrigatorias:
 
+- `DATABASE_URL`
+- `APP_BASE_URL`
+- `ADMIN_API_SECRET`
+- `SESSION_SECRET`
+- `ENCRYPTION_KEY`
+- `MERCADO_PAGO_CLIENT_ID`
+- `MERCADO_PAGO_CLIENT_SECRET`
+- `MERCADO_PAGO_REDIRECT_URI`
+- `MERCADO_PAGO_WEBHOOK_SECRET`
 - `GOOGLE_PROJECT_ID`
 - `GOOGLE_CLIENT_EMAIL`
 - `GOOGLE_PRIVATE_KEY`
 - `GOOGLE_SPREADSHEET_ID`
-- `GOOGLE_DRIVE_FOLDER_ID` para upload de imagens do admin
-- `APP_BASE_URL`
-- `ADMIN_API_SECRET`
 
-O backend normaliza `\\n` para quebras de linha reais ao ler `GOOGLE_PRIVATE_KEY`.
+Opcionais:
 
-Opcionais para integração real de pagamento:
+- `GOOGLE_DRIVE_FOLDER_ID`
+- `UPSTASH_REDIS_REST_URL`
+- `UPSTASH_REDIS_REST_TOKEN`
 
-- `MP_ACCESS_TOKEN`
-- `MP_WEBHOOK_SECRET`
+Use `.env.example` como base. `ENCRYPTION_KEY` deve ser uma chave AES-256-GCM em base64 com 32 bytes reais.
 
-Nunca use prefixo `VITE_` para segredos.
+## Rodando localmente
 
-## Arquitetura
+1. `npm install`
+2. Copie `.env.example` para `.env.local` e preencha os valores.
+3. Gere o Prisma Client: `npx prisma generate`
+4. Aplique a migration: `npx prisma migrate deploy`
+5. Rode a app: `npm run dev`
 
-- `api/`: Vercel Functions expostas para o frontend.
-- `src/pages/public` e `src/pages/admin`: pontos de entrada de rotas públicas e administrativas.
-- `src/features`: barrels por domínio (`recipes`, `cart`, `categories`, `payments`, `account`) para desacoplar UI, regras e repositórios.
-- `src/lib/repos`: camada de acesso a dados no frontend, isolando chamadas HTTP da UI.
-- `src/lib/services/googleSheetsService.ts`: autenticação compartilhada com Google Sheets e Google Drive via service account.
-- `src/lib/services/mercadoPagoService.ts`: boundary do checkout e dos estados de pagamento, preparada para Mercado Pago via contrato `create-preference`.
-- `src/server/sheets/`: repositórios por domínio para receitas, categorias, entitlements, comentários, ratings, favoritos, pagamentos, lista de compras, newsletter e settings.
-- `src/lib/api/`: cliente HTTP do frontend para consumir `/api`.
-- `src/contexts/app-context.tsx`: settings/categorias globais, tema e identidade leve por e-mail.
-- `vercel.json`: mantém o fallback SPA para o React Router sem capturar `/api/*`, preservando Functions reais em `api/`.
+## Banco e migracoes
 
-## Diagnóstico desta etapa
+- Schema Prisma: `prisma/schema.prisma`
+- Migration inicial: `prisma/migrations/20260320_mercadopago_multitenant/migration.sql`
 
-- A base já possuía boa parte da arquitetura-alvo, mas com contratos sobrepostos entre `lib/api`, `lib/repos` e `src/server/sheets`.
-- O front não acessava Sheets diretamente, porém faltava consolidar o caminho oficial de pagamentos para um backend real.
-- O editor de receitas já tinha upload de imagem e slug automático, mas ainda havia hardcodes de categoria e pouca visibilidade do teaser.
-- O admin de pagamentos ainda dependia de tabela horizontal em mobile, o que contrariava o requisito mobile-first.
+Modelos principais:
 
-## Organização de dados
+- `tenants`
+- `tenant_domains`
+- `tenant_users`
+- `tenant_sessions`
+- `mercado_pago_connections`
+- `mercado_pago_oauth_states`
+- `payments`
+- `payment_events`
+- `payment_notes`
+- `audit_logs`
 
-- Tipos principais:
-  - `Recipe`: slug automático, preço em reais com centavos, `accessTier`, `status`, `publishedAt`.
-  - `Category`: criada dinamicamente no admin e reaproveitada em todo o site.
-  - `Payment`: pagamento multi-item com `recipeIds[]`, `totalBRL`, pagador, status e metadados do gateway.
-  - `Entitlement`: liberação por e-mail do comprador com `paymentId`, `recipeSlug` e `accessStatus`.
-- Repositórios principais do frontend:
-  - `recipeRepo.ts`
-  - `categoryRepo.ts`
-  - `paymentRepo.ts`
-  - `entitlementRepo.ts`
-  - `cartRepo.ts`
-  - `profileRepo.ts`
-- Abas centrais do Google Sheets:
-  - `recipes`
-  - `categories`
-  - `payments`
-  - `entitlements`
-  - `settings`
-- Abas auxiliares do MVP:
-  - `recipe_ingredients`, `recipe_instructions`, `recipe_tags`, `recipe_unlocks`, `payment_events`, `payment_notes` e outras de interação.
-  - `recipe_unlocks` permanece apenas como legado de backfill para popular `entitlements`.
+## Bootstrap do primeiro tenant
 
-## Endpoints principais
+1. Acesse `/admin/login`
+2. Informe a senha legado (`ADMIN_API_SECRET`)
+3. Crie o primeiro tenant, slug e admin por e-mail/senha
+4. Depois disso, o login passa a ser tenant-scoped
 
-- `GET /api/recipes`
-- `GET /api/recipes/:slug`
-- `POST /api/recipes`
-- `PUT /api/recipes/:id`
-- `DELETE /api/recipes/:id`
-- `GET /api/categories`
-- `POST /api/categories`
-- `GET /api/comments`
-- `POST /api/comments`
-- `POST /api/ratings`
-- `GET /api/favorites`
-- `POST /api/favorites`
-- `DELETE /api/favorites/:id`
-- `GET /api/settings`
-- `PUT /api/settings`
-- `GET /api/payments`
-- `GET /api/payments/:id`
-- `POST /api/payments/:id/note`
-- `POST /api/payments/mercadopago/create-preference`
-- `POST /api/payments/mercadopago/webhook`
-- `GET /api/entitlements`
-- `POST /api/entitlements`
-- `DELETE /api/entitlements`
-- `GET /api/admin/payments`
-- `GET /api/admin/payments/:id`
-- `POST /api/admin/payments/:id/note`
-- `POST /api/uploads/recipe-image`
-- `DELETE /api/uploads/recipe-image`
-- `GET /api/shopping-list`
-- `POST /api/shopping-list`
-- `PUT /api/shopping-list/:id`
-- `DELETE /api/shopping-list/:id`
-- `POST /api/checkout`
-- `POST /api/newsletter`
+Em homologacao/local sem dominio por tenant, use:
 
-## Scripts
+- `/t/{tenantSlug}/admin/login`
 
-- `npm run dev`: inicia o ambiente de desenvolvimento.
-- `npm run build`: gera o build de produção.
-- `npm run lint`: executa o ESLint.
-- `npm run preview`: serve o build localmente.
+## Redirect URI do Mercado Pago
 
-## Principais áreas
+Cadastre no painel da app Mercado Pago:
 
-- Catálogo público: home, busca, categorias, página de receita, favoritos e institucionais.
-- Fluxo comercial: carrinho local, checkout em modo sandbox ou Mercado Pago real e desbloqueio de receitas pagas no Sheets.
-- Paywall real: receitas pagas só devolvem conteúdo completo quando existe entitlement ativo para o e-mail do comprador.
-- Painel admin: listagem, criação e edição de receitas, categorias dinâmicas, configurações visuais e dashboard de pagamentos.
-- Persistência server-side: o frontend consome `/api`, enquanto as Functions escrevem e leem do Google Sheets.
-- Identidade leve: o usuário informa um e-mail uma vez, esse valor é salvo em cookie (`rb_user_email`) e o backend resolve/cria o `user_id` correspondente na aba `users`.
+- Local: `http://localhost:8080/api/mercadopago/oauth/callback`
+- Producao: `https://seu-dominio/api/mercadopago/oauth/callback`
 
-## Fluxos para validação manual
+O sistema inicia a conexao por `POST /api/admin/mercadopago/connect` e completa em `GET /api/mercadopago/oauth/callback`.
 
-1. Criar uma receita paga em `/admin/receitas/nova` com upload de imagem, categoria dinâmica e preço em reais com centavos.
-2. Confirmar que o slug aparece apenas como URL readonly e que ele congela após a primeira publicação.
-3. Validar o bloco de teaser automático no editor e o teaser bloqueado em `/receitas/{slug}`.
-4. Exportar a receita para PDF. Em receita paga bloqueada, o PDF deve sair apenas com o teaser visível.
-5. Adicionar uma ou mais receitas ao carrinho, revisar total, remover item, limpar carrinho e concluir o checkout.
-6. Criar uma categoria no editor ou em `/admin/categorias` e validar a aparição dela no painel e no site público.
-7. Abrir o admin de pagamentos em mobile e confirmar que a listagem vira cards em vez de tabela horizontal.
-8. Enviar um e-mail na newsletter e confirmar o registro na aba `newsletter_subscribers`.
-9. Favoritar, comentar, avaliar e manipular a lista de compras para validar persistência nas abas correspondentes.
+## Webhook do Mercado Pago
 
-## Observações técnicas
+Configure no Mercado Pago:
 
-- O editor normaliza slug, ingredientes, instruções e preço antes de persistir; a imagem é enviada por upload e o Sheets guarda apenas URL e metadados.
-- O slug é automático, não editável no admin e fica congelado após a primeira publicação.
-- Categoria agora é obrigatória e validada tanto no frontend quanto no repositório server-side.
-- Receitas pagas bloqueadas exibem apenas os dois primeiros ingredientes e passos até a compra, inclusive no PDF exportado.
-- O webhook do Mercado Pago grava `payments` e sincroniza `entitlements`; `approved` ativa acesso e `cancelled/refunded/charged_back` revoga.
-- O carrinho continua local por enquanto, mas já usa snapshots multi-itens preparados para preferências do Mercado Pago.
-- O checkout principal do frontend aponta para `POST /api/payments/mercadopago/create-preference`, enquanto `POST /api/checkout` permanece como alias compatível.
-- O admin de pagamentos passou a consumir `GET /api/admin/payments` e `GET /api/admin/payments/:id`, deixando a estrutura pronta para troca futura do banco do MVP.
+- URL: `https://seu-dominio/api/payments/mercadopago/webhook`
+- Assinatura secreta em `MERCADO_PAGO_WEBHOOK_SECRET`
+- Evento `payment`
+
+O checkout registra `tenantId` e `paymentId` no `notification_url`, permitindo buscar os detalhes do pagamento com o token do seller correto.
+
+## Testando a conexao Mercado Pago
+
+1. Entre no admin do tenant
+2. Abra `Pagamentos > Configuracoes`
+3. Clique em `Conectar com Mercado Pago`
+4. Autorize a conta no fluxo OAuth
+5. Volte para a aplicacao e valide o estado `Conta conectada`
+
+## Testando um pagamento
+
+1. Garanta que o tenant esta conectado
+2. Ative `Modo producao` no admin se quiser usar Mercado Pago real
+3. Inicie o checkout publico no tenant correto
+4. Confirme que a preferencia e criada com `external_reference = t:{tenantId}:p:{paymentId}`
+5. Verifique se o webhook atualiza `payments.status`
+
+## Reconectar e desconectar
+
+- Reconectar: use o mesmo botao de conexao; estados `reconnect_required` sao tratados no painel.
+- Desconectar: `POST /api/admin/mercadopago/disconnect`
+- Tokens invalidos/revogados sao marcados como `reconnect_required` quando refresh falha ou a API retorna `401/403`
+
+## Testes
+
+- `npm run typecheck`
+- `npm run test:unit`
+- `npm run build`
+
+Cobertura adicionada:
+
+- state OAuth
+- resolucao de tenant
+- assinatura de webhook
+- servico OAuth
+- servico de checkout tenant-aware
+
+## Limitacoes e pendencias reais
+
+- `[PENDENTE]` Confirmar documentalmente suporte oficial a PKCE no fluxo seller OAuth atual do Mercado Pago antes de implementar `code_challenge`.
+- `[PENDENTE]` Confirmar endpoint oficial de revogacao remota da autorizacao; hoje a desconexao local limpa os segredos e a revogacao remota e detectada por erro/refresh.
+- `[PENDENTE]` O restante do catalogo continua global em Google Sheets. Esta entrega tenantiza auth + Mercado Pago + pagamentos; tenantizacao completa do conteudo fica para a fase 2.
+- `[PENDENTE]` Para desenvolvimento local multi-tenant completo no storefront ainda faltam aliases/links tenant-aware em toda a area publica; o modo slug foi priorizado para admin e checkout.

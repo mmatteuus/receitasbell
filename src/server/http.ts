@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { getAdminApiSecret } from './env.js';
+import { hasTenantAdminSession } from './auth/sessions.js';
 
 export class ApiError extends Error {
   status: number;
@@ -21,6 +22,21 @@ export function sendJson(response: VercelResponse, status: number, data: unknown
 export function sendNoContent(response: VercelResponse) {
   response.setHeader('Cache-Control', 'no-store');
   response.status(204).end();
+}
+
+export function appendSetCookie(response: VercelResponse, cookie: string) {
+  const current = response.getHeader('Set-Cookie');
+  if (!current) {
+    response.setHeader('Set-Cookie', cookie);
+    return;
+  }
+
+  if (Array.isArray(current)) {
+    response.setHeader('Set-Cookie', [...current, cookie]);
+    return;
+  }
+
+  response.setHeader('Set-Cookie', [String(current), cookie]);
 }
 
 export function getRequestOrigin(request: VercelRequest) {
@@ -59,7 +75,7 @@ export async function withApiHandler(
   handler: () => Promise<void>
 ) {
   response.setHeader('Access-Control-Allow-Origin', '*');
-  response.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-secret');
+  response.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-secret, x-tenant-slug');
   response.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
 
   if (request.method === 'OPTIONS') {
@@ -140,7 +156,7 @@ export function hasAdminAccess(request: VercelRequest) {
     return true;
   }
 
-  return hasAdminSessionCookie(request);
+  return hasAdminSessionCookie(request) || hasTenantAdminSession(request);
 }
 
 export function requireAdminAccess(request: VercelRequest) {
@@ -180,16 +196,16 @@ export function setAdminSessionCookie(
 ) {
   const token = createAdminSessionToken(secret);
   const secure = shouldUseSecureCookie(request) ? '; Secure' : '';
-  response.setHeader(
-    'Set-Cookie',
+  appendSetCookie(
+    response,
     `${ADMIN_SESSION_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${60 * 60 * 12}${secure}`
   );
 }
 
 export function clearAdminSessionCookie(request: VercelRequest, response: VercelResponse) {
   const secure = shouldUseSecureCookie(request) ? '; Secure' : '';
-  response.setHeader(
-    'Set-Cookie',
+  appendSetCookie(
+    response,
     `${ADMIN_SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secure}`
   );
 }

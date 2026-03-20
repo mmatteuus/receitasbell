@@ -65,6 +65,28 @@ export async function getAdminPaymentSettings() {
   return result.settings;
 }
 
+export async function startMercadoPagoConnection(returnTo?: string) {
+  const result = await jsonFetch<{ authorizationUrl: string }>(
+    "/api/admin/mercadopago/connect",
+    {
+      method: "POST",
+      admin: true,
+      body: { returnTo },
+    },
+  );
+  return result.authorizationUrl;
+}
+
+export async function disconnectMercadoPagoConnection() {
+  return jsonFetch<{ disconnected: boolean; connectionStatus: string }>(
+    "/api/admin/mercadopago/disconnect",
+    {
+      method: "POST",
+      admin: true,
+    },
+  );
+}
+
 export async function createMercadoPagoPreference(input: {
   recipeIds: string[];
   items?: Array<{

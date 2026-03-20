@@ -1,3 +1,5 @@
+import { buildTenantAdminPath, getCurrentTenantSlug } from "@/lib/tenant";
+
 export class ApiClientError extends Error {
   status: number;
   details?: unknown;
@@ -43,6 +45,10 @@ export function buildQuery(params: Record<string, string | number | boolean | un
 export async function jsonFetch<T>(path: string, options: JsonFetchOptions = {}): Promise<T> {
   const { admin = false, headers: rawHeaders, body, ...init } = options;
   const headers = new Headers(rawHeaders);
+  const tenantSlug = typeof window !== "undefined" ? getCurrentTenantSlug() : null;
+  if (tenantSlug) {
+    headers.set("X-Tenant-Slug", tenantSlug);
+  }
 
   let nextBody: BodyInit | undefined;
   if (body !== undefined && body !== null) {
@@ -70,9 +76,12 @@ export async function jsonFetch<T>(path: string, options: JsonFetchOptions = {})
 
   if (!response.ok) {
     if (admin && response.status === 401) {
-      if (typeof window !== "undefined" && !window.location.pathname.startsWith("/admin/login")) {
+      const loginPath = buildTenantAdminPath("login", tenantSlug);
+      if (typeof window !== "undefined" && window.location.pathname !== loginPath) {
         const redirect = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-        window.location.assign(`/admin/login?redirect=${encodeURIComponent(redirect)}`);
+        window.location.assign(
+          `${loginPath}?redirect=${encodeURIComponent(redirect)}`,
+        );
       }
       throw new ApiClientError(401, "Sessão de admin expirada. Faça login novamente.", payload?.details);
     }

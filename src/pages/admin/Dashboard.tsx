@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import {
   PlusCircle,
   List,
@@ -31,10 +31,13 @@ import {
 } from 'recharts';
 import type { Payment } from '@/lib/payments/types';
 import { METHOD_LABELS } from '@/pages/admin/payments/constants';
+import { buildTenantAdminPath, extractTenantSlugFromPath } from '@/lib/tenant';
 
 type Period = '7' | '30' | '90';
 
 export default function Dashboard() {
+  const location = useLocation();
+  const tenantSlug = extractTenantSlugFromPath(location.pathname);
   const [period, setPeriod] = useState<Period>('30');
   const [recipes, setRecipes] = useState<RecipeRecord[]>([]);
   const [allPayments, setAllPayments] = useState<Payment[]>([]);
@@ -324,19 +327,19 @@ export default function Dashboard() {
       </div>
 
       <div className="flex flex-wrap gap-3">
-        <Link to="/admin/receitas/nova">
+        <Link to={buildTenantAdminPath('receitas/nova', tenantSlug)}>
           <Button className="gap-2">
             <PlusCircle className="h-4 w-4" />
             Criar Receita
           </Button>
         </Link>
-        <Link to="/admin/receitas">
+        <Link to={buildTenantAdminPath('receitas', tenantSlug)}>
           <Button variant="outline" className="gap-2">
             <List className="h-4 w-4" />
             Gerenciar Receitas
           </Button>
         </Link>
-        <Link to="/admin/pagamentos/transacoes">
+        <Link to={buildTenantAdminPath('pagamentos/transacoes', tenantSlug)}>
           <Button variant="outline" className="gap-2">
             <DollarSign className="h-4 w-4" />
             Ver Transações

@@ -1,53 +1,63 @@
 import { Navigate, useLocation } from "react-router-dom";
+import { buildTenantAdminPath, extractTenantSlugFromPath } from "@/lib/tenant";
 
 function normalizeLegacyAdminPath(pathname: string) {
-  if (pathname === "/admin/dashboard" || pathname === "/admin/home") {
-    return "/admin";
+  const tenantSlug = extractTenantSlugFromPath(pathname);
+  const adminBase = buildTenantAdminPath("", tenantSlug);
+  const normalize = (value: string) => buildTenantAdminPath(value, tenantSlug);
+  const tenantAwarePath = tenantSlug ? pathname.replace(`/t/${tenantSlug}`, "") : pathname;
+
+  if (tenantAwarePath === "/admin/dashboard" || tenantAwarePath === "/admin/home") {
+    return adminBase;
   }
 
-  if (pathname === "/admin/settings") {
-    return "/admin/configuracoes";
+  if (tenantAwarePath === "/admin/settings") {
+    return normalize("configuracoes");
   }
 
-  if (pathname === "/admin/settings/home") {
-    return "/admin/configuracoes/pagina-inicial";
+  if (tenantAwarePath === "/admin/settings/home") {
+    return normalize("configuracoes/pagina-inicial");
   }
 
-  if (pathname === "/admin/recipes") {
-    return "/admin/receitas";
+  if (tenantAwarePath === "/admin/recipes") {
+    return normalize("receitas");
   }
 
-  if (pathname === "/admin/recipes/new") {
-    return "/admin/receitas/nova";
+  if (tenantAwarePath === "/admin/recipes/new") {
+    return normalize("receitas/nova");
   }
 
-  const recipeEditMatch = pathname.match(/^\/admin\/recipes\/([^/]+)\/edit$/);
+  const recipeEditMatch = tenantAwarePath.match(/^\/admin\/recipes\/([^/]+)\/edit$/);
   if (recipeEditMatch) {
-    return `/admin/receitas/${recipeEditMatch[1]}/editar`;
+    return normalize(`receitas/${recipeEditMatch[1]}/editar`);
   }
 
-  if (pathname === "/admin/categories") {
-    return "/admin/categorias";
+  if (tenantAwarePath === "/admin/categories") {
+    return normalize("categorias");
   }
 
-  if (pathname === "/admin/payments" || pathname === "/admin/payments/dashboard" || pathname === "/admin/pagamentos/dashboard") {
-    return "/admin/pagamentos";
+  if (
+    tenantAwarePath === "/admin/payments" ||
+    tenantAwarePath === "/admin/payments/dashboard" ||
+    tenantAwarePath === "/admin/pagamentos/dashboard"
+  ) {
+    return normalize("pagamentos");
   }
 
-  if (pathname === "/admin/payments/transactions") {
-    return "/admin/pagamentos/transacoes";
+  if (tenantAwarePath === "/admin/payments/transactions") {
+    return normalize("pagamentos/transacoes");
   }
 
-  const paymentDetailsMatch = pathname.match(/^\/admin\/payments\/transactions\/([^/]+)$/);
+  const paymentDetailsMatch = tenantAwarePath.match(/^\/admin\/payments\/transactions\/([^/]+)$/);
   if (paymentDetailsMatch) {
-    return `/admin/pagamentos/transacoes/${paymentDetailsMatch[1]}`;
+    return normalize(`pagamentos/transacoes/${paymentDetailsMatch[1]}`);
   }
 
-  if (pathname === "/admin/payments/settings") {
-    return "/admin/pagamentos/configuracoes";
+  if (tenantAwarePath === "/admin/payments/settings") {
+    return normalize("pagamentos/configuracoes");
   }
 
-  return "/admin";
+  return adminBase;
 }
 
 export function LegacyAdminRedirect() {

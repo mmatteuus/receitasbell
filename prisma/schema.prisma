@@ -1,0 +1,209 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id                 String                  @id @default(cuid())
+  slug               String                  @unique
+  name               String
+  status             String                  @default("active")
+  createdAt          DateTime                @default(now()) @map("created_at")
+  updatedAt          DateTime                @updatedAt @map("updated_at")
+  domains            TenantDomain[]
+  users              TenantUser[]
+  sessions           TenantSession[]
+  mercadoPagoConnection MercadoPagoConnection?
+  oauthStates        MercadoPagoOAuthState[]
+  payments           Payment[]
+  paymentEvents      PaymentEvent[]
+  paymentNotes       PaymentNote[]
+  auditLogs          AuditLog[]
+
+  @@map("tenants")
+}
+
+model TenantDomain {
+  id        String   @id @default(cuid())
+  tenantId  String   @map("tenant_id")
+  host      String   @unique
+  isPrimary Boolean  @default(false) @map("is_primary")
+  createdAt DateTime @default(now()) @map("created_at")
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@map("tenant_domains")
+}
+
+model TenantUser {
+  id            String          @id @default(cuid())
+  tenantId      String          @map("tenant_id")
+  email         String
+  passwordHash  String          @map("password_hash")
+  role          String          @default("owner")
+  status        String          @default("active")
+  displayName   String?         @map("display_name")
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+  lastLoginAt   DateTime?       @map("last_login_at")
+  tenant        Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sessions      TenantSession[]
+  oauthStates   MercadoPagoOAuthState[]
+  paymentNotes  PaymentNote[]
+  auditLogs     AuditLog[]
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@map("tenant_users")
+}
+
+model TenantSession {
+  id               String      @id @default(cuid())
+  tenantId         String      @map("tenant_id")
+  tenantUserId     String      @map("tenant_user_id")
+  sessionTokenHash String      @unique @map("session_token_hash")
+  expiresAt        DateTime    @map("expires_at")
+  createdAt        DateTime    @default(now()) @map("created_at")
+  lastSeenAt       DateTime?   @map("last_seen_at")
+  revokedAt        DateTime?   @map("revoked_at")
+  tenant           Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenantUser       TenantUser  @relation(fields: [tenantUserId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantUserId])
+  @@map("tenant_sessions")
+}
+
+model MercadoPagoConnection {
+  id                   String    @id @default(cuid())
+  tenantId             String    @unique @map("tenant_id")
+  mercadoPagoUserId    String    @unique @map("mercado_pago_user_id")
+  accessTokenEncrypted String    @map("access_token_encrypted")
+  refreshTokenEncrypted String?  @map("refresh_token_encrypted")
+  tokenExpiresAt       DateTime? @map("token_expires_at")
+  scope                String?
+  status               String    @default("connected") @map("connection_status")
+  lastError            String?   @map("last_error")
+  publicKey            String?   @map("public_key")
+  connectedAt          DateTime? @map("connected_at")
+  disconnectedAt       DateTime? @map("disconnected_at")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+  tenant               Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  payments             Payment[]
+
+  @@index([tenantId, status])
+  @@map("mercado_pago_connections")
+}
+
+model MercadoPagoOAuthState {
+  id                   String      @id @default(cuid())
+  tenantId             String      @map("tenant_id")
+  tenantUserId         String      @map("tenant_user_id")
+  stateHash            String      @unique @map("state_hash")
+  codeVerifierEncrypted String?    @map("code_verifier_encrypted")
+  returnTo             String?     @map("return_to")
+  expiresAt            DateTime    @map("expires_at")
+  consumedAt           DateTime?   @map("consumed_at")
+  createdAt            DateTime    @default(now()) @map("created_at")
+  tenant               Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenantUser           TenantUser  @relation(fields: [tenantUserId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantUserId])
+  @@map("mercado_pago_oauth_states")
+}
+
+model Payment {
+  id                     String                  @id @default(cuid())
+  tenantId               String                  @map("tenant_id")
+  mercadoPagoConnectionId String?                @map("mercado_pago_connection_id")
+  externalReference      String                  @unique @map("external_reference")
+  idempotencyKey         String                  @unique @map("idempotency_key")
+  checkoutReference      String?                 @map("checkout_reference")
+  preferenceId           String?                 @map("preference_id")
+  mercadoPagoPaymentId   String?                 @map("mercado_pago_payment_id")
+  buyerEmail             String                  @map("buyer_email")
+  payerName              String                  @map("payer_name")
+  currency               String                  @default("BRL")
+  amount                 Decimal                 @db.Decimal(10, 2)
+  gateway                String                  @default("mercado_pago")
+  status                 String                  @default("pending")
+  statusDetail           String?                 @map("status_detail")
+  paymentMethod          String?                 @map("payment_method")
+  paymentType            String?                 @map("payment_type")
+  checkoutUrl            String?                 @map("checkout_url")
+  recipeIdsJson          Json?                   @map("recipe_ids_json")
+  itemSnapshotsJson      Json?                   @map("item_snapshots_json")
+  rawLastPayloadJson     Json?                   @map("raw_last_payload_json")
+  approvedAt             DateTime?               @map("approved_at")
+  webhookReceivedAt      DateTime?               @map("webhook_received_at")
+  createdAt              DateTime                @default(now()) @map("created_at")
+  updatedAt              DateTime                @updatedAt @map("updated_at")
+  tenant                 Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  mercadoPagoConnection  MercadoPagoConnection?  @relation(fields: [mercadoPagoConnectionId], references: [id], onDelete: SetNull)
+  events                 PaymentEvent[]
+  notes                  PaymentNote[]
+
+  @@index([tenantId])
+  @@index([mercadoPagoPaymentId])
+  @@map("payments")
+}
+
+model PaymentEvent {
+  id             String    @id @default(cuid())
+  tenantId       String    @map("tenant_id")
+  paymentId       String?   @map("payment_id")
+  resourceId     String?   @map("resource_id")
+  topic          String?
+  action         String?
+  dedupeKey      String    @unique @map("dedupe_key")
+  signatureValid Boolean   @default(false) @map("signature_valid")
+  payloadJson    Json?     @map("payload_json")
+  processedAt    DateTime? @map("processed_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  tenant         Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  payment        Payment?  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([paymentId])
+  @@map("payment_events")
+}
+
+model PaymentNote {
+  id              String     @id @default(cuid())
+  tenantId        String     @map("tenant_id")
+  paymentId       String     @map("payment_id")
+  createdByUserId String?    @map("created_by_user_id")
+  note            String
+  createdAt       DateTime   @default(now()) @map("created_at")
+  updatedAt       DateTime   @updatedAt @map("updated_at")
+  tenant          Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  payment         Payment    @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  createdByUser   TenantUser? @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([paymentId])
+  @@map("payment_notes")
+}
+
+model AuditLog {
+  id           String     @id @default(cuid())
+  tenantId     String     @map("tenant_id")
+  actorUserId  String?    @map("actor_user_id")
+  action       String
+  entityType   String     @map("entity_type")
+  entityId     String?    @map("entity_id")
+  metadataJson Json?      @map("metadata_json")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  tenant       Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  actorUser    TenantUser? @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([actorUserId])
+  @@map("audit_logs")
+}

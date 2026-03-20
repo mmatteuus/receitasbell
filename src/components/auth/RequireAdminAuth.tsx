@@ -1,6 +1,7 @@
 import { ReactNode, useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { getAdminSession } from "@/lib/api/adminSession";
+import { buildTenantAdminPath, extractTenantSlugFromPath } from "@/lib/tenant";
 
 export function RequireAdminAuth({ children }: { children: ReactNode }) {
   const location = useLocation();
@@ -36,7 +37,13 @@ export function RequireAdminAuth({ children }: { children: ReactNode }) {
 
   if (status === "unauthenticated") {
     const redirect = `${location.pathname}${location.search}${location.hash}`;
-    return <Navigate to={`/admin/login?redirect=${encodeURIComponent(redirect)}`} replace />;
+    const tenantSlug = extractTenantSlugFromPath(location.pathname);
+    return (
+      <Navigate
+        to={`${buildTenantAdminPath("login", tenantSlug)}?redirect=${encodeURIComponent(redirect)}`}
+        replace
+      />
+    );
   }
 
   return <>{children}</>;
