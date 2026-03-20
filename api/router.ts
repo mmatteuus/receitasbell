@@ -664,10 +664,15 @@ export default async function handler(request: VercelRequest, response: VercelRe
     }
 
     if (resource === 'mercadopago' && resourceId === 'login') {
-      const { clientId } = getMercadoPagoAppEnv();
-      const redirectUri = getAppBaseUrl(request) + '/api/mercadopago/oauth';
-      const authUrl = `https://auth.mercadopago.com/authorization?client_id=${clientId}&response_type=code&platform_id=mp&redirect_uri=${redirectUri}`;
-      response.redirect(authUrl);
+      try {
+        const { clientId } = getMercadoPagoAppEnv();
+        const redirectUri = getAppBaseUrl(request) + '/api/mercadopago/oauth';
+        const authUrl = `https://auth.mercadopago.com/authorization?client_id=${clientId}&response_type=code&platform_id=mp&redirect_uri=${redirectUri}`;
+        response.redirect(authUrl);
+      } catch (error) {
+        console.error('Mercado Pago App Env Error:', error);
+        response.redirect('/admin/configuracoes?tab=pagamentos&error=mp_not_configured');
+      }
       return;
     }
 

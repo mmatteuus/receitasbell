@@ -39,6 +39,9 @@ type EditorState = {
   prepTime: number;
   cookTime: number;
   servings: number;
+  difficulty: "Fácil" | "Médio" | "Difícil" | null;
+  calories: number | null;
+  videoUrl: string;
   accessTier: AccessTier;
   priceBRL: number | null;
   priceInput: string;
@@ -65,6 +68,9 @@ const EMPTY_STATE: EditorState = {
   prepTime: 0,
   cookTime: 0,
   servings: 1,
+  difficulty: null,
+  calories: null,
+  videoUrl: "",
   accessTier: "free",
   priceBRL: null,
   priceInput: "",
@@ -91,6 +97,9 @@ function mapRecipeToState(recipe: RecipeRecord): EditorState {
     prepTime: recipe.prepTime,
     cookTime: recipe.cookTime,
     servings: recipe.servings,
+    difficulty: recipe.difficulty ?? null,
+    calories: recipe.calories ?? null,
+    videoUrl: recipe.videoUrl || "",
     accessTier: recipe.accessTier,
     priceBRL: recipe.priceBRL ?? null,
     priceInput: recipe.priceBRL ? normalizeBRLInput(recipe.priceBRL) : "",
@@ -305,6 +314,9 @@ export default function RecipeEditor() {
         prepTime: Number(form.prepTime || 0),
         cookTime: Number(form.cookTime || 0),
         servings: Number(form.servings || 1),
+        difficulty: form.difficulty || null,
+        calories: form.calories ? Number(form.calories) : null,
+        videoUrl: form.videoUrl.trim(),
         accessTier: form.accessTier,
         priceBRL: form.accessTier === "paid" ? parsedPrice : null,
         fullIngredients: parseLines(form.ingredientsText),
@@ -471,6 +483,29 @@ export default function RecipeEditor() {
             <div className="space-y-2">
               <Label>Porções</Label>
               <Input type="number" min={1} value={form.servings} onChange={(event) => setField("servings", Number(event.target.value || 1))} />
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="space-y-2">
+              <Label>Dificuldade</Label>
+              <Select value={form.difficulty || "none"} onValueChange={(value) => setField("difficulty", value === "none" ? null : value as "Fácil" | "Médio" | "Difícil")}>
+                <SelectTrigger><SelectValue placeholder="Opcional" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Opcional</SelectItem>
+                  <SelectItem value="Fácil">Fácil</SelectItem>
+                  <SelectItem value="Médio">Médio</SelectItem>
+                  <SelectItem value="Difícil">Difícil</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Calorias (kcal)</Label>
+              <Input type="number" placeholder="Ex: 350" value={form.calories || ""} onChange={(e) => setField("calories", e.target.value ? Number(e.target.value) : null)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Vídeo (YouTube/TikTok)</Label>
+              <Input type="url" placeholder="https://..." value={form.videoUrl} onChange={(e) => setField("videoUrl", e.target.value)} />
             </div>
           </div>
 

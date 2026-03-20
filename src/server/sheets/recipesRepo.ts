@@ -32,6 +32,9 @@ export interface RecipeMutationInput {
   prepTime?: number;
   cookTime?: number;
   servings?: number;
+  difficulty?: "Fácil" | "Médio" | "Difícil" | null;
+  calories?: number | null;
+  videoUrl?: string | null;
   accessTier?: "free" | "paid";
   priceBRL?: number | null;
   fullIngredients?: string[];
@@ -117,6 +120,9 @@ function buildRecipeFromRow(
     cookTime: asNumber(row.cook_time),
     totalTime: asNumber(row.total_time),
     servings: asNumber(row.servings, 1),
+    difficulty: asNullableString(row.difficulty) as "Fácil" | "Médio" | "Difícil" | null,
+    calories: row.calories ? asNumber(row.calories) : null,
+    videoUrl: asNullableString(row.video_url),
     accessTier,
     priceBRL: accessTier === "paid" ? asNumber(row.price_brl) : null,
     fullIngredients: hasAccess ? fullIngredients : teaserIngredients,
@@ -197,6 +203,9 @@ function normalizeRecipeInput(
     cookTime,
     totalTime: prepTime + cookTime,
     servings,
+    difficulty: input.difficulty ?? null,
+    calories: input.calories ? Number(input.calories) : null,
+    videoUrl: input.videoUrl?.trim() || null,
     accessTier,
     priceBRL: accessTier === "paid" ? Number(priceBRL.toFixed(2)) : null,
     ingredients,
@@ -358,6 +367,9 @@ export async function createRecipe(input: RecipeMutationInput) {
       cook_time: String(normalized.cookTime),
       total_time: String(normalized.totalTime),
       servings: String(normalized.servings),
+      difficulty: normalized.difficulty || "",
+      calories: normalized.calories === null ? "" : String(normalized.calories),
+      video_url: normalized.videoUrl || "",
       access_tier: normalized.accessTier,
       price_brl: normalized.priceBRL === null ? "" : String(normalized.priceBRL),
       full_ingredients_json: toJsonString(normalized.ingredients),
@@ -406,6 +418,9 @@ export async function updateRecipe(id: string, input: RecipeMutationInput) {
         cook_time: String(normalized.cookTime),
         total_time: String(normalized.totalTime),
         servings: String(normalized.servings),
+        difficulty: normalized.difficulty || "",
+        calories: normalized.calories === null ? "" : String(normalized.calories),
+        video_url: normalized.videoUrl || "",
         access_tier: normalized.accessTier,
         price_brl: normalized.priceBRL === null ? "" : String(normalized.priceBRL),
         full_ingredients_json: toJsonString(normalized.ingredients),

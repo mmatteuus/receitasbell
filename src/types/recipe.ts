@@ -28,6 +28,9 @@ export interface Recipe {
   cookTime: number | null;
   totalTime: number | null;
   servings: number | null;
+  difficulty?: "Fácil" | "Médio" | "Difícil" | null;
+  calories?: number | null;
+  videoUrl?: string | null;
   accessTier: AccessTier;
   priceBRL: number | null;
   fullIngredients: string[];

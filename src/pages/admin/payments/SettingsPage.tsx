@@ -27,6 +27,18 @@ export default function SettingsPage() {
       webhooks_enabled: settings.webhooks_enabled,
       payment_topic_enabled: settings.payment_topic_enabled,
     });
+
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('error') === 'mp_not_configured') {
+        toast.error('Erro de Integração', {
+          description: 'O Desenvolvedor precisa configurar a chave MP_CLIENT_ID no servidor para liberar o Login.',
+          duration: 10000,
+        });
+        // Clear the error from the URL without reloading
+        window.history.replaceState({}, document.title, window.location.pathname + '?tab=pagamentos');
+      }
+    }
   }, [settings]);
 
   function setField<K extends keyof PaymentFlags>(key: K, value: PaymentFlags[K]) {

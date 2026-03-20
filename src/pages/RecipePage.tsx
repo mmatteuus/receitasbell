@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams, Link } from "react-router-dom";
-import { Heart, Clock, ChevronRight, Printer, ChefHat, ShoppingCart, FileText } from "lucide-react";
+import { Heart, Clock, ChevronRight, Printer, ChefHat, ShoppingCart, FileText, BarChart, Flame, PlayCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -204,6 +204,13 @@ export default function RecipePage() {
             <FileText className="h-4 w-4" />
             PDF
           </Button>
+          {recipe.videoUrl && (
+            <Button asChild variant="outline" className="gap-2" title="Assistir Vídeo">
+               <a href={recipe.videoUrl} target="_blank" rel="noopener noreferrer">
+                 <PlayCircle className="h-4 w-4" /> Vídeo
+               </a>
+            </Button>
+          )}
           <Button variant="outline" size="icon" onClick={() => window.print()} title="Imprimir">
             <Printer className="h-4 w-4" />
           </Button>
@@ -232,6 +239,18 @@ export default function RecipePage() {
           <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm">
             <Clock className="h-4 w-4 text-primary" />
             <span className="font-medium">{recipe.totalTime} min</span>
+          </div>
+        )}
+        {recipe.difficulty && (
+          <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm">
+            <BarChart className="h-4 w-4 text-primary" />
+            <span className="font-medium">{recipe.difficulty}</span>
+          </div>
+        )}
+        {recipe.calories && (
+          <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm">
+            <Flame className="h-4 w-4 text-primary" />
+            <span className="font-medium">{recipe.calories} kcal</span>
           </div>
         )}
         {rating.count > 0 && (
