@@ -1,7 +1,8 @@
-import { getPrisma } from "../db/prisma.js";
+import { getPrisma, isDatabaseConfigured } from "../db/prisma.js";
 import { getMercadoPagoAppEnv } from "../env.js";
 import { ApiError } from "../http.js";
 import { createOpaqueState, hashOpaqueState, stateMatches } from "../security/state.js";
+import { getSettingsMap, saveSettings } from "../sheets/settingsRepo.js";
 import { upsertTenantMercadoPagoConnection } from "./connections.js";
 
 type OAuthTokenResponse = {
@@ -26,19 +27,32 @@ export async function createMercadoPagoOAuthStart(input: {
   returnTo?: string | null;
   mode?: "connect" | "login";
 }) {
-  const prisma = getPrisma();
   const { clientId, redirectUri } = getMercadoPagoAppEnv();
   const state = createOpaqueState();
 
-  await prisma.mercadoPagoOAuthState.create({
-    data: {
-      tenantId: input.tenantId ?? "system",
-      tenantUserId: input.tenantUserId ?? "system",
-      stateHash: hashOpaqueState(state),
-      expiresAt: new Date(Date.now() + 10 * 60 * 1000),
-      returnTo: sanitizeReturnTo(input.returnTo),
-    },
-  });
+  if (!isDatabaseConfigured()) {
+    // SINGLE TENANT FALLBACK (Google Sheets)
+    await saveSettings({
+      mp_oauth_state_json: JSON.stringify({
+        tenantId: input.tenantId ?? "system",
+        tenantUserId: input.tenantUserId ?? "system",
+        stateHash: hashOpaqueState(state),
+        expiresAt: Date.now() + 10 * 60 * 1000,
+        returnTo: sanitizeReturnTo(input.returnTo),
+      }),
+    });
+  } else {
+    const prisma = getPrisma();
+    await prisma.mercadoPagoOAuthState.create({
+      data: {
+        tenantId: input.tenantId ?? "system",
+        tenantUserId: input.tenantUserId ?? "system",
+        stateHash: hashOpaqueState(state),
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+        returnTo: sanitizeReturnTo(input.returnTo),
+      },
+    });
+  }
 
   const url = new URL("https://auth.mercadopago.com/authorization");
   url.searchParams.set("client_id", clientId);
@@ -57,11 +71,33 @@ export async function completeMercadoPagoOAuth(input: {
   code: string;
   state: string;
 }) {
-  const prisma = getPrisma();
   const hashed = hashOpaqueState(input.state);
-  const oauthState = await prisma.mercadoPagoOAuthState.findUnique({
-    where: { stateHash: hashed },
-  });
+  let oauthState: any = null;
+
+  if (!isDatabaseConfigured()) {
+    // SINGLE TENANT FALLBACK (Google Sheets)
+    const settings = await getSettingsMap();
+    if (settings.mp_oauth_state_json) {
+      try {
+        const parsed = JSON.parse(settings.mp_oauth_state_json);
+        if (parsed.stateHash === hashed) {
+          oauthState = {
+            ...parsed,
+            expiresAt: new Date(parsed.expiresAt),
+          };
+          // Limpar estado após uso
+          await saveSettings({ mp_oauth_state_json: "" });
+        }
+      } catch (e) {
+        console.error("Failed to parse mp_oauth_state_json", e);
+      }
+    }
+  } else {
+    const prisma = getPrisma();
+    oauthState = await prisma.mercadoPagoOAuthState.findUnique({
+      where: { stateHash: hashed },
+    });
+  }
 
   if (!oauthState || !stateMatches(oauthState.stateHash, input.state)) {
     throw new ApiError(400, "OAuth state inválido.");
@@ -95,10 +131,13 @@ export async function completeMercadoPagoOAuth(input: {
     });
   }
 
-  await prisma.mercadoPagoOAuthState.update({
-    where: { id: oauthState.id },
-    data: { consumedAt: new Date() },
-  });
+  if (isDatabaseConfigured()) {
+    const prisma = getPrisma();
+    await prisma.mercadoPagoOAuthState.update({
+      where: { id: oauthState.id },
+      data: { consumedAt: new Date() },
+    });
+  }
 
   const connection = await upsertTenantMercadoPagoConnection({
     tenantId: oauthState.tenantId,
@@ -107,7 +146,6 @@ export async function completeMercadoPagoOAuth(input: {
     accessToken: tokenData.access_token,
     refreshToken: tokenData.refresh_token || null,
     expiresIn: tokenData.expires_in ?? null,
-    scope: tokenData.scope ?? null,
     publicKey: tokenData.public_key ?? null,
   });
 

@@ -17,7 +17,8 @@ export function isDatabaseConfigured() {
 
 export function getPrisma() {
   if (!isDatabaseConfigured()) {
-    throw new Error("DATABASE_URL is required for multi-tenant Mercado Pago features.");
+    // Retorna null ou foca em lançar o erro apenas no uso
+    return null as unknown as PrismaClient;
   }
 
   if (!globalThis.__receitasBellPrisma__) {

@@ -1,7 +1,7 @@
 import type { TenantSession, TenantUser } from "@prisma/client";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
-import { getPrisma } from "../db/prisma.js";
+import { getPrisma, isDatabaseConfigured } from "../db/prisma.js";
 import { ApiError, appendSetCookie } from "../http.js";
 
 const TENANT_ADMIN_SESSION_COOKIE = "rb_tenant_admin_session";
@@ -99,8 +99,20 @@ export async function createTenantAdminSession(input: {
   tenantId: string;
   tenantUserId: string;
 }) {
-  const prisma = getPrisma();
   const expiresAt = new Date(Date.now() + SESSION_MAX_AGE_SECONDS * 1000);
+
+  if (!isDatabaseConfigured()) {
+    // SINGLE TENANT FALLBACK (Stateless JWT)
+    const token = signClaims({
+      sid: "stateless",
+      tid: input.tenantId,
+      uid: input.tenantUserId,
+      exp: expiresAt.getTime(),
+    });
+    return { token, sessionId: "stateless", expiresAt };
+  }
+
+  const prisma = getPrisma();
   const session = await prisma.tenantSession.create({
     data: {
       tenantId: input.tenantId,
@@ -154,7 +166,7 @@ export function clearTenantAdminSessionCookie(request: VercelRequest, response: 
 
 export async function revokeTenantAdminSession(request: VercelRequest) {
   const claims = getTenantAdminSessionClaims(request);
-  if (!claims) return;
+  if (!claims || !isDatabaseConfigured()) return;
 
   const prisma = getPrisma();
   await prisma.tenantSession.updateMany({
@@ -172,6 +184,16 @@ export async function revokeTenantAdminSession(request: VercelRequest) {
 export async function getTenantAdminSessionContext(request: VercelRequest) {
   const claims = getTenantAdminSessionClaims(request);
   if (!claims) return null;
+
+  if (!isDatabaseConfigured()) {
+    // SINGLE TENANT FALLBACK (Static context)
+    return {
+      claims,
+      session: { id: claims.sid, tenantId: claims.tid, tenantUserId: claims.uid } as any,
+      tenant: { id: claims.tid, slug: "admin", name: "Admin" } as any,
+      tenantUser: { id: claims.uid, email: "admin@receitasbell.com.br", role: "owner" } as any,
+    };
+  }
 
   const prisma = getPrisma();
   const session = await prisma.tenantSession.findFirst({

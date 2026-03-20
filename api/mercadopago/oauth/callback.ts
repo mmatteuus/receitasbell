@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { completeMercadoPagoOAuth } from "../../../src/server/mercadopago/oauth.js";
 import { ApiError, withApiHandler } from "../../../src/server/http.js";
-import { getPrisma } from "../../../src/server/db/prisma.js";
+import { getPrisma, isDatabaseConfigured } from "../../../src/server/db/prisma.js";
 import { createTenantBootstrap } from "../../../src/server/tenants/service.js";
 import { createTenantAdminSession, setTenantAdminSessionCookie } from "../../../src/server/auth/sessions.js";
 
@@ -31,6 +31,17 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
       // Se o tenant for "system", é um fluxo de login/onboarding
       if (result.tenantId === "system") {
+        if (!isDatabaseConfigured()) {
+          // SINGLE TENANT FALLBACK (No Prisma)
+          // Em modo sem banco, o usuário que autorizou é o único Admin
+          const { token, expiresAt } = await createTenantAdminSession({ 
+            tenantId: "system", 
+            tenantUserId: "admin" 
+          });
+          setTenantAdminSessionCookie(request, response, token, expiresAt);
+          return redirect(response, buildRedirectUrl(request, "/admin?connected=1"));
+        }
+
         const prisma = getPrisma();
         
         // Procurar se já existe um tenant para este Mercado Pago ID
