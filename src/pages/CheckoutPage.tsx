@@ -13,6 +13,7 @@ import { getRecipeBySlug } from '@/lib/repos/recipeRepo';
 import { paymentRepo } from '@/lib/repos/paymentRepo';
 import { resolveCheckoutResultPath } from '@/lib/services/mercadoPagoService';
 import { buildCartItemFromRecipe } from '@/lib/utils/recipeAccess';
+import { ApiClientError } from '@/lib/api/client';
 
 export default function CheckoutPage() {
   const [searchParams] = useSearchParams();
@@ -89,7 +90,11 @@ export default function CheckoutPage() {
       );
     } catch (error) {
       console.error('Failed to complete checkout', error);
-      toast.error('Nao foi possivel concluir a compra.');
+      toast.error(
+        error instanceof ApiClientError
+          ? error.message
+          : 'Nao foi possivel concluir a compra.',
+      );
     } finally {
       setLoading(false);
     }

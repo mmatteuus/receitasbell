@@ -1,4 +1,5 @@
 import type { AdminPaymentsFilters, CreatePaymentPreferenceResult, Payment, PaymentNote } from "@/lib/payments/types";
+import type { AdminPaymentSettingsResponse } from "@/types/payment";
 import type { RecipeRecord } from "@/lib/recipes/types";
 import type { Entitlement } from "@/types/entitlement";
 import { buildQuery, jsonFetch } from "./client";
@@ -52,6 +53,16 @@ export async function addPaymentNote(paymentId: string, note: string) {
     },
   );
   return result.note;
+}
+
+export async function getAdminPaymentSettings() {
+  const result = await jsonFetch<{ settings: AdminPaymentSettingsResponse }>(
+    "/api/admin/payments/settings",
+    {
+      admin: true,
+    },
+  );
+  return result.settings;
 }
 
 export async function createMercadoPagoPreference(input: {

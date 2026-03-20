@@ -5,7 +5,14 @@ import {
   DEFAULT_PAYMENT_SETTINGS,
   DEFAULT_SITE_SETTINGS,
 } from '../src/lib/defaults.js';
-import { getAdminApiSecret, getMercadoPagoEnv, getMercadoPagoAppEnv, hasMercadoPagoConfig } from '../src/server/env.js';
+import {
+  getAdminApiSecret,
+  getMercadoPagoEnv,
+  getMercadoPagoAppEnv,
+  hasMercadoPagoAppConfig,
+  hasMercadoPagoConfig,
+  hasMercadoPagoWebhookSecret,
+} from '../src/server/env.js';
 import { requireIdentityUser, resolveOptionalIdentityUser } from '../src/server/identity.js';
 import {
   ApiError,
@@ -134,14 +141,14 @@ async function loadPublicSettings() {
   try {
     const settings = mapTypedSettings(await getSettingsMap());
     cachedPublicSettings = settings;
-    return settings;
+    return sanitizeSettingsForClient(settings);
   } catch (error) {
     if (!isRecoverablePublicReadError(error)) {
       throw error;
     }
 
     console.warn('[api/settings] Falling back to cached/default settings after read failure.', error);
-    return { ...cachedPublicSettings };
+    return sanitizeSettingsForClient(cachedPublicSettings);
   }
 }
 
@@ -158,6 +165,16 @@ async function loadPublicCategories() {
     console.warn('[api/categories] Falling back to cached/default categories after read failure.', error);
     return sortCategories(cachedPublicCategories);
   }
+}
+
+function sanitizeSettingsForClient(settings: SettingsMap): SettingsMap {
+  return {
+    ...settings,
+    mp_access_token: '',
+    mp_refresh_token: '',
+    mp_public_key: '',
+    mp_user_id: '',
+  };
 }
 
 function getApiPathSegments(request: VercelRequest) {
@@ -312,6 +329,10 @@ async function createCheckoutResponse(
       throw new ApiError(409, 'Ative o tópico payment antes de habilitar o checkout real.');
     }
 
+    if (!hasMercadoPagoWebhookSecret()) {
+      throw new ApiError(501, 'Configure MP_WEBHOOK_SECRET na Vercel para habilitar pagamentos reais.');
+    }
+
     return createMercadoPagoCheckout({
       ...checkoutInput,
       baseUrl: getAppBaseUrl(request),
@@ -332,6 +353,10 @@ async function processMercadoPagoWebhook(request: VercelRequest) {
 
   if (!settings.webhooks_enabled) {
     throw new ApiError(503, 'Mercado Pago webhook processing is disabled');
+  }
+
+  if (!hasMercadoPagoWebhookSecret()) {
+    throw new ApiError(501, 'MP_WEBHOOK_SECRET is not configured');
   }
 
   const payload = await readJsonBody<Record<string, unknown>>(request);
@@ -760,13 +785,18 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
     if (resource === 'mercadopago' && resourceId === 'login') {
       try {
+        if (!hasMercadoPagoAppConfig()) {
+          response.redirect('/admin/pagamentos/configuracoes?error=mp_not_configured');
+          return;
+        }
+
         const { clientId } = getMercadoPagoAppEnv();
         const redirectUri = getAppBaseUrl(request) + '/api/mercadopago/oauth';
         const authUrl = `https://auth.mercadopago.com/authorization?client_id=${clientId}&response_type=code&platform_id=mp&redirect_uri=${redirectUri}`;
         response.redirect(authUrl);
       } catch (error) {
         console.error('Mercado Pago App Env Error:', error);
-        response.redirect('/admin/configuracoes?tab=pagamentos&error=mp_not_configured');
+        response.redirect('/admin/pagamentos/configuracoes?error=mp_not_configured');
       }
       return;
     }
@@ -781,7 +811,8 @@ export default async function handler(request: VercelRequest, response: VercelRe
       assertMethod(request, ['GET']);
       const { code } = request.query;
       if (!code || typeof code !== 'string') {
-        throw new ApiError(400, 'Missing or invalid authorization code');
+        response.redirect('/admin/pagamentos/configuracoes?error=mp_missing_code');
+        return;
       }
 
       const { clientId, clientSecret } = getMercadoPagoAppEnv();
@@ -803,7 +834,8 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
       if (!tokenResponse.ok) {
         console.error('MP OAuth error', await tokenResponse.text());
-        throw new ApiError(400, 'Failed to authenticate with Mercado Pago');
+        response.redirect('/admin/pagamentos/configuracoes?error=mp_oauth_failed');
+        return;
       }
 
       const tokenData = await tokenResponse.json() as Record<string, unknown>;
@@ -815,7 +847,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
         mp_user_id: String(tokenData.user_id || ''),
       });
 
-      response.redirect('/admin/configuracoes?tab=pagamentos');
+      response.redirect('/admin/pagamentos/configuracoes?connected=1');
       return;
     }
 

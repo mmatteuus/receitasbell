@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { getMercadoPagoEnv, hasMercadoPagoConfig } from "../../../src/server/env.js";
+import { getMercadoPagoEnv, hasMercadoPagoConfig, hasMercadoPagoWebhookSecret } from "../../../src/server/env.js";
 import { syncMercadoPagoPayment } from "../../../src/server/sheets/paymentsRepo.js";
 import { getSettingsMap, mapTypedSettings } from "../../../src/server/sheets/settingsRepo.js";
 import { assertMercadoPagoWebhookSignature } from "../../../src/server/payments/mercadoPago.js";
@@ -75,6 +75,10 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
     if (!settings.webhooks_enabled) {
       throw new ApiError(503, "Mercado Pago webhook processing is disabled");
+    }
+
+    if (!hasMercadoPagoWebhookSecret()) {
+      throw new ApiError(501, "MP_WEBHOOK_SECRET is not configured");
     }
 
     const payload = await readJsonBody<Record<string, unknown>>(request);

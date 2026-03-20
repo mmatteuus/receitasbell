@@ -47,6 +47,18 @@ export interface CreatePaymentPreferenceResult {
   gateway: PaymentGateway;
 }
 
+export interface AdminPaymentSettingsResponse {
+  payment_mode: "sandbox" | "production";
+  webhooks_enabled: boolean;
+  payment_topic_enabled: boolean;
+  accessTokenConfigured: boolean;
+  oauthConfigured: boolean;
+  webhookSecretConfigured: boolean;
+  userId: string | null;
+  publicKey: string | null;
+  webhookUrl: string;
+}
+
 export interface Payment {
   id: string;
   paymentIdGateway: string;

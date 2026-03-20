@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { hasMercadoPagoConfig } from "../../../src/server/env.js";
+import { hasMercadoPagoConfig, hasMercadoPagoWebhookSecret } from "../../../src/server/env.js";
 import { findOrCreateUserByEmail } from "../../../src/server/sheets/usersRepo.js";
 import { createMercadoPagoCheckout, createMockCheckout } from "../../../src/server/sheets/paymentsRepo.js";
 import { getSettingsMap, mapTypedSettings } from "../../../src/server/sheets/settingsRepo.js";
@@ -43,6 +43,10 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
             if (!settings.payment_topic_enabled) {
               throw new ApiError(409, "Ative o topico payment antes de habilitar o checkout real.");
+            }
+
+            if (!hasMercadoPagoWebhookSecret()) {
+              throw new ApiError(501, "Configure MP_WEBHOOK_SECRET na Vercel para habilitar pagamentos reais.");
             }
 
             return createMercadoPagoCheckout({

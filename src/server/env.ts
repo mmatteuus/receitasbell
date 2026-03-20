@@ -40,6 +40,17 @@ export function getMercadoPagoAppEnv() {
   };
 }
 
+export function hasMercadoPagoAppConfig() {
+  return Boolean(
+    process.env.MP_CLIENT_ID?.trim() &&
+    process.env.MP_CLIENT_SECRET?.trim(),
+  );
+}
+
+export function hasMercadoPagoWebhookSecret() {
+  return Boolean(process.env.MP_WEBHOOK_SECRET?.trim());
+}
+
 export async function getMercadoPagoEnv() {
   const settings = mapTypedSettings(await getSettingsMap());
   // Fallback to process.env if set (for backward compatibility or testing)
