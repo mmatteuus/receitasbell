@@ -334,6 +334,25 @@ export default function AdminLoginPage() {
                 {loading ? "Entrando..." : "Entrar no admin"}
               </Button>
 
+              <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">Ou continue com</span>
+                </div>
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full border-[#009EE3] text-[#009EE3] hover:bg-[#009EE3] hover:text-white transition-colors gap-2"
+                onClick={() => (window.location.href = "/api/admin/auth/mp-login")}
+              >
+                <img src="https://http2.mlstatic.com/frontend-assets/ml-web-navigation/ui-navigation/5.21.22/mercadopago/logo__small.png" alt="MP" className="h-4" />
+                Entrar com Mercado Pago
+              </Button>
+
               <Button type="button" variant="ghost" className="w-full" asChild>
                 <Link to={buildTenantPath("/", tenantSlugFromPath)}>Voltar para o site</Link>
               </Button>

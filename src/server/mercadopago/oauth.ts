@@ -32,12 +32,11 @@ export async function createMercadoPagoOAuthStart(input: {
 
   await prisma.mercadoPagoOAuthState.create({
     data: {
-      tenantId: input.tenantId ?? "pending", // "pending" se for via login
-      tenantUserId: input.tenantUserId ?? "pending",
+      tenantId: input.tenantId ?? "system",
+      tenantUserId: input.tenantUserId ?? "system",
       stateHash: hashOpaqueState(state),
       expiresAt: new Date(Date.now() + 10 * 60 * 1000),
       returnTo: sanitizeReturnTo(input.returnTo),
-      // Adicionaremos metadados para saber que é modo login se necessário
     },
   });
 
