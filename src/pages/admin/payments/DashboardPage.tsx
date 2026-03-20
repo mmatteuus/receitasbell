@@ -17,7 +17,7 @@ import { MethodsChart } from "./charts/MethodsChart";
 import { MonthlyChart } from "./charts/MonthlyChart";
 import type { MethodChartClickData, StatusChartClickData } from "./charts/MethodsChart";
 import { buildTenantAdminPath, extractTenantSlugFromPath } from "@/lib/tenant";
-import { FinancialDashboard } from "./FinancialDashboard";
+import FinancialDashboard from "./FinancialDashboard";
 
 export default function DashboardPage() {
   const navigate = useNavigate();
