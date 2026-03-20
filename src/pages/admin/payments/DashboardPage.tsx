@@ -17,6 +17,7 @@ import { MethodsChart } from "./charts/MethodsChart";
 import { MonthlyChart } from "./charts/MonthlyChart";
 import type { MethodChartClickData, StatusChartClickData } from "./charts/MethodsChart";
 import { buildTenantAdminPath, extractTenantSlugFromPath } from "@/lib/tenant";
+import { FinancialDashboard } from "./FinancialDashboard";
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -197,6 +198,7 @@ export default function DashboardPage() {
           <TabsTrigger value="success">Taxa de Sucesso</TabsTrigger>
           <TabsTrigger value="methods">Por Método</TabsTrigger>
           <TabsTrigger value="monthly">Mês a Mês</TabsTrigger>
+          <TabsTrigger value="mercadopago" className="text-[#009EE3] font-semibold">Resumo MP</TabsTrigger>
         </TabsList>
 
         <TabsContent value="trends" className="animate-fade-in">
@@ -218,6 +220,10 @@ export default function DashboardPage() {
 
         <TabsContent value="monthly" className="animate-fade-in">
           <MonthlyChart data={monthlyComparison} />
+        </TabsContent>
+
+        <TabsContent value="mercadopago" className="animate-fade-in">
+          <FinancialDashboard />
         </TabsContent>
       </Tabs>
     </div>
