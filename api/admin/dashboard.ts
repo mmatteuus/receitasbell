@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { getTenantFinancialStats } from "../../../src/server/admin/stats.js";
-import { requireTenantAdminAccess } from "../../../src/server/admin/tenantAccess.js";
-import { sendError, withApiHandler } from "../../../src/server/http.js";
+import { getTenantFinancialStats } from "../../src/server/admin/stats.js";
+import { requireTenantAdminAccess } from "../../src/server/admin/tenantAccess.js";
+import { sendError, withApiHandler } from "../../src/server/http.js";
 
 /**
  * GET /api/admin/dashboard
@@ -10,11 +10,12 @@ import { sendError, withApiHandler } from "../../../src/server/http.js";
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   return withApiHandler(req, res, async () => {
     if (req.method !== "GET") {
-      return res.status(405).json({ error: "Method not allowed" });
+      res.status(405).json({ error: "Method not allowed" });
+      return;
     }
 
     const context = await requireTenantAdminAccess(req);
     const stats = await getTenantFinancialStats(context.tenant.id);
-    return res.json(stats);
+    res.json(stats);
   });
 }

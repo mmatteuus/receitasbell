@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { assertMethod, readJsonBody, sendJson, withApiHandler } from "../../../src/server/http.js";
+import { assertMethod, readJsonBody, sendJson, withApiHandler, sendError } from "../../../src/server/http.js";
 import { bootstrapTenantAdmin, loginAdmin, logoutAdmin, readAdminSession } from "../../../src/server/admin/auth.js";
+import { startMercadoPagoLoginFlow } from "../../../src/server/admin/auth/mp-login.js";
 
 function getPathSegments(request: VercelRequest) {
   const url = new URL(request.url || "/", `http://${request.headers.host || "localhost"}`);
@@ -19,17 +20,20 @@ export default async function handler(request: VercelRequest, response: VercelRe
       assertMethod(request, ["GET", "POST", "DELETE"]);
 
       if (request.method === "GET") {
-        return sendJson(response, 200, await readAdminSession(request));
+        sendJson(response, 200, await readAdminSession(request));
+        return;
       }
 
       if (request.method === "POST") {
         const body = await readJsonBody<{ email?: string; password?: string }>(request);
         const session = await loginAdmin(request, response, body);
-        return sendJson(response, 200, session);
+        sendJson(response, 200, session);
+        return;
       }
 
       const session = await logoutAdmin(request, response);
-      return sendJson(response, 200, session);
+      sendJson(response, 200, session);
+      return;
     }
 
     // POST /api/admin/auth/login (alias)
@@ -37,14 +41,16 @@ export default async function handler(request: VercelRequest, response: VercelRe
       assertMethod(request, ["POST"]);
       const body = await readJsonBody<{ email?: string; password?: string }>(request);
       const session = await loginAdmin(request, response, body);
-      return sendJson(response, 200, session);
+      sendJson(response, 200, session);
+      return;
     }
 
     // POST /api/admin/auth/logout (alias)
     if (action === "logout") {
       assertMethod(request, ["POST", "DELETE"]);
       const session = await logoutAdmin(request, response);
-      return sendJson(response, 200, session);
+      sendJson(response, 200, session);
+      return;
     }
 
     // POST /api/admin/auth/bootstrap
@@ -58,7 +64,20 @@ export default async function handler(request: VercelRequest, response: VercelRe
         host?: string | null;
       }>(request);
       const session = await bootstrapTenantAdmin(request, response, body);
-      return sendJson(response, 201, session);
+      sendJson(response, 201, session);
+      return;
+    }
+
+    // GET /api/admin/auth/mp-login
+    if (action === "mp-login") {
+      assertMethod(request, ["GET"]);
+      try {
+        const returnTo = request.query.returnTo as string | undefined;
+        const { authorizationUrl } = await startMercadoPagoLoginFlow({ returnTo });
+        response.redirect(authorizationUrl);
+      } catch (error) {
+        sendError(response, error);
+      }
     }
 
     return sendJson(response, 404, { error: "Not found" });

@@ -1,13 +1,13 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { requireTenantAdminAccess } from "../../../../src/server/admin/tenantAccess.js";
-import { getTenantAdminPaymentSettings } from "../../../../src/server/admin/payments.js";
+import { requireTenantAdminAccess } from "../../../src/server/admin/tenantAccess.js";
+import { getTenantAdminPaymentSettings } from "../../../src/server/admin/payments.js";
 import {
   addTenantPaymentNote,
   getTenantPaymentById,
   listTenantPayments,
-} from "../../../../src/server/mercadopago/payments.js";
-import { assertMethod, readJsonBody, sendJson, withApiHandler } from "../../../../src/server/http.js";
-import { noteSchema } from "../../../../src/server/validators.js";
+} from "../../../src/server/mercadopago/payments.js";
+import { assertMethod, readJsonBody, sendJson, withApiHandler } from "../../../src/server/http.js";
+import { noteSchema } from "../../../src/server/validators.js";
 
 function getPathSegments(request: VercelRequest) {
   const url = new URL(request.url || "/", `http://${request.headers.host || "localhost"}`);
