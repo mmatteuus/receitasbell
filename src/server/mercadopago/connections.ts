@@ -1,4 +1,4 @@
-import type { MercadoPagoConnection } from "@prisma/client";
+import { Prisma, type MercadoPagoConnection } from "@prisma/client";
 import { getPrisma } from "../db/prisma.js";
 import { decryptSecret, encryptSecret } from "../security/crypto.js";
 import { redactErrorMessage } from "../security/masking.js";
@@ -34,7 +34,7 @@ async function writeAuditLog(input: {
       action: input.action,
       entityType: input.entityType,
       entityId: input.entityId ?? null,
-      metadataJson: input.metadata ?? null,
+      metadataJson: (input.metadata ?? Prisma.JsonNull) as Prisma.InputJsonValue,
     },
   });
 }

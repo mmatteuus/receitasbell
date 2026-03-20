@@ -277,7 +277,7 @@ async function createPaymentEvent(input: {
         action: input.action ?? null,
         dedupeKey: input.dedupeKey,
         signatureValid: input.signatureValid ?? false,
-        payloadJson: input.payloadJson ?? null,
+        payloadJson: (input.payloadJson ?? Prisma.JsonNull) as Prisma.InputJsonValue,
         processedAt: input.processedAt ?? null,
       },
     });
@@ -437,8 +437,8 @@ export async function createTenantMockCheckout(input: {
       statusDetail: "accredited",
       paymentMethod: "pix",
       paymentType: "account_money",
-      recipeIdsJson: recipes.map((recipe) => recipe.id),
-      itemSnapshotsJson: items,
+      recipeIdsJson: recipes.map((recipe) => recipe.id) as Prisma.InputJsonValue,
+      itemSnapshotsJson: items as unknown as Prisma.InputJsonValue,
       approvedAt: new Date(),
     },
   });
@@ -536,8 +536,8 @@ export async function createTenantMercadoPagoCheckout(input: {
       statusDetail: "waiting_checkout",
       paymentMethod: "pending",
       paymentType: "pending",
-      recipeIdsJson: recipes.map((recipe) => recipe.id),
-      itemSnapshotsJson: items,
+      recipeIdsJson: recipes.map((recipe) => recipe.id) as Prisma.InputJsonValue,
+      itemSnapshotsJson: items as unknown as Prisma.InputJsonValue,
     },
   });
 
@@ -628,7 +628,7 @@ export async function createTenantMercadoPagoCheckout(input: {
         rawLastPayloadJson: {
           preference: body,
           request: payload,
-        },
+        } as Prisma.InputJsonValue,
       },
     });
 
@@ -729,7 +729,7 @@ export async function syncTenantMercadoPagoPayment(input: {
       statusDetail,
       paymentMethod: normalizePaymentMethodId(asText(input.mercadoPagoPayment.payment_method_id)),
       paymentType: normalizePaymentTypeId(asText(input.mercadoPagoPayment.payment_type_id)),
-      rawLastPayloadJson: input.mercadoPagoPayment,
+      rawLastPayloadJson: input.mercadoPagoPayment as Prisma.InputJsonValue,
       approvedAt:
         status === "approved"
           ? new Date(asText(input.mercadoPagoPayment.date_approved) || new Date().toISOString())
@@ -755,7 +755,15 @@ export async function syncTenantMercadoPagoPayment(input: {
   if (input.recordEvent === false && input.eventId) {
     await prisma.paymentEvent.update({
       where: { id: input.eventId },
-      data: eventData,
+      data: {
+        paymentId: eventData.paymentId,
+        resourceId: eventData.resourceId,
+        topic: eventData.topic,
+        action: eventData.action,
+        payloadJson: eventPayload as Prisma.InputJsonValue,
+        processedAt: eventData.processedAt,
+        signatureValid: eventData.signatureValid,
+      },
     });
   } else {
     await createPaymentEvent({
@@ -766,7 +774,7 @@ export async function syncTenantMercadoPagoPayment(input: {
       action: eventData.action,
       dedupeKey: input.dedupeKey,
       signatureValid: input.signatureValid,
-      payloadJson: eventPayload,
+      payloadJson: eventPayload as Prisma.InputJsonValue,
       processedAt: eventData.processedAt,
     });
   }
