@@ -14,6 +14,9 @@ import {
   hasMercadoPagoWebhookSecret,
 } from '../src/server/env.js';
 import { requireIdentityUser, resolveOptionalIdentityUser } from '../src/server/identity.js';
+import { isDatabaseConfigured } from '../src/server/db/prisma.js';
+import { resolveTenantFromRequest } from '../src/server/tenants/resolver.js';
+import { createTenantMercadoPagoCheckout } from '../src/server/mercadopago/payments.js';
 import {
   ApiError,
   assertMethod,
@@ -314,6 +317,23 @@ async function createCheckoutResponse(
     userId: user.id,
     checkoutReference: body.checkoutReference,
   };
+
+  if (isDatabaseConfigured()) {
+    const resolved = await resolveTenantFromRequest(request);
+    if (resolved?.tenant) {
+      return createTenantMercadoPagoCheckout({
+        tenantId: resolved.tenant.id,
+        recipeIds: body.recipeIds,
+        items: body.items?.map(item => ({ ...item, imageUrl: item.imageUrl ?? "" })),
+        payerName: body.payerName,
+        buyerEmail,
+        checkoutReference: body.checkoutReference,
+        baseUrl: getAppBaseUrl(request),
+        publicBasePath: resolved.publicBasePath,
+        enableNotifications: settings.webhooks_enabled && settings.payment_topic_enabled,
+      });
+    }
+  }
 
   if (settings.payment_mode === 'production') {
     const hasConfig = await hasMercadoPagoConfig();
