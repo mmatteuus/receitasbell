@@ -447,6 +447,25 @@ export default async function handler(request: VercelRequest, response: VercelRe
         return sendJson(response, 200, { payments });
       }
 
+      if (request.method === 'GET' && action === 'settings' && !subaction) {
+        const settings = mapTypedSettings(await getSettingsMap());
+        const webhookUrl = `${getAppBaseUrl(request).replace(/\/+$/, '')}/api/payments/mercadopago/webhook`;
+
+        return sendJson(response, 200, {
+          settings: {
+            payment_mode: settings.payment_mode,
+            webhooks_enabled: settings.webhooks_enabled,
+            payment_topic_enabled: settings.payment_topic_enabled,
+            accessTokenConfigured: await hasMercadoPagoConfig(),
+            oauthConfigured: hasMercadoPagoAppConfig(),
+            webhookSecretConfigured: hasMercadoPagoWebhookSecret(),
+            userId: settings.mp_user_id || null,
+            publicKey: settings.mp_public_key || null,
+            webhookUrl,
+          },
+        });
+      }
+
       if (request.method === 'GET' && action && !subaction) {
         const details = await getPaymentById(action);
         if (!details) {
