@@ -21,9 +21,10 @@ function sanitizeReturnTo(value: string | undefined | null) {
 }
 
 export async function createMercadoPagoOAuthStart(input: {
-  tenantId: string;
-  tenantUserId: string;
+  tenantId?: string | null;
+  tenantUserId?: string | null;
   returnTo?: string | null;
+  mode?: "connect" | "login";
 }) {
   const prisma = getPrisma();
   const { clientId, redirectUri } = getMercadoPagoAppEnv();
@@ -31,11 +32,12 @@ export async function createMercadoPagoOAuthStart(input: {
 
   await prisma.mercadoPagoOAuthState.create({
     data: {
-      tenantId: input.tenantId,
-      tenantUserId: input.tenantUserId,
+      tenantId: input.tenantId ?? "pending", // "pending" se for via login
+      tenantUserId: input.tenantUserId ?? "pending",
       stateHash: hashOpaqueState(state),
       expiresAt: new Date(Date.now() + 10 * 60 * 1000),
       returnTo: sanitizeReturnTo(input.returnTo),
+      // Adicionaremos metadados para saber que é modo login se necessário
     },
   });
 
