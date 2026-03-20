@@ -6,7 +6,7 @@ import { exportPaymentsCSV, exportPaymentsPDF } from "@/lib/payments/export";
 import { Button } from "@/components/ui/button";
 import { DateRange } from "react-day-picker";
 import { DatePickerWithRange } from "@/components/ui/date-picker-with-range";
-import { Download, FileText } from "lucide-react";
+import { Download, FileText, Settings } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { formatBRL, COLORS, METHOD_LABELS, STATUS_LABELS, STATUS_LABELS_REVERSE } from "./constants";
@@ -171,7 +171,15 @@ export default function DashboardPage() {
           <Button variant="outline" size="sm" onClick={() => setQuickRange(7)}>7d</Button>
           <Button variant="outline" size="sm" onClick={() => setQuickRange(30)}>30d</Button>
           <Button variant="outline" size="sm" onClick={() => setQuickRange(90)}>90d</Button>
-          <div className="h-6 w-px bg-border" />
+          <div className="h-6 w-px bg-border mx-1" />
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => navigate(buildTenantAdminPath("pagamentos/configuracoes", tenantSlug))}
+            className="gap-1.5"
+          >
+            <Settings className="h-4 w-4" /> Configurações
+          </Button>
           <Button variant="outline" size="sm" onClick={() => exportPaymentsCSV(payments, "analytics")} className="gap-1.5">
             <Download className="h-4 w-4" /> CSV
           </Button>
