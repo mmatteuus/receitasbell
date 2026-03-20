@@ -174,6 +174,9 @@ function sanitizeSettingsForClient(settings: SettingsMap): SettingsMap {
     mp_refresh_token: '',
     mp_public_key: '',
     mp_user_id: '',
+    mp_client_id: '',
+    mp_client_secret: '',
+    mp_webhook_secret: '',
   };
 }
 
