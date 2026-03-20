@@ -46,7 +46,7 @@ function extractMercadoPagoPaymentId(request: VercelRequest, payload: Record<str
 }
 
 async function fetchMercadoPagoPayment(paymentId: string) {
-  const { accessToken } = getMercadoPagoEnv();
+  const { accessToken } = await getMercadoPagoEnv();
   const response = await fetch(
     `https://api.mercadopago.com/v1/payments/${encodeURIComponent(paymentId)}`,
     {
@@ -69,7 +69,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
     assertMethod(request, ["POST"]);
 
     const settings = mapTypedSettings(await getSettingsMap());
-    if (!hasMercadoPagoConfig()) {
+    if (!(await hasMercadoPagoConfig())) {
       throw new ApiError(501, "Mercado Pago webhook is not enabled in this environment");
     }
 

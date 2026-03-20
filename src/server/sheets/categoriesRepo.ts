@@ -20,6 +20,7 @@ function buildCategoryRow(category: Category) {
     id: category.id,
     slug: category.slug,
     name: category.name,
+    emoji: "",
     description: category.description,
     created_at: category.createdAt,
     updated_at: category.createdAt,

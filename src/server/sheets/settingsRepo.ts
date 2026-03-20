@@ -140,6 +140,8 @@ export function mapTypedSettings(raw: Record<string, string>): SettingsMap {
     aboutHeadline: raw.aboutHeadline || DEFAULT_HOME_SETTINGS.aboutHeadline,
     aboutText: raw.aboutText || DEFAULT_HOME_SETTINGS.aboutText,
     aboutImageUrl: raw.aboutImageUrl || DEFAULT_HOME_SETTINGS.aboutImageUrl,
+    heroImageCaption: raw.heroImageCaption || DEFAULT_HOME_SETTINGS.heroImageCaption,
+    heroImageSubtitle: raw.heroImageSubtitle || DEFAULT_HOME_SETTINGS.heroImageSubtitle,
     homeSectionsOrder: homeSectionsOrder.length
       ? homeSectionsOrder
       : DEFAULT_HOME_SETTINGS.homeSectionsOrder,

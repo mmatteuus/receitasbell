@@ -10,6 +10,40 @@ export const OFFICIAL_MVP_SPREADSHEET_ID = "16Bl040rdAjh1NKy4olidNk99F5vrsXIeyn3
 let authPromise: Promise<InstanceType<typeof google.auth.JWT>> | null = null;
 let sheetsPromise: Promise<sheets_v4.Sheets> | null = null;
 let drivePromise: Promise<drive_v3.Drive> | null = null;
+const knownSheets = new Set<string>();
+
+function getSheetCacheKey(spreadsheetId: string, sheetName: string) {
+  return `${spreadsheetId}:${sheetName}`;
+}
+
+function shouldRetryGoogleError(error: unknown) {
+  const status = typeof error === "object" && error && "code" in error ? Number((error as { code?: unknown }).code) : NaN;
+  if ([408, 429, 500, 502, 503, 504].includes(status)) {
+    return true;
+  }
+
+  const message = error instanceof Error ? error.message : String(error ?? "");
+  return /timeout|timed out|ECONNRESET|EAI_AGAIN|ENOTFOUND|socket hang up/i.test(message);
+}
+
+async function withGoogleRetry<T>(operation: () => Promise<T>, attempts = 3): Promise<T> {
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      if (attempt >= attempts || !shouldRetryGoogleError(error)) {
+        throw error;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, attempt * 250));
+    }
+  }
+
+  throw lastError;
+}
 
 async function createAuth() {
   const { projectId, clientEmail, privateKey } = getGoogleEnv();
@@ -59,35 +93,46 @@ function getSheetNameFromRange(range: string) {
 }
 
 async function ensureSheetExists(sheetName: string) {
-  const sheets = await getSheetsClient();
   const spreadsheetId = getSpreadsheetId();
-  const metadata = await sheets.spreadsheets.get({
-    spreadsheetId,
-    fields: "sheets.properties.title",
-  });
+  const cacheKey = getSheetCacheKey(spreadsheetId, sheetName);
+  if (knownSheets.has(cacheKey)) {
+    return;
+  }
+
+  const sheets = await getSheetsClient();
+  const metadata = await withGoogleRetry(() =>
+    sheets.spreadsheets.get({
+      spreadsheetId,
+      fields: "sheets.properties.title",
+    }),
+  );
 
   const exists = metadata.data.sheets?.some(
     (sheet) => sheet.properties?.title?.trim() === sheetName,
   );
 
   if (exists) {
+    knownSheets.add(cacheKey);
     return;
   }
 
-  await sheets.spreadsheets.batchUpdate({
-    spreadsheetId,
-    requestBody: {
-      requests: [
-        {
-          addSheet: {
-            properties: {
-              title: sheetName,
+  await withGoogleRetry(() =>
+    sheets.spreadsheets.batchUpdate({
+      spreadsheetId,
+      requestBody: {
+        requests: [
+          {
+            addSheet: {
+              properties: {
+                title: sheetName,
+              },
             },
           },
-        },
-      ],
-    },
-  });
+        ],
+      },
+    }),
+  );
+  knownSheets.add(cacheKey);
 }
 
 export async function getDriveClient() {
@@ -111,7 +156,9 @@ export async function readSheetValues(range: string) {
 
   const sheets = await getSheetsClient();
   const spreadsheetId = getSpreadsheetId();
-  const response = await sheets.spreadsheets.values.get({ spreadsheetId, range });
+  const response = await withGoogleRetry(() =>
+    sheets.spreadsheets.values.get({ spreadsheetId, range }),
+  );
   return response.data.values ?? [];
 }
 
@@ -124,12 +171,14 @@ export async function updateSheetValues(range: string, values: string[][]) {
   const sheets = await getSheetsClient();
   const spreadsheetId = getSpreadsheetId();
 
-  await sheets.spreadsheets.values.update({
-    spreadsheetId,
-    range,
-    valueInputOption: "RAW",
-    requestBody: { values },
-  });
+  await withGoogleRetry(() =>
+    sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range,
+      valueInputOption: "RAW",
+      requestBody: { values },
+    }),
+  );
 }
 
 type SheetRow = Record<string, string>;
@@ -169,15 +218,17 @@ export async function appendRow(sheetName: string, row: SheetRow) {
 
   const sheets = await getSheetsClient();
   const spreadsheetId = getSpreadsheetId();
-  await sheets.spreadsheets.values.append({
-    spreadsheetId,
-    range: `${sheetName}!A:ZZ`,
-    valueInputOption: "RAW",
-    insertDataOption: "INSERT_ROWS",
-    requestBody: {
-      values: [headers.map((header) => String(row[header] ?? ""))],
-    },
-  });
+  await withGoogleRetry(() =>
+    sheets.spreadsheets.values.append({
+      spreadsheetId,
+      range: `${sheetName}!A:ZZ`,
+      valueInputOption: "RAW",
+      insertDataOption: "INSERT_ROWS",
+      requestBody: {
+        values: [headers.map((header) => String(row[header] ?? ""))],
+      },
+    }),
+  );
 
   return row;
 }

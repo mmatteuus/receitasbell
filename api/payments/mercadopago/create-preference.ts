@@ -33,7 +33,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
     const result =
       settings.payment_mode === "production"
         ? await (async () => {
-            if (!hasMercadoPagoConfig()) {
+            if (!(await hasMercadoPagoConfig())) {
               throw new ApiError(501, "Mercado Pago is not configured for production checkout");
             }
 
