@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { PlusCircle, Eye, Pencil, Copy, Trash2, Globe, FileText } from 'lucide-react';
+import { PlusCircle, Eye, Pencil, Copy, Trash2, Globe, FileText, Clock, BarChart, Layers, Users } from 'lucide-react';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -114,42 +114,77 @@ export default function RecipeListPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Título</TableHead>
+                  <TableHead className="w-[80px]">Imagem</TableHead>
+                  <TableHead>Receita</TableHead>
                   <TableHead className="hidden md:table-cell">Categoria</TableHead>
                   <TableHead>Acesso</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="hidden lg:table-cell">Atualizado</TableHead>
+                  <TableHead className="hidden lg:table-cell">Info</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {recipes.map((recipe) => {
                   const category = categories.find((item) => item.slug === recipe.categorySlug);
+                  const presentation = getRecipePresentation(recipe);
+                  const imageUrl = getRecipeImage(recipe);
+                  
                   return (
-                    <TableRow key={recipe.id}>
+                    <TableRow key={recipe.id} className="group hover:bg-muted/50 transition-colors">
                       <TableCell>
-                        <p className="font-medium">{getRecipePresentation(recipe).cardTitle}</p>
-                        <p className="text-xs text-muted-foreground">/{recipe.slug}</p>
+                        <div className="h-12 w-12 overflow-hidden rounded-lg bg-muted shadow-sm ring-1 ring-border">
+                          {imageUrl ? (
+                            <img src={imageUrl} alt="" className="h-full w-full object-cover transition-transform group-hover:scale-110" />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                              <FileText className="h-5 w-5 opacity-40" />
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="font-semibold text-sm sm:text-base leading-tight">{presentation.cardTitle}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">/{recipe.slug}</p>
+                        </div>
                       </TableCell>
                       <TableCell className="hidden md:table-cell">
-                        {category ? <span>{category.name}</span> : '-'}
+                        {category ? (
+                          <Badge variant="outline" className="font-normal border-primary/20 bg-primary/5 text-primary">
+                            {category.name}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">-</span>
+                        )}
                       </TableCell>
                       <TableCell>
-                        <PriceBadge accessTier={recipe.accessTier} priceBRL={recipe.priceBRL} />
+                        <PriceBadge accessTier={recipe.accessTier} priceBRL={recipe.priceBRL} className="scale-90 origin-left" />
                       </TableCell>
                       <TableCell>
-                        <Badge variant={recipe.status === 'published' ? 'default' : 'secondary'}>
+                        <Badge 
+                          variant={recipe.status === 'published' ? 'default' : 'secondary'}
+                          className={recipe.status === 'published' ? 'bg-green-600 hover:bg-green-700' : 'bg-orange-100 text-orange-800 hover:bg-orange-200 border-orange-200'}
+                        >
                           {recipe.status === 'published' ? 'Publicada' : 'Rascunho'}
                         </Badge>
                       </TableCell>
-                      <TableCell className="hidden text-sm text-muted-foreground lg:table-cell">
-                        {new Date(recipe.updatedAt).toLocaleDateString('pt-BR')}
+                      <TableCell className="hidden lg:table-cell">
+                        <div className="flex flex-col gap-1 text-[11px] text-muted-foreground">
+                          <div className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" /> {recipe.totalTime || recipe.prepTime + recipe.cookTime} min
+                          </div>
+                          {recipe.difficulty && (
+                            <div className="flex items-center gap-1 capitalize">
+                              <BarChart className="h-3 w-3" /> {recipe.difficulty}
+                            </div>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex justify-end gap-1">
+                        <div className="flex justify-end gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
                           <Link to={buildTenantAdminPath(`receitas/${recipe.id}/editar`, tenantSlug)}>
-                            <Button variant="ghost" size="icon" title="Editar">
-                              <Pencil className="h-4 w-4" />
+                            <Button variant="ghost" size="icon" className="h-8 w-8" title="Editar">
+                              <Pencil className="h-4 w-4 text-primary" />
                             </Button>
                           </Link>
                           <a
@@ -157,25 +192,27 @@ export default function RecipeListPage() {
                             target="_blank"
                             rel="noopener"
                           >
-                            <Button variant="ghost" size="icon" title="Preview">
+                            <Button variant="ghost" size="icon" className="h-8 w-8" title="Preview">
                               <Eye className="h-4 w-4" />
                             </Button>
                           </a>
                           <Button
                             variant="ghost"
                             size="icon"
+                            className="h-8 w-8"
                             title={recipe.status === 'published' ? 'Despublicar' : 'Publicar'}
                             onClick={() => void handleTogglePublish(recipe)}
                           >
                             {recipe.status === 'published' ? (
                               <FileText className="h-4 w-4" />
                             ) : (
-                              <Globe className="h-4 w-4" />
+                              <Globe className="h-4 w-4 text-green-600" />
                             )}
                           </Button>
                           <Button
                             variant="ghost"
                             size="icon"
+                            className="h-8 w-8"
                             title="Duplicar"
                             onClick={() => void handleDuplicate(recipe)}
                           >
@@ -184,9 +221,9 @@ export default function RecipeListPage() {
                           <Button
                             variant="ghost"
                             size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
                             title="Excluir"
                             onClick={() => void handleDelete(recipe)}
-                            className="text-destructive hover:text-destructive"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -199,73 +236,67 @@ export default function RecipeListPage() {
             </Table>
           </div>
 
-          <div className="mt-6 space-y-3 sm:hidden">
+          <div className="mt-6 grid gap-4 sm:hidden">
             {recipes.map((recipe) => {
               const category = categories.find((item) => item.slug === recipe.categorySlug);
+              const presentation = getRecipePresentation(recipe);
+              const imageUrl = getRecipeImage(recipe);
+              
               return (
-                <div key={recipe.id} className="rounded-xl border bg-card p-4 shadow-sm">
-                  <div className="flex items-start justify-between gap-2">
+                <div key={recipe.id} className="relative overflow-hidden rounded-2xl border bg-card shadow-sm transition-all active:scale-[0.98]">
+                  <div className="flex gap-4 p-4">
+                    <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-muted ring-1 ring-border">
+                      {imageUrl ? (
+                        <img src={imageUrl} alt="" className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                          <FileText className="h-6 w-6 opacity-30" />
+                        </div>
+                      )}
+                    </div>
                     <div className="min-w-0 flex-1">
-                      <p className="font-medium truncate">
-                        {getRecipePresentation(recipe).cardTitle}
-                      </p>
-                      <p className="text-xs text-muted-foreground">/{recipe.slug}</p>
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {category && (
-                          <span className="text-xs">{category.name}</span>
-                        )}
-                        <Badge
+                      <div className="flex items-start justify-between">
+                        <Badge 
                           variant={recipe.status === 'published' ? 'default' : 'secondary'}
-                          className="text-xs"
+                          className={`text-[10px] h-5 ${recipe.status === 'published' ? 'bg-green-600' : 'bg-orange-100 text-orange-800 border-orange-200'}`}
                         >
                           {recipe.status === 'published' ? 'Publicada' : 'Rascunho'}
                         </Badge>
-                        <PriceBadge accessTier={recipe.accessTier} priceBRL={recipe.priceBRL} />
+                        <PriceBadge accessTier={recipe.accessTier} priceBRL={recipe.priceBRL} className="scale-75 origin-right" />
+                      </div>
+                      <h3 className="mt-1 font-semibold text-base leading-snug truncate">{presentation.cardTitle}</h3>
+                      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                        {category && <span className="font-medium text-primary">{category.name}</span>}
+                        <div className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" /> {recipe.totalTime || 30} min
+                        </div>
                       </div>
                     </div>
-                    <img
-                      src={getRecipeImage(recipe)}
-                      alt=""
-                      className="h-14 w-14 rounded-lg object-cover shrink-0"
-                    />
                   </div>
-                  <div className="mt-3 flex flex-wrap gap-1">
-                    <Link to={buildTenantAdminPath(`receitas/${recipe.id}/editar`, tenantSlug)}>
-                      <Button variant="outline" size="sm" className="h-8 gap-1 text-xs">
-                        <Pencil className="h-3 w-3" /> Editar
+                  
+                  <div className="flex border-t bg-muted/30 divide-x">
+                    <Link to={buildTenantAdminPath(`receitas/${recipe.id}/editar`, tenantSlug)} className="flex-1">
+                      <Button variant="ghost" className="w-full h-11 rounded-none gap-2 text-xs">
+                        <Pencil className="h-3.5 w-3.5 text-primary" /> Editar
                       </Button>
                     </Link>
                     <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 gap-1 text-xs"
+                      variant="ghost"
+                      className="flex-1 h-11 rounded-none gap-2 text-xs"
                       onClick={() => void handleTogglePublish(recipe)}
                     >
                       {recipe.status === 'published' ? (
-                        <>
-                          <FileText className="h-3 w-3" /> Despublicar
-                        </>
+                        <><FileText className="h-3.5 w-3.5" /> Pausar</>
                       ) : (
-                        <>
-                          <Globe className="h-3 w-3" /> Publicar
-                        </>
+                        <><Globe className="h-3.5 w-3.5 text-green-600" /> Publicar</>
                       )}
                     </Button>
                     <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 gap-1 text-xs"
-                      onClick={() => void handleDuplicate(recipe)}
-                    >
-                      <Copy className="h-3 w-3" /> Duplicar
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 gap-1 text-xs text-destructive"
+                      variant="ghost"
+                      className="h-11 w-12 px-0 rounded-none text-destructive hover:bg-destructive/10"
                       onClick={() => void handleDelete(recipe)}
                     >
-                      <Trash2 className="h-3 w-3" /> Excluir
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>

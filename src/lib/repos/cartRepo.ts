@@ -36,6 +36,7 @@ function read(): CartItem[] {
         typeof item.title === "string" &&
         typeof item.slug === "string" &&
         typeof item.priceBRL === "number" &&
+        typeof item.quantity === "number" &&
         (typeof item.imageUrl === "string" || item.imageUrl === null),
     );
     cachedRaw = raw;
@@ -79,8 +80,20 @@ function list() {
 
 function add(item: CartItem) {
   const items = read();
-  if (!items.some((current) => current.recipeId === item.recipeId)) {
-    items.push(item);
+  const existing = items.find((current) => current.recipeId === item.recipeId);
+  if (existing) {
+    existing.quantity = (existing.quantity || 1) + (item.quantity || 1);
+  } else {
+    items.push({ ...item, quantity: item.quantity || 1 });
+  }
+  write(items);
+}
+
+function updateQuantity(recipeId: string, delta: number) {
+  const items = read();
+  const item = items.find((i) => i.recipeId === recipeId);
+  if (item) {
+    item.quantity = Math.max(1, (item.quantity || 1) + delta);
     write(items);
   }
 }
@@ -102,7 +115,7 @@ function count() {
 }
 
 function getTotal() {
-  return sumBRL(read().map((item) => item.priceBRL));
+  return sumBRL(read().map((item) => item.priceBRL * (item.quantity || 1)));
 }
 
 export const cartRepo = {
@@ -114,6 +127,7 @@ export const cartRepo = {
   has,
   count,
   getTotal,
+  updateQuantity,
 };
 
 export function listCartItems() {

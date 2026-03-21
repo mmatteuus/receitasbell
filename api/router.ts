@@ -8,9 +8,10 @@ import {
 import {
   getAdminApiSecret,
   getMercadoPagoEnv,
-  getMercadoPagoAppEnv,
-  hasMercadoPagoAppConfig,
+  getMercadoPagoAppEnvAsync,
+  hasMercadoPagoAppConfigAsync,
   hasMercadoPagoConfig,
+  hasMercadoPagoWebhookSecretAsync,
   hasMercadoPagoWebhookSecret,
 } from '../src/server/env.js';
 import { requireIdentityUser, resolveOptionalIdentityUser } from '../src/server/identity.js';
@@ -246,8 +247,8 @@ function extractMercadoPagoPaymentId(request: VercelRequest, payload: Record<str
   return match?.[1] ?? null;
 }
 
-async function fetchMercadoPagoPayment(paymentId: string) {
-  const { accessToken } = await getMercadoPagoEnv();
+async function fetchMercadoPagoPayment(tenantId: string, paymentId: string) {
+  const { accessToken } = await getMercadoPagoEnv(tenantId);
   const response = await fetch(
     `https://api.mercadopago.com/v1/payments/${encodeURIComponent(paymentId)}`,
     {
@@ -326,7 +327,7 @@ async function createCheckoutResponse(
   };
 
   if (settings.payment_mode === 'production') {
-    const hasConfig = await hasMercadoPagoConfig();
+    const hasConfig = await hasMercadoPagoConfig(tenant.id);
     if (!hasConfig) {
       throw new ApiError(501, 'Mercado Pago is not configured for production checkout');
     }
@@ -339,8 +340,8 @@ async function createCheckoutResponse(
       throw new ApiError(409, 'Ative o tópico payment antes de habilitar o checkout real.');
     }
 
-    if (!hasMercadoPagoWebhookSecret()) {
-      throw new ApiError(501, 'Configure MP_WEBHOOK_SECRET na Vercel para habilitar pagamentos reais.');
+    if (!(await hasMercadoPagoWebhookSecretAsync(tenant.id))) {
+      throw new ApiError(501, 'Configure MP_WEBHOOK_SECRET na Vercel ou no Painel para habilitar pagamentos reais.');
     }
 
     return createMercadoPagoCheckout(tenant.id, {
@@ -356,7 +357,7 @@ async function createCheckoutResponse(
 async function processMercadoPagoWebhook(request: VercelRequest) {
   const { tenant } = await requireTenantFromRequest(request);
   const settings = mapTypedSettings(await getSettingsMap(tenant.id));
-  const hasConfig = await hasMercadoPagoConfig();
+  const hasConfig = await hasMercadoPagoConfig(tenant.id);
 
   if (!hasConfig) {
     throw new ApiError(501, 'Mercado Pago webhook is not enabled in this environment');
@@ -366,7 +367,7 @@ async function processMercadoPagoWebhook(request: VercelRequest) {
     throw new ApiError(503, 'Mercado Pago webhook processing is disabled');
   }
 
-  if (!hasMercadoPagoWebhookSecret()) {
+  if (!(await hasMercadoPagoWebhookSecretAsync(tenant.id))) {
     throw new ApiError(501, 'MP_WEBHOOK_SECRET is not configured');
   }
 
@@ -382,7 +383,7 @@ async function processMercadoPagoWebhook(request: VercelRequest) {
   }
 
   assertMercadoPagoWebhookSignature(request, paymentId);
-  const paymentPayload = await fetchMercadoPagoPayment(paymentId);
+  const paymentPayload = await fetchMercadoPagoPayment(tenant.id, paymentId);
   const payment = await syncMercadoPagoPayment(tenant.id, paymentPayload, payload);
 
   return {
@@ -469,9 +470,9 @@ export default async function handler(request: VercelRequest, response: VercelRe
             payment_mode: settings.payment_mode,
             webhooks_enabled: settings.webhooks_enabled,
             payment_topic_enabled: settings.payment_topic_enabled,
-            accessTokenConfigured: await hasMercadoPagoConfig(),
-            oauthConfigured: hasMercadoPagoAppConfig(),
-            webhookSecretConfigured: hasMercadoPagoWebhookSecret(),
+            accessTokenConfigured: await hasMercadoPagoConfig(tenant.id),
+            oauthConfigured: await hasMercadoPagoAppConfigAsync(tenant.id),
+            webhookSecretConfigured: await hasMercadoPagoWebhookSecretAsync(tenant.id),
             userId: settings.mp_user_id || null,
             publicKey: settings.mp_public_key || null,
             webhookUrl,
@@ -818,18 +819,20 @@ export default async function handler(request: VercelRequest, response: VercelRe
     if (resource === 'newsletter' && !resourceId) {
       assertMethod(request, ['POST']);
       const body = newsletterSchema.parse(await readJsonBody(request));
-      const subscriber = await subscribeToNewsletter(body);
+      const { tenant } = await requireTenantFromRequest(request);
+      const subscriber = await subscribeToNewsletter(tenant.id, body.email);
       return sendJson(response, 201, { subscriber });
     }
 
     if (resource === 'mercadopago' && resourceId === 'login') {
       try {
-        if (!hasMercadoPagoAppConfig()) {
+        const { tenant } = await requireTenantFromRequest(request);
+        if (!(await hasMercadoPagoAppConfigAsync(tenant.id))) {
           response.redirect('/admin/pagamentos/configuracoes?error=mp_not_configured');
           return;
         }
 
-        const { clientId } = getMercadoPagoAppEnv();
+        const { clientId } = await getMercadoPagoAppEnvAsync(tenant.id);
         const redirectUri = getAppBaseUrl(request) + '/api/mercadopago/oauth';
         const authUrl = `https://auth.mercadopago.com/authorization?client_id=${clientId}&response_type=code&platform_id=mp&redirect_uri=${redirectUri}`;
         response.redirect(authUrl);
@@ -854,7 +857,8 @@ export default async function handler(request: VercelRequest, response: VercelRe
         return;
       }
 
-      const { clientId, clientSecret } = getMercadoPagoAppEnv();
+      const { tenant } = await requireTenantFromRequest(request);
+      const { clientId, clientSecret } = await getMercadoPagoAppEnvAsync(tenant.id);
       const redirectUri = getAppBaseUrl(request) + '/api/mercadopago/oauth';
       
       const tokenResponse = await fetch('https://api.mercadopago.com/oauth/token', {
@@ -879,7 +883,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
       const tokenData = await tokenResponse.json() as Record<string, unknown>;
       
-      await saveSettings({
+      await saveSettings(tenant.id, {
         mp_access_token: String(tokenData.access_token || ''),
         mp_refresh_token: String(tokenData.refresh_token || ''),
         mp_public_key: String(tokenData.public_key || ''),

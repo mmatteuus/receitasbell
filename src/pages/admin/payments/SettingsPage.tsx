@@ -14,8 +14,24 @@ import {
 } from '@/lib/api/payments';
 import { updateSettings } from '@/lib/api/settings';
 import type { AdminPaymentSettingsResponse } from '@/types/payment';
-import { Loader2 } from 'lucide-react';
+import { 
+  Loader2, 
+  HelpCircle, 
+  Settings2, 
+  Info, 
+  ShieldCheck, 
+  ArrowRight,
+  Activity,
+  KeyRound,
+  Globe
+} from 'lucide-react';
 import { MercadoPagoConnectionCard } from '@/components/payments/MercadoPagoConnectionCard';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 type PaymentFlags = {
   payment_mode: 'sandbox' | 'production';
@@ -59,8 +75,8 @@ export default function SettingsPage() {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
       if (urlParams.get('error') === 'mp_not_configured') {
-        toast.error('Integração não configurada', {
-          description: 'Entre em contato com o responsável técnico do site para configurar as variáveis de ambiente do Mercado Pago.',
+        toast.error('Configurações pendentes', {
+          description: 'Por favor, insira seu Client ID e Client Secret abaixo antes de conectar.',
           duration: 10000,
         });
         window.history.replaceState({}, document.title, window.location.pathname);
@@ -68,23 +84,15 @@ export default function SettingsPage() {
 
       if (urlParams.get('error') === 'mp_oauth_failed') {
         toast.error('Falha na autenticação', {
-          description: 'Não conseguimos verificar sua conta no Mercado Pago. Tente novamente ou entre em contato com o suporte.',
+          description: 'Não conseguimos verificar sua conta no Mercado Pago. Verifique suas chaves e tente novamente.',
           duration: 10000,
         });
         window.history.replaceState({}, document.title, window.location.pathname);
       }
 
-      if (urlParams.get('error') === 'mp_missing_code') {
-        toast.error('Autorização incompleta', {
-          description: 'O processo de autorização não foi concluído. Por favor, tente novamente.',
-          duration: 8000,
-        });
-        window.history.replaceState({}, document.title, window.location.pathname);
-      }
-
       if (urlParams.get('connected') === '1') {
-        toast.success('🎉 Conta do Mercado Pago conectada!', {
-          description: 'Você já pode receber pagamentos pelo site.',
+        toast.success('🎉 Tudo pronto!', {
+          description: 'Sua conta do Mercado Pago foi conectada com sucesso.',
           duration: 6000,
         });
         window.history.replaceState({}, document.title, window.location.pathname);
@@ -125,184 +133,253 @@ export default function SettingsPage() {
       await refreshSettings();
       const next = await getAdminPaymentSettings();
       setAdminSettings(next);
-      toast.success('Configurações salvas com sucesso');
+      toast.success('Configurações salvas!');
     } catch (error) {
       console.error('Failed to save payment settings', error);
-      toast.error('Não foi possível salvar as configurações de pagamento.');
+      toast.error('Erro ao salvar configurações.');
     } finally {
       setSaving(false);
     }
   }
 
   async function handleDisconnect() {
-    if (!confirm('Tem certeza que deseja desconectar a conta do Mercado Pago?\n\nVocê deixará de receber pagamentos pelo site até reconectar.')) return;
+    if (!confirm('Deseja desconectar sua conta? Você não poderá receber novos pagamentos até reconectar.')) return;
     setDisconnecting(true);
     try {
       await disconnectMercadoPagoConnection();
       const next = await getAdminPaymentSettings();
       setAdminSettings(next);
-      toast.success('Conta desconectada com sucesso.');
+      toast.success('Conta desconectada.');
     } catch {
-      toast.error('Não foi possível desconectar. Tente novamente.');
+      toast.error('Erro ao desconectar.');
     } finally {
       setDisconnecting(false);
     }
   }
 
   async function handleConnect() {
+    // Check if we have credentials saved or in form
+    if (!form.mp_client_id || !form.mp_client_secret) {
+      toast.error("Chaves necessárias", {
+        description: "Você precisa salvar o Client ID e Client Secret antes de conectar."
+      });
+      return;
+    }
+
     setConnecting(true);
     try {
+      // NOTE: Ensure the backend uses ASYNC config checks to read from DB!
       const authorizationUrl = await startMercadoPagoConnection(
         `${location.pathname}${location.search}${location.hash}`,
       );
       window.location.assign(authorizationUrl);
     } catch (error) {
       console.error('Failed to start Mercado Pago OAuth', error);
-      toast.error('Não foi possível iniciar a conexão com o Mercado Pago.');
+      toast.error('Não foi possível iniciar a conexão.');
       setConnecting(false);
     }
   }
 
+  const isConnected = adminSettings?.connectionStatus === 'connected';
+
   return (
-    <div className="space-y-8 max-w-2xl">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Receber Pagamentos</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Conecte sua conta do Mercado Pago para começar a receber pagamentos das receitas premium do seu site.
+    <div className="space-y-8 max-w-4xl pb-10">
+      <div className="flex flex-col gap-1">
+        <h1 className="text-3xl font-heading font-bold tracking-tight">Pagamentos</h1>
+        <p className="text-muted-foreground">
+          Gerencie como você recebe pelas suas receitas premium.
         </p>
       </div>
 
-      <MercadoPagoConnectionCard
-        settings={adminSettings}
-        loading={loadingAdminSettings}
-        connecting={connecting}
-        disconnecting={disconnecting}
-        onConnect={handleConnect}
-        onDisconnect={handleDisconnect}
-      />
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="lg:col-span-8 space-y-6">
+          {/* Status Section */}
+          <MercadoPagoConnectionCard
+            settings={adminSettings}
+            loading={loadingAdminSettings}
+            connecting={connecting}
+            disconnecting={disconnecting}
+            onConnect={handleConnect}
+            onDisconnect={handleDisconnect}
+          />
 
-      {/* ── STEP 2 — ADVANCED SETTINGS ─────────────────────── */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Configurações avançadas</CardTitle>
-          <CardDescription>Controle o comportamento do checkout e dos webhooks.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-5">
-          <div className="space-y-4 rounded-lg border bg-muted/20 p-4">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Credenciais da Aplicação</h3>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="mp-client-id" className="text-xs">Client ID do Mercado Pago</Label>
-              <Input
-                id="mp-client-id"
-                value={form.mp_client_id}
-                onChange={(e) => setField('mp_client_id', e.target.value)}
-                placeholder="Ex: 852..."
-                className="h-9 text-xs"
-              />
-            </div>
+          {/* Setup Steps - Only visible if not connected */}
+          {!isConnected && (
+            <Card className="border-primary/20 bg-primary/5 overflow-hidden">
+              <div className="h-1 bg-primary" />
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <Info className="h-4 w-4 text-primary" />
+                  Passo a passo para conectar
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-xs space-y-3 text-muted-foreground leading-relaxed">
+                <div className="flex gap-3">
+                  <div className="flex-none h-5 w-5 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">1</div>
+                  <p>Acesse o <a href="https://www.mercadopago.com.br/developers/panel/applications" target="_blank" rel="noreferrer" className="text-primary hover:underline font-medium inline-flex items-center gap-0.5">Painel de Desenvolvedor <ArrowRight className="h-2.5 w-2.5" /></a> do Mercado Pago.</p>
+                </div>
+                <div className="flex gap-3">
+                  <div className="flex-none h-5 w-5 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">2</div>
+                  <p>Crie uma aplicação (ou selecione uma existente) e copie o <strong>Client ID</strong> e o <strong>Client Secret</strong>.</p>
+                </div>
+                <div className="flex gap-3">
+                  <div className="flex-none h-5 w-5 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">3</div>
+                  <p>Cole nos campos de "Credenciais" abaixo e clique em <strong>Salvar Configurações</strong>.</p>
+                </div>
+                <div className="flex gap-3">
+                  <div className="flex-none h-5 w-5 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">4</div>
+                  <p>Clique no botão azul <strong>Conectar com Mercado Pago</strong> acima para finalizar.</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
-            <div className="grid gap-2">
-              <Label htmlFor="mp-client-secret" className="text-xs">Client Secret do Mercado Pago</Label>
-              <Input
-                id="mp-client-secret"
-                type="password"
-                value={form.mp_client_secret}
-                onChange={(e) => setField('mp_client_secret', e.target.value)}
-                placeholder="Ex: oZ9..."
-                className="h-9 text-xs"
-              />
-            </div>
+          {/* Credentials Card */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <KeyRound className="h-5 w-5 text-primary" />
+                    Credenciais da Aplicação
+                  </CardTitle>
+                  <CardDescription>Configure as chaves da sua conta de vendedor.</CardDescription>
+                </div>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <HelpCircle className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-[200px]">
+                      Suas chaves são armazenadas de forma segura e usadas apenas para processar os pagamentos no seu nome.
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="mp-client-id" className="text-xs font-semibold">Client ID</Label>
+                  <Input
+                    id="mp-client-id"
+                    value={form.mp_client_id}
+                    onChange={(e) => setField('mp_client_id', e.target.value)}
+                    placeholder="Ex: 852..."
+                    className="font-mono text-xs"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="mp-client-secret" className="text-xs font-semibold">Client Secret</Label>
+                  <Input
+                    id="mp-client-secret"
+                    type="password"
+                    value={form.mp_client_secret}
+                    onChange={(e) => setField('mp_client_secret', e.target.value)}
+                    placeholder="Ex: oZ9..."
+                    className="font-mono text-xs"
+                  />
+                </div>
+              </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="mp-webhook-secret" className="text-xs">Webhook Secret (Assinatura)</Label>
-              <Input
-                id="mp-webhook-secret"
-                type="password"
-                value={form.mp_webhook_secret}
-                onChange={(e) => setField('mp_webhook_secret', e.target.value)}
-                placeholder="Configurar na Vercel"
-                className="h-9 text-xs"
-              />
-            </div>
+              <div className="pt-2">
+                <div className="flex items-center gap-2 mb-2">
+                  <Globe className="h-3.5 w-3.5 text-muted-foreground" />
+                  <Label htmlFor="app-base-url" className="text-xs font-semibold">URL do Site</Label>
+                </div>
+                <Input
+                  id="app-base-url"
+                  value={form.app_base_url}
+                  onChange={(e) => setField('app_base_url', e.target.value)}
+                  placeholder="https://sualoja.com.br"
+                  className="text-xs"
+                />
+                <p className="text-[10px] text-muted-foreground mt-1.5 flex items-center gap-1">
+                  <Info className="h-3 w-3" />
+                  Importante para o redirecionamento pós-compra e notificações.
+                </p>
+              </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="app-base-url" className="text-xs">URL Base do Site (https://...)</Label>
-              <Input
-                id="app-base-url"
-                value={form.app_base_url}
-                onChange={(e) => setField('app_base_url', e.target.value)}
-                placeholder="https://receitasbell.mtsferreira.dev"
-                className="h-9 text-xs"
-              />
-              <p className="text-[10px] text-muted-foreground">
-                Usado para gerar as URLs de redirecionamento e Webhook.
-              </p>
+              <Button 
+                onClick={() => void handleSave()} 
+                disabled={saving} 
+                className="w-full mt-4 bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary transition-all border-dashed border-primary/30"
+                variant="outline"
+              >
+                {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Settings2 className="h-4 w-4 mr-2" />}
+                {saving ? 'Gravando...' : 'Salvar Configurações'}
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="lg:col-span-4 space-y-6">
+          {/* Advanced Controls */}
+          <Card className="h-fit">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Activity className="h-4 w-4 text-primary" />
+                Modo de Operação
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between gap-4">
+                <div className="space-y-0.5">
+                  <Label className="text-sm">Ambiente</Label>
+                  <p className="text-xs text-muted-foreground">
+                    {form.payment_mode === 'production' ? 'Cobranças Reais' : 'Modo Teste'}
+                  </p>
+                </div>
+                <Switch
+                  checked={form.payment_mode === 'production'}
+                  onCheckedChange={(checked) => setField('payment_mode', checked ? 'production' : 'sandbox')}
+                />
+              </div>
+
+              <div className={`p-3 rounded-lg text-[10px] leading-relaxed ${
+                form.payment_mode === 'production' 
+                ? 'bg-green-500/10 text-green-700 border border-green-500/20' 
+                : 'bg-amber-500/10 text-amber-700 border border-amber-500/20'
+              }`}>
+                {form.payment_mode === 'production' 
+                  ? 'O site está em PRODUÇÃO. As vendas são processadas e cobradas de verdade.' 
+                  : 'O site está em TESTE. Você pode simular compras com cartões de teste do Mercado Pago.'}
+              </div>
+
+              <div className="space-y-4 pt-2 border-t">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-medium">Webhooks</Label>
+                  <Switch
+                    checked={form.webhooks_enabled}
+                    onCheckedChange={(checked) => setField('webhooks_enabled', checked)}
+                  />
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-medium">Tópico de Pagamento</Label>
+                  <Switch
+                    checked={form.payment_topic_enabled}
+                    onCheckedChange={(checked) => setField('payment_topic_enabled', checked)}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Security Note */}
+          <div className="p-5 rounded-2xl border bg-gradient-to-br from-card to-muted/30 text-center space-y-3">
+            <div className="h-10 w-10 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+              <ShieldCheck className="h-6 w-6 text-primary" />
             </div>
+            <h4 className="text-xs font-bold uppercase tracking-wider">Conexão Blindada</h4>
+            <p className="text-[10px] text-muted-foreground leading-relaxed">
+              Utilizamos o protocolo OAuth 2.0 oficial. Suas credenciais de login nunca tocam nossos servidores, garantindo total privacidade e segurança.
+            </p>
           </div>
-
-          <div className={`rounded-lg border p-3 text-sm ${
-            form.payment_mode === 'production'
-              ? 'border-green-500/30 bg-green-500/5 text-green-800 dark:text-green-300'
-              : 'border-border bg-muted/30 text-muted-foreground'
-          }`}>
-            {form.payment_mode === 'production'
-              ? '✅ Modo produção ativo. Os clientes serão cobrados de verdade.'
-              : '🧪 Modo sandbox ativo. Nenhum cliente será cobrado — ideal para testes.'}
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <Label htmlFor="mode-switch" className="font-medium">Ambiente de checkout</Label>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Alterne entre modo teste (Sandbox) e cobrança real (Produção).
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Sandbox</span>
-              <Switch
-                id="mode-switch"
-                checked={form.payment_mode === 'production'}
-                onCheckedChange={(checked) => setField('payment_mode', checked ? 'production' : 'sandbox')}
-              />
-              <span className="text-xs text-muted-foreground">Produção</span>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <Label htmlFor="webhooks-enabled" className="font-medium">Notificações de pagamento</Label>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Receba atualizações automáticas quando um pagamento for aprovado ou recusado.
-              </p>
-            </div>
-            <Switch
-              id="webhooks-enabled"
-              checked={form.webhooks_enabled}
-              onCheckedChange={(checked) => setField('webhooks_enabled', checked)}
-            />
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div>
-              <Label htmlFor="payment-topic-enabled" className="font-medium">Tópico de pagamento</Label>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Necessário para que as notificações de checkout sejam recebidas corretamente.
-              </p>
-            </div>
-            <Switch
-              id="payment-topic-enabled"
-              checked={form.payment_topic_enabled}
-              onCheckedChange={(checked) => setField('payment_topic_enabled', checked)}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      <Button onClick={() => void handleSave()} disabled={saving} className="gap-2">
-        {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-        {saving ? 'Salvando…' : 'Salvar configurações'}
-      </Button>
+        </div>
+      </div>
     </div>
   );
 }

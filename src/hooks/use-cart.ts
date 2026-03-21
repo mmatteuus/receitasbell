@@ -21,8 +21,13 @@ export function useCart() {
     trackEvent("cart.clear");
   }, []);
 
+  const updateQuantity = useCallback((recipeId: string, delta: number) => {
+    cartRepo.updateQuantity(recipeId, delta);
+    trackEvent("cart.update_quantity", { recipeId, delta });
+  }, []);
+
   const has = useCallback((recipeId: string) => cartRepo.has(recipeId), []);
   const getTotal = useCallback(() => cartRepo.getTotal(), []);
 
-  return { items, add, remove, clear, has, count: items.length, getTotal };
+  return { items, add, remove, clear, updateQuantity, has, count: items.length, getTotal };
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams, Link } from "react-router-dom";
-import { Heart, Clock, ChevronRight, Printer, ChefHat, ShoppingCart, FileText, BarChart, Flame, PlayCircle } from "lucide-react";
+import { Heart, Clock, ChevronRight, Printer, ChefHat, ShoppingCart, FileText, BarChart, Flame, PlayCircle, Plus, Minus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -45,6 +45,7 @@ export default function RecipePage() {
   const [rating, setRating] = useState<RatingState>({ avg: 0, count: 0, userValue: null });
   const [comments, setComments] = useState<Comment[]>([]);
   const [isFocused, setIsFocused] = useState(false);
+  const [customServings, setCustomServings] = useState<number | null>(null);
   const { has: inCart, add: addToCart } = useCart();
   const { categories, requireIdentity } = useAppContext();
   const { isFavorite, toggleFavorite } = useFavorites();
@@ -131,6 +132,9 @@ export default function RecipePage() {
     await toggleFavorite(recipe.id);
   }
 
+  const baseServings = recipe.servings || 1;
+  const currentServings = customServings ?? baseServings;
+
   async function handleRate(value: number) {
     const email = await requireIdentity("Digite seu e-mail para avaliar esta receita.");
     if (!email) return;
@@ -152,7 +156,7 @@ export default function RecipePage() {
   function handleExportPdf() {
     const opened = exportRecipeToPDF({
       recipe,
-      ingredients: ingredients.map((ingredient) => scaleIngredient(ingredient, recipe.servings || 1, recipe.servings || 1)),
+      ingredients: ingredients.map((ingredient) => scaleIngredient(ingredient, baseServings, currentServings)),
       instructions,
       isTeaserOnly: showPaywall,
     });
@@ -234,27 +238,52 @@ export default function RecipePage() {
         </div>
       )}
 
-      <div className="mt-4 flex flex-wrap gap-3 sm:mt-6 sm:gap-4 print:mt-4">
+      <div className="mt-4 flex flex-wrap gap-2 sm:mt-6 sm:gap-3 print:mt-4">
         {recipe.totalTime > 0 && (
-          <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm">
+          <div className="flex items-center gap-1.5 rounded-lg border bg-card px-2.5 py-1.5 text-sm">
             <Clock className="h-4 w-4 text-primary" />
-            <span className="font-medium">{recipe.totalTime} min</span>
+            <span className="font-medium text-muted-foreground">{recipe.totalTime}m</span>
           </div>
         )}
         {recipe.difficulty && (
-          <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm">
+          <div className="flex items-center gap-1.5 rounded-lg border bg-card px-2.5 py-1.5 text-sm">
             <BarChart className="h-4 w-4 text-primary" />
-            <span className="font-medium">{recipe.difficulty}</span>
+            <span className="font-medium text-muted-foreground">{recipe.difficulty}</span>
           </div>
         )}
         {recipe.calories && (
-          <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm">
+          <div className="flex items-center gap-1.5 rounded-lg border bg-card px-2.5 py-1.5 text-sm text-center">
             <Flame className="h-4 w-4 text-primary" />
-            <span className="font-medium">{recipe.calories} kcal</span>
+            <span className="font-medium text-muted-foreground">{recipe.calories} kcal</span>
           </div>
         )}
+        <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm shadow-sm transition-all hover:border-primary/30">
+          <Users className="h-4 w-4 text-primary" />
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 shrink-0 print:hidden"
+              onClick={() => setCustomServings(Math.max(1, currentServings - 1))}
+            >
+              <Minus className="h-3 w-3" />
+            </Button>
+            <span className="min-w-[4rem] text-center font-bold">
+              {currentServings} {currentServings === 1 ? "porção" : "porções"}
+            </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 shrink-0 print:hidden"
+              onClick={() => setCustomServings(currentServings + 1)}
+            >
+              <Plus className="h-3 w-3" />
+            </Button>
+          </div>
+        </div>
+
         {rating.count > 0 && (
-          <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm print:hidden">
+          <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm">
             ⭐ {rating.avg.toFixed(1)} ({rating.count})
           </div>
         )}
@@ -267,8 +296,8 @@ export default function RecipePage() {
         </Button>
         {showPaywall && (
           <Button
-            variant="outline"
-            className="gap-2"
+            variant="default"
+            className="w-full gap-2 bg-gradient-to-r from-primary to-orange-600 shadow-md transition-all hover:scale-[1.02] sm:w-auto"
             onClick={() => addToCart(buildCartItemFromRecipe(recipe))}
             disabled={inCart(recipe.id)}
           >
@@ -292,7 +321,8 @@ export default function RecipePage() {
         recipeId={recipe.id}
         recipeTitle={recipe.title}
         ingredients={ingredients}
-        servings={recipe.servings || 1}
+        servings={baseServings}
+        customServings={currentServings}
         showPaywall={showPaywall}
       />
 

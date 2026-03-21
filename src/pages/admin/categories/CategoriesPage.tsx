@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Pencil, PlusCircle, Trash2 } from "lucide-react";
+import { Pencil, PlusCircle, Trash2, Layers } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -144,35 +145,55 @@ export default function CategoriesPage() {
           <CardContent className="p-6 text-sm text-muted-foreground">Carregando categorias...</CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {categories.map((category) => (
-            <Card key={category.id}>
-              <CardContent className="space-y-4 p-5">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">/{category.slug}</p>
-                  <h2 className="mt-2 text-lg font-semibold">{category.name}</h2>
-                  <p className="mt-2 text-sm text-muted-foreground">{category.description || "Sem descrição"}</p>
-                </div>
+            <Card key={category.id} className="group overflow-hidden transition-all hover:shadow-md hover:border-primary/20">
+              <CardContent className="p-0">
+                <div className="flex h-full flex-col">
+                  <div className="flex-1 p-5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="h-5 px-1.5 font-mono text-[10px] text-muted-foreground uppercase tracking-wider bg-muted/30">
+                            /{category.slug}
+                          </Badge>
+                        </div>
+                        <h2 className="mt-2 text-xl font-bold tracking-tight">{category.name}</h2>
+                      </div>
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                        <Layers className="h-5 w-5" />
+                      </div>
+                    </div>
+                    
+                    <p className="mt-3 line-clamp-2 text-sm text-muted-foreground leading-relaxed">
+                      {category.description || "Nenhuma descrição informada para esta categoria."}
+                    </p>
+                  </div>
 
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <Button
-                    variant="outline"
-                    className="flex-1"
-                    onClick={() =>
-                      setForm({
-                        id: category.id,
-                        name: category.name,
-                        description: category.description,
-                      })
-                    }
-                  >
-                    <Pencil className="mr-2 h-4 w-4" />
-                    Editar
-                  </Button>
-                  <Button variant="outline" className="flex-1 text-destructive" onClick={() => void handleDelete(category.id)}>
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Excluir
-                  </Button>
+                  <div className="flex border-t bg-muted/20 divide-x transition-colors group-hover:bg-muted/30">
+                    <Button
+                      variant="ghost"
+                      className="flex-1 rounded-none h-11 gap-2 text-xs font-medium"
+                      onClick={() =>
+                        setForm({
+                          id: String(category.id),
+                          name: category.name,
+                          description: category.description || "",
+                        })
+                      }
+                    >
+                      <Pencil className="h-3.5 w-3.5 text-primary" />
+                      Editar
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      className="flex-1 rounded-none h-11 gap-2 text-xs font-medium text-destructive hover:text-destructive hover:bg-destructive/5" 
+                      onClick={() => void handleDelete(String(category.id))}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Excluir
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>

@@ -22,5 +22,6 @@ export function buildCartItemFromRecipe(
     slug: recipe.slug,
     priceBRL: recipe.priceBRL ?? 0,
     imageUrl: recipe.imageUrl || "/placeholder.svg",
+    quantity: 1,
   };
 }

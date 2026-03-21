@@ -2,11 +2,23 @@ import { fetchBaserow, BASEROW_TABLES } from "./client.js";
 import type { RecipeRecord } from "../../lib/recipes/types.js";
 import type { ImageFileMeta } from "../../types/recipe.js";
 
-export async function listRecipes(tenantId: string | number, options: { includeDrafts?: boolean } = {}): Promise<RecipeRecord[]> {
+export async function listRecipes(tenantId: string | number, options: { 
+  includeDrafts?: boolean;
+  categorySlug?: string;
+  q?: string;
+} = {}): Promise<RecipeRecord[]> {
   let url = `/api/database/rows/table/${BASEROW_TABLES.RECIPES}/?user_field_names=true&filter__tenantId__equal=${tenantId}`;
   
   if (!options.includeDrafts) {
     url += "&filter__status__equal=published";
+  }
+
+  if (options.categorySlug && options.categorySlug !== "all") {
+    url += `&filter__categoryId__equal=${encodeURIComponent(options.categorySlug)}`;
+  }
+
+  if (options.q) {
+    url += `&filter__title__contains=${encodeURIComponent(options.q)}`;
   }
 
   const data = await fetchBaserow<{ results: any[] }>(url);

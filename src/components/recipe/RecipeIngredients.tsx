@@ -12,28 +12,56 @@ interface RecipeIngredientsProps {
   recipeTitle: string;
   ingredients: string[];
   servings: number;
+  customServings: number;
   showPaywall: boolean;
+}
+
+function formatQuantity(num: number): string {
+  if (num % 1 === 0) return String(num);
+  const whole = Math.floor(num);
+  const fraction = num - whole;
+  
+  let fStr = "";
+  if (Math.abs(fraction - 0.25) < 0.01) fStr = "1/4";
+  else if (Math.abs(fraction - 0.33) < 0.02) fStr = "1/3";
+  else if (Math.abs(fraction - 0.5) < 0.01) fStr = "1/2";
+  else if (Math.abs(fraction - 0.66) < 0.02) fStr = "2/3";
+  else if (Math.abs(fraction - 0.75) < 0.01) fStr = "3/4";
+  
+  if (fStr) {
+    return whole > 0 ? `${whole} e ${fStr}` : fStr;
+  }
+  
+  return new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 }).format(num);
 }
 
 function scaleIngredient(text: string, baseServings: number, customServings: number) {
   const factor = customServings / baseServings;
   if (factor === 1) return text;
-  const regex = /^(?:(\d+)\s+e\s+)?(\d+(?:[.,]\d+)?(?:\s*\/\s*\d+)?)/i;
+  
+  const regex = /^(?:(\d+)\s+(?:e\s+)?(\d+(?:[.,]\d+)?(?:\s*\/\s*\d+)?)|(\d+(?:[.,]\d+)?(?:\s*\/\s*\d+)?))/i;
   const match = text.match(regex);
   if (!match) return text;
-  const numberStr = match[0];
-  const rest = text.substring(numberStr.length);
+  
+  const numberPart = match[0];
+  const rest = text.substring(numberPart.length);
+  
   let value = 0;
-  numberStr.toLowerCase().split(" e ").forEach((part) => {
+  // Handle "1 e 1/2" or "1 1/2" or "1.5"
+  const parts = numberPart.toLowerCase().split(/\s+e\s+|\s+/).filter(Boolean);
+  
+  parts.forEach((part) => {
     if (part.includes("/")) {
-      const [numerator, denominator] = part.split("/");
-      value += parseFloat(numerator) / parseFloat(denominator);
+      const [num, den] = part.split("/");
+      value += parseFloat(num) / parseFloat(den);
     } else {
       value += parseFloat(part.replace(",", "."));
     }
   });
-  if (Number.isNaN(value)) return text;
-  return `${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 }).format(value * factor)}${rest}`;
+
+  if (Number.isNaN(value) || value <= 0) return text;
+  
+  return `${formatQuantity(value * factor)}${rest}`;
 }
 
 export default function RecipeIngredients({
@@ -41,9 +69,9 @@ export default function RecipeIngredients({
   recipeTitle,
   ingredients,
   servings,
+  customServings,
   showPaywall,
 }: RecipeIngredientsProps) {
-  const [customServings, setCustomServings] = useState(servings);
   const [shoppingListLoading, setShoppingListLoading] = useState(false);
   const { requireIdentity } = useAppContext();
 
@@ -75,19 +103,6 @@ export default function RecipeIngredients({
 
   return (
     <>
-      <div className="mt-4 flex items-center gap-2 rounded-lg border bg-card px-3 py-2">
-        <Users className="h-4 w-4 text-primary" />
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" className="h-5 w-5 print:hidden" onClick={() => setCustomServings((v) => Math.max(1, v - 1))}>
-            <Minus className="h-3 w-3" />
-          </Button>
-          <span className="text-sm font-medium">{customServings} porções</span>
-          <Button variant="ghost" size="icon" className="h-5 w-5 print:hidden" onClick={() => setCustomServings((v) => v + 1)}>
-            <Plus className="h-3 w-3" />
-          </Button>
-        </div>
-      </div>
-
       <Separator className="my-6 sm:my-8 print:my-4" />
 
       <div className="flex flex-wrap items-center justify-between gap-3">

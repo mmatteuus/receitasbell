@@ -7,7 +7,7 @@ import { CartSummary } from '@/components/cart/CartSummary';
 import { useCart } from '@/hooks/use-cart';
 
 export default function CartPage() {
-  const { items, remove, clear, getTotal } = useCart();
+  const { items, remove, clear, getTotal, updateQuantity } = useCart();
   const total = getTotal();
 
   if (items.length === 0) {
@@ -33,7 +33,7 @@ export default function CartPage() {
       </p>
 
       <div className="mt-6 space-y-4">
-        <CartItemsList items={items} onRemove={remove} />
+        <CartItemsList items={items} onRemove={remove} onUpdateQuantity={updateQuantity} />
       </div>
 
       <Separator className="my-6" />

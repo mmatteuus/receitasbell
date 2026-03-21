@@ -4,4 +4,5 @@ export interface CartItem {
   slug: string;
   imageUrl: string | null;
   priceBRL: number;
+  quantity: number;
 }

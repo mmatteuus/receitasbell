@@ -1,4 +1,4 @@
-import { getSettingsMap, mapTypedSettings } from "./sheets/settingsRepo.js";
+import { getSettingsMap, mapTypedSettings } from "./baserow/settingsRepo.js";
 
 function normalizeBaseUrl(value: string) {
   return value.trim().replace(/\/+$/, "");
@@ -76,8 +76,8 @@ export function getMercadoPagoAppEnv() {
   };
 }
 
-export async function getMercadoPagoAppEnvAsync() {
-  const settings = mapTypedSettings(await getSettingsMap());
+export async function getMercadoPagoAppEnvAsync(tenantId: string) {
+  const settings = mapTypedSettings(await getSettingsMap(tenantId));
   
   const clientId = getOptionalEnv("MERCADO_PAGO_CLIENT_ID", ["MP_CLIENT_ID"]).trim() || settings.mp_client_id;
   const clientSecret = getOptionalEnv("MERCADO_PAGO_CLIENT_SECRET", ["MP_CLIENT_SECRET"]).trim() || settings.mp_client_secret;
@@ -105,9 +105,9 @@ export function hasMercadoPagoAppConfig() {
   );
 }
 
-export async function hasMercadoPagoAppConfigAsync() {
+export async function hasMercadoPagoAppConfigAsync(tenantId: string) {
   try {
-    const settings = mapTypedSettings(await getSettingsMap());
+    const settings = mapTypedSettings(await getSettingsMap(tenantId));
     const hasClientId = Boolean(getOptionalEnv("MERCADO_PAGO_CLIENT_ID", ["MP_CLIENT_ID"]).trim() || settings.mp_client_id);
     const hasClientSecret = Boolean(getOptionalEnv("MERCADO_PAGO_CLIENT_SECRET", ["MP_CLIENT_SECRET"]).trim() || settings.mp_client_secret);
     const hasRedirect = Boolean(
@@ -126,8 +126,8 @@ export function getMercadoPagoWebhookSecret() {
   return getRequiredEnv("MERCADO_PAGO_WEBHOOK_SECRET", ["MP_WEBHOOK_SECRET"]);
 }
 
-export async function getMercadoPagoWebhookSecretAsync() {
-  const settings = mapTypedSettings(await getSettingsMap());
+export async function getMercadoPagoWebhookSecretAsync(tenantId: string) {
+  const settings = mapTypedSettings(await getSettingsMap(tenantId));
   return getOptionalEnv("MERCADO_PAGO_WEBHOOK_SECRET", ["MP_WEBHOOK_SECRET"]).trim() || settings.mp_webhook_secret;
 }
 
@@ -135,23 +135,24 @@ export function hasMercadoPagoWebhookSecret() {
   return Boolean(getOptionalEnv("MERCADO_PAGO_WEBHOOK_SECRET", ["MP_WEBHOOK_SECRET"]).trim());
 }
 
-export async function hasMercadoPagoWebhookSecretAsync() {
-  const settings = mapTypedSettings(await getSettingsMap());
+export async function hasMercadoPagoWebhookSecretAsync(tenantId: string) {
+  const settings = mapTypedSettings(await getSettingsMap(tenantId));
   return Boolean(
     getOptionalEnv("MERCADO_PAGO_WEBHOOK_SECRET", ["MP_WEBHOOK_SECRET"]).trim() || 
     settings.mp_webhook_secret
   );
 }
 
-export async function getMercadoPagoEnv() {
-  const settings = mapTypedSettings(await getSettingsMap());
+export async function getMercadoPagoEnv(tenantId: string) {
+  const settings = mapTypedSettings(await getSettingsMap(tenantId));
   return {
     accessToken: settings.mp_access_token || getOptionalEnv("MP_ACCESS_TOKEN"),
-    webhookSecret: getOptionalEnv("MERCADO_PAGO_WEBHOOK_SECRET", ["MP_WEBHOOK_SECRET"]),
+    webhookSecret: getOptionalEnv("MERCADO_PAGO_WEBHOOK_SECRET", ["MP_WEBHOOK_SECRET"]) || settings.mp_webhook_secret,
   };
 }
 
-export async function hasMercadoPagoConfig() {
-  const env = await getMercadoPagoEnv();
+export async function hasMercadoPagoConfig(tenantId: string) {
+  const env = await getMercadoPagoEnv(tenantId);
   return Boolean(env.accessToken);
 }
+
