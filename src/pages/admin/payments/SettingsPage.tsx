@@ -156,16 +156,7 @@ export default function SettingsPage() {
       setDisconnecting(false);
     }
   }
-
   async function handleConnect() {
-    // Check if we have credentials saved or in form
-    if (!form.mp_client_id || !form.mp_client_secret) {
-      toast.error("Chaves necessárias", {
-        description: "Você precisa salvar o Client ID e Client Secret antes de conectar."
-      });
-      return;
-    }
-
     setConnecting(true);
     try {
       // NOTE: Ensure the backend uses ASYNC config checks to read from DB!
@@ -203,116 +194,23 @@ export default function SettingsPage() {
             onDisconnect={handleDisconnect}
           />
 
-          {/* Setup Steps - Only visible if not connected */}
+          {/* Setup Steps - Replaced by simpler messaging */}
           {!isConnected && (
             <Card className="border-primary/20 bg-primary/5 overflow-hidden">
               <div className="h-1 bg-primary" />
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-semibold flex items-center gap-2">
                   <Info className="h-4 w-4 text-primary" />
-                  Passo a passo para conectar
+                  Pronto para começar
                 </CardTitle>
               </CardHeader>
               <CardContent className="text-xs space-y-3 text-muted-foreground leading-relaxed">
-                <div className="flex gap-3">
-                  <div className="flex-none h-5 w-5 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">1</div>
-                  <p>Acesse o <a href="https://www.mercadopago.com.br/developers/panel/applications" target="_blank" rel="noreferrer" className="text-primary hover:underline font-medium inline-flex items-center gap-0.5">Painel de Desenvolvedor <ArrowRight className="h-2.5 w-2.5" /></a> do Mercado Pago.</p>
-                </div>
-                <div className="flex gap-3">
-                  <div className="flex-none h-5 w-5 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">2</div>
-                  <p>Crie uma aplicação (ou selecione uma existente) e copie o <strong>Client ID</strong> e o <strong>Client Secret</strong>.</p>
-                </div>
-                <div className="flex gap-3">
-                  <div className="flex-none h-5 w-5 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">3</div>
-                  <p>Cole nos campos de "Credenciais" abaixo e clique em <strong>Salvar Configurações</strong>.</p>
-                </div>
-                <div className="flex gap-3">
-                  <div className="flex-none h-5 w-5 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold">4</div>
-                  <p>Clique no botão azul <strong>Conectar com Mercado Pago</strong> acima para finalizar.</p>
-                </div>
+                <p>Nossa plataforma cuida de toda a parte técnica para você. Clique em <strong>Conectar com Mercado Pago</strong> acima, autorize o aplicativo de forma segura, e o dinheiro das vendas cairá diretamente na sua conta, sem taxas intermediárias do sistema.</p>
               </CardContent>
             </Card>
           )}
 
-          {/* Credentials Card */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <KeyRound className="h-5 w-5 text-primary" />
-                    Credenciais da Aplicação
-                  </CardTitle>
-                  <CardDescription>Configure as chaves da sua conta de vendedor.</CardDescription>
-                </div>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <HelpCircle className="h-4 w-4" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-[200px]">
-                      Suas chaves são armazenadas de forma segura e usadas apenas para processar os pagamentos no seu nome.
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="mp-client-id" className="text-xs font-semibold">Client ID</Label>
-                  <Input
-                    id="mp-client-id"
-                    value={form.mp_client_id}
-                    onChange={(e) => setField('mp_client_id', e.target.value)}
-                    placeholder="Ex: 852..."
-                    className="font-mono text-xs"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="mp-client-secret" className="text-xs font-semibold">Client Secret</Label>
-                  <Input
-                    id="mp-client-secret"
-                    type="password"
-                    value={form.mp_client_secret}
-                    onChange={(e) => setField('mp_client_secret', e.target.value)}
-                    placeholder="Ex: oZ9..."
-                    className="font-mono text-xs"
-                  />
-                </div>
-              </div>
-
-              <div className="pt-2">
-                <div className="flex items-center gap-2 mb-2">
-                  <Globe className="h-3.5 w-3.5 text-muted-foreground" />
-                  <Label htmlFor="app-base-url" className="text-xs font-semibold">URL do Site</Label>
-                </div>
-                <Input
-                  id="app-base-url"
-                  value={form.app_base_url}
-                  onChange={(e) => setField('app_base_url', e.target.value)}
-                  placeholder="https://sualoja.com.br"
-                  className="text-xs"
-                />
-                <p className="text-[10px] text-muted-foreground mt-1.5 flex items-center gap-1">
-                  <Info className="h-3 w-3" />
-                  Importante para o redirecionamento pós-compra e notificações.
-                </p>
-              </div>
-
-              <Button 
-                onClick={() => void handleSave()} 
-                disabled={saving} 
-                className="w-full mt-4 bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary transition-all border-dashed border-primary/30"
-                variant="outline"
-              >
-                {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Settings2 className="h-4 w-4 mr-2" />}
-                {saving ? 'Gravando...' : 'Salvar Configurações'}
-              </Button>
-            </CardContent>
-          </Card>
+          {/* Removing Credentials Card */}
         </div>
 
         <div className="lg:col-span-4 space-y-6">

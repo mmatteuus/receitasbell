@@ -79,12 +79,10 @@ export function getMercadoPagoAppEnv() {
 export async function getMercadoPagoAppEnvAsync(tenantId: string) {
   const settings = mapTypedSettings(await getSettingsMap(tenantId));
   
-  const clientId = getOptionalEnv("MERCADO_PAGO_CLIENT_ID", ["MP_CLIENT_ID"]).trim() || settings.mp_client_id;
-  const clientSecret = getOptionalEnv("MERCADO_PAGO_CLIENT_SECRET", ["MP_CLIENT_SECRET"]).trim() || settings.mp_client_secret;
-  
-  if (!clientId || !clientSecret) {
-    throw new Error("Mercado Pago App Client ID and Secret are required (Env or Sheets).");
-  }
+  // Platform App Flow: The application keys (Client ID and Secret) MUST come
+  // from the central Vercel Environment Variables. The tenant does NOT provide these.
+  const clientId = getRequiredEnv("MERCADO_PAGO_CLIENT_ID", ["MP_CLIENT_ID"]);
+  const clientSecret = getRequiredEnv("MERCADO_PAGO_CLIENT_SECRET", ["MP_CLIENT_SECRET"]);
 
   return {
     clientId,
@@ -108,8 +106,9 @@ export function hasMercadoPagoAppConfig() {
 export async function hasMercadoPagoAppConfigAsync(tenantId: string) {
   try {
     const settings = mapTypedSettings(await getSettingsMap(tenantId));
-    const hasClientId = Boolean(getOptionalEnv("MERCADO_PAGO_CLIENT_ID", ["MP_CLIENT_ID"]).trim() || settings.mp_client_id);
-    const hasClientSecret = Boolean(getOptionalEnv("MERCADO_PAGO_CLIENT_SECRET", ["MP_CLIENT_SECRET"]).trim() || settings.mp_client_secret);
+    // Check if the platform owner has configured the global ecosystem keys
+    const hasClientId = Boolean(getOptionalEnv("MERCADO_PAGO_CLIENT_ID", ["MP_CLIENT_ID"]).trim());
+    const hasClientSecret = Boolean(getOptionalEnv("MERCADO_PAGO_CLIENT_SECRET", ["MP_CLIENT_SECRET"]).trim());
     const hasRedirect = Boolean(
       getOptionalEnv("MERCADO_PAGO_REDIRECT_URI", ["MP_REDIRECT_URI"]).trim() || 
       getOptionalEnv("APP_BASE_URL").trim() ||

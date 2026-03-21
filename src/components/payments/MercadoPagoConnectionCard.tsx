@@ -95,9 +95,9 @@ export function MercadoPagoConnectionCard({
           <div className="flex items-start gap-3 rounded-xl border border-amber-400/30 bg-amber-400/5 p-4 text-sm text-amber-800 dark:text-amber-200">
             <Lock className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
             <div>
-              <p className="font-bold text-xs uppercase tracking-tight">Configurações Pendentes</p>
+              <p className="font-bold text-xs uppercase tracking-tight">Recurso Indisponível</p>
               <p className="mt-1 text-xs opacity-90 leading-relaxed">
-                Você precisa preencher o <strong>Client ID</strong> e <strong>Client Secret</strong> abaixo para habilitar o botão de conexão.
+                A integração central com o Mercado Pago ainda não foi configurada pelo administrador da plataforma. Entre em contato com o suporte.
               </p>
             </div>
           </div>
@@ -149,12 +149,6 @@ export function MercadoPagoConnectionCard({
                 {reconnectRequired ? "Reconectar Conta" : "Conectar com Mercado Pago"}
               </span>
             </Button>
-
-            {!canConnect && (
-              <p className="text-center text-[10px] text-muted-foreground italic">
-                * O botão será habilitado após salvar as credenciais abaixo.
-              </p>
-            )}
           </div>
         )}
 
