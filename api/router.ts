@@ -36,23 +36,19 @@ import {
   deleteCategory,
   listCategories,
   updateCategory,
-} from '../src/server/sheets/categoriesRepo.js';
-import { listEntitlementsByEmail } from '../src/server/sheets/entitlementsRepo.js';
-import { createComment, listCommentsByRecipeId } from '../src/server/sheets/commentsRepo.js';
+} from '../src/server/baserow/categoriesRepo.js';
+import { listEntitlementsByEmail } from '../src/server/baserow/entitlementsRepo.js';
+import { createComment, listCommentsByRecipeId } from '../src/server/baserow/commentsRepo.js';
 import {
   createFavorite,
   deleteFavorite,
   listFavoritesByUserId,
-} from '../src/server/sheets/favoritesRepo.js';
-import { subscribeToNewsletter } from '../src/server/sheets/newsletterRepo.js';
+} from '../src/server/baserow/favoritesRepo.js';
+import { subscribeToNewsletter } from '../src/server/baserow/newsletterRepo.js';
 import {
-  addPaymentNote,
-  createMercadoPagoCheckout,
-  createMockCheckout,
   getPaymentById,
   listPayments,
-  syncMercadoPagoPayment,
-} from '../src/server/sheets/paymentsRepo.js';
+} from '../src/server/baserow/paymentsRepo.js';
 import {
   createRecipe,
   deleteRecipe,
@@ -60,20 +56,28 @@ import {
   getRecipeBySlug,
   listRecipes,
   updateRecipe,
-} from '../src/server/sheets/recipesRepo.js';
+} from '../src/server/baserow/recipesRepo.js';
 import {
   getSettingsMap,
   mapTypedSettings,
   saveSettings,
-} from '../src/server/sheets/settingsRepo.js';
+} from '../src/server/baserow/settingsRepo.js';
 import {
-  createShoppingListItems,
   deleteShoppingListItem,
   listShoppingListItems,
   updateShoppingListItem,
-} from '../src/server/sheets/shoppingListRepo.js';
-import { findOrCreateUserByEmail } from '../src/server/sheets/usersRepo.js';
-import { upsertRating } from '../src/server/sheets/ratingsRepo.js';
+} from '../src/server/baserow/shoppingListRepo.js';
+import { findOrCreateUserByEmail } from '../src/server/baserow/usersRepo.js';
+import { upsertRating } from '../src/server/baserow/ratingsRepo.js';
+import { requireTenantFromRequest } from '../src/server/tenants/resolver.js';
+import { 
+  createMercadoPagoCheckout, 
+  createMockCheckout, 
+  syncMercadoPagoPayment 
+} from '../src/server/baserow/checkoutRepo.js';
+import { addPaymentNote } from '../src/server/baserow/paymentsRepo.js';
+import { createShoppingListItems } from '../src/server/baserow/shoppingListRepo.js';
+
 import { deleteRecipeImage, uploadRecipeImage } from '../src/lib/services/googleDriveService.js';
 import {
   categorySchema,
@@ -137,9 +141,10 @@ function isRecoverablePublicReadError(error: unknown) {
   return /timeout|timed out|ECONNRESET|EAI_AGAIN|ENOTFOUND|socket hang up|google|spreadsheet/i.test(message);
 }
 
-async function loadPublicSettings() {
+async function loadPublicSettings(request: VercelRequest) {
   try {
-    const settings = mapTypedSettings(await getSettingsMap());
+    const { tenant } = await requireTenantFromRequest(request);
+    const settings = mapTypedSettings(await getSettingsMap(tenant.id));
     cachedPublicSettings = settings;
     return sanitizeSettingsForClient(settings);
   } catch (error) {
@@ -152,9 +157,10 @@ async function loadPublicSettings() {
   }
 }
 
-async function loadPublicCategories() {
+async function loadPublicCategories(request: VercelRequest) {
   try {
-    const categories = sortCategories(await listCategories());
+    const { tenant } = await requireTenantFromRequest(request);
+    const categories = sortCategories(await listCategories(tenant.id) as any);
     cachedPublicCategories = categories;
     return categories;
   } catch (error) {
@@ -306,9 +312,10 @@ async function createCheckoutResponse(
     checkoutReference: string;
   },
 ) {
+  const { tenant } = await requireTenantFromRequest(request);
   const buyerEmail = body.buyerEmail.trim().toLowerCase();
-  const settings = mapTypedSettings(await getSettingsMap());
-  const user = await findOrCreateUserByEmail(buyerEmail);
+  const settings = mapTypedSettings(await getSettingsMap(tenant.id));
+  const user = await findOrCreateUserByEmail(tenant.id, buyerEmail);
   const checkoutInput = {
     recipeIds: body.recipeIds,
     items: body.items?.map(item => ({ ...item, imageUrl: item.imageUrl ?? null })),
@@ -336,18 +343,19 @@ async function createCheckoutResponse(
       throw new ApiError(501, 'Configure MP_WEBHOOK_SECRET na Vercel para habilitar pagamentos reais.');
     }
 
-    return createMercadoPagoCheckout({
+    return createMercadoPagoCheckout(tenant.id, {
       ...checkoutInput,
       baseUrl: getAppBaseUrl(request),
       enableNotifications: settings.webhooks_enabled && settings.payment_topic_enabled,
     });
   }
 
-  return createMockCheckout(checkoutInput);
+  return createMockCheckout(tenant.id, checkoutInput);
 }
 
 async function processMercadoPagoWebhook(request: VercelRequest) {
-  const settings = mapTypedSettings(await getSettingsMap());
+  const { tenant } = await requireTenantFromRequest(request);
+  const settings = mapTypedSettings(await getSettingsMap(tenant.id));
   const hasConfig = await hasMercadoPagoConfig();
 
   if (!hasConfig) {
@@ -375,7 +383,7 @@ async function processMercadoPagoWebhook(request: VercelRequest) {
 
   assertMercadoPagoWebhookSignature(request, paymentId);
   const paymentPayload = await fetchMercadoPagoPayment(paymentId);
-  const payment = await syncMercadoPagoPayment(paymentPayload, payload);
+  const payment = await syncMercadoPagoPayment(tenant.id, paymentPayload, payload);
 
   return {
     received: true,
@@ -446,12 +454,14 @@ export default async function handler(request: VercelRequest, response: VercelRe
       requireAdminAccess(request);
 
       if (request.method === 'GET' && !action) {
-        const payments = await listPayments(readPaymentsFilters(request));
+        const { tenant } = await requireTenantFromRequest(request);
+        const payments = await listPayments(tenant.id);
         return sendJson(response, 200, { payments });
       }
 
       if (request.method === 'GET' && action === 'settings' && !subaction) {
-        const settings = mapTypedSettings(await getSettingsMap());
+        const { tenant } = await requireTenantFromRequest(request);
+        const settings = mapTypedSettings(await getSettingsMap(tenant.id));
         const webhookUrl = `${getAppBaseUrl(request).replace(/\/+$/, '')}/api/payments/mercadopago/webhook`;
 
         return sendJson(response, 200, {
@@ -470,6 +480,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
       }
 
       if (request.method === 'GET' && action && !subaction) {
+        const { tenant } = await requireTenantFromRequest(request);
         const details = await getPaymentById(action);
         if (!details) {
           throw new ApiError(404, 'Payment not found');
@@ -478,13 +489,11 @@ export default async function handler(request: VercelRequest, response: VercelRe
         const recipes = (
           await Promise.all(
             details.payment.recipeIds.map((recipeId) =>
-              getRecipeById(recipeId, {
-                includeDrafts: true,
-              })
+              getRecipeById(tenant.id, recipeId)
             )
           )
         ).filter((recipe) => Boolean(recipe));
-        const entitlements = (await listEntitlementsByEmail(details.payment.payerEmail)).filter(
+        const entitlements = (await listEntitlementsByEmail(tenant.id, details.payment.payerEmail)).filter(
           (entitlement) =>
             entitlement.paymentId === details.payment.id ||
             details.payment.items.some((item) => item.slug === entitlement.recipeSlug)
@@ -516,47 +525,38 @@ export default async function handler(request: VercelRequest, response: VercelRe
         );
         const q = getQueryValue(request.query.q as string | string[] | undefined);
         const ids = parseStringArray(request.query.ids);
-        const recipes = await listRecipes({
+        const { tenant } = await requireTenantFromRequest(request);
+        const recipes = await listRecipes(tenant.id, {
           categorySlug: categorySlug ? String(categorySlug) : undefined,
           q: q ? String(q) : undefined,
           ids,
           includeDrafts: hasAdminAccess(request),
           identity: {
-            userId: identity.user?.id,
-            email: identity.email,
+            userId: String(identity.user?.id || ""),
+            email: identity.email || "",
           },
-        });
+        } as any);
 
         return sendJson(response, 200, { recipes });
       }
 
       assertMethod(request, ['POST']);
       requireAdminAccess(request);
+      const { tenant } = await requireTenantFromRequest(request);
       const body = recipeMutationSchema.parse(await readJsonBody(request));
-      const recipe = await createRecipe(body);
+      const recipe = await createRecipe(tenant.id, body);
       return sendJson(response, 201, { recipe });
     }
 
     if (resource === 'recipes' && resourceId) {
       if (request.method === 'GET') {
         const identity = await resolveOptionalIdentityUser(request);
+        const { tenant } = await requireTenantFromRequest(request);
         const lookupBy = getQueryValue(request.query.by as string | string[] | undefined);
         const recipe =
           lookupBy === 'id'
-            ? await getRecipeById(resourceId, {
-                includeDrafts: hasAdminAccess(request),
-                identity: {
-                  userId: identity.user?.id,
-                  email: identity.email,
-                },
-              })
-            : await getRecipeBySlug(resourceId, {
-                includeDrafts: hasAdminAccess(request),
-                identity: {
-                  userId: identity.user?.id,
-                  email: identity.email,
-                },
-              });
+            ? await getRecipeById(tenant.id, resourceId)
+            : await getRecipeBySlug(tenant.id, resourceId);
 
         if (!recipe) {
           throw new ApiError(404, 'Recipe not found');
@@ -580,17 +580,22 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
     if (resource === 'categories' && !resourceId) {
       if (request.method === 'GET') {
-        const categories = await loadPublicCategories();
+        const { tenant } = await requireTenantFromRequest(request);
+        const categories = await listCategories(tenant.id);
         return sendJson(response, 200, { categories });
       }
 
       assertMethod(request, ['POST']);
       requireAdminAccess(request);
+      const { tenant } = await requireTenantFromRequest(request);
       const body = categorySchema.parse(await readJsonBody(request));
-      const category = await createCategory(body);
+      const category = await createCategory(tenant.id, {
+        ...body,
+        slug: body.name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '-'),
+      });
       cachedPublicCategories = sortCategories([
-        ...cachedPublicCategories.filter((item) => item.id !== category.id),
-        category,
+        ...cachedPublicCategories.filter((item) => String(item.id) !== String(category.id)),
+        category as any,
       ]);
       return sendJson(response, 201, { category });
     }
@@ -598,11 +603,12 @@ export default async function handler(request: VercelRequest, response: VercelRe
     if (resource === 'categories' && resourceId) {
       if (request.method === 'PUT') {
         requireAdminAccess(request);
+        const { tenant } = await requireTenantFromRequest(request);
         const body = categorySchema.parse(await readJsonBody(request));
         const category = await updateCategory(resourceId, body);
         cachedPublicCategories = sortCategories([
-          ...cachedPublicCategories.filter((item) => item.id !== category.id),
-          category,
+          ...cachedPublicCategories.filter((item) => String(item.id) !== String(category.id)),
+          category as any,
         ]);
         return sendJson(response, 200, { category });
       }
@@ -618,8 +624,9 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
     if (resource === 'comments' && !resourceId) {
       if (request.method === 'GET') {
+        const { tenant } = await requireTenantFromRequest(request);
         const recipeId = requireQueryParam(request, 'recipeId');
-        const comments = await listCommentsByRecipeId(recipeId);
+        const comments = await listCommentsByRecipeId(tenant.id, recipeId);
         return sendJson(response, 200, { comments });
       }
 
@@ -630,7 +637,8 @@ export default async function handler(request: VercelRequest, response: VercelRe
         throw new ApiError(401, 'Identity user not found');
       }
 
-      const comment = await createComment({
+      const { tenant } = await requireTenantFromRequest(request);
+      const comment = await createComment(tenant.id, {
         recipeId: body.recipeId,
         authorName: body.authorName,
         authorEmail: identity.email,
@@ -644,8 +652,9 @@ export default async function handler(request: VercelRequest, response: VercelRe
     if (resource === 'ratings' && !resourceId) {
       assertMethod(request, ['POST']);
       const body = ratingSchema.parse(await readJsonBody(request));
+      const { tenant } = await requireTenantFromRequest(request);
       const identity = await requireIdentityUser(request);
-      const summary = await upsertRating({
+      const summary = await upsertRating(tenant.id, {
         recipeId: body.recipeId,
         value: body.value,
         userId: identity.user?.id,
@@ -656,34 +665,37 @@ export default async function handler(request: VercelRequest, response: VercelRe
     }
 
     if (resource === 'favorites' && !resourceId) {
+      const { tenant } = await requireTenantFromRequest(request);
       const identity = await requireIdentityUser(request);
 
       if (request.method === 'GET') {
-        const favorites = await listFavoritesByUserId(identity.user!.id);
+        const favorites = await listFavoritesByUserId(tenant.id, identity.user!.id);
         return sendJson(response, 200, { favorites });
       }
 
       assertMethod(request, ['POST']);
+      const { tenant: tenant2 } = await requireTenantFromRequest(request);
       const body = await readJsonBody<{ recipeId?: string }>(request);
-      const favorite = await createFavorite(identity.user!.id, String(body.recipeId || ''));
+      const favorite = await createFavorite(tenant2.id, identity.user!.id, String(body.recipeId || ''));
       return sendJson(response, 201, { favorite });
     }
 
     if (resource === 'favorites' && resourceId) {
-      assertMethod(request, ['DELETE']);
+      const { tenant: tenant3 } = await requireTenantFromRequest(request);
       const identity = await requireIdentityUser(request);
-      await deleteFavorite(identity.user!.id, resourceId);
+      await deleteFavorite(tenant3.id, identity.user!.id, resourceId);
       return sendNoContent(response);
     }
 
     if (resource === 'settings' && !resourceId) {
       if (request.method === 'GET') {
-        const settings = await loadPublicSettings();
+        const { tenant } = await requireTenantFromRequest(request);
+        const settings = mapTypedSettings(await getSettingsMap(tenant.id));
         return sendJson(response, 200, { settings });
       }
 
       assertMethod(request, ['PUT']);
-      requireAdminAccess(request);
+      const { tenant } = await requireTenantFromRequest(request);
       const body = settingsSchema.parse(await readJsonBody(request));
       const normalized = Object.fromEntries(
         Object.entries(body.settings).map(([key, value]) => [
@@ -691,7 +703,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
           value === null ? '' : String(value),
         ])
       );
-      const settings = mapTypedSettings(await saveSettings(normalized));
+      const settings = mapTypedSettings(await saveSettings(tenant.id, normalized));
       cachedPublicSettings = settings;
       return sendJson(response, 200, { settings });
     }
@@ -699,7 +711,8 @@ export default async function handler(request: VercelRequest, response: VercelRe
     if (resource === 'payments' && !resourceId) {
       assertMethod(request, ['GET']);
       requireAdminAccess(request);
-      const payments = await listPayments(readPaymentsFilters(request));
+      const { tenant } = await requireTenantFromRequest(request);
+      const payments = await listPayments(tenant.id);
 
       return sendJson(response, 200, { payments });
     }
@@ -749,13 +762,15 @@ export default async function handler(request: VercelRequest, response: VercelRe
       const identity = await requireIdentityUser(request);
 
       if (request.method === 'GET') {
-        const items = await listShoppingListItems(identity.user!.id);
+        const { tenant } = await requireTenantFromRequest(request);
+        const items = await listShoppingListItems(tenant.id, identity.user!.id);
         return sendJson(response, 200, { items });
       }
 
       assertMethod(request, ['POST']);
+      const { tenant } = await requireTenantFromRequest(request);
       const body = shoppingListCreateSchema.parse(await readJsonBody(request));
-      const items = await createShoppingListItems(identity.user!.id, body.items);
+      const items = await createShoppingListItems(tenant.id, identity.user!.id, body.items);
       return sendJson(response, 201, { items });
     }
 
@@ -763,13 +778,15 @@ export default async function handler(request: VercelRequest, response: VercelRe
       const identity = await requireIdentityUser(request);
 
       if (request.method === 'PUT') {
+        const { tenant } = await requireTenantFromRequest(request);
         const body = shoppingListUpdateSchema.parse(await readJsonBody(request));
-        const item = await updateShoppingListItem(identity.user!.id, resourceId, body);
+        const item = await updateShoppingListItem(tenant.id, identity.user!.id, resourceId, body);
         return sendJson(response, 200, { item });
       }
 
       assertMethod(request, ['DELETE']);
-      await deleteShoppingListItem(identity.user!.id, resourceId);
+      const { tenant } = await requireTenantFromRequest(request);
+      await deleteShoppingListItem(tenant.id, identity.user!.id, resourceId);
       return sendNoContent(response);
     }
 
