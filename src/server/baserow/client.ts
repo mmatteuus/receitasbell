@@ -1,7 +1,5 @@
-// O token gerado automaticamente pelo script de setup.
-// Seguro para operações CRUD limitadas às tabelas da aplicação.
-const BASEROW_TOKEN = "wISEMSmnTmZkNTzxRFeZw9WmnNi0pZQd";
-const BASE_URL = "https://api.baserow.io";
+const BASEROW_TOKEN = process.env.BASEROW_TOKEN || "wISEMSmnTmZkNTzxRFeZw9WmnNi0pZQd";
+const BASE_URL = process.env.BASEROW_URL || "https://api.baserow.io";
 
 export const BASEROW_TABLES = {
   TENANTS: 896975,
