@@ -14,6 +14,7 @@ export const BASEROW_TABLES = {
   SHOPPING_LIST: 896990,
   RATINGS: 896991,
   ENTITLEMENTS: 896992,
+  OAUTH_STATES: 896993,
 };
 
 export async function fetchBaserow<T>(

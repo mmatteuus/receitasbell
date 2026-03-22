@@ -1,8 +1,7 @@
-import { getPrisma, isDatabaseConfigured } from "../db/prisma.js";
 import { getMercadoPagoAppEnvAsync } from "../env.js";
 import { ApiError } from "../http.js";
-import { createOpaqueState, hashOpaqueState, stateMatches } from "../security/state.js";
-import { getSettingsMap, saveSettings } from "../sheets/settingsRepo.js";
+import { createOpaqueState, hashOpaqueState } from "../security/state.js";
+import { fetchBaserow, BASEROW_TABLES } from "../baserow/client.js";
 import { upsertTenantMercadoPagoConnection } from "./connections.js";
 
 type OAuthTokenResponse = {
@@ -21,38 +20,24 @@ function sanitizeReturnTo(value: string | undefined | null) {
   return value;
 }
 
-export async function createMercadoPagoOAuthStart(input: {
-  tenantId?: string | null;
+export async function getMercadoPagoConnectUrl(tenantId: string | number, input: {
   tenantUserId?: string | null;
   returnTo?: string | null;
-  mode?: "connect" | "login";
 }) {
-  const { clientId, redirectUri } = await getMercadoPagoAppEnvAsync();
+  const { clientId, redirectUri } = await getMercadoPagoAppEnvAsync(String(tenantId));
   const state = createOpaqueState();
+  const stateHash = hashOpaqueState(state);
 
-  if (!isDatabaseConfigured()) {
-    // SINGLE TENANT FALLBACK (Google Sheets)
-    await saveSettings({
-      mp_oauth_state_json: JSON.stringify({
-        tenantId: input.tenantId ?? "system",
-        tenantUserId: input.tenantUserId ?? "system",
-        stateHash: hashOpaqueState(state),
-        expiresAt: Date.now() + 10 * 60 * 1000,
-        returnTo: sanitizeReturnTo(input.returnTo),
-      }),
-    });
-  } else {
-    const prisma = getPrisma();
-    await prisma.mercadoPagoOAuthState.create({
-      data: {
-        tenantId: input.tenantId ?? "system",
-        tenantUserId: input.tenantUserId ?? "system",
-        stateHash: hashOpaqueState(state),
-        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
-        returnTo: sanitizeReturnTo(input.returnTo),
-      },
-    });
-  }
+  await fetchBaserow(`/api/database/rows/table/${BASEROW_TABLES.OAUTH_STATES}/?user_field_names=true`, {
+    method: "POST",
+    body: JSON.stringify({
+      tenantId: String(tenantId),
+      tenantUserId: input.tenantUserId ?? "system",
+      stateHash,
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+      returnTo: sanitizeReturnTo(input.returnTo),
+    }),
+  });
 
   const url = new URL("https://auth.mercadopago.com/authorization");
   url.searchParams.set("client_id", clientId);
@@ -61,85 +46,50 @@ export async function createMercadoPagoOAuthStart(input: {
   url.searchParams.set("redirect_uri", redirectUri);
   url.searchParams.set("state", state);
 
-  return {
-    authorizationUrl: url.toString(),
-    state,
-  };
+  return url.toString();
 }
 
-export async function completeMercadoPagoOAuth(input: {
-  code: string;
-  state: string;
-}) {
-  const hashed = hashOpaqueState(input.state);
-  let oauthState: any = null;
-
-  if (!isDatabaseConfigured()) {
-    // SINGLE TENANT FALLBACK (Google Sheets)
-    const settings = await getSettingsMap();
-    if (settings.mp_oauth_state_json) {
-      try {
-        const parsed = JSON.parse(settings.mp_oauth_state_json);
-        if (parsed.stateHash === hashed) {
-          oauthState = {
-            ...parsed,
-            expiresAt: new Date(parsed.expiresAt),
-          };
-          // Limpar estado após uso
-          await saveSettings({ mp_oauth_state_json: "" });
-        }
-      } catch (e) {
-        console.error("Failed to parse mp_oauth_state_json", e);
-      }
-    }
-  } else {
-    const prisma = getPrisma();
-    oauthState = await prisma.mercadoPagoOAuthState.findUnique({
-      where: { stateHash: hashed },
-    });
+export async function handleMercadoPagoOAuthCallback(code: string, state: string) {
+  const stateHash = hashOpaqueState(state);
+  
+  // Buscar estado por hash
+  const data = await fetchBaserow<{ results: any[] }>(
+      `/api/database/rows/table/${BASEROW_TABLES.OAUTH_STATES}/?user_field_names=true&filter__stateHash__equal=${stateHash}`
+  );
+  
+  const oauthState = data.results[0];
+  if (!oauthState) {
+    throw new ApiError(400, "OAuth state inválido ou expirado.");
   }
 
-  if (!oauthState || !stateMatches(oauthState.stateHash, input.state)) {
-    throw new ApiError(400, "OAuth state inválido.");
-  }
-  if (oauthState.consumedAt) {
-    throw new ApiError(409, "OAuth state já utilizado.");
-  }
-  if (oauthState.expiresAt.getTime() <= Date.now()) {
+  // Verificar expiração
+  if (new Date(oauthState.expiresAt).getTime() <= Date.now()) {
+    await fetchBaserow(`/api/database/rows/table/${BASEROW_TABLES.OAUTH_STATES}/${oauthState.id}/`, { method: "DELETE" });
     throw new ApiError(410, "OAuth state expirado.");
   }
 
-  const { clientId, clientSecret, redirectUri } = await getMercadoPagoAppEnvAsync();
+  const { clientId, clientSecret, redirectUri } = await getMercadoPagoAppEnvAsync(String(oauthState.tenantId));
   const tokenResponse = await fetch("https://api.mercadopago.com/oauth/token", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       client_id: clientId,
       client_secret: clientSecret,
       grant_type: "authorization_code",
-      code: input.code,
+      code: code,
       redirect_uri: redirectUri,
     }),
   });
 
   const tokenData = (await tokenResponse.json().catch(() => null)) as OAuthTokenResponse | null;
   if (!tokenResponse.ok || !tokenData?.access_token || !tokenData.user_id) {
-    throw new ApiError(502, "Falha ao concluir a autorização com o Mercado Pago.", {
-      status: tokenResponse.status,
-    });
+    throw new ApiError(502, "Falha ao concluir a autorização com o Mercado Pago.");
   }
 
-  if (isDatabaseConfigured()) {
-    const prisma = getPrisma();
-    await prisma.mercadoPagoOAuthState.update({
-      where: { id: oauthState.id },
-      data: { consumedAt: new Date() },
-    });
-  }
+  // Limpar estado usado
+  await fetchBaserow(`/api/database/rows/table/${BASEROW_TABLES.OAUTH_STATES}/${oauthState.id}/`, { method: "DELETE" });
 
-  const connection = await upsertTenantMercadoPagoConnection({
+  await upsertTenantMercadoPagoConnection({
     tenantId: oauthState.tenantId,
     actorUserId: oauthState.tenantUserId,
     mercadoPagoUserId: String(tokenData.user_id),
@@ -150,9 +100,7 @@ export async function completeMercadoPagoOAuth(input: {
   });
 
   return {
-    connection,
     tenantId: oauthState.tenantId,
-    tenantUserId: oauthState.tenantUserId,
     returnTo: sanitizeReturnTo(oauthState.returnTo),
   };
 }

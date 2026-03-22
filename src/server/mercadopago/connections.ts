@@ -1,10 +1,8 @@
-import { Prisma, type MercadoPagoConnection } from "@prisma/client";
-import { getPrisma, isDatabaseConfigured } from "../db/prisma.js";
 import { decryptSecret, encryptSecret } from "../security/crypto.js";
 import { redactErrorMessage } from "../security/masking.js";
 import { ApiError } from "../http.js";
 import { getMercadoPagoAppEnvAsync } from "../env.js";
-import { getSettingsMap, saveSettings } from "../sheets/settingsRepo.js";
+import { getSettingsMap, saveSettings } from "../baserow/settingsRepo.js";
 
 type OAuthTokenResponse = {
   access_token?: string;
@@ -21,44 +19,30 @@ function computeTokenExpiresAt(expiresIn?: number | null) {
 }
 
 async function writeAuditLog(input: {
-  tenantId: string;
+  tenantId: string | number;
   actorUserId?: string | null;
   action: string;
   entityType: string;
   entityId?: string | null;
   metadata?: Record<string, unknown> | null;
 }) {
-  await getPrisma().auditLog.create({
-    data: {
-      tenantId: input.tenantId,
-      actorUserId: input.actorUserId ?? null,
-      action: input.action,
-      entityType: input.entityType,
-      entityId: input.entityId ?? null,
-      metadataJson: (input.metadata ?? Prisma.JsonNull) as Prisma.InputJsonValue,
-    },
-  });
+  console.log(`[AuditLog] ${input.action} on ${input.entityType} by ${input.actorUserId || 'system'}`);
 }
 
-export async function getTenantMercadoPagoConnection(tenantId: string): Promise<any> {
-  if (!isDatabaseConfigured()) {
-    const settings = await getSettingsMap();
-    if (!settings.mp_access_token) return null;
-    
-    // Mock interface compatível com o Prisma para o frontend
-    return {
-      tenantId: "system",
-      mercadoPagoUserId: settings.mp_user_id,
-      accessTokenEncrypted: encryptSecret(settings.mp_access_token),
-      publicKey: settings.mp_public_key,
-      status: "connected",
-      connectedAt: new Date(),
-    };
-  }
+export async function getTenantMercadoPagoConnection(tenantId: string | number): Promise<any> {
+  const settings = await getSettingsMap(tenantId);
+  if (!settings.mp_access_token) return null;
   
-  return getPrisma().mercadoPagoConnection.findUnique({
-    where: { tenantId },
-  });
+  return {
+    id: `settings_${tenantId}`,
+    tenantId,
+    mercadoPagoUserId: settings.mp_user_id,
+    accessTokenEncrypted: encryptSecret(settings.mp_access_token),
+    refreshTokenEncrypted: settings.mp_refresh_token ? encryptSecret(settings.mp_refresh_token) : null,
+    publicKey: settings.mp_public_key,
+    status: settings.mp_access_token ? "connected" : "disconnected",
+    connectedAt: new Date().toISOString(),
+  };
 }
 
 export async function requireTenantMercadoPagoConnection(tenantId: string) {
@@ -77,7 +61,7 @@ export function readConnectionSecrets(connection: any) {
 }
 
 export async function upsertTenantMercadoPagoConnection(input: {
-  tenantId: string;
+  tenantId: string | number;
   mercadoPagoUserId: string;
   accessToken: string;
   refreshToken?: string | null;
@@ -85,53 +69,23 @@ export async function upsertTenantMercadoPagoConnection(input: {
   publicKey?: string | null;
   actorUserId?: string | null;
 }) {
-  if (!isDatabaseConfigured()) {
-    // SINGLE TENANT FALLBACK (Google Sheets)
-    await saveSettings({
-      mp_access_token: input.accessToken,
-      mp_refresh_token: input.refreshToken || "",
-      mp_public_key: input.publicKey || "",
-      mp_user_id: input.mercadoPagoUserId,
-    });
-    
-    return { 
-      id: "sheets", 
-      tenantId: input.tenantId,
-      status: "connected" as const, 
-      mercadoPagoUserId: input.mercadoPagoUserId,
-      accessTokenEncrypted: encryptSecret(input.accessToken),
-      refreshTokenEncrypted: input.refreshToken ? encryptSecret(input.refreshToken) : null,
-      publicKey: input.publicKey || null,
-      connectedAt: new Date(),
-    } as any;
-  }
-
-  const prisma = getPrisma();
-  // ... (código original do prisma continua abaixo no arquivo real, mas vou substituir o bloco inteiro)
-  const connection = await prisma.mercadoPagoConnection.upsert({
-    where: { tenantId: input.tenantId },
-    update: {
-      mercadoPagoUserId: input.mercadoPagoUserId,
-      accessTokenEncrypted: encryptSecret(input.accessToken),
-      refreshTokenEncrypted: input.refreshToken ? encryptSecret(input.refreshToken) : null,
-      tokenExpiresAt: computeTokenExpiresAt(input.expiresIn),
-      status: "connected",
-      lastError: null,
-      publicKey: input.publicKey ?? null,
-      connectedAt: new Date(),
-      disconnectedAt: null,
-    },
-    create: {
-      tenantId: input.tenantId,
-      mercadoPagoUserId: input.mercadoPagoUserId,
-      accessTokenEncrypted: encryptSecret(input.accessToken),
-      refreshTokenEncrypted: input.refreshToken ? encryptSecret(input.refreshToken) : null,
-      tokenExpiresAt: computeTokenExpiresAt(input.expiresIn),
-      status: "connected",
-      publicKey: input.publicKey ?? null,
-      connectedAt: new Date(),
-    },
+  await saveSettings(input.tenantId, {
+    mp_access_token: input.accessToken,
+    mp_refresh_token: input.refreshToken || "",
+    mp_public_key: input.publicKey || "",
+    mp_user_id: input.mercadoPagoUserId,
   });
+  
+  const connection = { 
+    id: `settings_${input.tenantId}`, 
+    tenantId: input.tenantId,
+    status: "connected" as const, 
+    mercadoPagoUserId: input.mercadoPagoUserId,
+    accessTokenEncrypted: encryptSecret(input.accessToken),
+    refreshTokenEncrypted: input.refreshToken ? encryptSecret(input.refreshToken) : null,
+    publicKey: input.publicKey || null,
+    connectedAt: new Date().toISOString(),
+  };
 
   await writeAuditLog({
     tenantId: input.tenantId,
@@ -148,28 +102,13 @@ export async function upsertTenantMercadoPagoConnection(input: {
 }
 
 export async function disconnectTenantMercadoPagoConnection(input: {
-  tenantId: string;
+  tenantId: string | number;
   actorUserId?: string | null;
 }) {
-  const prisma = getPrisma();
-  const connection = await prisma.mercadoPagoConnection.findUnique({
-    where: { tenantId: input.tenantId },
-  });
-
-  if (!connection) {
-    return null;
-  }
-
-  const updated = await prisma.mercadoPagoConnection.update({
-    where: { tenantId: input.tenantId },
-    data: {
-      accessTokenEncrypted: "",
-      refreshTokenEncrypted: null,
-      tokenExpiresAt: null,
-      status: "disconnected",
-      disconnectedAt: new Date(),
-      lastError: null,
-    },
+  await saveSettings(input.tenantId, {
+    mp_access_token: "",
+    mp_refresh_token: "",
+    mp_user_id: "",
   });
 
   await writeAuditLog({
@@ -177,47 +116,28 @@ export async function disconnectTenantMercadoPagoConnection(input: {
     actorUserId: input.actorUserId,
     action: "mercado_pago.connection.disconnected",
     entityType: "mercado_pago_connection",
-    entityId: updated.id,
+    entityId: `settings_${input.tenantId}`,
   });
 
-  return updated;
+  return true;
 }
 
 export async function markConnectionReconnectRequired(input: {
   connectionId: string;
   message: string;
 }) {
-  const connection = await getPrisma().mercadoPagoConnection.update({
-    where: { id: input.connectionId },
-    data: {
-      status: "reconnect_required",
-      lastError: input.message.slice(0, 1000),
-    },
-  });
-
-  await writeAuditLog({
-    tenantId: connection.tenantId,
-    action: "mercado_pago.connection.reconnect_required",
-    entityType: "mercado_pago_connection",
-    entityId: connection.id,
-    metadata: {
-      error: input.message.slice(0, 500),
-    },
-  });
-
-  return connection;
+  console.warn(`[MP Connection] Reconnect required for ${input.connectionId}: ${input.message}`);
+  return null;
 }
 
 export async function refreshMercadoPagoConnection(connectionId: string) {
-  const prisma = getPrisma();
-  const connection = await prisma.mercadoPagoConnection.findUnique({
-    where: { id: connectionId },
-  });
+  const tenantId = connectionId.replace("settings_", "");
+  const connection = await getTenantMercadoPagoConnection(tenantId);
   if (!connection) {
     throw new ApiError(404, "Mercado Pago connection not found.");
   }
 
-  const refreshToken = decryptSecret(connection.refreshTokenEncrypted);
+  const { accessToken, refreshToken } = readConnectionSecrets(connection);
   if (!refreshToken) {
     await markConnectionReconnectRequired({
       connectionId: connection.id,
@@ -226,7 +146,7 @@ export async function refreshMercadoPagoConnection(connectionId: string) {
     throw new ApiError(409, "A conexão com o Mercado Pago precisa ser refeita.");
   }
 
-  const { clientId, clientSecret } = await getMercadoPagoAppEnvAsync();
+  const { clientId, clientSecret } = await getMercadoPagoAppEnvAsync(String(tenantId));
   const response = await fetch("https://api.mercadopago.com/oauth/token", {
     method: "POST",
     headers: {

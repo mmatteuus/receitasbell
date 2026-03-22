@@ -1,6 +1,6 @@
 export type RecipeStatus = "draft" | "published";
 export type AccessTier = "free" | "paid";
-export type StorageProvider = "google_drive" | "fallback";
+export type StorageProvider = "baserow" | "external" | "fallback";
 
 export type { Category } from "./category";
 export type { CartItem } from "./cart";

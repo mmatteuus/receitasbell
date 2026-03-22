@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 const imageFileMetaSchema = z.object({
-  storage: z.enum(['google_drive', 'fallback']),
+  storage: z.enum(['baserow', 'external', 'fallback']),
   fileId: z.string().trim().min(1),
   fileName: z.string().trim().min(1),
   mimeType: z.string().trim().min(1),

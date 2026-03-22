@@ -72,7 +72,7 @@ export function sendError(response: VercelResponse, error: unknown) {
 export async function withApiHandler(
   request: VercelRequest,
   response: VercelResponse,
-  handler: () => Promise<void>
+  handler: () => Promise<unknown>
 ) {
   response.setHeader('Access-Control-Allow-Origin', '*');
   response.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-secret, x-tenant-slug');

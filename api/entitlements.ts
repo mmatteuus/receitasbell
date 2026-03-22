@@ -3,7 +3,8 @@ import {
   createEntitlement,
   listEntitlementsByEmail,
   revokeEntitlement,
-} from "../src/server/sheets/entitlementsRepo.js";
+} from "../src/server/baserow/entitlementsRepo.js";
+import { requireTenantFromRequest } from "../src/server/tenants/resolver.js";
 import {
   ApiError,
   assertMethod,
@@ -17,8 +18,9 @@ import {
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   return withApiHandler(request, response, async () => {
     if (request.method === "GET") {
+      const { tenant } = await requireTenantFromRequest(request);
       const email = requireIdentityEmail(request);
-      const entitlements = await listEntitlementsByEmail(email);
+      const entitlements = await listEntitlementsByEmail(tenant.id, email);
       return sendJson(response, 200, { entitlements });
     }
 
@@ -34,7 +36,8 @@ export default async function handler(request: VercelRequest, response: VercelRe
         throw new ApiError(400, "paymentId, payerEmail e recipeSlug são obrigatórios");
       }
 
-      const entitlement = await createEntitlement({
+      const { tenant } = await requireTenantFromRequest(request);
+      const entitlement = await createEntitlement(tenant.id, {
         paymentId: payload.paymentId,
         payerEmail: payload.payerEmail,
         recipeSlug: payload.recipeSlug,
@@ -54,7 +57,9 @@ export default async function handler(request: VercelRequest, response: VercelRe
         throw new ApiError(400, "paymentId é obrigatório");
       }
 
+      const { tenant } = await requireTenantFromRequest(request);
       const entitlements = await revokeEntitlement(
+        tenant.id,
         payload.paymentId,
         payload.recipeSlug?.trim() || undefined,
       );

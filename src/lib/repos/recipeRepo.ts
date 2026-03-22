@@ -97,17 +97,12 @@ export async function saveRecipe(recipe: Partial<RecipeRecord> & { id?: string }
   return create(recipe);
 }
 
-export async function deleteById(id: string, imageFileMeta?: ImageFileMeta | null) {
-  return deleteRecipe(id, imageFileMeta);
+export async function deleteById(id: string) {
+  return deleteRecipe(id);
 }
 
-export async function deleteRecipe(id: string, imageFileMeta?: ImageFileMeta | null) {
+export async function deleteRecipe(id: string) {
   await deleteRecipeRequest(id);
-  try {
-    await removeRecipeImageFile(imageFileMeta);
-  } catch (error) {
-    console.error('Failed to delete recipe image file', error);
-  }
 }
 
 export async function uploadRecipeImageFile(file: File) {
@@ -129,11 +124,8 @@ export async function uploadRecipeImageFile(file: File) {
 }
 
 export async function removeRecipeImageFile(imageFileMeta?: ImageFileMeta | null) {
-  if (!imageFileMeta?.fileId || imageFileMeta.storage !== 'google_drive') {
-    return;
-  }
-
-  await deleteRecipeImage(imageFileMeta.fileId);
+  // Baserow handles file cleanup internally when the row is deleted or the field is cleared.
+  // This is a placeholder for external storage providers if added later.
 }
 
 export async function slugExists(slug: string, excludeId?: string) {

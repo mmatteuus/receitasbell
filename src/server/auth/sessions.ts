@@ -1,7 +1,5 @@
-import type { TenantSession, TenantUser } from "@prisma/client";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
-import { getPrisma, isDatabaseConfigured } from "../db/prisma.js";
 import { ApiError, appendSetCookie } from "../http.js";
 
 const TENANT_ADMIN_SESSION_COOKIE = "rb_tenant_admin_session";
@@ -96,50 +94,19 @@ export function hasTenantAdminSession(request: VercelRequest) {
 }
 
 export async function createTenantAdminSession(input: {
-  tenantId: string;
-  tenantUserId: string;
+  tenantId: string | number;
+  tenantUserId: string | number;
 }) {
   const expiresAt = new Date(Date.now() + SESSION_MAX_AGE_SECONDS * 1000);
 
-  if (!isDatabaseConfigured()) {
-    // SINGLE TENANT FALLBACK (Stateless JWT)
-    const token = signClaims({
-      sid: "stateless",
-      tid: input.tenantId,
-      uid: input.tenantUserId,
-      exp: expiresAt.getTime(),
-    });
-    return { token, sessionId: "stateless", expiresAt };
-  }
-
-  const prisma = getPrisma();
-  const session = await prisma.tenantSession.create({
-    data: {
-      tenantId: input.tenantId,
-      tenantUserId: input.tenantUserId,
-      sessionTokenHash: "",
-      expiresAt,
-    },
-  });
-
-  const sessionHash = hashSessionId(session.id);
-  await prisma.tenantSession.update({
-    where: { id: session.id },
-    data: { sessionTokenHash: sessionHash },
-  });
-
+  // ALWAYS STATELESS FOR MVP WITHOUT PRISMA
   const token = signClaims({
-    sid: session.id,
-    tid: input.tenantId,
-    uid: input.tenantUserId,
+    sid: "stateless",
+    tid: String(input.tenantId),
+    uid: String(input.tenantUserId),
     exp: expiresAt.getTime(),
   });
-
-  return {
-    token,
-    sessionId: session.id,
-    expiresAt,
-  };
+  return { token, sessionId: "stateless", expiresAt };
 }
 
 export function setTenantAdminSessionCookie(
@@ -165,66 +132,19 @@ export function clearTenantAdminSessionCookie(request: VercelRequest, response: 
 }
 
 export async function revokeTenantAdminSession(request: VercelRequest) {
-  const claims = getTenantAdminSessionClaims(request);
-  if (!claims || !isDatabaseConfigured()) return;
-
-  const prisma = getPrisma();
-  await prisma.tenantSession.updateMany({
-    where: {
-      id: claims.sid,
-      sessionTokenHash: hashSessionId(claims.sid),
-      revokedAt: null,
-    },
-    data: {
-      revokedAt: new Date(),
-    },
-  });
+  // Stateless implementation for now (no-op on server side revocation without DB)
+  return;
 }
 
 export async function getTenantAdminSessionContext(request: VercelRequest) {
   const claims = getTenantAdminSessionClaims(request);
   if (!claims) return null;
 
-  if (!isDatabaseConfigured()) {
-    // SINGLE TENANT FALLBACK (Static context)
-    return {
-      claims,
-      session: { id: claims.sid, tenantId: claims.tid, tenantUserId: claims.uid } as any,
-      tenant: { id: claims.tid, slug: "admin", name: "Admin" } as any,
-      tenantUser: { id: claims.uid, email: "admin@receitasbell.com.br", role: "owner" } as any,
-    };
-  }
-
-  const prisma = getPrisma();
-  const session = await prisma.tenantSession.findFirst({
-    where: {
-      id: claims.sid,
-      tenantId: claims.tid,
-      tenantUserId: claims.uid,
-      sessionTokenHash: hashSessionId(claims.sid),
-      revokedAt: null,
-      expiresAt: {
-        gt: new Date(),
-      },
-    },
-    include: {
-      tenant: true,
-      tenantUser: true,
-    },
-  });
-
-  if (!session) return null;
-
-  await prisma.tenantSession.update({
-    where: { id: session.id },
-    data: { lastSeenAt: new Date() },
-  });
-
   return {
     claims,
-    session,
-    tenant: session.tenant,
-    tenantUser: session.tenantUser,
+    session: { id: claims.sid, tenantId: claims.tid, tenantUserId: claims.uid } as any,
+    tenant: { id: claims.tid, slug: "admin", name: "Admin" } as any,
+    tenantUser: { id: claims.uid, email: "admin@receitasbell.com.br", role: "owner" } as any,
   };
 }
 
@@ -237,5 +157,5 @@ export async function requireTenantAdminSessionContext(request: VercelRequest) {
 }
 
 export type TenantAdminSessionContext = Awaited<ReturnType<typeof getTenantAdminSessionContext>>;
-export type TenantSessionRecord = TenantSession;
-export type TenantSessionUser = TenantUser;
+export type TenantSessionRecord = any;
+export type TenantSessionUser = any;
