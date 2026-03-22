@@ -1,5 +1,5 @@
-const BASEROW_TOKEN = process.env.BASEROW_TOKEN || "wISEMSmnTmZkNTzxRFeZw9WmnNi0pZQd";
-const BASE_URL = process.env.BASEROW_URL || "https://api.baserow.io";
+const BASEROW_TOKEN = process.env.BASEROW_API_TOKEN;
+const BASE_URL = process.env.BASEROW_API_URL || "https://api.baserow.io";
 
 export const BASEROW_TABLES = {
   TENANTS: 896975,

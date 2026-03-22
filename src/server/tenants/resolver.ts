@@ -1,7 +1,6 @@
 import type { VercelRequest } from "@vercel/node";
 import { ApiError } from "../http.js";
 import { getTenantAdminSessionClaims } from "../auth/sessions.js";
-import { isDatabaseConfigured } from "../db/prisma.js";
 import { findTenantByHost, findTenantById, findTenantBySlug } from "./service.js";
 
 function getSingleHeader(value: string | string[] | undefined) {
@@ -36,15 +35,6 @@ export function getRequestHost(request: VercelRequest) {
 }
 
 export async function resolveTenantFromRequest(request: VercelRequest) {
-  if (!isDatabaseConfigured()) {
-    // SINGLE TENANT FALLBACK
-    return {
-      tenant: { id: "system", slug: "admin", name: "Admin" } as any,
-      resolution: "static" as const,
-      publicBasePath: "",
-    };
-  }
-
   const host = getRequestHost(request);
   if (host) {
     const byHost = await findTenantByHost(host);

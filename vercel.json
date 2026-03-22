@@ -1,18 +1,17 @@
 {
-  "functions": {
-    "api/**/*.ts": {
-      "maxDuration": 30
-    }
-  },
+  "framework": "vite",
   "routes": [
-    { "handle": "filesystem" },
     { "src": "/api/admin/auth/(.*)", "dest": "/api/admin/auth/[...path]?path=$1" },
-    { "src": "/api/admin/mercadopago/(.*)", "dest": "/api/admin/mercadopago/[...path]?path=$1" },
+    { "src": "/api/admin/tenants/(.*)", "dest": "/api/admin/tenants/[...path]?path=$1" },
+    { "src": "/api/admin/settings/(.*)", "dest": "/api/admin/settings/[...path]?path=$1" },
+    { "src": "/api/admin/recipes/(.*)", "dest": "/api/admin/recipes/[...path]?path=$1" },
+    { "src": "/api/admin/categories/(.*)", "dest": "/api/admin/categories/[...path]?path=$1" },
     { "src": "/api/admin/payments/(.*)", "dest": "/api/admin/payments/[...path]?path=$1" },
-    { "src": "/api/mercadopago/oauth/callback", "dest": "/api/mercadopago/oauth/callback" },
+    { "src": "/api/checkout/mercadopago/(.*)", "dest": "/api/checkout/mercadopago/[...path]?path=$1" },
     { "src": "/api/payments/mercadopago/create-preference", "dest": "/api/payments/mercadopago/create-preference" },
     { "src": "/api/payments/mercadopago/webhook", "dest": "/api/payments/mercadopago/webhook" },
     { "src": "/api/(.*)", "dest": "/api/router?route=$1" },
-    { "src": "/(.*)", "dest": "/index.html" }
+    { "src": "/(@vite|src|node_modules)/(.*)", "dest": "/$1/$2" },
+    { "src": "/((?!api/).*)", "dest": "/index.html" }
   ]
 }
