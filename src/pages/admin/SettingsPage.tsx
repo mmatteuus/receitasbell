@@ -98,7 +98,7 @@ export default function SettingsPage() {
             <Settings className="h-5 w-5 text-primary" />
             Identidade do Site
           </CardTitle>
-          <CardDescription>Esses dados são lidos do Google Sheets e aplicados no frontend.</CardDescription>
+          <CardDescription>Esses dados são lidos do Baserow e aplicados no frontend.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
@@ -117,7 +117,7 @@ export default function SettingsPage() {
               URL do Logotipo
             </Label>
             <Input id="logoUrl" value={form.logoUrl} onChange={(event) => setField("logoUrl", event.target.value)} placeholder="https://..." />
-            <p className="text-xs text-muted-foreground">A planilha persiste apenas a URL da imagem.</p>
+            <p className="text-xs text-muted-foreground">O banco de dados persiste apenas a URL da imagem.</p>
           </div>
 
           {form.logoUrl && (

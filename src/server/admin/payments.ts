@@ -2,14 +2,14 @@ import type { VercelRequest } from "@vercel/node";
 import { hasMercadoPagoAppConfigAsync, hasMercadoPagoWebhookSecretAsync, getOptionalEnv } from "../env.js";
 import { getAppBaseUrl } from "../http.js";
 import { getTenantMercadoPagoConnection } from "../mercadopago/connections.js";
-import { getSettingsMap, mapTypedSettings } from "../sheets/settingsRepo.js";
+import { getSettingsMap, mapTypedSettings } from "../baserow/settingsRepo.js";
 
 export async function getTenantAdminPaymentSettings(request: VercelRequest, tenantId: string) {
   const [settings, connection, oauthConfigured, webhookSecretConfigured] = await Promise.all([
-    getSettingsMap().then(mapTypedSettings),
+    getSettingsMap(tenantId).then(mapTypedSettings),
     getTenantMercadoPagoConnection(tenantId),
-    hasMercadoPagoAppConfigAsync(),
-    hasMercadoPagoWebhookSecretAsync(),
+    hasMercadoPagoAppConfigAsync(tenantId),
+    hasMercadoPagoWebhookSecretAsync(tenantId),
   ]);
 
   const missingConfig: string[] = [];

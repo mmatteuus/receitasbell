@@ -6,6 +6,8 @@ export interface UserRecord {
   username: string;
   displayName: string;
   role: string;
+  passwordHash: string;
+  status: "active" | "inactive";
   tenantId: string | number;
   createdAt: string;
   updatedAt: string;
@@ -56,6 +58,8 @@ function mapUserRowToRecord(row: any): UserRecord {
     username: row.username,
     displayName: row.display_name,
     role: row.role || "viewer",
+    passwordHash: row.password_hash || "",
+    status: row.status === "active" ? "active" : "inactive",
     tenantId: row.tenantId,
     createdAt: row.created_at,
     updatedAt: row.updated_at,

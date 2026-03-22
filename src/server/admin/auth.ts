@@ -1,5 +1,4 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { getPrisma, isDatabaseConfigured } from "../db/prisma.js";
 import { getAdminApiSecret } from "../env.js";
 import { consumeAdminRateLimit } from "../rateLimit.js";
 import {
@@ -56,19 +55,19 @@ type AdminBootstrapInput = {
   host?: string | null;
 };
 
-function buildTenantSummary(tenant: { id: string; slug: string; name: string } | null) {
+function buildTenantSummary(tenant: { id: string | number; slug: string; name: string } | null) {
   if (!tenant) return null;
   return {
-    id: tenant.id,
+    id: String(tenant.id),
     slug: tenant.slug,
     name: tenant.name,
   };
 }
 
-function buildUserSummary(user: { id: string; email: string; role: string } | null) {
+function buildUserSummary(user: { id: string | number; email: string; role: string; passwordHash?: string; status?: string } | null) {
   if (!user) return null;
   return {
-    id: user.id,
+    id: String(user.id),
     email: user.email,
     role: user.role,
   };
@@ -105,19 +104,6 @@ async function ensureLoginRateLimit(request: VercelRequest) {
 }
 
 export async function readAdminSession(request: VercelRequest): Promise<AdminSessionResponse> {
-  if (!isDatabaseConfigured()) {
-    const authenticated = hasAdminAccess(request);
-    return {
-      authenticated,
-      databaseConfigured: false,
-      mode: "legacy",
-      bootstrapRequired: false,
-      legacyAdminAuthenticated: authenticated,
-      tenantResolved: false,
-      tenant: null,
-      user: null,
-    };
-  }
 
   const tenantCount = await countTenants();
   if (tenantCount === 0) {
@@ -162,20 +148,6 @@ export async function loginAdmin(
 ) {
   await ensureLoginRateLimit(request);
 
-  if (!isDatabaseConfigured()) {
-    assertLegacyAdminPassword(input.password);
-    setAdminSessionCookie(request, response, getAdminApiSecret());
-    return {
-      authenticated: true,
-      databaseConfigured: false,
-      mode: "legacy" as const,
-      bootstrapRequired: false,
-      legacyAdminAuthenticated: true,
-      tenantResolved: false,
-      tenant: null,
-      user: null,
-    };
-  }
 
   const tenantCount = await countTenants();
   if (tenantCount === 0) {
@@ -217,10 +189,6 @@ export async function loginAdmin(
     throw new ApiError(401, "Credenciais invalidas.");
   }
 
-  await getPrisma().tenantUser.update({
-    where: { id: tenantUser.id },
-    data: { lastLoginAt: new Date() },
-  });
 
   const session = await createTenantAdminSession({
     tenantId: resolved.tenant.id,
@@ -247,9 +215,6 @@ export async function bootstrapTenantAdmin(
   response: VercelResponse,
   input: AdminBootstrapInput,
 ) {
-  if (!isDatabaseConfigured()) {
-    throw new ApiError(501, "DATABASE_URL nao configurada para bootstrap multi-tenant.");
-  }
 
   if (await countTenants()) {
     throw new ApiError(409, "Bootstrap inicial ja foi concluido.");
@@ -292,17 +257,15 @@ export async function bootstrapTenantAdmin(
 }
 
 export async function logoutAdmin(request: VercelRequest, response: VercelResponse) {
-  if (isDatabaseConfigured()) {
     await revokeTenantAdminSession(request).catch(() => undefined);
-  }
 
   clearTenantAdminSessionCookie(request, response);
   clearAdminSessionCookie(request, response);
 
   return {
     authenticated: false,
-    databaseConfigured: isDatabaseConfigured(),
-    mode: isDatabaseConfigured() ? ("tenant" as const) : ("legacy" as const),
+    databaseConfigured: true,
+    mode: "tenant" as const,
     bootstrapRequired: false,
     legacyAdminAuthenticated: false,
     tenantResolved: false,

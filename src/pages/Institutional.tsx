@@ -15,7 +15,7 @@ const pages: Record<string, { title: string; icon: React.ElementType; content: s
   privacidade: {
     title: "Política de Privacidade",
     icon: Shield,
-    content: "O Receitas do Bell respeita a sua privacidade. Para viabilizar favoritos, comentários, avaliações, lista de compras, newsletter, desbloqueio de receitas e configurações do site, alguns dados são persistidos em servidor por meio de Vercel Functions e Google Sheets, sempre sem expor segredos no frontend. O e-mail informado para esses fluxos é salvo em cookie para identificar sua conta leve no MVP. Dados sensíveis de integrações de pagamento permanecem apenas em variáveis de ambiente seguras na Vercel. Você pode solicitar atualização ou remoção dos seus dados pelos canais de contato do projeto.",
+    content: "O Receitas do Bell respeita a sua privacidade. Para viabilizar favoritos, comentários, avaliações, lista de compras, newsletter, desbloqueio de receitas e configurações do site, alguns dados são persistidos em servidor por meio de Vercel Functions e Baserow, sempre sem expor segredos no frontend. O e-mail informado para esses fluxos é salvo em cookie para identificar sua conta leve no MVP. Dados sensíveis de integrações de pagamento permanecem apenas em variáveis de ambiente seguras na Vercel. Você pode solicitar atualização ou remoção dos seus dados pelos canais de contato do projeto.",
   },
 };
 

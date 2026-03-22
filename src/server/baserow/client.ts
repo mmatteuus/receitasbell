@@ -1,5 +1,4 @@
-const BASEROW_TOKEN = process.env.BASEROW_API_TOKEN;
-const BASE_URL = process.env.BASEROW_API_URL || "https://api.baserow.io";
+// Constantes removidas do topo para leitura em tempo de execuo
 
 export const BASEROW_TABLES = {
   TENANTS: 896975,
@@ -21,10 +20,12 @@ export async function fetchBaserow<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const url = `${BASE_URL}${endpoint}`;
+  const token = process.env.BASEROW_API_TOKEN;
+  const baseUrl = process.env.BASEROW_API_URL || "https://api.baserow.io";
+  const url = `${baseUrl}${endpoint}`;
   
   const headers = new Headers(options.headers || {});
-  headers.set("Authorization", `Token ${BASEROW_TOKEN}`);
+  headers.set("Authorization", `Token ${token}`);
   
   if (options.method && options.method !== "GET" && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
