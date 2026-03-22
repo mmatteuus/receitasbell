@@ -2,6 +2,7 @@ import { decryptSecret, encryptSecret } from "../security/crypto.js";
 import { redactErrorMessage } from "../security/masking.js";
 import { ApiError } from "../http.js";
 import { getMercadoPagoAppEnvAsync } from "../env.js";
+export { getMercadoPagoAppEnvAsync };
 import { getSettingsMap, saveSettings } from "../baserow/settingsRepo.js";
 
 type OAuthTokenResponse = {

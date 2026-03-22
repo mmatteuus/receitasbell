@@ -21,6 +21,7 @@ import {
 } from "../baserow/paymentsRepo.js";
 import {
   getUsableMercadoPagoAccessToken,
+  getMercadoPagoAppEnvAsync,
 } from "./connections.js";
 
 type ListPaymentsFilters = {
@@ -351,8 +352,67 @@ async function createMercadoPagoPreference(input: {
   return body as MercadoPagoPreferenceResponse;
 }
 
+export async function fetchMercadoPagoPaymentDetails(tenantId: string | number, paymentId: string) {
+  const { accessToken } = await getUsableMercadoPagoAccessToken(String(tenantId));
+  const response = await fetch(`https://api.mercadopago.com/v1/payments/${encodeURIComponent(paymentId)}`, {
+    headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/json" },
+  });
+  if (!response.ok) throw new ApiError(502, `MP lookup failed: ${response.status}`);
+  return (await response.json()) as Record<string, unknown>;
+}
+
+export async function registerTenantWebhookReceipt(input: {
+  tenantId: string | number;
+  paymentId: string | number;
+  resourceId: string;
+  topic?: string | null;
+  action?: string | null;
+  dedupeKey: string;
+  signatureValid: boolean;
+  payloadJson: any;
+}) {
+  return createBaserowPaymentEvent(input.tenantId, {
+    payment_id: input.paymentId,
+    resourceId: input.resourceId,
+    topic: input.topic,
+    action: input.action,
+    dedupeKey: input.dedupeKey,
+    signatureValid: input.signatureValid,
+    payloadJson: JSON.stringify(input.payloadJson),
+  });
+}
+
+export async function syncTenantMercadoPagoPayment(input: {
+  tenantId: string | number;
+  paymentId: string | number;
+  mercadoPagoPayment: any;
+  notificationPayload: any;
+  dedupeKey: string;
+  signatureValid: boolean;
+  eventId?: string | number;
+  recordEvent: boolean;
+}) {
+  const status = normalizePaymentStatus(input.mercadoPagoPayment.status);
+  await updatePaymentStatus(input.paymentId, status);
+  
+  if (status === 'approved') {
+    const recipes = input.mercadoPagoPayment.metadata?.recipe_ids ? 
+        JSON.parse(input.mercadoPagoPayment.metadata.recipe_ids) : [];
+    
+    for (const recipeId of recipes) {
+        await createEntitlement(input.tenantId, {
+            paymentId: input.paymentId,
+            payerEmail: input.mercadoPagoPayment.payer?.email || "",
+            recipeSlug: String(recipeId), // Assuming ID or Slug is stored
+        });
+    }
+  }
+
+  return { id: input.paymentId, status };
+}
+
 export async function handleMercadoPagoWebhook(tenantId: string | number, payload: any) {
-  // Webhook implementation simplified for Baserow flow
+  // Chamada via roteador simplificado se necessário
   console.info(`Webhook received for tenant ${tenantId}`, payload);
   return { status: "ok" };
 }
