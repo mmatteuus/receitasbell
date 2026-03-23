@@ -1,161 +1,58 @@
-import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { createHash, createHmac, timingSafeEqual } from "node:crypto";
-import { ApiError, appendSetCookie } from "../http.js";
+import { createHmac, timingSafeEqual } from "node:crypto";
+import { getRequiredEnv } from "../env.js";
 
-const TENANT_ADMIN_SESSION_COOKIE = "rb_tenant_admin_session";
-const SESSION_MAX_AGE_SECONDS = 60 * 60 * 12;
+const COOKIE_NAME = "rb_auth_session";
 
-type SessionClaims = {
-  sid: string;
-  tid: string;
-  uid: string;
-  exp: number;
-};
-
-function getSessionSecret() {
-  const explicit = process.env.SESSION_SECRET?.trim();
-  if (explicit) return explicit;
-  if (process.env.NODE_ENV !== "production" && process.env.ADMIN_API_SECRET?.trim()) {
-    return process.env.ADMIN_API_SECRET.trim();
-  }
-  throw new Error("SESSION_SECRET is required.");
+export interface SessionData {
+  userId: string;
+  email: string;
+  tenantId: string;
+  role: string;
+  expiresAt: number;
 }
 
-function base64UrlEncode(value: string) {
-  return Buffer.from(value, "utf8").toString("base64url");
-}
-
-function base64UrlDecode(value: string) {
-  return Buffer.from(value, "base64url").toString("utf8");
-}
-
-function hashSessionId(sessionId: string) {
-  return createHash("sha256").update(sessionId).digest("hex");
-}
-
-function signClaims(claims: SessionClaims) {
-  const payload = base64UrlEncode(JSON.stringify(claims));
-  const signature = createHmac("sha256", getSessionSecret()).update(payload).digest("base64url");
+export function signSession(data: SessionData): string {
+  const secret = getRequiredEnv("APP_COOKIE_SECRET");
+  const payload = Buffer.from(JSON.stringify(data)).toString("base64");
+  const signature = createHmac("sha256", secret).update(payload).digest("base64");
   return `${payload}.${signature}`;
 }
 
-function verifyToken(token: string): SessionClaims | null {
-  const [payload, signature] = token.split(".");
-  if (!payload || !signature) return null;
-
-  const expected = createHmac("sha256", getSessionSecret()).update(payload).digest("base64url");
+export function verifySession(token: string): SessionData | null {
   try {
-    if (!timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) {
+    const secret = getRequiredEnv("APP_COOKIE_SECRET");
+    const [payloadBase64, signature] = token.split(".");
+    if (!payloadBase64 || !signature) return null;
+
+    const expectedSignature = createHmac("sha256", secret).update(payloadBase64).digest("base64");
+    
+    if (!timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) {
       return null;
     }
-  } catch {
+
+    const data = JSON.parse(Buffer.from(payloadBase64, "base64").toString()) as SessionData;
+    if (Date.now() > data.expiresAt) return null;
+
+    return data;
+  } catch (err) {
     return null;
   }
-
-  const claims = JSON.parse(base64UrlDecode(payload)) as SessionClaims;
-  if (!claims.sid || !claims.tid || !claims.uid || !claims.exp) {
-    return null;
-  }
-  if (claims.exp <= Date.now()) {
-    return null;
-  }
-  return claims;
 }
 
-function shouldUseSecureCookie(request: VercelRequest) {
-  const forwardedProto = request.headers["x-forwarded-proto"];
-  const proto = Array.isArray(forwardedProto) ? forwardedProto[0] : forwardedProto;
-  return process.env.NODE_ENV === "production" || proto === "https";
-}
-
-function getCookie(request: VercelRequest, name: string) {
-  const cookieHeader = request.headers.cookie;
-  if (!cookieHeader) return undefined;
-
-  const parts = cookieHeader.split(";");
-  for (const part of parts) {
-    const [rawName, ...rawValue] = part.trim().split("=");
-    if (rawName === name) {
-      return decodeURIComponent(rawValue.join("="));
-    }
-  }
-
-  return undefined;
-}
-
-export function getTenantAdminSessionClaims(request: VercelRequest) {
-  const token = getCookie(request, TENANT_ADMIN_SESSION_COOKIE);
+export function getSessionFromRequest(request: any): SessionData | null {
+  const cookieHeader = request.headers.cookie || "";
+  const cookies = Object.fromEntries(
+    cookieHeader.split(";").map((c: string) => c.trim().split("="))
+  );
+  const token = cookies[COOKIE_NAME];
   if (!token) return null;
-  return verifyToken(token);
+  return verifySession(token);
 }
 
-export function hasTenantAdminSession(request: VercelRequest) {
-  return Boolean(getTenantAdminSessionClaims(request));
+export function setSessionCookie(response: any, sessionToken: string) {
+  response.setHeader("Set-Cookie", `${COOKIE_NAME}=${sessionToken}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}`); // 7 dias
 }
 
-export async function createTenantAdminSession(input: {
-  tenantId: string | number;
-  tenantUserId: string | number;
-}) {
-  const expiresAt = new Date(Date.now() + SESSION_MAX_AGE_SECONDS * 1000);
-
-  // ALWAYS STATELESS FOR MVP WITHOUT PRISMA
-  const token = signClaims({
-    sid: "stateless",
-    tid: String(input.tenantId),
-    uid: String(input.tenantUserId),
-    exp: expiresAt.getTime(),
-  });
-  return { token, sessionId: "stateless", expiresAt };
+export function clearSessionCookie(response: any) {
+  response.setHeader("Set-Cookie", `${COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`);
 }
-
-export function setTenantAdminSessionCookie(
-  request: VercelRequest,
-  response: VercelResponse,
-  token: string,
-  expiresAt: Date,
-) {
-  const secure = shouldUseSecureCookie(request) ? "; Secure" : "";
-  const maxAge = Math.max(1, Math.floor((expiresAt.getTime() - Date.now()) / 1000));
-  appendSetCookie(
-    response,
-    `${TENANT_ADMIN_SESSION_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${secure}`,
-  );
-}
-
-export function clearTenantAdminSessionCookie(request: VercelRequest, response: VercelResponse) {
-  const secure = shouldUseSecureCookie(request) ? "; Secure" : "";
-  appendSetCookie(
-    response,
-    `${TENANT_ADMIN_SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${secure}`,
-  );
-}
-
-export async function revokeTenantAdminSession(request: VercelRequest) {
-  // Stateless implementation for now (no-op on server side revocation without DB)
-  return;
-}
-
-export async function getTenantAdminSessionContext(request: VercelRequest) {
-  const claims = getTenantAdminSessionClaims(request);
-  if (!claims) return null;
-
-  return {
-    claims,
-    session: { id: claims.sid, tenantId: claims.tid, tenantUserId: claims.uid } as any,
-    tenant: { id: claims.tid, slug: "admin", name: "Admin" } as any,
-    tenantUser: { id: claims.uid, email: "admin@receitasbell.com.br", role: "owner" } as any,
-  };
-}
-
-export async function requireTenantAdminSessionContext(request: VercelRequest) {
-  const context = await getTenantAdminSessionContext(request);
-  if (!context) {
-    throw new ApiError(401, "Sessao do admin do tenant obrigatoria.");
-  }
-  return context;
-}
-
-export type TenantAdminSessionContext = Awaited<ReturnType<typeof getTenantAdminSessionContext>>;
-export type TenantSessionRecord = any;
-export type TenantSessionUser = any;

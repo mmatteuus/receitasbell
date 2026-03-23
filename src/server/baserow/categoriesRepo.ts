@@ -52,6 +52,18 @@ export async function getCategoryBySlug(tenantId: string | number, slug: string)
   };
 }
 
+export async function getCategoryById(tenantId: string | number, id: string | number): Promise<Category | null> {
+    try {
+        const record = await fetchBaserow<any>(
+            `/api/database/rows/table/${BASEROW_TABLES.CATEGORIES}/${id}/?user_field_names=true`
+        );
+        if (String(record.tenantId) !== String(tenantId)) return null;
+        return mapCategoryRowToRecord(record);
+    } catch (err) {
+        return null;
+    }
+}
+
 export async function createCategory(tenantId: string | number, input: { name: string; slug: string; description?: string }): Promise<Category> {
   const record = await fetchBaserow<any>(
     `/api/database/rows/table/${BASEROW_TABLES.CATEGORIES}/?user_field_names=true`,
@@ -71,7 +83,10 @@ export async function createCategory(tenantId: string | number, input: { name: s
   return mapCategoryRowToRecord(record);
 }
 
-export async function updateCategory(categoryId: string | number, input: { name?: string; slug?: string; description?: string }): Promise<Category> {
+export async function updateCategory(tenantId: string | number, categoryId: string | number, input: { name?: string; slug?: string; description?: string }): Promise<Category> {
+  const existing = await getCategoryById(tenantId, categoryId);
+  if (!existing) throw new Error("Category not found or does not belong to tenant");
+
   const record = await fetchBaserow<any>(
     `/api/database/rows/table/${BASEROW_TABLES.CATEGORIES}/${categoryId}/?user_field_names=true`,
     {
@@ -86,7 +101,10 @@ export async function updateCategory(categoryId: string | number, input: { name?
   return mapCategoryRowToRecord(record);
 }
 
-export async function deleteCategory(categoryId: string | number): Promise<void> {
+export async function deleteCategory(tenantId: string | number, categoryId: string | number): Promise<void> {
+  const existing = await getCategoryById(tenantId, categoryId);
+  if (!existing) throw new Error("Category not found or does not belong to tenant");
+
   await fetchBaserow(
     `/api/database/rows/table/${BASEROW_TABLES.CATEGORIES}/${categoryId}/`,
     { method: "DELETE" }

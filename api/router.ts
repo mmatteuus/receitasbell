@@ -8,6 +8,7 @@ import {
 import {
   getAdminApiSecret,
   getMercadoPagoAppEnvAsync,
+  getRequiredEnv,
   hasMercadoPagoAppConfigAsync,
   hasMercadoPagoConfig,
   hasMercadoPagoWebhookSecretAsync,
@@ -79,8 +80,10 @@ import {
 
 import {
   categorySchema,
+  checkoutCreateSchema,
   checkoutSchema,
   commentSchema,
+  favoriteSchema,
   newsletterSchema,
   noteSchema,
   ratingSchema,
@@ -90,6 +93,12 @@ import {
   shoppingListUpdateSchema,
 } from '../src/server/validators.js';
 import { assertMercadoPagoWebhookSignature } from '../src/server/payments/mercadoPago.js';
+import { processIdempotentWebhook } from '../src/server/payments/webhookService.js';
+import { createMagicLinkToken, verifyMagicLinkToken } from '../src/server/auth/magicLink.js';
+import { signSession, setSessionCookie, clearSessionCookie } from '../src/server/auth/sessions.js';
+import { sendMagicLinkEmail } from '../src/server/integrations/email.ts';
+import { logAuditEntry, logAdminAction } from '../src/server/logging/audit.ts';
+import { runReconciliationJob } from '../src/server/jobs/reconcile.ts';
 import type { Category } from '../src/types/category.js';
 import type { SettingsMap } from '../src/types/settings.js';
 
@@ -159,34 +168,24 @@ function extractMercadoPagoPaymentId(request: VercelRequest, payload: Record<str
   return match?.[1] ?? null;
 }
 
-async function fetchMercadoPagoPayment(tenantId: string | number, paymentId: string) {
-  const settings = mapTypedSettings(await getSettingsMap(tenantId));
-  const accessToken = settings.mp_access_token;
-  if (!accessToken) throw new ApiError(401, 'Mercado Pago access token not configured');
-  const response = await fetch(`https://api.mercadopago.com/v1/payments/${encodeURIComponent(paymentId)}`, {
-    headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json' },
-  });
-  if (!response.ok) throw new ApiError(502, `MP lookup failed: ${response.status}`);
-  return (await response.json()) as Record<string, unknown>;
-}
+// fetchMercadoPagoPayment moved to shared payments module
 
 async function createCheckoutResponse(request: VercelRequest, body: any) {
   const { tenant } = await requireTenantFromRequest(request);
   const settings = mapTypedSettings(await getSettingsMap(tenant.id));
-  const buyerEmail = body.buyerEmail.trim().toLowerCase();
-  const user = await findOrCreateUserByEmail(tenant.id, buyerEmail);
+  const validated = checkoutCreateSchema.parse(body);
   
   const checkoutInput = {
-    ...body,
-    buyerEmail,
-    userId: user.id,
+    recipeIds: validated.recipeIds,
+    buyerEmail: validated.buyerEmail.toLowerCase(),
+    checkoutReference: validated.checkoutReference || crypto.randomUUID(),
     baseUrl: getAppBaseUrl(request),
   };
 
   if (settings.payment_mode === 'production' && settings.mp_access_token) {
-    return createMercadoPagoCheckout(tenant.id, checkoutInput);
+    return createMercadoPagoCheckout(String(tenant.id), checkoutInput);
   }
-  return createMockCheckout(tenant.id, checkoutInput);
+  return createMockCheckout(String(tenant.id), checkoutInput);
 }
 
 async function processMercadoPagoWebhook(request: VercelRequest) {
@@ -196,10 +195,7 @@ async function processMercadoPagoWebhook(request: VercelRequest) {
   if (!paymentId) return { received: true, ignored: true };
 
   assertMercadoPagoWebhookSignature(request, paymentId);
-  const paymentPayload = await fetchMercadoPagoPayment(tenant.id, paymentId);
-  const payment = await syncMercadoPagoPayment(tenant.id, paymentPayload, payload);
-
-  return { received: true, paymentId, internalPaymentId: payment.id, status: payment.status };
+  return processIdempotentWebhook(String(tenant.id), paymentId, payload);
 }
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
@@ -217,6 +213,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
     // Admin Session
     if (resource === 'admin' && resourceId === 'session') {
+      const { tenant } = await requireTenantFromRequest(request);
       if (request.method === 'GET') return sendJson(response, 200, { authenticated: hasAdminAccess(request) });
       if (request.method === 'DELETE') { clearAdminSessionCookie(request, response); return sendNoContent(response); }
       assertMethod(request, ['POST']);
@@ -227,7 +224,59 @@ export default async function handler(request: VercelRequest, response: VercelRe
       if (!rateResult.success) { response.setHeader('Retry-After', String(rateResult.resetAfter)); throw new ApiError(429, 'Too many attempts'); }
       if (password !== getAdminApiSecret()) throw new ApiError(401, 'Invalid password');
       setAdminSessionCookie(request, response, password);
+      await logAuditEntry(tenant.id, { action: 'admin_login', resourceType: 'admin', userId: 'admin' });
       return sendJson(response, 200, { authenticated: true });
+    }
+
+    // Auth Routes
+    if (resource === 'auth') {
+      if (resourceId === 'request-magic-link') {
+        assertMethod(request, ['POST']);
+        const { tenant } = await requireTenantFromRequest(request);
+        const { email } = await readJsonBody<{ email: string }>(request);
+        if (!email) throw new ApiError(400, "Email is required");
+        
+        const token = await createMagicLinkToken(tenant.id, email);
+        const baseUrl = getAppBaseUrl(request);
+        const magicLinkUrl = `${baseUrl}/api/auth/verify-magic-link?token=${token}&tenantId=${tenant.id}`;
+        
+        await sendMagicLinkEmail(email, magicLinkUrl);
+        return sendJson(response, 200, { sent: true });
+      }
+
+      if (resourceId === 'verify-magic-link') {
+        assertMethod(request, ['GET']);
+        const token = requireQueryParam(request, 'token');
+        const tenantId = requireQueryParam(request, 'tenantId');
+        
+        const record = await verifyMagicLinkToken(tenantId, token);
+        if (!record) throw new ApiError(401, "Invalid or expired token");
+        
+        const user = await findOrCreateUserByEmail(tenantId, record.email || "");
+        const sessionToken = signSession({
+            userId: String(user.id),
+            email: user.email,
+            tenantId: String(tenantId),
+            role: "user",
+            expiresAt: Date.now() + 1000 * 60 * 60 * 24 * 7, // 7 days
+        });
+
+        setSessionCookie(response, sessionToken);
+        return response.redirect('/'); // Redireciona para home após login
+      }
+
+      if (resourceId === 'me') {
+        const identity = await resolveOptionalIdentityUser(request);
+        return sendJson(response, 200, { 
+            authenticated: !!identity.email,
+            user: identity.user 
+        });
+      }
+
+      if (resourceId === 'logout') {
+        clearSessionCookie(response);
+        return sendJson(response, 200, { success: true });
+      }
     }
 
     // Admin Mercado Pago Connection
@@ -268,6 +317,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
       requireAdminAccess(request);
       const body = recipeMutationSchema.parse(await readJsonBody(request));
       const recipe = await createRecipe(String(tenant.id), body);
+      await logAdminAction(tenant.id, 'admin', 'create_recipe', 'recipe', String(recipe.id));
       return sendJson(response, 201, { recipe });
     }
 
@@ -282,12 +332,14 @@ export default async function handler(request: VercelRequest, response: VercelRe
       if (request.method === 'PUT') {
         requireAdminAccess(request);
         const body = recipeMutationSchema.parse(await readJsonBody(request));
-        const recipe = await updateRecipe(resourceId, body);
+        const recipe = await updateRecipe(String(tenant.id), resourceId, body);
+        await logAdminAction(tenant.id, 'admin', 'update_recipe', 'recipe', resourceId);
         return sendJson(response, 200, { recipe });
       }
       assertMethod(request, ['DELETE']);
       requireAdminAccess(request);
-      await deleteRecipe(resourceId);
+      await deleteRecipe(String(tenant.id), resourceId);
+      await logAdminAction(tenant.id, 'admin', 'delete_recipe', 'recipe', resourceId);
       return sendNoContent(response);
     }
 
@@ -306,12 +358,12 @@ export default async function handler(request: VercelRequest, response: VercelRe
         if (request.method === 'PUT') {
             requireAdminAccess(request);
             const body = categorySchema.parse(await readJsonBody(request));
-            const category = await updateCategory(resourceId, body);
+            const category = await updateCategory(String(tenant.id), resourceId, body);
             return sendJson(response, 200, { category });
         }
         assertMethod(request, ['DELETE']);
         requireAdminAccess(request);
-        await deleteCategory(resourceId);
+        await deleteCategory(String(tenant.id), resourceId);
         return sendNoContent(response);
     }
 
@@ -344,7 +396,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
       const summary = await upsertRating(String(tenant.id), {
         recipeId: body.recipeId,
         value: body.value,
-        userId: identity.user?.id,
+        userId: identity.user?.id ? String(identity.user.id) : undefined,
         authorEmail: identity.email || '',
       });
       return sendJson(response, 200, summary);
@@ -354,10 +406,10 @@ export default async function handler(request: VercelRequest, response: VercelRe
     if (resource === 'favorites' && !resourceId) {
       const { tenant } = await requireTenantFromRequest(request);
       const identity = await requireIdentityUser(request);
-      if (request.method === 'GET') return sendJson(response, 200, { favorites: await listFavoritesByUserId(String(tenant.id), identity.user!.id) });
+      if (request.method === 'GET') return sendJson(response, 200, { favorites: await listFavoritesByUserId(String(tenant.id), String(identity.user!.id)) });
       assertMethod(request, ['POST']);
-      const body = await readJsonBody<{ recipeId?: string }>(request);
-      const favorite = await createFavorite(String(tenant.id), identity.user!.id, String(body.recipeId || ''));
+      const body = favoriteSchema.parse(await readJsonBody(request));
+      const favorite = await createFavorite(String(tenant.id), String(identity.user!.id), String(body.recipeId));
       return sendJson(response, 201, { favorite });
     }
 
@@ -365,7 +417,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
       assertMethod(request, ['DELETE']);
       const { tenant } = await requireTenantFromRequest(request);
       const identity = await requireIdentityUser(request);
-      await deleteFavorite(String(tenant.id), identity.user!.id, resourceId);
+      await deleteFavorite(String(tenant.id), String(identity.user!.id), resourceId);
       return sendNoContent(response);
     }
 
@@ -373,10 +425,10 @@ export default async function handler(request: VercelRequest, response: VercelRe
     if (resource === 'shopping-list' && !resourceId) {
       const { tenant } = await requireTenantFromRequest(request);
       const identity = await requireIdentityUser(request);
-      if (request.method === 'GET') return sendJson(response, 200, { items: await listShoppingListItems(String(tenant.id), identity.user!.id) });
+      if (request.method === 'GET') return sendJson(response, 200, { items: await listShoppingListItems(String(tenant.id), String(identity.user!.id)) });
       assertMethod(request, ['POST']);
       const body = shoppingListCreateSchema.parse(await readJsonBody(request));
-      const items = await createShoppingListItems(String(tenant.id), identity.user!.id, body.items);
+      const items = await createShoppingListItems(String(tenant.id), String(identity.user!.id), body.items);
       return sendJson(response, 201, { items });
     }
 
@@ -385,11 +437,11 @@ export default async function handler(request: VercelRequest, response: VercelRe
       const identity = await requireIdentityUser(request);
       if (request.method === 'PUT') {
         const body = shoppingListUpdateSchema.parse(await readJsonBody(request));
-        const item = await updateShoppingListItem(String(tenant.id), identity.user!.id, resourceId, body);
+        const item = await updateShoppingListItem(String(tenant.id), String(identity.user!.id), resourceId, body);
         return sendJson(response, 200, { item });
       }
       assertMethod(request, ['DELETE']);
-      await deleteShoppingListItem(String(tenant.id), identity.user!.id, resourceId);
+      await deleteShoppingListItem(String(tenant.id), String(identity.user!.id), resourceId);
       return sendNoContent(response);
     }
 
@@ -400,6 +452,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
       requireAdminAccess(request);
       const body = settingsSchema.parse(await readJsonBody(request));
       const settings = await saveSettings(String(tenant.id), body.settings as any);
+      await logAdminAction(tenant.id, 'admin', 'update_settings', 'settings', 'global');
       return sendJson(response, 200, { settings });
     }
 
@@ -413,7 +466,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
             return sendJson(response, 200, { settings: { ...settings, mp_access_token: '***', mp_refresh_token: '***' } });
         }
         if (request.method === 'GET' && action) {
-            const details = await getPaymentById(action);
+            const details = await getPaymentById(String(tenant.id), action);
             if (!details) throw new ApiError(404, 'Payment not found');
             return sendJson(response, 200, details);
         }
@@ -443,6 +496,17 @@ export default async function handler(request: VercelRequest, response: VercelRe
       const body = newsletterSchema.parse(await readJsonBody(request));
       const { tenant } = await requireTenantFromRequest(request);
       return sendJson(response, 201, { subscriber: await subscribeToNewsletter(String(tenant.id), body.email) });
+    }
+
+    // Jobs
+    if (resource === 'jobs') {
+      const secret = requireQueryParam(request, 'secret');
+      if (secret !== getRequiredEnv('CRON_SECRET')) throw new ApiError(401, 'Invalid cron secret');
+      
+      if (resourceId === 'reconcile') {
+        const result = await runReconciliationJob();
+        return sendJson(response, 200, { success: true, ...result });
+      }
     }
 
     throw new ApiError(404, 'API route not found');

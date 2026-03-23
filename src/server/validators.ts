@@ -57,6 +57,10 @@ export const ratingSchema = z.object({
   value: z.number().int().min(1).max(5),
 });
 
+export const favoriteSchema = z.object({
+  recipeId: z.string().trim().min(1),
+});
+
 export const settingsSchema = z.object({
   settings: z.record(z.string(), z.union([z.string(), z.boolean(), z.number(), z.null()])),
 });
@@ -146,6 +150,13 @@ export const checkoutSchema = z
       buyerEmail: input.buyerEmail.trim().toLowerCase(),
       checkoutReference: input.checkoutReference?.trim() || crypto.randomUUID(),
     };
+});
+
+export const checkoutCreateSchema = z.object({
+  recipeIds: z.array(z.string().trim().min(1)).min(1),
+  buyerEmail: z.string().trim().email(),
+  payerName: z.string().trim().optional(),
+  checkoutReference: z.string().trim().optional(),
 });
 
 export const uploadRecipeImageSchema = z.object({

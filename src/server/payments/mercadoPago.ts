@@ -59,7 +59,7 @@ function buildPreferenceItems(items: CartItem[]) {
   }));
 }
 
-export async function createMercadoPagoPreference(input: {
+export async function createMercadoPagoPreference(tenantId: string | number, input: {
   items: CartItem[];
   buyerEmail: string;
   externalReference: string;
@@ -69,7 +69,7 @@ export async function createMercadoPagoPreference(input: {
   notificationUrl?: string;
   metadata: Record<string, unknown>;
 }) {
-  const { accessToken } = await getMercadoPagoEnv();
+  const { accessToken } = await getMercadoPagoEnv(String(tenantId));
   const payload: MercadoPagoPreferencePayload = {
     external_reference: input.externalReference,
     items: buildPreferenceItems(input.items),
@@ -119,4 +119,15 @@ export async function createMercadoPagoPreference(input: {
     sandboxInitPoint: typeof body?.sandbox_init_point === 'string' ? body.sandbox_init_point : null,
     raw: body ?? {},
   };
+}
+
+export async function fetchMercadoPagoPayment(tenantId: string | number, paymentId: string) {
+  const { accessToken } = await getMercadoPagoEnv(String(tenantId)); 
+  // TODO: Implementar busca por config do tenant se necessário
+  
+  const response = await fetch(`https://api.mercadopago.com/v1/payments/${encodeURIComponent(paymentId)}`, {
+    headers: { Authorization: `Bearer ${accessToken}`, Accept: 'application/json' },
+  });
+  if (!response.ok) throw new ApiError(502, `MP lookup failed: ${response.status}`);
+  return (await response.json()) as Record<string, unknown>;
 }

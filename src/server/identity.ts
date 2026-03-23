@@ -1,29 +1,36 @@
 import type { VercelRequest } from "@vercel/node";
-import { getIdentityEmail, requireIdentityEmail } from "./http.js";
-import { findOrCreateUserByEmail } from "./baserow/usersRepo.js";
+import { findOrCreateUserByEmail, findUserByEmail } from "./baserow/usersRepo.js";
 import { requireTenantFromRequest } from "./tenants/resolver.js";
+import { getSessionFromRequest } from "./auth/sessions.js";
+import { getIdentityEmail } from "./http.js";
 
 export async function resolveOptionalIdentityUser(request: VercelRequest) {
-  const email = getIdentityEmail(request);
-  if (!email) {
+  const session = getSessionFromRequest(request);
+  const { tenant } = await requireTenantFromRequest(request);
+
+  if (session && session.tenantId === String(tenant.id)) {
     return {
-      email: null,
-      user: null,
+      email: session.email,
+      user: { id: session.userId, email: session.email }, // Simplificado se não precisar dar fetch no baserow agora
     };
   }
 
-  const { tenant } = await requireTenantFromRequest(request);
-  return {
-    email,
-    user: await findOrCreateUserByEmail(tenant.id, email),
-  };
+  // Fallback para cookie antigo (legado)
+  const legacyEmail = getIdentityEmail(request);
+  if (legacyEmail) {
+    return {
+      email: legacyEmail,
+      user: await findOrCreateUserByEmail(tenant.id, legacyEmail),
+    };
+  }
+
+  return { email: null, user: null };
 }
 
 export async function requireIdentityUser(request: VercelRequest, displayName?: string) {
-  const email = requireIdentityEmail(request);
-  const { tenant } = await requireTenantFromRequest(request);
-  return {
-    email,
-    user: await findOrCreateUserByEmail(tenant.id, email, displayName),
-  };
+  const result = await resolveOptionalIdentityUser(request);
+  if (!result.email) {
+    throw new Error("Authentication required");
+  }
+  return result;
 }

@@ -6,6 +6,9 @@ export const BASEROW_TABLES = {
   CATEGORIES: 896977,
   RECIPES: 896978,
   PAYMENTS: 896979,
+  PAYMENT_ORDERS: 896979, // Temporariamente mapeado para o mesmo se não houver novo ID
+  PAYMENT_EVENTS: 896994, 
+  RECIPE_PURCHASES: 896995,
   USERS: 896984,
   COMMENTS: 896987,
   FAVORITES: 896988,
@@ -14,6 +17,7 @@ export const BASEROW_TABLES = {
   RATINGS: 896991,
   ENTITLEMENTS: 896992,
   OAUTH_STATES: 896993,
+  AUDIT_LOGS: 896996,
 };
 
 export async function fetchBaserow<T>(

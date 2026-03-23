@@ -22,5 +22,10 @@ export async function updateShoppingListItem(tenantId: string | number, userId: 
 }
 
 export async function deleteShoppingListItem(tenantId: string | number, userId: string, itemId: string): Promise<void> {
-    await fetchBaserow(`/api/database/rows/table/${BASEROW_TABLES.SHOPPING_LIST}/${itemId}/`, { method: "DELETE" });
+    const data = await fetchBaserow<{ results: any[] }>(
+        `/api/database/rows/table/${BASEROW_TABLES.SHOPPING_LIST}/?user_field_names=true&filter__tenantId__equal=${tenantId}&filter__userId__equal=${userId}&filter__id__equal=${itemId}`
+    );
+    if (data.results[0]) {
+        await fetchBaserow(`/api/database/rows/table/${BASEROW_TABLES.SHOPPING_LIST}/${itemId}/`, { method: "DELETE" });
+    }
 }

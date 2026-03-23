@@ -6,30 +6,44 @@ import { createEntitlement, revokeEntitlement } from './entitlementsRepo.js';
 import { createMercadoPagoPreference } from '../payments/mercadoPago.js';
 import { BASEROW_TABLES, fetchBaserow } from './client.js';
 
-export async function createMockCheckout(tenantId: string | number, input: any) {
+export async function createMockCheckout(tenantId: string | number, input: { recipeIds: string[]; buyerEmail: string; checkoutReference: string }) {
   const buyerEmail = input.buyerEmail.trim().toLowerCase();
   const user = await findOrCreateUserByEmail(tenantId, buyerEmail);
   
+  const items = [];
+  let totalAmount = 0;
+
+  for (const recipeId of input.recipeIds) {
+    const recipe = await getRecipeById(tenantId, recipeId);
+    if (!recipe) throw new ApiError(404, `Recipe ${recipeId} not found`);
+    
+    items.push({
+      recipeId: recipe.id,
+      title: recipe.title,
+      slug: recipe.slug,
+      priceBRL: recipe.priceBRL || 0,
+      imageUrl: recipe.imageUrl || "",
+    });
+    totalAmount += recipe.priceBRL || 0;
+  }
+
   const payment = await createPayment(tenantId, {
-    amount: input.items?.reduce((sum: number, item: any) => sum + item.priceBRL, 0) || 0,
+    amount: totalAmount,
     status: 'approved',
     externalReference: input.checkoutReference,
     paymentId: `mock_${Date.now()}`,
     payerEmail: buyerEmail,
     paymentMethod: 'mock',
     recipeIds: input.recipeIds,
-    items: input.items || [],
+    items: items,
   });
 
-  for (const recipeId of input.recipeIds) {
-    const recipe = await getRecipeById(tenantId, recipeId);
-    if (recipe) {
-      await createEntitlement(tenantId, {
-        paymentId: payment.id,
-        payerEmail: buyerEmail,
-        recipeSlug: recipe.slug,
-      });
-    }
+  for (const item of items) {
+    await createEntitlement(tenantId, {
+      paymentId: payment.id,
+      payerEmail: buyerEmail,
+      recipeSlug: item.slug,
+    });
   }
 
   return {
@@ -39,30 +53,46 @@ export async function createMockCheckout(tenantId: string | number, input: any) 
   };
 }
 
-export async function createMercadoPagoCheckout(tenantId: string | number, input: any) {
-  // Simplificado para fins de migração, idealmente chamaria createMercadoPagoPreference
-  // e salvaria um pagamento pendente no Baserow.
+export async function createMercadoPagoCheckout(tenantId: string | number, input: { recipeIds: string[]; buyerEmail: string; checkoutReference: string; baseUrl: string }) {
   const buyerEmail = input.buyerEmail.trim().toLowerCase();
   
+  const items = [];
+  let totalAmount = 0;
+
+  for (const recipeId of input.recipeIds) {
+    const recipe = await getRecipeById(tenantId, recipeId);
+    if (!recipe) throw new ApiError(404, `Recipe ${recipeId} not found`);
+    
+    items.push({
+      recipeId: recipe.id,
+      title: recipe.title,
+      slug: recipe.slug,
+      priceBRL: recipe.priceBRL || 0,
+      imageUrl: recipe.imageUrl || "",
+    });
+    totalAmount += recipe.priceBRL || 0;
+  }
+
   // Criar pagamento pendente
   const payment = await createPayment(tenantId, {
-    amount: input.items?.reduce((sum: number, item: any) => sum + item.priceBRL, 0) || 0,
+    amount: totalAmount,
     status: 'pending',
     externalReference: input.checkoutReference,
     paymentId: '', // Ainda não temos do MP
     payerEmail: buyerEmail,
     paymentMethod: 'mercadopago',
     recipeIds: input.recipeIds,
-    items: input.items || [],
+    items: items,
   });
 
-  const preference = await createMercadoPagoPreference({
-    items: input.items.map((item: any) => ({
+  const preference = await createMercadoPagoPreference(String(tenantId), {
+    items: items.map((item: any) => ({
       recipeId: item.recipeId,
       title: item.title,
       slug: item.slug,
       priceBRL: item.priceBRL,
       imageUrl: item.imageUrl || "",
+      quantity: 1,
     })),
     buyerEmail: buyerEmail,
     externalReference: input.checkoutReference,
@@ -84,7 +114,7 @@ export async function syncMercadoPagoPayment(tenantId: string | number, paymentP
     const internalPaymentId = paymentPayload.metadata?.payment_id;
 
     if (internalPaymentId) {
-        await updatePaymentStatus(internalPaymentId, status);
+        await updatePaymentStatus(tenantId, internalPaymentId, status);
         
         if (status === 'approved') {
             const data = await fetchBaserow<any>(`/api/database/rows/table/${BASEROW_TABLES.PAYMENTS}/${internalPaymentId}/?user_field_names=true`);
@@ -95,10 +125,9 @@ export async function syncMercadoPagoPayment(tenantId: string | number, paymentP
                 const recipe = await getRecipeById(tenantId, rid);
                 if (recipe) {
                     await createEntitlement(tenantId, {
-                        userId: data.userId || "",
-                        recipeId: recipe.id,
-                        recipeSlug: recipe.slug,
                         paymentId: String(internalPaymentId),
+                        payerEmail: payerEmail,
+                        recipeSlug: recipe.slug,
                     });
                 }
             }

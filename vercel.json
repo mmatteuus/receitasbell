@@ -13,5 +13,11 @@
     { "source": "/api/:route*", "destination": "/api/router?route=:route*" },
     { "source": "/(@vite|src|node_modules)/:path*", "destination": "/$1/:path*" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ],
+  "crons": [
+    {
+      "path": "/api/jobs/reconcile?secret=${CRON_SECRET}",
+      "schedule": "0 * * * *"
+    }
   ]
 }

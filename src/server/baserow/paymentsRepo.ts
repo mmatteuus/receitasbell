@@ -46,11 +46,13 @@ export async function listPayments(tenantId: string | number): Promise<PaymentRe
   return data.results.map(record => mapPaymentRowToRecord(record));
 }
 
-export async function getPaymentById(paymentId: string | number): Promise<{ payment: PaymentRecord; events: any[]; notes: any[] } | null> {
+export async function getPaymentById(tenantId: string | number, paymentId: string | number): Promise<{ payment: PaymentRecord; events: any[]; notes: any[] } | null> {
   try {
     const payment = await fetchBaserow<any>(
       `/api/database/rows/table/${BASEROW_TABLES.PAYMENTS}/${paymentId}/?user_field_names=true`
     );
+
+    if (String(payment.tenantId) !== String(tenantId)) return null;
     
     return {
       payment: mapPaymentRowToRecord(payment),
@@ -97,7 +99,10 @@ export async function createPayment(tenantId: string | number, input: {
 }
 
 // Corrigindo o nome da função acima e implementando o restante
-export async function updatePaymentStatus(paymentId: string | number, status: string): Promise<void> {
+export async function updatePaymentStatus(tenantId: string | number, paymentId: string | number, status: string): Promise<void> {
+    const existing = await getPaymentById(tenantId, paymentId);
+    if (!existing) throw new Error("Payment not found or does not belong to tenant");
+
     await fetchBaserow(
         `/api/database/rows/table/${BASEROW_TABLES.PAYMENTS}/${paymentId}/?user_field_names=true`,
         {

@@ -138,7 +138,10 @@ export async function createRecipe(tenantId: string | number, recipe: Partial<Re
   return mapRecipeRowToRecord(record);
 }
 
-export async function updateRecipe(recipeId: string | number, recipe: Partial<RecipeRecord>): Promise<RecipeRecord> {
+export async function updateRecipe(tenantId: string | number, recipeId: string | number, recipe: Partial<RecipeRecord>): Promise<RecipeRecord> {
+  const existing = await getRecipeById(tenantId, recipeId);
+  if (!existing) throw new Error("Recipe not found or does not belong to tenant");
+
   const payload: any = {};
   if (recipe.title !== undefined) payload.title = recipe.title;
   if (recipe.slug !== undefined) payload.slug = recipe.slug;
@@ -179,7 +182,10 @@ export async function updateRecipe(recipeId: string | number, recipe: Partial<Re
   return mapRecipeRowToRecord(record);
 }
 
-export async function deleteRecipe(recipeId: string | number): Promise<void> {
+export async function deleteRecipe(tenantId: string | number, recipeId: string | number): Promise<void> {
+  const existing = await getRecipeById(tenantId, recipeId);
+  if (!existing) throw new Error("Recipe not found or does not belong to tenant");
+
   await fetchBaserow(
     `/api/database/rows/table/${BASEROW_TABLES.RECIPES}/${recipeId}/`,
     { method: "DELETE" }
