@@ -9,7 +9,7 @@ export async function startMercadoPagoLoginFlow(input: {
   returnTo?: string | null;
 }) {
   // Iniciamos o OAuth com tenantId "system" para indicar que é um login/onboarding
-  const authorizationUrl = await getMercadoPagoConnectUrl("system", {
+  const { authorizationUrl } = await getMercadoPagoConnectUrl("system", {
     tenantUserId: "system",
     returnTo: input.returnTo || "/admin",
   });
