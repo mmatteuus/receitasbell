@@ -1,23 +1,53 @@
 {
   "framework": "vite",
   "rewrites": [
-    { "source": "/api/admin/auth/:path*", "destination": "/api/admin/auth/[...path]?path=:path*" },
-    { "source": "/api/admin/tenants/:path*", "destination": "/api/admin/tenants/[...path]?path=:path*" },
-    { "source": "/api/admin/settings/:path*", "destination": "/api/admin/settings/[...path]?path=:path*" },
-    { "source": "/api/admin/recipes/:path*", "destination": "/api/admin/recipes/[...path]?path=:path*" },
-    { "source": "/api/admin/categories/:path*", "destination": "/api/admin/categories/[...path]?path=:path*" },
-    { "source": "/api/admin/payments/:path*", "destination": "/api/admin/payments/[...path]?path=:path*" },
-    { "source": "/api/checkout/mercadopago/:path*", "destination": "/api/checkout/mercadopago/[...path]?path=:path*" },
-    { "source": "/api/payments/mercadopago/create-preference", "destination": "/api/payments/mercadopago/create-preference" },
-    { "source": "/api/payments/mercadopago/webhook", "destination": "/api/payments/mercadopago/webhook" },
-    { "source": "/api/:route*", "destination": "/api/router?route=:route*" },
-    { "source": "/(@vite|src|node_modules)/:path*", "destination": "/$1/:path*" },
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
-  ],
-  "crons": [
     {
-      "path": "/api/jobs/reconcile?secret=${CRON_SECRET}",
-      "schedule": "0 * * * *"
+      "source": "/api/admin/auth/:path*",
+      "destination": "/api/admin/auth/[...path]?path=:path*"
+    },
+    {
+      "source": "/api/admin/tenants/:path*",
+      "destination": "/api/admin/tenants/[...path]?path=:path*"
+    },
+    {
+      "source": "/api/admin/settings/:path*",
+      "destination": "/api/admin/settings/[...path]?path=:path*"
+    },
+    {
+      "source": "/api/admin/recipes/:path*",
+      "destination": "/api/admin/recipes/[...path]?path=:path*"
+    },
+    {
+      "source": "/api/admin/categories/:path*",
+      "destination": "/api/admin/categories/[...path]?path=:path*"
+    },
+    {
+      "source": "/api/admin/payments/:path*",
+      "destination": "/api/admin/payments/[...path]?path=:path*"
+    },
+    {
+      "source": "/api/checkout/mercadopago/:path*",
+      "destination": "/api/checkout/mercadopago/[...path]?path=:path*"
+    },
+    {
+      "source": "/api/payments/mercadopago/create-preference",
+      "destination": "/api/payments/mercadopago/create-preference"
+    },
+    {
+      "source": "/api/payments/mercadopago/webhook",
+      "destination": "/api/payments/mercadopago/webhook"
+    },
+    {
+      "source": "/api/:route*",
+      "destination": "/api/router?route=:route*"
+    },
+    {
+      "source": "/(@vite|src|node_modules)/:path*",
+      "destination": "/$1/:path*"
+    },
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
     }
   ]
 }
