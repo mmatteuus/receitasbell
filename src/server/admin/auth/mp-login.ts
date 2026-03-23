@@ -1,4 +1,4 @@
-import { createMercadoPagoOAuthStart } from "../../mercadopago/oauth.js";
+import { getMercadoPagoConnectUrl } from "../../mercadopago/oauth.js";
 import { ApiError } from "../../http.js";
 
 /**
@@ -9,10 +9,9 @@ export async function startMercadoPagoLoginFlow(input: {
   returnTo?: string | null;
 }) {
   // Iniciamos o OAuth com tenantId "system" para indicar que é um login/onboarding
-  return createMercadoPagoOAuthStart({
-    tenantId: "system",
+  const authorizationUrl = await getMercadoPagoConnectUrl("system", {
     tenantUserId: "system",
     returnTo: input.returnTo || "/admin",
-    mode: "login",
   });
+  return { authorizationUrl };
 }
