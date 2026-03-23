@@ -99,6 +99,7 @@ import { signSession, setSessionCookie, clearSessionCookie } from '../src/server
 import { sendMagicLinkEmail } from '../src/server/integrations/email.ts';
 import { logAuditEntry, logAdminAction } from '../src/server/logging/audit.ts';
 import { runReconciliationJob } from '../src/server/jobs/reconcile.ts';
+import { runCleanupJob, runConsistencyJob } from '../src/server/jobs/maintenance.ts';
 import type { Category } from '../src/types/category.js';
 import type { SettingsMap } from '../src/types/settings.js';
 
@@ -505,6 +506,16 @@ export default async function handler(request: VercelRequest, response: VercelRe
       
       if (resourceId === 'reconcile') {
         const result = await runReconciliationJob();
+        return sendJson(response, 200, { success: true, ...result });
+      }
+
+      if (resourceId === 'cleanup') {
+        const result = await runCleanupJob();
+        return sendJson(response, 200, { success: true, ...result });
+      }
+
+      if (resourceId === 'consistency') {
+        const result = await runConsistencyJob();
         return sendJson(response, 200, { success: true, ...result });
       }
     }

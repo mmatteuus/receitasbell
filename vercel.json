@@ -49,5 +49,19 @@
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/jobs/reconcile?secret=${CRON_SECRET}",
+      "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/jobs/cleanup?secret=${CRON_SECRET}",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/jobs/consistency?secret=${CRON_SECRET}",
+      "schedule": "0 4 * * *"
+    }
   ]
 }
