@@ -1,8 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { withApiHandler, sendJson, requireIdentityUser, readJsonBody, assertMethod, ApiError } from '../../src/server/http.js';
-import { requireTenantFromRequest } from '../../src/server/tenants/resolver.js';
-import { createFavorite, deleteFavorite, listFavoritesByUserId } from '../../src/server/baserow/favoritesRepo.js';
-import { favoriteSchema } from '../../src/server/validators.js';
+import { z } from 'zod';
+import { withApiHandler, sendJson, requireIdentityUser, readJsonBody, assertMethod, ApiError } from '../../src/server/shared/http.js';
+import { requireTenantFromRequest } from '../../src/server/domains/tenants/resolver.js';
+import { createFavorite, deleteFavorite, listFavoritesByUserId } from '../../src/server/domains/users/favorites.repo.js';
+import { favoriteSchema } from '../../src/server/shared/validators.js';
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   return withApiHandler(request, response, async () => {
@@ -25,7 +26,9 @@ export default async function handler(request: VercelRequest, response: VercelRe
     }
 
     if (request.method === 'DELETE') {
-      if (!recipeId) throw new ApiError(400, 'Missing recipeId query param');
+      const { recipeId } = z.object({ recipeId: z.string().min(1) }).parse({
+        recipeId: url.searchParams.get('recipeId')
+      });
       await deleteFavorite(tenant.id, userId, recipeId);
       return sendJson(response, 200, { success: true });
     }

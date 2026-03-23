@@ -59,9 +59,11 @@ export async function fetchBaserow<T>(
 
       if (!res.ok) {
         const text = await res.text();
+        // Retry on 5xx or 429 (Rate Limit)
         if (attempt < MAX_RETRIES && (res.status >= 500 || res.status === 429)) {
-          logger.warn(`Baserow temporary error (${res.status}). Retrying... attempt ${attempt}/${MAX_RETRIES}`);
-          await sleep(RETRY_DELAY_MS * attempt);
+          const delay = RETRY_DELAY_MS * Math.pow(2, attempt - 1);
+          logger.warn(`Baserow temporary error (${res.status}). Retrying in ${delay}ms... attempt ${attempt}/${MAX_RETRIES}`, { url });
+          await sleep(delay);
           continue;
         }
         logger.error(`Baserow API Error: ${res.status} ${url}`, { status: res.status, url, body: text });
@@ -73,18 +75,20 @@ export async function fetchBaserow<T>(
       }
 
       return await res.json() as T;
-    } catch (error) {
+    } catch (error: any) {
       clearTimeout(timeout);
       lastError = error;
       
+      const isAbort = error.name === 'AbortError';
       if (attempt < MAX_RETRIES) {
-        logger.warn(`Baserow fetch attempt ${attempt} failed: ${url}`, error);
-        await sleep(RETRY_DELAY_MS * attempt);
+        const delay = RETRY_DELAY_MS * Math.pow(2, attempt - 1);
+        logger.warn(`Baserow fetch attempt ${attempt} failed (${isAbort ? 'Timeout' : error.message}): ${url}. Retrying in ${delay}ms...`, { url });
+        await sleep(delay);
         continue;
       }
     }
   }
 
-  logger.error(`Baserow API Total Failure after ${MAX_RETRIES} attempts: ${url}`, lastError);
+  logger.error(`Baserow API Total Failure after ${MAX_RETRIES} attempts: ${url}`, { error: lastError, url });
   throw lastError;
 }

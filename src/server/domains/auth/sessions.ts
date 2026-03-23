@@ -52,8 +52,10 @@ export function getSessionFromRequest(request: any): SessionData | null {
   return verifySession(token);
 }
 
-export function setSessionCookie(response: any, sessionToken: string) {
-  response.setHeader("Set-Cookie", `${COOKIE_NAME}=${sessionToken}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}`); // 7 dias
+export function setSessionCookie(response: any, sessionToken: string, request?: any) {
+  const isProd = process.env.NODE_ENV === "production";
+  const secure = isProd ? "; Secure" : "";
+  response.setHeader("Set-Cookie", `${COOKIE_NAME}=${sessionToken}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${60 * 60 * 24 * 7}${secure}`);
 }
 
 export function hasTenantAdminSession(request: any): boolean {

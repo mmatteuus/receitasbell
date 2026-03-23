@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { withApiHandler, sendJson, readJsonBody, assertMethod, getAppBaseUrl } from '../../src/server/http.js';
-import { requireTenantFromRequest } from '../../src/server/tenants/resolver.js';
-import { createMagicLinkToken } from '../../src/server/auth/magicLink.js';
-import { sendMagicLinkEmail } from '../../src/server/integrations/email.ts';
+import { withApiHandler, sendJson, readJsonBody, assertMethod, getAppBaseUrl } from '../../src/server/shared/http.js';
+import { requireTenantFromRequest } from '../../src/server/domains/tenants/resolver.js';
+import { createMagicLinkToken } from '../../src/server/domains/auth/magicLink.js';
+import { sendMagicLinkEmail } from '../../src/server/integrations/email.js';
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   return withApiHandler(request, response, async () => {

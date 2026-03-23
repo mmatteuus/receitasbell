@@ -1,13 +1,14 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { withApiHandler, sendJson, requireAdminAccess, readJsonBody, ApiError } from '../../src/server/http.js';
-import { requireTenantFromRequest } from '../../src/server/tenants/resolver.js';
-import { listCategories, createCategory, updateCategory, deleteCategory } from '../../src/server/baserow/categoriesRepo.js';
-import { logAuditEntry } from '../../src/server/logging/audit.js';
+import { withApiHandler, sendJson, requireAdminAccess, readJsonBody, ApiError } from '../../src/server/shared/http.js';
+import { logAuditEvent } from '../../src/server/domains/observability/auditRepo.js';
+import { requireTenantFromRequest } from '../../src/server/domains/tenants/resolver.js';
+import { listCategories, createCategory, updateCategory, deleteCategory } from '../../src/server/domains/recipes/categories.repo.js';
 import { z } from 'zod';
 
 const categorySchema = z.object({
   name: z.string().min(1),
-  slug: z.string().min(1),
+  slug: z.string().min(1).regex(/^[a-z0-9-]+$/, "Slug inválido"),
+  description: z.string().optional(),
 });
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
@@ -26,41 +27,49 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
     if (method === 'POST') {
       const body = categorySchema.parse(await readJsonBody(request));
-      const result = await createCategory(tenant.id, { ...body, description: "" });
+      const result = await createCategory(tenant.id, { ...body, description: body.description || "" });
       
-      await logAuditEntry(tenant.id, {
-        action: 'create_category',
-        resourceType: 'category',
+      await logAuditEvent({
+        tenantId: tenant.id,
+        actorType: "admin",
+        actorId: "admin",
+        action: "create_category",
+        resourceType: "category",
         resourceId: String(result.id),
-        details: body
+        payload: body
       });
 
-      return sendJson(response, 201, result);
+      return sendJson(response, 201, { item: result });
     }
 
-    // ... rest of logic remains same but ensuring slug is handled
     if (method === 'PATCH' || method === 'PUT') {
       if (!id) throw new ApiError(400, 'Missing category ID');
       const body = categorySchema.partial().parse(await readJsonBody(request));
       const result = await updateCategory(tenant.id, id, body);
 
-      await logAuditEntry(tenant.id, {
-        action: 'update_category',
-        resourceType: 'category',
+      await logAuditEvent({
+        tenantId: tenant.id,
+        actorType: "admin",
+        actorId: "admin",
+        action: "update_category",
+        resourceType: "category",
         resourceId: String(id),
-        details: body
+        payload: body
       });
 
-      return sendJson(response, 200, result);
+      return sendJson(response, 200, { item: result });
     }
 
     if (method === 'DELETE') {
       if (!id) throw new ApiError(400, 'Missing category ID');
       await deleteCategory(tenant.id, id);
 
-      await logAuditEntry(tenant.id, {
-        action: 'delete_category',
-        resourceType: 'category',
+      await logAuditEvent({
+        tenantId: tenant.id,
+        actorType: "admin",
+        actorId: "admin",
+        action: "delete_category",
+        resourceType: "category",
         resourceId: String(id)
       });
 

@@ -16,6 +16,9 @@ export interface LogContext {
   route?: string;
   action?: string;
   durationMs?: number;
+  paymentOrderId?: string | number;
+  providerPaymentId?: string;
+  providerEventId?: string;
   [key: string]: any;
 }
 
@@ -101,6 +104,13 @@ export class Logger {
                 captureMessage(message, level as any, entry);
             }
         }
+    }
+
+    // Include domain-specific fields if present in data but not in context
+    if (data && typeof data === 'object') {
+      if (data.paymentOrderId) entry.paymentOrderId = data.paymentOrderId;
+      if (data.providerPaymentId) entry.providerPaymentId = data.providerPaymentId;
+      if (data.providerEventId) entry.providerEventId = data.providerEventId;
     }
 
     console.log(JSON.stringify(entry));

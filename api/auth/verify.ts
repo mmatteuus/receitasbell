@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { withApiHandler, requireQueryParam, ApiError, sendJson } from '../../src/server/http.js';
-import { verifyMagicLinkToken } from '../../src/server/auth/magicLink.js';
-import { findOrCreateUserByEmail } from '../../src/server/baserow/usersRepo.js';
-import { signSession, setSessionCookie } from '../../src/server/auth/sessions.js';
-import { logAuditEntry } from '../../src/server/logging/audit.js';
+import { withApiHandler, requireQueryParam, ApiError, sendJson } from '../../src/server/shared/http.js';
+import { verifyMagicLinkToken } from '../../src/server/domains/auth/magicLink.js';
+import { findOrCreateUserByEmail } from '../../src/server/domains/users/repo.js';
+import { signSession, setSessionCookie } from '../../src/server/domains/auth/sessions.js';
+import { logAuditEvent } from '../../src/server/domains/observability/auditRepo.js';
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   return withApiHandler(request, response, async () => {
@@ -22,14 +22,18 @@ export default async function handler(request: VercelRequest, response: VercelRe
       expiresAt: Date.now() + 1000 * 60 * 60 * 24 * 7,
     });
 
-    await logAuditEntry(tenantId, {
-        action: 'user_login',
-        resourceType: 'auth',
-        resourceId: String(user.id),
-        details: { email: user.email }
+    // Audit entry removed in Phase 0 cleanup
+    setSessionCookie(response, sessionToken);
+
+    await logAuditEvent({
+      actorType: "user",
+      actorId: user.id,
+      tenantId: tenantId,
+      action: "user_login_success",
+      resourceType: "session",
+      resourceId: sessionToken.substring(0, 10),
     });
 
-    setSessionCookie(response, sessionToken);
     return response.redirect('/');
   });
 }

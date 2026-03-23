@@ -1,31 +1,34 @@
 {
   "framework": "vite",
   "rewrites": [
+    { "source": "/api/public/catalog", "destination": "/api/public/catalog" },
+    { "source": "/api/public/categories", "destination": "/api/public/categories" },
+    { "source": "/api/public/recipes", "destination": "/api/public/recipes" },
+    { "source": "/api/public/recipes/:slug", "destination": "/api/public/recipes" },
+    
     { "source": "/api/recipes", "destination": "/api/public/catalog" },
-    { "source": "/api/checkout", "destination": "/api/checkout/create" },
+    
     { "source": "/api/auth/magic-link", "destination": "/api/auth/request" },
     { "source": "/api/auth/verify", "destination": "/api/auth/verify" },
-    { "source": "/api/payments/mercadopago/webhook", "destination": "/api/checkout/webhook" },
     { "source": "/api/auth/me", "destination": "/api/auth/me" },
     { "source": "/api/auth/logout", "destination": "/api/auth/logout" },
-    { "source": "/api/public/catalog", "destination": "/api/public/catalog" },
-    { "source": "/api/public/newsletter", "destination": "/api/public/newsletter" },
-    { "source": "/api/public/comments", "destination": "/api/public/comments" },
-    { "source": "/api/public/ratings", "destination": "/api/public/ratings" },
+    
     { "source": "/api/me/favorites", "destination": "/api/me/favorites" },
     { "source": "/api/me/shopping-list", "destination": "/api/me/shopping-list" },
+    { "source": "/api/me/purchases", "destination": "/api/me/purchases" },
+    
     { "source": "/api/admin/auth", "destination": "/api/admin/auth" },
     { "source": "/api/admin/settings", "destination": "/api/admin/settings" },
     { "source": "/api/admin/recipes", "destination": "/api/admin/recipes" },
     { "source": "/api/admin/categories", "destination": "/api/admin/categories" },
     { "source": "/api/admin/payments", "destination": "/api/admin/payments" },
+    
     { "source": "/api/checkout/create", "destination": "/api/checkout/create" },
     { "source": "/api/checkout/webhook", "destination": "/api/checkout/webhook" },
-    { "source": "/api/checkout/mercadopago/callback", "destination": "/api/checkout/callback" },
+    { "source": "/api/checkout/callback", "destination": "/api/checkout/callback" },
+    
     { "source": "/api/jobs/:path*", "destination": "/api/jobs/:path*" },
-    { "source": "/api/jobs/reconcile", "destination": "/api/jobs/reconcile" },
-    { "source": "/api/jobs/cleanup", "destination": "/api/jobs/cleanup" },
-    { "source": "/api/jobs/consistency", "destination": "/api/jobs/consistency" },
+    
     {
       "source": "/(@vite|src|node_modules)/:path*",
       "destination": "/$1/:path*"
@@ -49,4 +52,4 @@
       "schedule": "0 4 * * *"
     }
   ]
-}
+}

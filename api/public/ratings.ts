@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { withApiHandler, sendJson, readJsonBody, resolveOptionalIdentityUser, assertMethod } from '../../src/server/http.js';
-import { requireTenantFromRequest } from '../../src/server/tenants/resolver.js';
-import { upsertRating } from '../../src/server/baserow/ratingsRepo.js';
-import { ratingSchema } from '../../src/server/validators.js';
+import { withApiHandler, sendJson, readJsonBody, resolveOptionalIdentityUser, assertMethod } from '../../src/server/shared/http.js';
+import { requireTenantFromRequest } from '../../src/server/domains/tenants/resolver.js';
+import { upsertRating } from '../../src/server/domains/recipes/ratings.repo.js';
+import { ratingSchema } from '../../src/server/shared/validators.js';
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   return withApiHandler(request, response, async () => {

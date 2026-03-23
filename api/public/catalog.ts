@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { withApiHandler, sendJson, assertMethod, setPublicCache } from '../../src/server/http.js';
-import { requireTenantFromRequest } from '../../src/server/tenants/resolver.js';
-import { listRecipes } from '../../src/server/baserow/recipesRepo.js';
+import { withApiHandler, sendJson, assertMethod, setPublicCache } from '../../src/server/shared/http.js';
+import { requireTenantFromRequest } from '../../src/server/domains/tenants/resolver.js';
+import { listRecipes } from '../../src/server/domains/recipes/repo.js';
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   return withApiHandler(request, response, async (log) => {

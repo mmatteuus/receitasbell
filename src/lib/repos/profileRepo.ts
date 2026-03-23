@@ -1,7 +1,5 @@
-import type { Entitlement } from "@/types/entitlement";
 import { listFavorites, listShoppingList } from "@/lib/api/interactions";
 import { listRecipes } from "@/lib/api/recipes";
-import { clearIdentityEmail, getIdentityEmail, setIdentityEmail } from "@/lib/api/identity";
 import { listByEmail } from "@/lib/repos/entitlementRepo";
 
 export async function getProfileOverview() {
@@ -20,27 +18,10 @@ export async function getProfileOverview() {
   };
 }
 
-export function get() {
-  return {
-    email: getIdentityEmail(),
-  };
-}
-
-export function save(email: string) {
-  setIdentityEmail(email.trim().toLowerCase());
-}
-
-export function clear() {
-  clearIdentityEmail();
-}
-
-export async function listEntitlementsForProfile(): Promise<Entitlement[]> {
-  const email = getIdentityEmail();
-  if (!email) {
-    return [];
-  }
-
-  return listByEmail(email);
+export async function listEntitlementsForProfile(): Promise<any[]> {
+  // Now entitlements are resolved server-side; 
+  // this client function is mostly legacy or can be refactored to check /api/auth/me
+  return [];
 }
 
 export const profileRepo = {

@@ -1,8 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { withApiHandler, sendJson, requireIdentityUser, readJsonBody, ApiError } from '../../src/server/http.js';
-import { requireTenantFromRequest } from '../../src/server/tenants/resolver.js';
-import { listCommentsByRecipeId, createComment } from '../../src/server/baserow/commentsRepo.js';
-import { commentSchema } from '../../src/server/validators.js';
+import { z } from 'zod';
+import { withApiHandler, sendJson, requireIdentityUser, readJsonBody, ApiError } from '../../src/server/shared/http.js';
+import { requireTenantFromRequest } from '../../src/server/domains/tenants/resolver.js';
+import { listCommentsByRecipeId, createComment } from '../../src/server/domains/recipes/comments.repo.js';
+import { commentSchema } from '../../src/server/shared/validators.js';
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   return withApiHandler(request, response, async () => {
@@ -12,7 +13,9 @@ export default async function handler(request: VercelRequest, response: VercelRe
     const recipeId = url.searchParams.get('recipeId');
 
     if (request.method === 'GET') {
-      if (!recipeId) throw new ApiError(400, 'Missing recipeId query param');
+      const { recipeId } = z.object({ recipeId: z.string().min(1) }).parse({
+        recipeId: url.searchParams.get('recipeId')
+      });
       const items = await listCommentsByRecipeId(tenant.id, recipeId);
       return sendJson(response, 200, { items });
     }

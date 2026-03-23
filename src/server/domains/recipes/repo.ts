@@ -118,8 +118,13 @@ export async function createRecipe(tenantId: string | number, recipe: Partial<Re
 }
 
 export async function updateRecipe(tenantId: string | number, recipeId: string | number, recipe: Partial<RecipeRecord>): Promise<RecipeRecord> {
+  // Security check: verify ownership
+  const existing = await getRecipeById(tenantId, recipeId);
+  if (!existing) throw new Error("Recipe not found or does not belong to this tenant");
+
   const payload: any = { updated_at: new Date().toISOString() };
   if (recipe.title !== undefined) payload.title = recipe.title;
+  // ... rest of payload mapping ...
   if (recipe.slug !== undefined) payload.slug = recipe.slug;
   if (recipe.description !== undefined) payload.description = recipe.description;
   if (recipe.imageUrl !== undefined) payload.image = recipe.imageUrl;
@@ -154,5 +159,9 @@ export async function updateRecipe(tenantId: string | number, recipeId: string |
 }
 
 export async function deleteRecipe(tenantId: string | number, recipeId: string | number): Promise<void> {
+  // Security check: verify ownership
+  const existing = await getRecipeById(tenantId, recipeId);
+  if (!existing) throw new Error("Recipe not found or does not belong to this tenant");
+
   await fetchBaserow(`/api/database/rows/table/${BASEROW_TABLES.RECIPES}/${recipeId}/`, { method: "DELETE" });
 }

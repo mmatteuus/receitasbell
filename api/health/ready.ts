@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { withApiHandler, sendJson, ApiError } from '../../src/server/http.js';
-import { fetchBaserow } from '../../src/server/baserow/client.js';
+import { withApiHandler, sendJson, ApiError } from '../../src/server/shared/http.js';
+import { fetchBaserow } from '../../src/server/integrations/baserow/client.js';
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   return withApiHandler(request, response, async (log) => {

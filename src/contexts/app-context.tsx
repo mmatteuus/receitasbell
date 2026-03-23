@@ -13,10 +13,8 @@ import { addFavorite, deleteFavorite, type FavoriteRecord, listFavorites } from 
 import { getSettings } from "@/lib/api/settings";
 import { ApiClientError } from "@/lib/api/client";
 import {
-  clearIdentityEmail,
-  getIdentityEmail,
   isValidEmail,
-  setIdentityEmail,
+  fetchMe,
 } from "@/lib/api/identity";
 import { applySiteSettings } from "@/lib/theme";
 import type { Category } from "@/types/category";
@@ -69,7 +67,7 @@ export function AppProvider({ children }: PropsWithChildren) {
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [settings, setSettings] = useState<SettingsMap>(defaultSettings);
   const [settingsLoading, setSettingsLoading] = useState(true);
-  const [identityEmail, setIdentityEmailState] = useState<string | null>(() => getIdentityEmail());
+  const [identityEmail, setIdentityEmailState] = useState<string | null>(null);
   const [identityDialog, setIdentityDialog] = useState<IdentityDialogState>({
     open: false,
     message: "",
@@ -116,9 +114,7 @@ export function AppProvider({ children }: PropsWithChildren) {
   }, []);
 
   const refreshFavorites = useCallback(async () => {
-    const email = getIdentityEmail();
-    setIdentityEmailState(email);
-    if (!email) {
+    if (!identityEmail) {
       setFavoriteRecords([]);
       return [];
     }
@@ -131,6 +127,7 @@ export function AppProvider({ children }: PropsWithChildren) {
     } catch (error) {
       if (error instanceof ApiClientError && error.status === 401) {
         setFavoriteRecords([]);
+        setIdentityEmailState(null);
         return [];
       }
       logger.error("favorites", error);
@@ -138,13 +135,11 @@ export function AppProvider({ children }: PropsWithChildren) {
     } finally {
       setFavoritesLoading(false);
     }
-  }, []);
+  }, [identityEmail]);
 
   const requireIdentity = useCallback(async (message?: string) => {
-    const existing = getIdentityEmail();
-    if (existing) {
-      setIdentityEmailState(existing);
-      return existing;
+    if (identityEmail) {
+      return identityEmail;
     }
 
     const email = await new Promise<string | null>((resolve) => {
@@ -169,15 +164,18 @@ export function AppProvider({ children }: PropsWithChildren) {
     if (!isValidEmail(normalized)) {
       throw new ApiClientError(400, "Informe um e-mail válido.");
     }
-    setIdentityEmail(normalized);
-    setIdentityEmailState(normalized);
-    await refreshFavorites();
-  }, [refreshFavorites]);
+    // No longer setting local cookie here. 
+    // Usually we would trigger a magic link flow.
+  }, []);
 
-  const clearIdentity = useCallback(() => {
-    clearIdentityEmail();
-    setIdentityEmailState(null);
-    setFavoriteRecords([]);
+  const clearIdentity = useCallback(async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } finally {
+      setIdentityEmailState(null);
+      setFavoriteRecords([]);
+      toast.success("Sessão encerrada.");
+    }
   }, []);
 
   const toggleFavorite = useCallback(async (recipeId: string) => {
@@ -211,6 +209,13 @@ export function AppProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     void refreshCategories();
     void refreshSettings();
+    
+    // Check session on mount
+    void fetchMe().then(user => {
+      if (user?.email) {
+        setIdentityEmailState(user.email);
+      }
+    });
   }, [refreshCategories, refreshSettings]);
 
   useEffect(() => {
@@ -293,13 +298,28 @@ export function AppProvider({ children }: PropsWithChildren) {
     }
 
     setIdentityLoading(true);
-    setIdentityEmail(normalized);
-    setIdentityEmailState(normalized);
-    setIdentityDialog((current) => ({ ...current, open: false, error: "" }));
-    identityResolver?.(normalized);
-    setIdentityResolver(null);
-    setIdentityLoading(false);
-    await refreshFavorites();
+    try {
+      const res = await fetch("/api/auth/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: normalized }),
+      });
+      
+      if (!res.ok) throw new Error("Falha ao solicitar login");
+
+      setIdentityDialog((current) => ({ ...current, open: false, error: "" }));
+      toast.success("Enviamos um link de confirmação para seu e-mail.");
+      
+      // We don't resolve the promise with email yet because they need to click the link.
+      // But for backward compatibility with the current UI flow, we might need a different approach.
+      // For Phase 3, we force magic link.
+      identityResolver?.(null); 
+    } catch (err) {
+      setIdentityDialog((current) => ({ ...current, error: "Ocorreu um erro ao enviar o link." }));
+    } finally {
+      setIdentityResolver(null);
+      setIdentityLoading(false);
+    }
   }
 
   function handleIdentityCancel() {

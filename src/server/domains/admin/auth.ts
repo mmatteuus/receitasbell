@@ -18,6 +18,7 @@ import {
   hasAdminAccess,
   setAdminSessionCookie,
 } from "../http.js";
+import { logAuditEvent } from "../observability/auditRepo.js";
 
 type TenantSummary = {
   id: string;
@@ -198,6 +199,15 @@ export async function loginAdmin(
   clearAdminSessionCookie(request, response);
   setTenantAdminSessionCookie(request, response, session.token, session.expiresAt);
 
+  await logAuditEvent({
+    actorType: "admin",
+    actorId: tenantUser.id,
+    tenantId: resolved.tenant.id,
+    action: "admin_login_success",
+    resourceType: "session",
+    resourceId: session.token.substring(0, 10),
+  });
+
   return {
     authenticated: true,
     databaseConfigured: true,
@@ -243,6 +253,15 @@ export async function bootstrapTenantAdmin(
 
   clearAdminSessionCookie(request, response);
   setTenantAdminSessionCookie(request, response, session.token, session.expiresAt);
+
+  await logAuditEvent({
+    actorType: "admin",
+    actorId: created.tenantUser.id,
+    tenantId: created.tenant.id,
+    action: "admin_bootstrap_success",
+    resourceType: "tenant",
+    resourceId: created.tenant.id,
+  });
 
   return {
     authenticated: true,

@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { withApiHandler, sendJson, readJsonBody, assertMethod, getAppBaseUrl } from '../../src/server/http.js';
-import { requireTenantFromRequest } from '../../src/server/tenants/resolver.js';
-import { createMercadoPagoCheckout, createMockCheckout } from '../../src/server/baserow/checkoutRepo.js';
-import { getSettingsMap, mapTypedSettings } from '../../src/server/baserow/settingsRepo.js';
-import { checkoutCreateSchema } from '../../src/server/validators.js';
+import { withApiHandler, sendJson, readJsonBody, assertMethod, getAppBaseUrl } from '../../src/server/shared/http.js';
+import { requireTenantFromRequest } from '../../src/server/domains/tenants/resolver.js';
+import { createCheckout } from '../../src/server/domains/payments/service.js';
+import { getSettingsMap, mapTypedSettings } from '../../src/server/integrations/baserow/settingsRepo.js';
+import { checkoutCreateSchema } from '../../src/server/shared/validators.js';
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   return withApiHandler(request, response, async (log) => {
@@ -20,11 +20,12 @@ export default async function handler(request: VercelRequest, response: VercelRe
     };
 
     if (settings.payment_mode === 'production' && settings.mp_access_token) {
-      const result = await createMercadoPagoCheckout(String(tenant.id), checkoutInput);
+      const result = await createCheckout(tenant.id, checkoutInput);
       return sendJson(response, 201, result);
     }
     
-    const result = await createMockCheckout(String(tenant.id), checkoutInput);
+    // For now, using createCheckout for everything since it should handle mock/production 
+    const result = await createCheckout(tenant.id, checkoutInput);
     return sendJson(response, 201, result);
   });
 }

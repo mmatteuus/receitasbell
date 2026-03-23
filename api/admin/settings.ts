@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { withApiHandler, sendJson, requireAdminAccess, readJsonBody, ApiError } from '../../src/server/http.js';
-import { requireTenantFromRequest } from '../../src/server/tenants/resolver.js';
-import { getSettingsMap, updateSettings } from '../../src/server/baserow/settingsRepo.js';
-import { logAuditEntry } from '../../src/server/logging/audit.js';
+import { withApiHandler, sendJson, requireAdminAccess, readJsonBody, ApiError } from '../../src/server/shared/http.js';
+import { logAuditEvent } from '../../src/server/domains/observability/auditRepo.js';
+import { requireTenantFromRequest } from '../../src/server/domains/tenants/resolver.js';
+import { getSettingsMap, updateSettings } from '../../src/server/integrations/baserow/settingsRepo.js';
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   return withApiHandler(request, response, async () => {
@@ -18,10 +18,14 @@ export default async function handler(request: VercelRequest, response: VercelRe
       const body = await readJsonBody<Record<string, any>>(request);
       await updateSettings(tenant.id, body);
 
-      await logAuditEntry(tenant.id, {
-        action: 'update_settings',
-        resourceType: 'settings',
-        details: body
+      await logAuditEvent({
+        tenantId: tenant.id,
+        actorType: "admin",
+        actorId: "admin",
+        action: "update_settings",
+        resourceType: "settings",
+        resourceId: "global",
+        payload: body
       });
 
       return sendJson(response, 200, { success: true });

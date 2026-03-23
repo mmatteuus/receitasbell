@@ -1,44 +1,52 @@
-import { fetchBaserow, BASEROW_TABLES } from "../baserow/client.js";
-import { fetchMercadoPagoPayment } from "../payments/mercadoPago.js";
-import { syncMercadoPagoPayment } from "../baserow/checkoutRepo.js";
-import { logAuditEntry } from "../logging/audit.js";
-import { logger } from "../logging/logger.js";
+import { fetchBaserow, BASEROW_TABLES } from "../../integrations/baserow/client.js";
+import { fetchMercadoPagoPayment } from "../../integrations/mercadopago/service.js";
+import { syncPayment } from "../payments/service.js";
+import { Logger } from "../observability/logger.js";
+
+const logger = new Logger({ job: "reconcile" });
 
 export async function runReconciliationJob() {
-  logger.info("[Job] Starting payment reconciliation...");
+  logger.info("Starting payment reconciliation job...");
   
-  const threeDaysAgo = new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString();
-  
+  // Fetch pending and created payments within the last 7 days to avoid excessive processing
+  // (In real scenario, could filter by updated_at > now - 7d)
   const pendingPayments = await fetchBaserow<{ results: any[] }>(
-    `/api/database/rows/table/${BASEROW_TABLES.PAYMENTS}/?user_field_names=true&filter__status__equal=pending`
+    `/api/database/rows/table/${BASEROW_TABLES.PAYMENTS}/?user_field_names=true&filter__status__in=pending,created`
   );
 
   let updatedCount = 0;
+  let errorCount = 0;
 
   for (const payment of pendingPayments.results) {
     try {
-      if (!payment.paymentId) continue;
+      // Need provider_payment_id or preference_id to reconcile
+      const provId = payment.payment_id;
+      if (!provId) continue;
       
-      const mpData = await fetchMercadoPagoPayment(payment.tenantId, payment.paymentId);
-      if (mpData.status !== payment.status) {
-        logger.info(`[Job] Updating payment ${payment.id}: ${payment.status} -> ${mpData.status}`, {
-            paymentId: payment.id,
-            oldStatus: payment.status,
-            newStatus: mpData.status
+      const mpData = await fetchMercadoPagoPayment(payment.tenantId, provId);
+      const mpStatus = String(mpData.status || 'pending');
+
+      if (mpStatus !== payment.status) {
+        logger.info(`Updating payment ${payment.id}: ${payment.status} -> ${mpStatus}`, {
+            paymentOrderId: payment.id,
+            tenantId: payment.tenantId,
+            newStatus: mpStatus
         });
-        await syncMercadoPagoPayment(payment.tenantId, mpData, { source: 'reconciliation_job' });
+        
+        await syncPayment(payment.tenantId, payment.id, mpStatus, provId);
         updatedCount++;
       }
     } catch (err) {
-      logger.error(`[Job] Failed to reconcile payment ${payment.id}`, err);
+      errorCount++;
+      logger.error(`Failed to reconcile payment ${payment.id}`, { error: err instanceof Error ? err.message : err });
     }
   }
 
-  await logAuditEntry(0, { 
-    action: 'job_reconciliation', 
-    resourceType: 'system', 
-    details: { updatedCount, totalChecked: pendingPayments.results.length } 
+  logger.info("Reconciliation job completed", { 
+      totalProcessed: pendingPayments.results.length, 
+      updatedCount, 
+      errorCount 
   });
 
-  return { updatedCount, totalChecked: pendingPayments.results.length };
+  return { updatedCount, totalChecked: pendingPayments.results.length, errorCount };
 }

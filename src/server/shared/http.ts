@@ -1,11 +1,12 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { Logger } from '../domains/observability/logger.js';
-import { getRequiredEnv } from './env.js';
+import { getRequiredEnv, getAdminApiSecret } from './env.js';
 import { hasTenantAdminSession } from '../domains/auth/sessions.js';
 import { resolveOptionalIdentityUser, requireIdentityUser } from './identity.js';
+import { logAuditEvent } from '../domains/observability/auditRepo.js';
 
-export { getRequiredEnv, resolveOptionalIdentityUser, requireIdentityUser };
+export { getRequiredEnv, getAdminApiSecret, resolveOptionalIdentityUser, requireIdentityUser };
 
 export class ApiError extends Error {
   status: number;
@@ -26,11 +27,12 @@ export function setNoCache(response: VercelResponse) {
   response.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   response.setHeader('Pragma', 'no-cache');
   response.setHeader('Expires', '0');
+  response.setHeader('Surrogate-Control', 'no-store');
 }
 
 export function sendJson(response: VercelResponse, status: number, data: unknown) {
   if (!response.getHeader('Cache-Control')) {
-    response.setHeader('Cache-Control', 'no-store');
+    setNoCache(response);
   }
   response.status(status).json(data);
 }
@@ -75,14 +77,29 @@ export function getAppBaseUrl(request: VercelRequest) {
 
 export function sendError(response: VercelResponse, error: unknown) {
   if (error instanceof ApiError) {
+    const code = error.status === 401 ? 'UNAUTHORIZED' : 
+                 error.status === 403 ? 'FORBIDDEN' : 
+                 error.status === 404 ? 'NOT_FOUND' : 
+                 error.status === 409 ? 'CONFLICT' : 
+                 error.status === 422 ? 'VALIDATION_ERROR' : 'API_ERROR';
+                 
     return sendJson(response, error.status, {
       error: error.message,
+      code,
       details: error.details ?? null,
     });
   }
 
+  if (error instanceof Error && error.name === 'ZodError') {
+      return sendJson(response, 400, {
+          error: 'Validation failed',
+          code: 'VALIDATION_ERROR',
+          details: (error as any).errors
+      });
+  }
+
   const message = error instanceof Error ? error.message : 'Internal server error';
-  return sendJson(response, 500, { error: message });
+  return sendJson(response, 500, { error: message, code: 'INTERNAL_ERROR' });
 }
 
 export async function withApiHandler(
@@ -93,7 +110,7 @@ export async function withApiHandler(
   const log = Logger.fromRequest(request);
 
   response.setHeader('Access-Control-Allow-Origin', '*');
-  response.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-secret, x-tenant-slug');
+  response.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-tenant-slug, authorization');
   response.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
 
   if (request.method === 'OPTIONS') {
@@ -155,19 +172,21 @@ export function getCookie(request: VercelRequest, name: string) {
 }
 
 export function hasAdminAccess(request: VercelRequest) {
+  // T4/T6: Admin must have a valid session context
   if (hasTenantAdminSession(request)) return true;
-
-  const secret = request.headers['x-admin-secret'];
-  const expectedSecret = process.env.ADMIN_API_SECRET || 'dev-secret';
-  if (secret && (secret === expectedSecret || (Array.isArray(secret) && secret.includes(expectedSecret)))) {
-      return true;
-  }
-
   return hasAdminSessionCookie(request);
 }
 
 export function requireAdminAccess(request: VercelRequest) {
   if (!hasAdminAccess(request)) {
+    // Audit failure
+    logAuditEvent({
+      actorType: "system",
+      actorId: "anonymous",
+      action: "unauthorized_admin_access_attempt",
+      payload: { url: request.url, method: request.method }
+    }).catch(() => {});
+
     throw new ApiError(403, 'Forbidden: Admin access required');
   }
 }
@@ -182,7 +201,8 @@ export function hasAdminSessionCookie(request: VercelRequest) {
   const token = getCookie(request, ADMIN_SESSION_COOKIE);
   if (!token) return false;
 
-  const expected = createAdminSessionToken(process.env.ADMIN_API_SECRET || 'dev-secret');
+  const adminSecret = getAdminApiSecret();
+  const expected = createAdminSessionToken(adminSecret);
   try {
     return timingSafeEqual(Buffer.from(token), Buffer.from(expected));
   } catch {

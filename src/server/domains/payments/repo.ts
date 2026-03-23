@@ -1,17 +1,21 @@
 import { fetchBaserow, BASEROW_TABLES } from "../../integrations/baserow/client.js";
 
+export type PaymentStatus = 'created' | 'pending' | 'approved' | 'rejected' | 'cancelled' | 'refunded' | 'chargeback' | 'failed';
+
 export interface PaymentRecord {
   id: string | number;
   tenantId: string | number;
   userId?: string | number | null;
   amount: number;
-  status: string;
+  currency: string;
+  status: PaymentStatus;
   externalReference: string;
-  paymentId: string;
-  preferenceId: string;
+  paymentId: string; // provider payment id
+  preferenceId: string; // provider preference id
   idempotencyKey: string;
   payerEmail: string;
   paymentMethod: string;
+  provider: string;
   recipeIds: string[];
   items: any[];
   createdAt: string;
@@ -50,13 +54,15 @@ export async function getPaymentById(tenantId: string | number, paymentId: strin
 export async function createPayment(tenantId: string | number, input: {
   userId?: string | number | null;
   amount: number;
-  status: string;
+  currency?: string;
+  status: PaymentStatus;
   externalReference: string;
   paymentId?: string;
   preferenceId?: string;
   idempotencyKey: string;
   payerEmail: string;
   paymentMethod: string;
+  provider?: string;
   recipeIds: string[];
   items: any[];
 }): Promise<PaymentRecord> {
@@ -65,7 +71,9 @@ export async function createPayment(tenantId: string | number, input: {
       method: "POST",
       body: JSON.stringify({
         amount: input.amount,
+        currency: input.currency || 'BRL',
         status: input.status,
+        provider: input.provider || 'mercadopago',
         external_reference: input.externalReference,
         payment_id: input.paymentId || "",
         preference_id: input.preferenceId || "",
@@ -84,6 +92,10 @@ export async function createPayment(tenantId: string | number, input: {
 }
 
 export async function updatePaymentStatus(tenantId: string | number, paymentId: string | number, status: string, providerPaymentId?: string): Promise<void> {
+    // Security check: verify ownership
+    const existing = await getPaymentById(tenantId, paymentId);
+    if (!existing) throw new Error("Payment not found or does not belong to this tenant");
+
     const payload: any = { status, updated_at: new Date().toISOString() };
     if (providerPaymentId) payload.payment_id = providerPaymentId;
     await fetchBaserow(`/api/database/rows/table/${BASEROW_TABLES.PAYMENTS}/${paymentId}/?user_field_names=true`, {
@@ -107,13 +119,15 @@ function mapPaymentRowToRecord(row: any): PaymentRecord {
     tenantId: row.tenantId,
     userId: row.userId,
     amount: Number(row.amount || 0),
-    status: row.status,
+    currency: row.currency || 'BRL',
+    status: row.status as PaymentStatus,
     externalReference: row.external_reference,
     paymentId: row.payment_id,
     preferenceId: row.preference_id,
     idempotencyKey: row.idempotency_key,
     payerEmail: row.payer_email || "",
     paymentMethod: row.payment_method,
+    provider: row.provider || 'mercadopago',
     recipeIds: JSON.parse(row.recipe_ids_json || "[]"),
     items: JSON.parse(row.items_json || "[]"),
     createdAt: row.created_at,

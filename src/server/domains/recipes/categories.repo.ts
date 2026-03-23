@@ -38,6 +38,30 @@ export async function createCategory(tenantId: string | number, input: { name: s
   return mapCategoryRowToRecord(record);
 }
 
+export async function updateCategory(tenantId: string | number, id: string | number, input: Partial<{ name: string; slug: string; description: string }>): Promise<Category> {
+    // Security check: verify ownership
+    const existing = await fetchBaserow<any>(`/api/database/rows/table/${BASEROW_TABLES.CATEGORIES}/${id}/?user_field_names=true`);
+    if (String(existing.tenantId) !== String(tenantId)) {
+        throw new Error("Category not found or does not belong to this tenant");
+    }
+
+    const record = await fetchBaserow<any>(`/api/database/rows/table/${BASEROW_TABLES.CATEGORIES}/${id}/?user_field_names=true`, {
+        method: "PATCH",
+        body: JSON.stringify(input),
+    });
+    return mapCategoryRowToRecord(record);
+}
+
+export async function deleteCategory(tenantId: string | number, id: string | number): Promise<void> {
+    // Security check: verify ownership
+    const existing = await fetchBaserow<any>(`/api/database/rows/table/${BASEROW_TABLES.CATEGORIES}/${id}/?user_field_names=true`);
+    if (String(existing.tenantId) !== String(tenantId)) {
+        throw new Error("Category not found or does not belong to this tenant");
+    }
+
+    await fetchBaserow(`/api/database/rows/table/${BASEROW_TABLES.CATEGORIES}/${id}/`, { method: "DELETE" });
+}
+
 function mapCategoryRowToRecord(record: any): Category {
     return {
         id: record.id,
