@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
 import { withApiHandler, sendJson, requireIdentityUser, readJsonBody, assertMethod, ApiError } from '../../src/server/shared/http.js';
-import { requireTenantFromRequest } from '../../src/server/domains/tenants/resolver.js';
-import { createFavorite, deleteFavorite, listFavoritesByUserId } from '../../src/server/domains/users/favorites.repo.js';
+import { requireTenantFromRequest } from '../../src/server/tenancy/resolver.js';
+import { createFavorite, deleteFavorite, listFavoritesByUserId } from '../../src/server/identity/favorites.repo.js';
 import { favoriteSchema } from '../../src/server/shared/validators.js';
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
@@ -36,3 +36,4 @@ export default async function handler(request: VercelRequest, response: VercelRe
     throw new ApiError(405, `Method ${request.method} not allowed`);
   });
 }
+

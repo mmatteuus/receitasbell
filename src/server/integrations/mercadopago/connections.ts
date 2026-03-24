@@ -1,8 +1,8 @@
 import { decryptSecret, encryptSecret } from "../../shared/crypto.js";
-import { redactErrorMessage } from "../../shared/masking.js";
+import { redactErrorMessage } from "../../shared/validation.js";
 import { ApiError } from "../../shared/http.js";
 import { getMercadoPagoAppEnvAsync } from "../../shared/env.js";
-import { getSettingsMap, saveSettings } from "../baserow/settingsRepo.js";
+import { getSettingsMap, updateSettings as saveSettings } from "../../settings/repo.js";
 
 export { getMercadoPagoAppEnvAsync };
 

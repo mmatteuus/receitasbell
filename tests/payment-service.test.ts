@@ -27,14 +27,20 @@ const entitlementsMock = vi.hoisted(() => ({
   revokeEntitlement: vi.fn(),
 }));
 
-vi.mock("../src/server/db/prisma.js", () => ({
+vi.mock("../src/server/shared/http.js", () => ({
   getPrisma: () => prismaMock,
 }));
-vi.mock("../src/server/mercadopago/connections.js", () => connectionsMock);
-vi.mock("../src/server/sheets/recipesRepo.js", () => recipesMock);
-vi.mock("../src/server/sheets/entitlementsRepo.js", () => entitlementsMock);
+vi.mock("../src/server/integrations/mercadopago/connections.js", () => connectionsMock);
+vi.mock("../src/server/recipes/repo.js", () => recipesMock);
+vi.mock("../src/server/identity/entitlements.repo.js", () => entitlementsMock);
+vi.mock("../src/server/payments/repo.js", () => ({
+  createPayment: prismaMock.payment.create,
+  getPaymentById: prismaMock.payment.findUnique,
+  updatePaymentStatus: prismaMock.payment.update,
+  PaymentStatus: {} as any
+}));
 
-import { createTenantMercadoPagoCheckout } from "../src/server/mercadopago/payments.js";
+import { createCheckout as createTenantMercadoPagoCheckout } from "../src/server/payments/service.js";
 
 describe("mercado pago payment service", () => {
   beforeEach(() => {
@@ -139,29 +145,26 @@ describe("mercado pago payment service", () => {
     });
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await createTenantMercadoPagoCheckout({
-      tenantId: "tenant-1",
+    const result = await createTenantMercadoPagoCheckout("tenant-1", {
       recipeIds: ["recipe-1"],
       buyerEmail: "cliente@exemplo.com",
       checkoutReference: "checkout-1",
       baseUrl: "https://app.exemplo.com",
-      publicBasePath: "/t/acme",
       enableNotifications: true,
     });
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [requestUrl, requestInit] = fetchMock.mock.calls[0]!;
     expect(requestUrl).toBe("https://api.mercadopago.com/checkout/preferences");
-    expect((requestInit as RequestInit).headers).toMatchObject({
-      Authorization: "Bearer seller-token-tenant-1",
-    });
+    const headers = (requestInit as RequestInit).headers as any;
+    expect(headers.get("Authorization")).toBe("Bearer seller-token-tenant-1");
 
     const payload = JSON.parse(String((requestInit as RequestInit).body));
     expect(payload.external_reference).toBe("t:tenant-1:p:pay-1");
     expect(payload.notification_url).toBe(
-      "https://app.exemplo.com/api/payments/mercadopago/webhook?tenantId=tenant-1&paymentId=pay-1",
+      "https://app.exemplo.com/api/checkout/webhook?tenantId=tenant-1&paymentId=pay-1",
     );
-    expect(payload.back_urls.success).toContain("https://app.exemplo.com/t/acme/compra/sucesso");
+    expect(payload.back_urls.success).toContain("/checkout/success");
     expect(result.preferenceId).toBe("pref-123");
     expect(result.gateway).toBe("mercado_pago");
   });

@@ -1,23 +1,27 @@
-import { logger } from "../../domains/observability/logger.js";
+import { Logger } from "../../shared/logger.js";
+import { env } from "../../shared/env.js";
+import { baserowTables } from "./tables.js";
+
+const logger = new Logger({ integration: "baserow" });
 
 export const BASEROW_TABLES = {
-  TENANTS: Number(process.env.BASEROW_TABLE_TENANTS),
-  SETTINGS: Number(process.env.BASEROW_TABLE_SETTINGS || 896976),
-  CATEGORIES: Number(process.env.BASEROW_TABLE_CATEGORIES || 896977),
-  RECIPES: Number(process.env.BASEROW_TABLE_RECIPES || 896978),
-  PAYMENTS: Number(process.env.BASEROW_TABLE_PAYMENTS || 896979),
-  PAYMENT_ORDERS: Number(process.env.BASEROW_TABLE_PAYMENT_ORDERS || 896979),
-  PAYMENT_EVENTS: Number(process.env.BASEROW_TABLE_PAYMENT_EVENTS || 896994),
-  RECIPE_PURCHASES: Number(process.env.BASEROW_TABLE_RECIPE_PURCHASES || 896995),
-  USERS: Number(process.env.BASEROW_TABLE_USERS || 896984),
-  COMMENTS: Number(process.env.BASEROW_TABLE_COMMENTS || 896987),
-  FAVORITES: Number(process.env.BASEROW_TABLE_FAVORITES || 896988),
-  NEWSLETTER: Number(process.env.BASEROW_TABLE_NEWSLETTER || 896989),
-  SHOPPING_LIST: Number(process.env.BASEROW_TABLE_SHOPPING_LIST || 896990),
-  RATINGS: Number(process.env.BASEROW_TABLE_RATINGS || 896991),
-  ENTITLEMENTS: Number(process.env.BASEROW_TABLE_ENTITLEMENTS || 896992),
-  OAUTH_STATES: Number(process.env.BASEROW_TABLE_OAUTH_STATES || 896993),
-  AUDIT_LOGS: Number(process.env.BASEROW_TABLE_AUDIT_LOGS || 896996),
+  TENANTS: baserowTables.tenants,
+  SETTINGS: baserowTables.settings,
+  CATEGORIES: baserowTables.categories,
+  RECIPES: baserowTables.recipes,
+  PAYMENTS: baserowTables.paymentOrders,
+  PAYMENT_ORDERS: baserowTables.paymentOrders,
+  PAYMENT_EVENTS: baserowTables.paymentEvents,
+  RECIPE_PURCHASES: baserowTables.recipePurchases,
+  USERS: baserowTables.users,
+  COMMENTS: baserowTables.comments,
+  FAVORITES: baserowTables.favorites,
+  NEWSLETTER: baserowTables.newsletter,
+  SHOPPING_LIST: baserowTables.shoppingList,
+  RATINGS: baserowTables.ratings,
+  ENTITLEMENTS: baserowTables.entitlements,
+  OAUTH_STATES: baserowTables.oauthStates,
+  AUDIT_LOGS: baserowTables.auditLogs,
 };
 
 const MAX_RETRIES = 3;
@@ -32,8 +36,8 @@ export async function fetchBaserow<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const token = process.env.BASEROW_API_TOKEN;
-  const baseUrl = process.env.BASEROW_API_URL || "https://api.baserow.io";
+  const token = env.BASEROW_API_TOKEN;
+  const baseUrl = env.BASEROW_API_URL || "https://api.baserow.io";
   const url = `${baseUrl}${endpoint}`;
   
   const headers = new Headers(options.headers || {});
@@ -59,7 +63,6 @@ export async function fetchBaserow<T>(
 
       if (!res.ok) {
         const text = await res.text();
-        // Retry on 5xx or 429 (Rate Limit)
         if (attempt < MAX_RETRIES && (res.status >= 500 || res.status === 429)) {
           const delay = RETRY_DELAY_MS * Math.pow(2, attempt - 1);
           logger.warn(`Baserow temporary error (${res.status}). Retrying in ${delay}ms... attempt ${attempt}/${MAX_RETRIES}`, { url });

@@ -1,9 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { withApiHandler, sendJson, readJsonBody, assertMethod, getQueryValue } from '../../src/server/shared/http.js';
-import { requireTenantFromRequest } from '../../src/server/domains/tenants/resolver.js';
-import { fetchMercadoPagoPayment } from '../../src/server/integrations/mercadopago/service.js';
-import { syncPayment } from '../../src/server/domains/payments/service.js';
-import { createPaymentEvent } from '../../src/server/domains/payments/repo.js';
+import { requireTenantFromRequest } from '../../src/server/tenancy/resolver.js';
+import { fetchMercadoPagoPayment } from '../../src/server/integrations/mercadopago/client.js';
+import { syncPayment } from '../../src/server/payments/service.js';
+import { createPaymentEvent } from '../../src/server/payments/repo.js';
+import { createAuditLog } from '../../src/server/audit/service.js';
 
 function extractPaymentId(request: VercelRequest, payload: any) {
     const data = payload.data;
@@ -22,7 +23,16 @@ export default async function handler(request: VercelRequest, response: VercelRe
     const payload = await readJsonBody<Record<string, any>>(request);
     const paymentId = extractPaymentId(request, payload);
     
-    if (!paymentId) return sendJson(response, 202, { received: true, ignored: true });
+    if (!paymentId) {
+        log.info('Webhook ignorado: paymentId não encontrado no payload', { payload_id: payload.id });
+        return sendJson(response, 202, { received: true, ignored: true });
+    }
+
+    log.info('Processando webhook Mercado Pago', { 
+        action: 'process_webhook', 
+        paymentId, 
+        mp_action: payload.action 
+    });
 
     // T4/T5: Persist Event for Idempotency/Audit
     const dedupeKey = `mp_evt_${payload.id || paymentId}_${payload.action || 'sync'}`;
@@ -36,11 +46,26 @@ export default async function handler(request: VercelRequest, response: VercelRe
         createdAt: new Date().toISOString(),
     });
 
-    // Signature verification placeholder (MP signature validation should be here)
-    
     const mpPayment = await fetchMercadoPagoPayment(tenant.id, paymentId);
+    log.info('Sincronizando status de pagamento', { paymentId, status: mpPayment.status });
+    
     await syncPayment(tenant.id, paymentId, String(mpPayment.status), String(mpPayment.id));
     
+    await createAuditLog(request, {
+      tenantId: String(tenant.id),
+      actorType: 'system',
+      actorId: 'mercadopago_webhook',
+      action: 'payment.webhook_received',
+      resourceType: 'payment_order',
+      resourceId: paymentId,
+      payload: { 
+        status: mpPayment.status,
+        mp_id: mpPayment.id,
+        action: payload.action
+      },
+    });
+
     return sendJson(response, 202, { success: true });
   });
 }
+

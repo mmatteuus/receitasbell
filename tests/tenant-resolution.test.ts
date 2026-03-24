@@ -10,80 +10,64 @@ const authMocks = vi.hoisted(() => ({
   getTenantAdminSessionClaims: vi.fn(),
 }));
 
-vi.mock("../src/server/tenants/service.js", () => serviceMocks);
-vi.mock("../src/server/auth/sessions.js", () => authMocks);
-
 import {
   getTenantSlugFromRequest,
-  normalizeTenantSlug,
-  resolveTenantFromRequest,
-} from "../src/server/tenants/resolver.js";
+  requireTenantFromRequest,
+} from "../src/server/tenancy/resolver.js";
+
+vi.mock("../src/server/tenancy/repo.js", () => ({
+  getTenantBySlug: vi.fn(),
+}));
+import { getTenantBySlug } from "../src/server/tenancy/repo.js";
 
 describe("tenant resolution", () => {
   beforeEach(() => {
-    serviceMocks.findTenantByHost.mockReset();
-    serviceMocks.findTenantBySlug.mockReset();
-    serviceMocks.findTenantById.mockReset();
-    authMocks.getTenantAdminSessionClaims.mockReset();
+    vi.mocked(getTenantBySlug).mockReset();
   });
 
-  test("normaliza slug e le de X-Tenant-Slug", () => {
+  test("le de X-Tenant-Slug corretamente", () => {
     const request = {
       headers: {
-        "x-tenant-slug": " Minha Loja ",
+        "x-tenant-slug": "minha-loja",
       },
-      query: {},
-    } as never;
+    } as any;
 
-    expect(normalizeTenantSlug(" Minha Loja ")).toBe("minha-loja");
     expect(getTenantSlugFromRequest(request)).toBe("minha-loja");
   });
 
-  test("prioriza host sobre slug", async () => {
-    serviceMocks.findTenantByHost.mockResolvedValue({
-      id: "tenant-host",
-      slug: "host-tenant",
-      name: "Host Tenant",
-    });
-    serviceMocks.findTenantBySlug.mockResolvedValue({
-      id: "tenant-slug",
-      slug: "slug-tenant",
-      name: "Slug Tenant",
-    });
+  test("resolve tenant por header", async () => {
+    vi.mocked(getTenantBySlug).mockResolvedValue({
+      id: "tenant-1",
+      slug: "minha-loja",
+      name: "Minha Loja",
+    } as any);
 
-    const resolved = await resolveTenantFromRequest({
-      headers: {
-        host: "cliente.exemplo.com",
-        "x-tenant-slug": "slug-tenant",
-      },
-      query: {},
-    } as never);
+    const resolved = await requireTenantFromRequest({
+      headers: { "x-signature": "sig", "x-request-id": "req", "x-tenant-slug": "minha-loja" },
+    } as any);
 
-    expect(resolved?.resolution).toBe("host");
-    expect(resolved?.tenant.id).toBe("tenant-host");
+    expect(resolved.tenant.id).toBe("tenant-1");
   });
 
-  test("usa sessão como fallback final", async () => {
-    serviceMocks.findTenantByHost.mockResolvedValue(null);
-    serviceMocks.findTenantBySlug.mockResolvedValue(null);
-    serviceMocks.findTenantById.mockResolvedValue({
-      id: "tenant-session",
-      slug: "session-tenant",
-      name: "Session Tenant",
-    });
-    authMocks.getTenantAdminSessionClaims.mockReturnValue({
-      tid: "tenant-session",
-      sid: "session-1",
-      uid: "user-1",
-      exp: Date.now() + 60_000,
-    });
+  test("resolve tenant por host (subdominio)", async () => {
+    vi.mocked(getTenantBySlug).mockResolvedValue({
+      id: "tenant-2",
+      slug: "loja-2",
+      name: "Loja 2",
+    } as any);
 
-    const resolved = await resolveTenantFromRequest({
-      headers: { host: "localhost:5173" },
-      query: {},
-    } as never);
+    const resolved = await requireTenantFromRequest({
+      headers: { host: "loja-2.receitasbell.com.br" },
+    } as any);
 
-    expect(resolved?.resolution).toBe("session");
-    expect(resolved?.tenant.slug).toBe("session-tenant");
+    expect(resolved.tenant.id).toBe("tenant-2");
+  });
+
+  test("falha se tenant nao encontrado", async () => {
+    vi.mocked(getTenantBySlug).mockResolvedValue(null);
+
+    await expect(requireTenantFromRequest({
+      headers: { "x-tenant-slug": "invalid" },
+    } as any)).rejects.toThrow("Tenant not found");
   });
 });

@@ -44,7 +44,10 @@ export async function getMercadoPagoConnectUrl(tenantId: string | number, input:
   url.searchParams.set("redirect_uri", redirectUri);
   url.searchParams.set("state", state);
 
-  return url.toString();
+  return {
+    authorizationUrl: url.toString(),
+    state,
+  };
 }
 
 export async function handleMercadoPagoOAuthCallback(code: string, state: string) {

@@ -1,13 +1,14 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { withApiHandler, sendJson, requireAdminAccess, readJsonBody, ApiError } from '../../src/server/shared/http.js';
-import { logAuditEvent } from '../../src/server/domains/observability/auditRepo.js';
-import { requireTenantFromRequest } from '../../src/server/domains/tenants/resolver.js';
-import { getSettingsMap, updateSettings } from '../../src/server/integrations/baserow/settingsRepo.js';
+import { withApiHandler, sendJson, readJsonBody, ApiError } from '../../src/server/shared/http.js';
+import { requireAdminAccess } from '../../src/server/admin/guards.js';
+import { logAuditEvent } from '../../src/server/audit/repo.js';
+import { requireTenantFromRequest } from '../../src/server/tenancy/resolver.js';
+import { getSettingsMap, updateSettings } from '../../src/server/settings/repo.js';
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   return withApiHandler(request, response, async () => {
     const { tenant } = await requireTenantFromRequest(request);
-    requireAdminAccess(request);
+    await requireAdminAccess(request);
 
     if (request.method === 'GET') {
       const settings = await getSettingsMap(tenant.id);
@@ -34,3 +35,4 @@ export default async function handler(request: VercelRequest, response: VercelRe
     throw new ApiError(405, `Method ${request.method} not allowed`);
   });
 }
+

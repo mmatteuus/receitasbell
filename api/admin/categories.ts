@@ -1,8 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { withApiHandler, sendJson, requireAdminAccess, readJsonBody, ApiError } from '../../src/server/shared/http.js';
-import { logAuditEvent } from '../../src/server/domains/observability/auditRepo.js';
-import { requireTenantFromRequest } from '../../src/server/domains/tenants/resolver.js';
-import { listCategories, createCategory, updateCategory, deleteCategory } from '../../src/server/domains/recipes/categories.repo.js';
+import { withApiHandler, sendJson, readJsonBody, ApiError } from '../../src/server/shared/http.js';
+import { requireAdminAccess } from '../../src/server/admin/guards.js';
+import { logAuditEvent } from '../../src/server/audit/repo.js';
+import { requireTenantFromRequest } from '../../src/server/tenancy/resolver.js';
+import { listCategories, createCategory, updateCategory, deleteCategory } from '../../src/server/categories/repo.js';
 import { z } from 'zod';
 
 const categorySchema = z.object({
@@ -14,7 +15,7 @@ const categorySchema = z.object({
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   return withApiHandler(request, response, async () => {
     const { tenant } = await requireTenantFromRequest(request);
-    requireAdminAccess(request);
+    await requireAdminAccess(request);
 
     const method = request.method;
     const url = new URL(request.url || '', 'http://localhost');
@@ -79,3 +80,4 @@ export default async function handler(request: VercelRequest, response: VercelRe
     throw new ApiError(405, `Method ${method} not allowed`);
   });
 }
+

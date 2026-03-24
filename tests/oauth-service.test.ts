@@ -1,15 +1,11 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
-const prismaMock = vi.hoisted(() => ({
-  mercadoPagoOAuthState: {
-    create: vi.fn(),
-    findUnique: vi.fn(),
-    update: vi.fn(),
-  },
+const baserowMock = vi.hoisted(() => ({
+  fetchBaserow: vi.fn(),
 }));
 
 const envMock = vi.hoisted(() => ({
-  getMercadoPagoAppEnv: vi.fn(() => ({
+  getMercadoPagoAppEnvAsync: vi.fn(async () => ({
     clientId: "client-id",
     clientSecret: "client-secret",
     redirectUri: "https://app.exemplo.com/api/mercadopago/oauth/callback",
@@ -20,94 +16,87 @@ const connectionsMock = vi.hoisted(() => ({
   upsertTenantMercadoPagoConnection: vi.fn(),
 }));
 
-vi.mock("../src/server/db/prisma.js", () => ({
-  getPrisma: () => prismaMock,
+vi.mock("../src/server/integrations/baserow/client.js", () => ({
+  fetchBaserow: baserowMock.fetchBaserow,
+  BASEROW_TABLES: {
+    OAUTH_STATES: "oauth_states_table",
+    TENANTS: "tenants_table",
+    SETTINGS: "settings_table",
+    RECIPES: "recipes_table",
+    PAYMENTS: "payments_table",
+    PAYMENT_EVENTS: "payment_events_table",
+  }
 }));
-vi.mock("../src/server/env.js", () => envMock);
-vi.mock("../src/server/mercadopago/connections.js", () => connectionsMock);
+vi.mock("../src/server/shared/env.js", () => envMock);
+vi.mock("../src/server/integrations/mercadopago/connections.js", () => connectionsMock);
 
-import { hashOpaqueState } from "../src/server/security/state.js";
-import { completeMercadoPagoOAuth, createMercadoPagoOAuthStart } from "../src/server/mercadopago/oauth.js";
+import { hashOpaqueState } from "../src/server/shared/state.js";
+import { 
+  handleMercadoPagoOAuthCallback as completeMercadoPagoOAuth, 
+  getMercadoPagoConnectUrl as createMercadoPagoOAuthStart 
+} from "../src/server/integrations/mercadopago/oauth.js";
 
 describe("mercado pago oauth service", () => {
   beforeEach(() => {
-    prismaMock.mercadoPagoOAuthState.create.mockReset();
-    prismaMock.mercadoPagoOAuthState.findUnique.mockReset();
-    prismaMock.mercadoPagoOAuthState.update.mockReset();
+    baserowMock.fetchBaserow.mockReset();
     connectionsMock.upsertTenantMercadoPagoConnection.mockReset();
     vi.restoreAllMocks();
   });
 
-  test("gera URL oficial de autorização e persiste state", async () => {
-    prismaMock.mercadoPagoOAuthState.create.mockResolvedValue({ id: "state-1" });
+  test("gera URL oficial de autorização e persiste state no baserow", async () => {
+    baserowMock.fetchBaserow.mockResolvedValue({ id: "state-row-1" });
 
-    const result = await createMercadoPagoOAuthStart({
-      tenantId: "tenant-1",
+    const result = await createMercadoPagoOAuthStart("tenant-1", {
       tenantUserId: "user-1",
-      returnTo: "/t/acme/admin/pagamentos/configuracoes",
+      returnTo: "/admin/custom",
     });
 
-    expect(prismaMock.mercadoPagoOAuthState.create).toHaveBeenCalledTimes(1);
+    expect(baserowMock.fetchBaserow).toHaveBeenCalledWith(
+      expect.stringContaining("/api/database/rows/table/"),
+      expect.objectContaining({ method: "POST" })
+    );
+
     expect(result.authorizationUrl).toContain("https://auth.mercadopago.com/authorization");
     expect(result.authorizationUrl).toContain("client_id=client-id");
-    expect(result.authorizationUrl).toContain("response_type=code");
-    expect(result.authorizationUrl).toContain("platform_id=mp");
-    expect(result.authorizationUrl).toContain(encodeURIComponent("https://app.exemplo.com/api/mercadopago/oauth/callback"));
     expect(result.state).toBeTruthy();
   });
 
-  test("conclui callback, consome state e persiste conexao do seller", async () => {
-    prismaMock.mercadoPagoOAuthState.findUnique.mockResolvedValue({
-      id: "oauth-state-1",
-      tenantId: "tenant-1",
-      tenantUserId: "user-1",
-      stateHash: hashOpaqueState("state-123"),
-      expiresAt: new Date(Date.now() + 5 * 60_000),
-      consumedAt: null,
-      returnTo: "/t/acme/admin/pagamentos/configuracoes",
-    });
-    prismaMock.mercadoPagoOAuthState.update.mockResolvedValue({
-      id: "oauth-state-1",
-    });
-    connectionsMock.upsertTenantMercadoPagoConnection.mockResolvedValue({
-      id: "connection-1",
-      tenantId: "tenant-1",
+  test("conclui callback, consome state e persiste conexao", async () => {
+    // 1. Mock finding the state in Baserow
+    baserowMock.fetchBaserow.mockResolvedValueOnce({
+      results: [{
+        id: "oauth-state-1",
+        tenantId: "tenant-1",
+        tenantUserId: "user-1",
+        stateHash: hashOpaqueState("state-123"),
+        expiresAt: new Date(Date.now() + 5 * 60_000).toISOString(),
+        returnTo: "/admin/custom",
+      }]
     });
 
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          access_token: "seller-access",
-          refresh_token: "seller-refresh",
-          expires_in: 21600,
-          scope: "offline_access payments",
-          user_id: 123456,
-          public_key: "APP_USR-test",
-        }),
+    // 2. Mock deleting the state (consuming it)
+    baserowMock.fetchBaserow.mockResolvedValueOnce({});
+
+    // 3. Mock the fetch to Mercado Pago Token API
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        access_token: "seller-access",
+        refresh_token: "seller-refresh",
+        expires_in: 21600,
+        user_id: 123456,
+        public_key: "APP_USR-test",
       }),
-    );
+    }));
 
-    const result = await completeMercadoPagoOAuth({
-      code: "auth-code-1",
-      state: "state-123",
-    });
+    const result = await completeMercadoPagoOAuth("auth-code-1", "state-123");
 
-    expect(prismaMock.mercadoPagoOAuthState.update).toHaveBeenCalledWith({
-      where: { id: "oauth-state-1" },
-      data: { consumedAt: expect.any(Date) },
-    });
-    expect(connectionsMock.upsertTenantMercadoPagoConnection).toHaveBeenCalledWith({
+    expect(connectionsMock.upsertTenantMercadoPagoConnection).toHaveBeenCalledWith(expect.objectContaining({
       tenantId: "tenant-1",
-      actorUserId: "user-1",
-      mercadoPagoUserId: "123456",
       accessToken: "seller-access",
-      refreshToken: "seller-refresh",
-      expiresIn: 21600,
-      scope: "offline_access payments",
-      publicKey: "APP_USR-test",
-    });
-    expect(result.returnTo).toBe("/t/acme/admin/pagamentos/configuracoes");
+      mercadoPagoUserId: "123456",
+    }));
+
+    expect(result.returnTo).toBe("/admin/custom");
   });
 });

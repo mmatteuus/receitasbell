@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { withApiHandler, sendJson, requireIdentityUser, readJsonBody, ApiError } from '../../src/server/shared/http.js';
-import { requireTenantFromRequest } from '../../src/server/domains/tenants/resolver.js';
-import { listShoppingListItems, createShoppingListItems, updateShoppingListItem, deleteShoppingListItem } from '../../src/server/domains/users/shoppingList.repo.js';
+import { requireTenantFromRequest } from '../../src/server/tenancy/resolver.js';
+import { listShoppingListItems, createShoppingListItems, updateShoppingListItem, deleteShoppingListItem } from '../../src/server/identity/shoppingList.repo.js';
 import { shoppingListCreateSchema, shoppingListUpdateSchema } from '../../src/server/shared/validators.js';
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
@@ -40,3 +40,4 @@ export default async function handler(request: VercelRequest, response: VercelRe
     throw new ApiError(405, `Method ${request.method} not allowed`);
   });
 }
+

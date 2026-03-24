@@ -1,12 +1,13 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { withApiHandler, sendJson, requireAdminAccess, ApiError } from '../../src/server/shared/http.js';
-import { requireTenantFromRequest } from '../../src/server/domains/tenants/resolver.js';
-import { listPayments, getPaymentById } from '../../src/server/domains/payments/repo.js';
+import { withApiHandler, sendJson, ApiError } from '../../src/server/shared/http.js';
+import { requireAdminAccess } from '../../src/server/admin/guards.js';
+import { requireTenantFromRequest } from '../../src/server/tenancy/resolver.js';
+import { listPayments, getPaymentById } from '../../src/server/payments/repo.js';
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   return withApiHandler(request, response, async () => {
     const { tenant } = await requireTenantFromRequest(request);
-    requireAdminAccess(request);
+    await requireAdminAccess(request);
 
     const url = new URL(request.url || '', 'http://localhost');
     const id = url.searchParams.get('id');
@@ -21,3 +22,4 @@ export default async function handler(request: VercelRequest, response: VercelRe
     return sendJson(response, 200, { items, meta: { total: items.length } });
   });
 }
+

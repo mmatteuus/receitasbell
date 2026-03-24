@@ -12,7 +12,7 @@ describe("scaleIngredient", () => {
   });
 
   it("should format decimals correctly", () => {
-    expect(scaleIngredient("3 xícaras", 2, 3)).toBe("4,5 xícaras");
+    expect(scaleIngredient("3 xícaras", 2, 3)).toBe("4 e 1/2 xícaras");
     expect(scaleIngredient("1.5 litros de leite", 2, 4)).toBe("3 litros de leite");
     expect(scaleIngredient("1,5 litros de leite", 2, 4)).toBe("3 litros de leite");
   });

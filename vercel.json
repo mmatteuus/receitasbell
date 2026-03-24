@@ -1,34 +1,10 @@
 {
   "framework": "vite",
   "rewrites": [
-    { "source": "/api/public/catalog", "destination": "/api/public/catalog" },
-    { "source": "/api/public/categories", "destination": "/api/public/categories" },
-    { "source": "/api/public/recipes", "destination": "/api/public/recipes" },
-    { "source": "/api/public/recipes/:slug", "destination": "/api/public/recipes" },
-    
     { "source": "/api/recipes", "destination": "/api/public/catalog" },
-    
-    { "source": "/api/auth/magic-link", "destination": "/api/auth/request" },
-    { "source": "/api/auth/verify", "destination": "/api/auth/verify" },
-    { "source": "/api/auth/me", "destination": "/api/auth/me" },
-    { "source": "/api/auth/logout", "destination": "/api/auth/logout" },
-    
-    { "source": "/api/me/favorites", "destination": "/api/me/favorites" },
-    { "source": "/api/me/shopping-list", "destination": "/api/me/shopping-list" },
-    { "source": "/api/me/purchases", "destination": "/api/me/purchases" },
-    
-    { "source": "/api/admin/auth", "destination": "/api/admin/auth" },
-    { "source": "/api/admin/settings", "destination": "/api/admin/settings" },
-    { "source": "/api/admin/recipes", "destination": "/api/admin/recipes" },
-    { "source": "/api/admin/categories", "destination": "/api/admin/categories" },
-    { "source": "/api/admin/payments", "destination": "/api/admin/payments" },
-    
-    { "source": "/api/checkout/create", "destination": "/api/checkout/create" },
-    { "source": "/api/checkout/webhook", "destination": "/api/checkout/webhook" },
-    { "source": "/api/checkout/callback", "destination": "/api/checkout/callback" },
-    
+    { "source": "/api/checkout", "destination": "/api/checkout/create" },
+    { "source": "/api/payments/mercadopago/webhook", "destination": "/api/checkout/webhook" },
     { "source": "/api/jobs/:path*", "destination": "/api/jobs/:path*" },
-    
     {
       "source": "/(@vite|src|node_modules)/:path*",
       "destination": "/$1/:path*"
@@ -40,16 +16,16 @@
   ],
   "crons": [
     {
-      "path": "/api/jobs/reconcile?secret=${CRON_SECRET}",
+      "path": "/api/jobs/reconcile",
       "schedule": "*/10 * * * *"
     },
     {
-      "path": "/api/jobs/cleanup?secret=${CRON_SECRET}",
+      "path": "/api/jobs/cleanup",
       "schedule": "0 * * * *"
     },
     {
-      "path": "/api/jobs/consistency?secret=${CRON_SECRET}",
+      "path": "/api/jobs/consistency",
       "schedule": "0 4 * * *"
     }
   ]
-}
+}

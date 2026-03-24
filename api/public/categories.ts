@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { withApiHandler, sendJson, assertMethod, setPublicCache } from '../../src/server/shared/http.js';
-import { requireTenantFromRequest } from '../../src/server/domains/tenants/resolver.js';
+import { requireTenantFromRequest } from '../../src/server/tenancy/resolver.js';
 import { fetchBaserow, BASEROW_TABLES } from '../../src/server/integrations/baserow/client.js';
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
@@ -28,3 +28,4 @@ export default async function handler(request: VercelRequest, response: VercelRe
     });
   });
 }
+

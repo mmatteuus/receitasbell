@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { createOpaqueState, hashOpaqueState, stateMatches } from "../src/server/security/state.js";
+import { createOpaqueState, hashOpaqueState, stateMatches } from "../src/server/shared/state.js";
 
 describe("oauth state", () => {
   test("gera state opaco e validavel pelo hash", () => {

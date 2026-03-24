@@ -3,23 +3,25 @@ import { afterEach, describe, expect, test } from "vitest";
 import {
   buildMercadoPagoWebhookManifest,
   verifyMercadoPagoWebhookSignature,
-} from "../src/server/mercadopago/webhooks.js";
+} from "../src/server/integrations/mercadopago/webhook.js";
 
 describe("mercado pago webhook signature", () => {
-  const previousSecret = process.env.MERCADO_PAGO_WEBHOOK_SECRET;
+  const previousSecret = process.env.MP_WEBHOOK_SECRET;
 
   afterEach(() => {
     if (previousSecret === undefined) {
-      delete process.env.MERCADO_PAGO_WEBHOOK_SECRET;
+      delete process.env.MP_WEBHOOK_SECRET;
     } else {
-      process.env.MERCADO_PAGO_WEBHOOK_SECRET = previousSecret;
+      process.env.MP_WEBHOOK_SECRET = previousSecret;
     }
   });
 
   test("valida manifest com ts, request-id e payment id", async () => {
-    process.env.MERCADO_PAGO_WEBHOOK_SECRET = "test-secret";
+    // Note: env.ts is already loaded with values from vitest.config.ts
+    // We use the same secret here to match.
+    const secret = "mock-webhook-secret"; 
     const manifest = buildMercadoPagoWebhookManifest("123456", "req-789", "1700000000");
-    const validDigest = createHmac("sha256", "test-secret").update(manifest).digest("hex");
+    const validDigest = createHmac("sha256", secret).update(manifest).digest("hex");
 
     await expect(
       verifyMercadoPagoWebhookSignature("123456", "req-789", {

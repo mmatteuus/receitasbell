@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { z } from 'zod';
 import { withApiHandler, sendJson, requireIdentityUser, readJsonBody, ApiError } from '../../src/server/shared/http.js';
-import { requireTenantFromRequest } from '../../src/server/domains/tenants/resolver.js';
-import { listCommentsByRecipeId, createComment } from '../../src/server/domains/recipes/comments.repo.js';
+import { requireTenantFromRequest } from '../../src/server/tenancy/resolver.js';
+import { listCommentsByRecipeId, createComment } from '../../src/server/recipes/comments.repo.js';
 import { commentSchema } from '../../src/server/shared/validators.js';
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
@@ -36,3 +36,4 @@ export default async function handler(request: VercelRequest, response: VercelRe
     throw new ApiError(405, `Method ${request.method} not allowed`);
   });
 }
+
