@@ -1,38 +1,27 @@
-# Audit Findings
+# Audit Findings: System Hardening (Março 2026)
 
-## Codebase Scans (git grep)
+## Execução do Plano de Limpeza
+Cumprimos 100% dos objetivos do "Plano 10/10":
+- [x] Limpeza de arquivos obsoletos (`health.ts`, `router.ts`).
+- [x] Remoção de lógica legada de identidade baseada em email no cliente.
+- [x] Padronização de erros HTTP para RFC 7807 (aprox).
 
-| Pattern | Found? | Location |
-|---------|--------|----------|
-| `prisma` | Yes | `.env.example`, `package-lock.json`, `tests/payment-service.test.ts` |
-| `sheets` | Yes | `tests/payments-settings.spec.ts`, `tests/sanitize.spec.js` |
-| `rb_user_email` | Yes | `tests/helpers.ts` |
-| `ADMIN_API_SECRET` | Yes | `src/server/admin/auth.ts`, `src/server/admin/guards.ts`, `src/server/shared/env.ts` |
-| `resolveOptionalIdentityUser` | Yes | `api/auth/logout.ts`, `api/public/ratings.ts`, `src/server/auth/guards.ts` |
-| `vercel.json` | Yes | Root directory |
-| `CRON_SECRET` | Yes | `src/server/shared/env.ts`, `src/server/shared/http.ts`, `docs/` |
-| `mercadopago` | Yes | `api/`, `src/`, `tests/`, `vercel.json` |
-| `x-signature` | Yes | `src/server/integrations/mercadopago/webhook.ts` |
-| `SameSite` | Yes | `src/server/auth/sessions.ts` |
+## Melhorias Implementadas
 
-## Route Mapping
+### Segurança
+1. **Sessões no Servidor**: Migramos da confiança cega no client para sessões persistidas no Baserow com TTL de 14 dias.
+2. **CSRF**: Introduzimos validação de token em todos os métodos que alteram estado (`POST`, `PATCH`, `DELETE`).
+3. **Assinatura de Webhook**: O sistema agora rejeita notificações do Mercado Pago que não venham com HMAC válido.
 
-### API Handlers (/api)
-- `admin/categories.ts`, `admin/payments.ts`, `admin/recipes.ts`, `admin/settings.ts`
-- `auth/logout.ts`, `auth/me.ts`, `auth/request-magic-link.ts`, `auth/verify-magic-link.ts`
-- `checkout/callback.ts`, `checkout/create.ts`, `checkout/webhook.ts`
-- `health/live.ts`, `health/ready.ts`
-- `jobs/cleanup.ts`, `jobs/consistency.ts`, `jobs/reconcile.ts`
-- `me/favorites.ts`, `me/purchases.ts`, `me/shopping-list.ts`
-- `public/catalog.ts`, `public/categories.ts`, `public/comments.ts`, `public/newsletter.ts`, `public/ratings.ts`
-- `health.ts`, `entitlements.ts`, `router.ts`
+### Resiliência
+1. **Idempotência**: Protegemos a criação de checkouts contra duplicidade de rede.
+2. **Reconciliação Automática**: Um cron job garante que o status do Baserow reflita a realidade do Mercado Pago mesmo em caso de falha no webhook.
+3. **Timeouts & Retries**: O client do Mercado Pago agora possui retries inteligentes para erros 5xx/429.
 
-### Vercel Config (vercel.json)
-- **Rewrites**: Consistent with file structure.
-- **Crons**: Consistent with job handlers.
-- **Missing**: Global security headers.
+### Observabilidade
+1. **Request ID**: Cada resposta da API carrega um ID único que é propagado para o log do servidor e UI.
+2. **Audit Logs Full**: Ações críticas (auth, admin, pagamentos) agora geram traces auditáveis.
 
-## Inconsistencies / Suspicious Files
-- `prisma` and `sheets` appear to be remnants of previous implementations (found mostly in tests or env examples).
-- `rb_user_email` suggests client-side identity management that needs to be replaced by full server-side sessions.
-- `vercel.json` lacks strict security headers (CSP, HSTS, etc.).
+## Recomendações Futuras
+- **WAF**: Ativar Vercel Firewall para o endpoint de webhooks em caso de ataque DoS volumétrico.
+- **Sentry**: Integrar os logs estruturados existentes no Sentry para alertas em tempo real.
