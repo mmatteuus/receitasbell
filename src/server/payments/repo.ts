@@ -1,18 +1,18 @@
-import { fetchBaserow } from "../integrations/baserow/client.js";
-import { baserowTables as BASEROW_TABLES } from "../integrations/baserow/tables.js";
+import { baserowFetch } from "../integrations/baserow/client.js";
+import { baserowTables } from "../integrations/baserow/tables.js";
 
 export type PaymentStatus = 'created' | 'pending' | 'approved' | 'rejected' | 'cancelled' | 'refunded' | 'chargeback' | 'failed';
 
 export interface PaymentRecord {
   id: string | number;
-  tenantId: string | number;
-  userId?: string | number | null;
+  tenantId: string;
+  userId?: string | null;
   amount: number;
   currency: string;
   status: PaymentStatus;
   externalReference: string;
-  paymentId: string; // provider payment id
-  preferenceId: string; // provider preference id
+  mpPaymentId: string;
+  preferenceId: string;
   idempotencyKey: string;
   payerEmail: string;
   paymentMethod: string;
@@ -23,43 +23,12 @@ export interface PaymentRecord {
   updatedAt: string;
 }
 
-export interface PaymentEventRecord {
-  id: string | number;
-  tenantId: string | number;
-  paymentId?: string | number | null;
-  resourceId?: string | null;
-  topic?: string | null;
-  action?: string | null;
-  dedupeKey: string;
-  signatureValid: boolean;
-  payloadJson: any;
-  processedAt?: string | null;
-  createdAt: string;
-}
-
-export async function listPayments(tenantId: string | number): Promise<PaymentRecord[]> {
-  const data = await fetchBaserow<{ results: any[] }>(
-    `/api/database/rows/table/${BASEROW_TABLES.PAYMENTS}/?user_field_names=true&filter__tenantId__equal=${tenantId}`
-  );
-  return data.results.map(record => mapPaymentRowToRecord(record));
-}
-
-export async function getPaymentById(tenantId: string | number, paymentId: string | number): Promise<PaymentRecord | null> {
-  try {
-    const payment = await fetchBaserow<any>(`/api/database/rows/table/${BASEROW_TABLES.PAYMENTS}/${paymentId}/?user_field_names=true`);
-    if (String(payment.tenantId) !== String(tenantId)) return null;
-    return mapPaymentRowToRecord(payment);
-  } catch (err) { return null; }
-}
-
-export async function createPayment(tenantId: string | number, input: {
-  userId?: string | number | null;
+export async function createPaymentOrder(tenantId: string, input: {
+  userId?: string | null;
   amount: number;
   currency?: string;
   status: PaymentStatus;
   externalReference: string;
-  paymentId?: string;
-  preferenceId?: string;
   idempotencyKey: string;
   payerEmail: string;
   paymentMethod: string;
@@ -68,63 +37,60 @@ export async function createPayment(tenantId: string | number, input: {
   items: any[];
 }): Promise<PaymentRecord> {
   const now = new Date().toISOString();
-  const record = await fetchBaserow<any>(`/api/database/rows/table/${BASEROW_TABLES.PAYMENTS}/?user_field_names=true`, {
-      method: "POST",
-      body: JSON.stringify({
-        amount: input.amount,
-        currency: input.currency || 'BRL',
-        status: input.status,
-        provider: input.provider || 'mercadopago',
-        external_reference: input.externalReference,
-        payment_id: input.paymentId || "",
-        preference_id: input.preferenceId || "",
-        idempotency_key: input.idempotencyKey,
-        payer_email: input.payerEmail,
-        payment_method: input.paymentMethod,
-        recipe_ids_json: JSON.stringify(input.recipeIds),
-        items_json: JSON.stringify(input.items),
-        tenantId: String(tenantId),
-        userId: input.userId ? String(input.userId) : null,
-        created_at: now,
-        updated_at: now,
-      }),
+  const record = await baserowFetch<any>(`/api/database/rows/table/${baserowTables.paymentOrders}/?user_field_names=true`, {
+    method: "POST",
+    body: JSON.stringify({
+      tenant_id: tenantId,
+      user_id: input.userId || "",
+      amount: input.amount,
+      currency: input.currency || 'BRL',
+      status: input.status,
+      external_reference: input.externalReference,
+      idempotency_key: input.idempotencyKey,
+      payer_email: input.payerEmail,
+      payment_method: input.paymentMethod,
+      provider: input.provider || 'mercadopago',
+      recipe_ids_json: JSON.stringify(input.recipeIds),
+      items_json: JSON.stringify(input.items),
+      created_at: now,
+      updated_at: now,
+    }),
   });
-  return mapPaymentRowToRecord(record);
+  return mapRowToPayment(record);
 }
 
-export async function updatePaymentStatus(tenantId: string | number, paymentId: string | number, status: string, providerPaymentId?: string): Promise<void> {
-    // Security check: verify ownership
-    const existing = await getPaymentById(tenantId, paymentId);
-    if (!existing) throw new Error("Payment not found or does not belong to this tenant");
-
-    const payload: any = { status, updated_at: new Date().toISOString() };
-    if (providerPaymentId) payload.payment_id = providerPaymentId;
-    await fetchBaserow(`/api/database/rows/table/${BASEROW_TABLES.PAYMENTS}/${paymentId}/?user_field_names=true`, {
-        method: "PATCH",
-        body: JSON.stringify(payload),
-    });
+export async function getPaymentOrderByExternalReference(tenantId: string, externalReference: string): Promise<PaymentRecord | null> {
+  const data = await baserowFetch<{ results: any[] }>(
+    `/api/database/rows/table/${baserowTables.paymentOrders}/?user_field_names=true&filter__tenant_id__equal=${encodeURIComponent(tenantId)}&filter__external_reference__equal=${encodeURIComponent(externalReference)}`
+  );
+  const row = data.results[0];
+  return row ? mapRowToPayment(row) : null;
 }
 
-export async function createPaymentEvent(tenantId: string | number, input: Partial<PaymentEventRecord>) {
-  const now = new Date().toISOString();
-  const record = await fetchBaserow<any>(`/api/database/rows/table/${BASEROW_TABLES.PAYMENT_EVENTS}/?user_field_names=true`, {
-      method: "POST",
-      body: JSON.stringify({ ...input, tenantId: String(tenantId), created_at: now }),
+export async function updatePaymentOrderStatus(tenantId: string, id: string | number, status: string, mpPaymentId?: string): Promise<void> {
+  const payload: any = {
+    status,
+    updated_at: new Date().toISOString(),
+  };
+  if (mpPaymentId) payload.mp_payment_id = mpPaymentId;
+
+  await baserowFetch(`/api/database/rows/table/${baserowTables.paymentOrders}/${id}/?user_field_names=true`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
   });
-  return record;
 }
 
-function mapPaymentRowToRecord(row: any): PaymentRecord {
+function mapRowToPayment(row: any): PaymentRecord {
   return {
     id: row.id,
-    tenantId: row.tenantId,
-    userId: row.userId,
+    tenantId: String(row.tenant_id),
+    userId: row.user_id || null,
     amount: Number(row.amount || 0),
     currency: row.currency || 'BRL',
     status: row.status as PaymentStatus,
     externalReference: row.external_reference,
-    paymentId: row.payment_id,
-    preferenceId: row.preference_id,
+    mpPaymentId: row.mp_payment_id || "",
+    preferenceId: row.preference_id || "",
     idempotencyKey: row.idempotency_key,
     payerEmail: row.payer_email || "",
     paymentMethod: row.payment_method,
