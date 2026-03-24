@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { withApiHandler, sendJson } from '../../src/server/shared/http.js';
+import { withApiHandler, json } from '../../src/server/shared/http.js';
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
-  return withApiHandler(request, response, async (log) => {
-    return sendJson(response, 200, { status: 'OK', timestamp: new Date().toISOString() });
+  return withApiHandler(request, response, async ({ requestId }) => {
+    return json(response, 200, { status: 'OK', timestamp: new Date().toISOString(), requestId });
   });
 }

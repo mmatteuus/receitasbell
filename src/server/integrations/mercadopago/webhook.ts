@@ -53,12 +53,16 @@ export async function assertMercadoPagoWebhookSignature(request: VercelRequest, 
   return { requestId: reqIdStr, signature };
 }
 
-export async function processMercadoPagoWebhook(tenantId: string | number, payload: { topic?: string; resource?: string; action?: string; [key: string]: any }) {
+export async function processMercadoPagoWebhook(
+  tenantId: string | number, 
+  payload: { topic?: string; type?: string; resource?: string; data?: { id?: string }; [key: string]: any },
+  signatureValid: boolean = false
+) {
   const topic = payload.topic || payload.type;
   const resourceId = payload.resource || payload.data?.id;
 
   if (topic === 'payment' && resourceId) {
-    const mpPayment = await fetchMercadoPagoPayment(tenantId, resourceId);
+    const mpPayment = await fetchMercadoPagoPayment(tenantId, String(resourceId));
     const externalRef = mpPayment.external_reference as string;
     
     // Format: t:tenantId:p:paymentOrderId
@@ -67,17 +71,19 @@ export async function processMercadoPagoWebhook(tenantId: string | number, paylo
       const paymentOrderId = parts[parts.length - 1];
       
       if (paymentOrderId) {
-        await syncPayment(tenantId, paymentOrderId, mpPayment.status as string, resourceId);
+        await syncPayment(tenantId, paymentOrderId, mpPayment.status as string, String(resourceId));
       }
     }
     
+    const dedupeKey = `mp_evt_${resourceId}_${payload.action || 'sync'}`;
     await createPaymentEvent(tenantId, {
-      paymentId: resourceId,
+      paymentId: String(resourceId),
       topic,
-      resourceId,
+      resourceId: String(resourceId),
       action: payload.action,
       payloadJson: payload,
-      signatureValid: true,
+      signatureValid,
+      dedupeKey,
     });
   }
 }

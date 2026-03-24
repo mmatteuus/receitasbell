@@ -38,10 +38,19 @@ export class ErrorBoundary extends Component<PropsWithChildren, ErrorBoundarySta
           >
             Tentar novamente
           </button>
-          {import.meta.env.DEV && this.state.error && (
-            <pre className="mt-4 max-w-xl overflow-auto rounded-lg bg-muted p-4 text-left text-xs text-muted-foreground">
-              {this.state.error.message}
-            </pre>
+          {(import.meta.env.DEV || (this.state.error as any)?.requestId) && this.state.error && (
+            <div className="mt-4 flex flex-col gap-2">
+              {(this.state.error as any).requestId && (
+                <p className="text-[10px] text-muted-foreground uppercase tracking-widest opacity-60">
+                  ID do Pedido: {(this.state.error as any).requestId}
+                </p>
+              )}
+              {import.meta.env.DEV && (
+                <pre className="max-w-xl overflow-auto rounded-lg bg-muted p-4 text-left text-xs text-muted-foreground">
+                  {this.state.error.message}
+                </pre>
+              )}
+            </div>
           )}
         </div>
       );

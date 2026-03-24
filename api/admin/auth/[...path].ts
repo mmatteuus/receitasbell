@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { assertMethod, readJsonBody, sendJson, withApiHandler } from "../../../src/server/shared/http.js";
+import { assertMethod, readJsonBody, json, withApiHandler, ApiError } from "../../../src/server/shared/http.js";
 import { bootstrapTenantAdmin, loginAdmin, logoutAdmin, readAdminSession } from "../../../src/server/admin/auth.js";
 
 function getPathSegments(request: VercelRequest) {
@@ -10,7 +10,7 @@ function getPathSegments(request: VercelRequest) {
 }
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
-  return withApiHandler(request, response, async () => {
+  return withApiHandler(request, response, async ({ requestId }) => {
     const segments = getPathSegments(request);
     const action = segments[0] || "session";
 
@@ -18,39 +18,39 @@ export default async function handler(request: VercelRequest, response: VercelRe
       assertMethod(request, ["GET", "POST", "DELETE"]);
 
       if (request.method === "GET") {
-        return sendJson(response, 200, await readAdminSession(request));
+        return json(response, 200, { ...(await readAdminSession(request)), requestId });
       }
 
       if (request.method === "POST") {
         const body = await readJsonBody<{ email?: string; password?: string }>(request);
         const session = await loginAdmin(request, response, body);
-        return sendJson(response, 200, session);
+        return json(response, 200, { ...session, requestId });
       }
 
       const session = await logoutAdmin(request, response);
-      return sendJson(response, 200, session);
+      return json(response, 200, { ...session, requestId });
     }
 
     if (action === "login") {
       assertMethod(request, ["POST"]);
       const body = await readJsonBody<{ email?: string; password?: string }>(request);
       const session = await loginAdmin(request, response, body);
-      return sendJson(response, 200, session);
+      return json(response, 200, { ...session, requestId });
     }
 
     if (action === "logout") {
       assertMethod(request, ["POST", "DELETE"]);
       const session = await logoutAdmin(request, response);
-      return sendJson(response, 200, session);
+      return json(response, 200, { ...session, requestId });
     }
 
     if (action === "bootstrap") {
       assertMethod(request, ["POST"]);
       const body = await readJsonBody<any>(request);
       const session = await bootstrapTenantAdmin(request, response, body);
-      return sendJson(response, 201, session);
+      return json(response, 201, { ...session, requestId });
     }
 
-    return sendJson(response, 404, { error: "Not found" });
+    throw new ApiError(404, "Not found");
   });
 }

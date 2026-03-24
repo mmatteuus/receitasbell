@@ -1,9 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { withApiHandler, sendJson, readJsonBody, ApiError } from '../../src/server/shared/http.js';
+import { withApiHandler, json, ApiError } from '../../src/server/shared/http.js';
 import { requireAdminAccess } from '../../src/server/admin/guards.js';
 import { logAuditEvent } from '../../src/server/audit/repo.js';
 import { requireTenantFromRequest } from '../../src/server/tenancy/resolver.js';
 import { listRecipes, createRecipe, updateRecipe, deleteRecipe } from '../../src/server/recipes/repo.js';
+import { requireCsrf } from '../../src/server/security/csrf.js';
 import { z } from 'zod';
 
 const recipeSchema = z.object({
@@ -20,39 +21,42 @@ const recipeSchema = z.object({
 });
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
-  return withApiHandler(request, response, async () => {
+  return withApiHandler(request, response, async ({ requestId }) => {
     const { tenant } = await requireTenantFromRequest(request);
     await requireAdminAccess(request);
 
-    const method = request.method;
+    const method = (request.method || 'GET').toUpperCase();
     const url = new URL(request.url || '', 'http://localhost');
     const id = url.searchParams.get('id');
 
     if (method === 'GET') {
       const items = await listRecipes(tenant.id);
-      return sendJson(response, 200, { items, meta: { total: items.length } });
+      return json(response, 200, { items, meta: { total: items.length }, requestId });
     }
 
+    // CSRF required for mutations
+    requireCsrf(request);
+
     if (method === 'POST') {
-      const body = recipeSchema.parse(await readJsonBody(request));
+      const body = recipeSchema.parse(request.body);
       const result = await createRecipe(tenant.id, body);
       
       await logAuditEvent({
         tenantId: tenant.id,
         actorType: "admin",
-        actorId: "admin", // Will be refined with real admin ID if session provides it
+        actorId: "admin",
         action: "create_recipe",
         resourceType: "recipe",
         resourceId: String(result.id),
         payload: body
       });
 
-      return sendJson(response, 201, { item: result });
+      return json(response, 201, { item: result, requestId });
     }
 
     if (method === 'PATCH' || method === 'PUT') {
       if (!id) throw new ApiError(400, 'Missing recipe ID');
-      const body = recipeSchema.partial().parse(await readJsonBody(request));
+      const body = recipeSchema.partial().parse(request.body);
       const result = await updateRecipe(tenant.id, id, body);
 
       await logAuditEvent({
@@ -65,7 +69,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
         payload: body
       });
 
-      return sendJson(response, 200, { item: result });
+      return json(response, 200, { item: result, requestId });
     }
 
     if (method === 'DELETE') {
@@ -81,7 +85,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
         resourceId: String(id)
       });
 
-      return sendJson(response, 204, {});
+      return json(response, 200, { success: true, requestId });
     }
 
     throw new ApiError(405, `Method ${method} not allowed`);

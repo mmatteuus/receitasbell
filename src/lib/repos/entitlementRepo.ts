@@ -7,10 +7,8 @@ export async function listByEmail(email: string) {
     return [];
   }
 
-  const result = await jsonFetch<{ entitlements: Entitlement[] }>("/api/entitlements");
-  return result.entitlements.filter(
-    (entitlement) => entitlement.payerEmail.trim().toLowerCase() === normalizedEmail,
-  );
+  const result = await jsonFetch<{ entitlements: Entitlement[] }>("/api/me/entitlements");
+  return result.entitlements;
 }
 
 export async function exists(email: string, recipeSlug: string) {
@@ -24,7 +22,7 @@ export async function exists(email: string, recipeSlug: string) {
 export async function create(
   entitlement: Pick<Entitlement, "paymentId" | "payerEmail" | "recipeSlug">,
 ) {
-  const result = await jsonFetch<{ entitlement: Entitlement | null }>("/api/entitlements", {
+  const result = await jsonFetch<{ entitlement: Entitlement | null }>("/api/admin/entitlements", {
     method: "POST",
     admin: true,
     body: entitlement,
@@ -34,13 +32,13 @@ export async function create(
 }
 
 export async function revoke(paymentId: string, recipeSlug: string) {
-  const result = await jsonFetch<{ entitlements: Entitlement[] }>("/api/entitlements", {
+  const result = await jsonFetch<{ success: boolean }>("/api/admin/entitlements", {
     method: "DELETE",
     admin: true,
     body: { paymentId, recipeSlug },
   });
 
-  return result.entitlements;
+  return result.success;
 }
 
 export const entitlementRepo = {

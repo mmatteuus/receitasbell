@@ -1,48 +1,75 @@
-type RequiredEnvKey =
-  | 'APP_BASE_URL'
-  | 'BASEROW_API_URL'
-  | 'BASEROW_API_TOKEN'
-  | 'CRON_SECRET'
-  | 'RESEND_API_KEY'
-  | 'APP_COOKIE_SECRET'
-  | 'ADMIN_API_SECRET'
-  | 'MP_WEBHOOK_SECRET';
+import { z } from "zod";
 
-function getRequiredEnv(name: RequiredEnvKey): string {
-  const value = process.env[name];
-  if (!value || !value.trim()) {
-    throw new Error(`Missing required environment variable: ${name}`);
-  }
-  return value;
-}
+const schema = z.object({
+  NODE_ENV: z.string().optional(),
 
-export const env = {
-  APP_BASE_URL: getRequiredEnv('APP_BASE_URL'),
-  BASEROW_API_URL: getRequiredEnv('BASEROW_API_URL'),
-  BASEROW_API_TOKEN: getRequiredEnv('BASEROW_API_TOKEN'),
-  CRON_SECRET: getRequiredEnv('CRON_SECRET'),
-  RESEND_API_KEY: getRequiredEnv('RESEND_API_KEY'),
-  APP_COOKIE_SECRET: getRequiredEnv('APP_COOKIE_SECRET'),
-  ADMIN_API_SECRET: getRequiredEnv('ADMIN_API_SECRET'),
-  MP_WEBHOOK_SECRET: getRequiredEnv('MP_WEBHOOK_SECRET'),
+  APP_BASE_URL: z.string().min(1),
 
-  EMAIL_FROM: process.env.EMAIL_FROM || 'contato@receitasbell.com.br',
+  CRON_SECRET: z.string().min(16),
 
-  BASEROW_TABLE_TENANTS: process.env.BASEROW_TABLE_TENANTS ?? '',
-  BASEROW_TABLE_USERS: process.env.BASEROW_TABLE_USERS ?? '',
-  BASEROW_TABLE_TENANT_USERS: process.env.BASEROW_TABLE_TENANT_USERS ?? '',
-  BASEROW_TABLE_RECIPES: process.env.BASEROW_TABLE_RECIPES ?? '',
-  BASEROW_TABLE_CATEGORIES: process.env.BASEROW_TABLE_CATEGORIES ?? '',
-  BASEROW_TABLE_SETTINGS: process.env.BASEROW_TABLE_SETTINGS ?? '',
-  BASEROW_TABLE_PAYMENT_ORDERS: process.env.BASEROW_TABLE_PAYMENT_ORDERS ?? '',
-  BASEROW_TABLE_PAYMENT_EVENTS: process.env.BASEROW_TABLE_PAYMENT_EVENTS ?? '',
-  BASEROW_TABLE_RECIPE_PURCHASES: process.env.BASEROW_TABLE_RECIPE_PURCHASES ?? '',
-  BASEROW_TABLE_AUDIT_LOGS: process.env.BASEROW_TABLE_AUDIT_LOGS ?? '',
-  BASEROW_TABLE_COMMENTS: process.env.BASEROW_TABLE_COMMENTS ?? '',
-  BASEROW_TABLE_FAVORITES: process.env.BASEROW_TABLE_FAVORITES ?? '',
-  BASEROW_TABLE_NEWSLETTER: process.env.BASEROW_TABLE_NEWSLETTER ?? '',
-  BASEROW_TABLE_SHOPPING_LIST: process.env.BASEROW_TABLE_SHOPPING_LIST ?? '',
-  BASEROW_TABLE_RATINGS: process.env.BASEROW_TABLE_RATINGS ?? '',
-  BASEROW_TABLE_ENTITLEMENTS: process.env.BASEROW_TABLE_ENTITLEMENTS ?? '',
-  BASEROW_TABLE_OAUTH_STATES: process.env.BASEROW_TABLE_OAUTH_STATES ?? '',
-};
+  BASEROW_API_URL: z.string().optional(),
+  BASEROW_API_TOKEN: z.string().min(10),
+
+  RESEND_API_KEY: z.string().min(10),
+  EMAIL_FROM: z.string().optional(),
+
+  APP_COOKIE_SECRET: z.string().min(32),
+
+  MP_ACCESS_TOKEN: z.string().min(10),
+  MP_WEBHOOK_SECRET: z.string().min(10),
+
+  // Baserow tables (IDs)
+  BASEROW_TABLE_TENANTS: z.string().min(1),
+  BASEROW_TABLE_USERS: z.string().min(1),
+  BASEROW_TABLE_TENANT_USERS: z.string().min(1),
+
+  BASEROW_TABLE_RECIPES: z.string().min(1),
+  BASEROW_TABLE_CATEGORIES: z.string().min(1),
+  BASEROW_TABLE_SETTINGS: z.string().min(1),
+
+  BASEROW_TABLE_PAYMENT_ORDERS: z.string().min(1),
+  BASEROW_TABLE_PAYMENT_EVENTS: z.string().min(1),
+  BASEROW_TABLE_RECIPE_PURCHASES: z.string().min(1),
+
+  BASEROW_TABLE_AUDIT_LOGS: z.string().min(1),
+
+  BASEROW_TABLE_SESSIONS: z.string().min(1),
+  BASEROW_TABLE_MAGIC_LINKS: z.string().min(1),
+});
+
+export const env = schema.parse({
+  NODE_ENV: process.env.NODE_ENV,
+  APP_BASE_URL: process.env.APP_BASE_URL,
+
+  CRON_SECRET: process.env.CRON_SECRET,
+
+  BASEROW_API_URL: process.env.BASEROW_API_URL,
+  BASEROW_API_TOKEN: process.env.BASEROW_API_TOKEN,
+
+  RESEND_API_KEY: process.env.RESEND_API_KEY,
+  EMAIL_FROM: process.env.EMAIL_FROM,
+
+  APP_COOKIE_SECRET: process.env.APP_COOKIE_SECRET,
+
+  MP_ACCESS_TOKEN: process.env.MP_ACCESS_TOKEN,
+  MP_WEBHOOK_SECRET: process.env.MP_WEBHOOK_SECRET,
+
+  BASEROW_TABLE_TENANTS: process.env.BASEROW_TABLE_TENANTS,
+  BASEROW_TABLE_USERS: process.env.BASEROW_TABLE_USERS,
+  BASEROW_TABLE_TENANT_USERS: process.env.BASEROW_TABLE_TENANT_USERS,
+
+  BASEROW_TABLE_RECIPES: process.env.BASEROW_TABLE_RECIPES,
+  BASEROW_TABLE_CATEGORIES: process.env.BASEROW_TABLE_CATEGORIES,
+  BASEROW_TABLE_SETTINGS: process.env.BASEROW_TABLE_SETTINGS,
+
+  BASEROW_TABLE_PAYMENT_ORDERS: process.env.BASEROW_TABLE_PAYMENT_ORDERS,
+  BASEROW_TABLE_PAYMENT_EVENTS: process.env.BASEROW_TABLE_PAYMENT_EVENTS,
+  BASEROW_TABLE_RECIPE_PURCHASES: process.env.BASEROW_TABLE_RECIPE_PURCHASES,
+
+  BASEROW_TABLE_AUDIT_LOGS: process.env.BASEROW_TABLE_AUDIT_LOGS,
+
+  BASEROW_TABLE_SESSIONS: process.env.BASEROW_TABLE_SESSIONS,
+  BASEROW_TABLE_MAGIC_LINKS: process.env.BASEROW_TABLE_MAGIC_LINKS,
+});
+
+export const isProd = (env.NODE_ENV ?? "development") === "production";

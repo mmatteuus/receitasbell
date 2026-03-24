@@ -1,50 +1,20 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { withApiHandler, requireQueryParam, ApiError } from '../../src/server/shared/http.js';
-import { verifyMagicLinkToken } from '../../src/server/auth/magicLink.js';
-import { findOrCreateUserByEmail } from '../../src/server/identity/repo.js';
-import { signSession, setUserSessionCookie } from '../../src/server/auth/sessions.js';
-import { createAuditLog } from '../../src/server/audit/service.js';
+import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { withApiHandler, json, assertMethod } from "../../src/server/shared/http.js";
+import { consumeMagicLink } from "../../src/server/auth/magicLinks.js";
+import { createSession } from "../../src/server/auth/sessions.js";
 
-export default async function handler(request: VercelRequest, response: VercelResponse) {
-  return withApiHandler(request, response, async () => {
-    const token = requireQueryParam(request, 'token');
-    const tenantId = requireQueryParam(request, 'tenantId');
-    
-    const record = await verifyMagicLinkToken(tenantId, token);
-    if (!record) {
-      throw new ApiError(401, "Invalid or expired token");
-    }
-    
-    // O record deve conter o email que salvamos no createMagicLinkToken
-    const email = record.email || "";
-    if (!email) {
-      throw new ApiError(500, "Token verification failed: missing email in record");
-    }
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  return withApiHandler(req, res, async ({ requestId }) => {
+    assertMethod(req, ["POST"]);
+    const { tenantId, token, userId } = req.body as any;
 
-    const user = await findOrCreateUserByEmail(tenantId, email);
-    
-    const sessionToken = signSession({
-      sessionId: crypto.randomUUID(),
-      userId: String(user.id),
-      email: user.email,
-      role: 'user', // Definindo o papel explicitamente
-      tenantId: String(tenantId), // Adicionando o tenantId para consistência
-      issuedAt: Date.now(),
-      expiresAt: Date.now() + 1000 * 60 * 60 * 24 * 7, // 7 dias
-    });
+    const consumed = await consumeMagicLink({ tenantId: String(tenantId), token: String(token), purpose: "user" });
+    if (!consumed) return json(res, 410, { success: false, error: { message: "Invalid or expired token" }, requestId });
 
-    setUserSessionCookie(response, sessionToken);
+    // Neste projeto, userId pode ser criado/obtido via Baserow users table.
+    // Se não existir, o agente deve implementar findOrCreateUserByEmail na Fase 4.
+    await createSession(req, res, { tenantId: String(tenantId), userId: String(userId), email: consumed.email, role: "user" });
 
-    await createAuditLog(request, {
-      tenantId: String(tenantId),
-      actorType: 'user',
-      actorId: String(user.id),
-      action: 'user.login',
-      resourceType: 'session',
-      resourceId: String(user.id),
-      payload: { email: user.email },
-    });
-
-    return response.redirect('/');
+    return json(res, 200, { success: true, data: { ok: true, redirectTo: consumed.redirectTo }, requestId });
   });
 }

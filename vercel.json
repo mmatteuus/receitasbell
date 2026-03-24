@@ -1,31 +1,26 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "vite",
+  "buildCommand": "npm ci && npm run typecheck && npm run build && npm run test:unit",
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+      ]
+    }
+  ],
   "rewrites": [
     { "source": "/api/recipes", "destination": "/api/public/catalog" },
     { "source": "/api/checkout", "destination": "/api/checkout/create" },
     { "source": "/api/payments/mercadopago/webhook", "destination": "/api/checkout/webhook" },
     { "source": "/api/jobs/:path*", "destination": "/api/jobs/:path*" },
-    {
-      "source": "/(@vite|src|node_modules)/:path*",
-      "destination": "/$1/:path*"
-    },
-    {
-      "source": "/((?!api/).*)",
-      "destination": "/index.html"
-    }
+    { "source": "/(@vite|src|node_modules)/:path*", "destination": "/$1/:path*" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
   "crons": [
-    {
-      "path": "/api/jobs/reconcile",
-      "schedule": "*/10 * * * *"
-    },
-    {
-      "path": "/api/jobs/cleanup",
-      "schedule": "0 * * * *"
-    },
-    {
-      "path": "/api/jobs/consistency",
-      "schedule": "0 4 * * *"
-    }
+    { "path": "/api/jobs/reconcile", "schedule": "*/10 * * * *" }
   ]
 }

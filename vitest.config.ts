@@ -38,6 +38,9 @@ export default defineConfig({
       BASEROW_TABLE_RATINGS: "115",
       BASEROW_TABLE_ENTITLEMENTS: "116",
       BASEROW_TABLE_OAUTH_STATES: "117",
+      BASEROW_TABLE_USER_SESSIONS: "118",
+      BASEROW_TABLE_AUTH_TOKENS: "119",
+      MP_ACCESS_TOKEN: "mock-mp-token",
     }
   },
 });

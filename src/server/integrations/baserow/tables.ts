@@ -1,32 +1,26 @@
-import { env } from '../../shared/env.js';
+import { env } from "../../shared/env.js";
 
-function requireTable(name: string, value: string): number {
-  if (!value || !value.trim()) {
-    throw new Error(`Missing Baserow table id for ${name}`);
-  }
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed)) {
-    throw new Error(`Invalid Baserow table id for ${name}: ${value}`);
-  }
-  return parsed;
+function reqId(name: string, value: string): number {
+  const n = Number(value);
+  if (!Number.isFinite(n)) throw new Error(`Invalid ${name}: ${value}`);
+  return n;
 }
 
 export const baserowTables = {
-  tenants: requireTable('BASEROW_TABLE_TENANTS', env.BASEROW_TABLE_TENANTS),
-  users: requireTable('BASEROW_TABLE_USERS', env.BASEROW_TABLE_USERS),
-  tenantUsers: requireTable('BASEROW_TABLE_TENANT_USERS', env.BASEROW_TABLE_TENANT_USERS),
-  recipes: requireTable('BASEROW_TABLE_RECIPES', env.BASEROW_TABLE_RECIPES),
-  categories: requireTable('BASEROW_TABLE_CATEGORIES', env.BASEROW_TABLE_CATEGORIES),
-  settings: requireTable('BASEROW_TABLE_SETTINGS', env.BASEROW_TABLE_SETTINGS),
-  paymentOrders: requireTable('BASEROW_TABLE_PAYMENT_ORDERS', env.BASEROW_TABLE_PAYMENT_ORDERS),
-  paymentEvents: requireTable('BASEROW_TABLE_PAYMENT_EVENTS', env.BASEROW_TABLE_PAYMENT_EVENTS),
-  recipePurchases: requireTable('BASEROW_TABLE_RECIPE_PURCHASES', env.BASEROW_TABLE_RECIPE_PURCHASES),
-  auditLogs: requireTable('BASEROW_TABLE_AUDIT_LOGS', env.BASEROW_TABLE_AUDIT_LOGS),
-  comments: requireTable('BASEROW_TABLE_COMMENTS', env.BASEROW_TABLE_COMMENTS),
-  favorites: requireTable('BASEROW_TABLE_FAVORITES', env.BASEROW_TABLE_FAVORITES),
-  newsletter: requireTable('BASEROW_TABLE_NEWSLETTER', env.BASEROW_TABLE_NEWSLETTER),
-  shoppingList: requireTable('BASEROW_TABLE_SHOPPING_LIST', env.BASEROW_TABLE_SHOPPING_LIST),
-  ratings: requireTable('BASEROW_TABLE_RATINGS', env.BASEROW_TABLE_RATINGS),
-  entitlements: requireTable('BASEROW_TABLE_ENTITLEMENTS', env.BASEROW_TABLE_ENTITLEMENTS),
-  oauthStates: requireTable('BASEROW_TABLE_OAUTH_STATES', env.BASEROW_TABLE_OAUTH_STATES),
+  tenants: reqId("BASEROW_TABLE_TENANTS", env.BASEROW_TABLE_TENANTS),
+  users: reqId("BASEROW_TABLE_USERS", env.BASEROW_TABLE_USERS),
+  tenantUsers: reqId("BASEROW_TABLE_TENANT_USERS", env.BASEROW_TABLE_TENANT_USERS),
+
+  recipes: reqId("BASEROW_TABLE_RECIPES", env.BASEROW_TABLE_RECIPES),
+  categories: reqId("BASEROW_TABLE_CATEGORIES", env.BASEROW_TABLE_CATEGORIES),
+  settings: reqId("BASEROW_TABLE_SETTINGS", env.BASEROW_TABLE_SETTINGS),
+
+  paymentOrders: reqId("BASEROW_TABLE_PAYMENT_ORDERS", env.BASEROW_TABLE_PAYMENT_ORDERS),
+  paymentEvents: reqId("BASEROW_TABLE_PAYMENT_EVENTS", env.BASEROW_TABLE_PAYMENT_EVENTS),
+  recipePurchases: reqId("BASEROW_TABLE_RECIPE_PURCHASES", env.BASEROW_TABLE_RECIPE_PURCHASES),
+
+  auditLogs: reqId("BASEROW_TABLE_AUDIT_LOGS", env.BASEROW_TABLE_AUDIT_LOGS),
+
+  sessions: reqId("BASEROW_TABLE_SESSIONS", env.BASEROW_TABLE_SESSIONS),
+  magicLinks: reqId("BASEROW_TABLE_MAGIC_LINKS", env.BASEROW_TABLE_MAGIC_LINKS),
 };

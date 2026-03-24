@@ -1,27 +1,37 @@
-# Variáveis de Ambiente Operacionais
+# Environment Variables Documentation
 
-Guia de configuração para os ambientes da aplicação.
+## Core Variables
+- `NODE_ENV`: `production` or `development`.
+- `APP_BASE_URL`: Full URL of the application (e.g., `https://receitasbell.com.br`).
+- `CRON_SECRET`: Random string for authenticating Vercel Cron Jobs.
 
-## Variáveis Críticas (Sustentação)
-| Variável | Descrição | Exemplo |
-| :--- | :--- | :--- |
-| `CRON_SECRET` | Chave de autenticação para os Jobs (Headers/Query) | `super-secret-uuid-or-string` |
-| `SENTRY_DSN` | URL de integração com o Sentry | `https://x@sentry.io/y` |
-| `NODE_ENV` | Ambiente de execução | `production`, `preview`, `development` |
-| `APP_BASE_URL` | URL base para geração de links Absolute/OAuth | `https://receitasbell.com.br` |
+## Storage (Baserow)
+- `BASEROW_API_URL`: URL of the Baserow instance (e.g., `https://api.baserow.io`).
+- `BASEROW_API_TOKEN`: Your Baserow API token.
 
-## Integrações Externas
-| Variável | Descrição |
-| :--- | :--- |
-| `BASEROW_API_TOKEN` | Token de acesso à API do Baserow |
-| `BASEROW_API_URL` | URL da API do Baserow (padrão: api.baserow.io) |
-| `RESEND_API_KEY` | Chave de API do serviço de e-mail Resend |
-| `MERCADO_PAGO_CLIENT_ID` | Client ID para OAuth do Mercado Pago |
-| `MERCADO_PAGO_CLIENT_SECRET` | Secret para OAuth do Mercado Pago |
-
-## IDs de Tabelas (Baserow)
-Garantir que os IDs das tabelas em Produção coincidam com as variáveis:
+### Table IDs
+All required table IDs must be provided as strings.
 - `BASEROW_TABLE_TENANTS`
+- `BASEROW_TABLE_USERS`
+- `BASEROW_TABLE_TENANT_USERS`
 - `BASEROW_TABLE_RECIPES`
-- `BASEROW_TABLE_PAYMENTS`
-- ... (demais listadas no `src/server/integrations/baserow/client.ts`)
+- `BASEROW_TABLE_CATEGORIES`
+- `BASEROW_TABLE_SETTINGS`
+- `BASEROW_TABLE_PAYMENT_ORDERS`
+- `BASEROW_TABLE_PAYMENT_EVENTS`
+- `BASEROW_TABLE_SESSIONS`
+- `BASEROW_TABLE_MAGIC_LINKS`
+
+## Email (Resend)
+- `RESEND_API_KEY`: Resend API key for sending emails.
+- `EMAIL_FROM`: The FROM email address.
+
+## Mercado Pago (10/10)
+- `MP_WEBHOOK_SECRET`: Secret for verifying webhook HMAC signatures.
+- `MP_APP_CLIENT_ID`: Mercado Pago App Client ID for OAuth.
+- `MP_APP_CLIENT_SECRET`: Mercado Pago App Client Secret for OAuth.
+- `MP_APP_REDIRECT_URI`: Registered redirect URI for OAuth.
+
+## Security
+- `APP_COOKIE_SECRET`: Key for signing cookies and sensitive data.
+- `APP_ENCRYPTION_KEY`: Key for server-side field encryption.
