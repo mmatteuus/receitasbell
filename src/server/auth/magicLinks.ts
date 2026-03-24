@@ -1,70 +1,51 @@
-import { createHash, randomBytes } from "node:crypto";
-import { fetchBaserow } from "../integrations/baserow/client.js";
+import crypto from "node:crypto";
+import { baserowFetch } from "../integrations/baserow/client.js";
 import { baserowTables } from "../integrations/baserow/tables.js";
 
-export type MagicLinkPurpose = "user_login" | "admin_login";
-
-function sha256Hex(input: string) {
-  return createHash("sha256").update(input).digest("hex");
+function sha256Hex(v: string) {
+  return crypto.createHash("sha256").update(v).digest("hex");
 }
 
-function base64Url(bytes: Buffer) {
-  return bytes.toString("base64url");
-}
-
-export async function createMagicLink(input: {
-  tenantId: string;
-  email: string;
-  purpose: MagicLinkPurpose;
-  expiresInMinutes?: number;
-  redirectTo?: string | null;
-}) {
-  const token = base64Url(randomBytes(32));
+export async function createMagicLink(input: { tenantId: string; email: string; purpose: "user"; redirectTo?: string }) {
+  const token = crypto.randomBytes(32).toString("hex");
   const tokenHash = sha256Hex(token);
-  const ttl = (input.expiresInMinutes ?? 15) * 60_000;
-
   const now = new Date();
-  const expiresAt = new Date(now.getTime() + ttl);
+  const exp = new Date(now.getTime() + 15 * 60_000);
 
-  await fetchBaserow(`/api/database/rows/table/${baserowTables.magicLinks}/?user_field_names=true`, {
+  await baserowFetch(`/api/database/rows/table/${baserowTables.magicLinks}/?user_field_names=true`, {
     method: "POST",
     body: JSON.stringify({
-      tenantId: String(input.tenantId),
+      tenant_id: input.tenantId,
       email: input.email.toLowerCase(),
       purpose: input.purpose,
-      tokenHash,
-      createdAt: now.toISOString(),
-      expiresAt: expiresAt.toISOString(),
-      usedAt: null,
-      redirectTo: input.redirectTo || "",
+      token_hash: tokenHash,
+      created_at: now.toISOString(),
+      expires_at: exp.toISOString(),
+      used_at: "",
+      redirect_to: input.redirectTo || "",
     }),
   });
 
   return { token };
 }
 
-export async function consumeMagicLink(input: { tenantId: string; token: string; purpose: MagicLinkPurpose }) {
+export async function consumeMagicLink(input: { tenantId: string; token: string; purpose: "user" }) {
   const tokenHash = sha256Hex(input.token);
-
-  const data = await fetchBaserow<{ results: any[] }>(
-    `/api/database/rows/table/${baserowTables.magicLinks}/?user_field_names=true&filter__tenantId__equal=${encodeURIComponent(
+  const rows = await baserowFetch<{ results: any[] }>(
+    `/api/database/rows/table/${baserowTables.magicLinks}/?user_field_names=true&filter__tenant_id__equal=${encodeURIComponent(
       input.tenantId
-    )}&filter__purpose__equal=${input.purpose}&filter__tokenHash__equal=${tokenHash}`
+    )}&filter__purpose__equal=${input.purpose}&filter__token_hash__equal=${tokenHash}`
   );
 
-  const row = data.results[0];
+  const row = rows.results[0];
   if (!row) return null;
+  if (row.used_at) return null;
+  if (new Date(row.expires_at).getTime() <= Date.now()) return null;
 
-  if (row.usedAt && row.usedAt.trim() !== "") return null;
-  if (new Date(row.expiresAt).getTime() <= Date.now()) return null;
-
-  await fetchBaserow(`/api/database/rows/table/${baserowTables.magicLinks}/${row.id}/?user_field_names=true`, {
+  await baserowFetch(`/api/database/rows/table/${baserowTables.magicLinks}/${row.id}/?user_field_names=true`, {
     method: "PATCH",
-    body: JSON.stringify({ usedAt: new Date().toISOString() }),
+    body: JSON.stringify({ used_at: new Date().toISOString() }),
   });
 
-  return {
-    email: String(row.email),
-    redirectTo: (row.redirectTo && String(row.redirectTo)) || null,
-  };
+  return { email: String(row.email), redirectTo: row.redirect_to ? String(row.redirect_to) : null };
 }

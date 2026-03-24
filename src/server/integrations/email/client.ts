@@ -1,8 +1,8 @@
-import { env } from "../shared/env.js";
-import { ApiError, withApiHandler } from "../shared/http.js";
-import { Logger } from "./logger.js";
+import { env } from "../../shared/env.js";
+import { ApiError } from "../../shared/http.js";
+import { logger as baseLogger } from "../../shared/logger.js";
 
-const logger = new Logger({ integration: "resend" });
+const logger = baseLogger.withContext({ integration: "resend" });
 const MAX_RETRIES = 2;
 const TIMEOUT_MS = 10000;
 
