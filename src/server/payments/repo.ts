@@ -59,6 +59,16 @@ export async function createPaymentOrder(tenantId: string, input: {
   return mapRowToPayment(record);
 }
 
+export async function getPaymentOrderById(tenantId: string | number, id: string | number): Promise<PaymentRecord | null> {
+  try {
+    const row = await baserowFetch<any>(`/api/database/rows/table/${baserowTables.paymentOrders}/${id}/?user_field_names=true`);
+    if (String(row.tenant_id) !== String(tenantId)) return null;
+    return mapRowToPayment(row);
+  } catch (err) {
+    return null;
+  }
+}
+
 export async function getPaymentOrderByExternalReference(tenantId: string, externalReference: string): Promise<PaymentRecord | null> {
   const data = await baserowFetch<{ results: any[] }>(
     `/api/database/rows/table/${baserowTables.paymentOrders}/?user_field_names=true&filter__tenant_id__equal=${encodeURIComponent(tenantId)}&filter__external_reference__equal=${encodeURIComponent(externalReference)}`

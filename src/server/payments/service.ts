@@ -1,9 +1,9 @@
 import { ApiError } from "../shared/http.js";
 import { getRecipeById } from "../recipes/repo.js";
 import { 
-  createPayment, 
-  getPaymentById, 
-  updatePaymentStatus,
+  createPaymentOrder, 
+  getPaymentOrderById, 
+  updatePaymentOrderStatus,
   PaymentStatus,
 } from "./repo.js";
 import { createEntitlement } from "../identity/entitlements.repo.js";
@@ -32,7 +32,7 @@ export async function createCheckout(tenantId: string | number, input: {
   }
 
   // T2/T3: Create Internal Order FIRST
-  const payment = await createPayment(tenantId, {
+  const payment = await createPaymentOrder(String(tenantId), {
     amount: totalAmount,
     status: 'created',
     externalReference: input.checkoutReference,
@@ -40,7 +40,7 @@ export async function createCheckout(tenantId: string | number, input: {
     payerEmail: buyerEmail,
     paymentMethod: 'mercadopago',
     recipeIds: input.recipeIds,
-    userId: input.userId,
+    userId: input.userId ? String(input.userId) : null,
     items,
   });
 
@@ -65,7 +65,7 @@ export async function createCheckout(tenantId: string | number, input: {
   });
 
   // Update order with preferenceId
-  await updatePaymentStatus(tenantId, payment.id, 'pending', undefined);
+  await updatePaymentOrderStatus(String(tenantId), payment.id, 'pending', undefined);
   
   logger.info("Checkout created", { 
     tenantId, 
@@ -98,7 +98,7 @@ export async function createMockCheckout(tenantId: string | number, input: {
     totalAmount += recipe.priceBRL || 0;
   }
 
-  const payment = await createPayment(tenantId, {
+  const payment = await createPaymentOrder(String(tenantId), {
     amount: totalAmount,
     status: 'approved',
     externalReference: input.checkoutReference,
@@ -127,7 +127,7 @@ export async function createMockCheckout(tenantId: string | number, input: {
 
 export async function syncPayment(tenantId: string | number, paymentId: string | number, status: string, providerPaymentId?: string) {
     logger.info("Syncing payment status", { tenantId, paymentId, nextStatus: status, providerPaymentId });
-    const payment = await getPaymentById(tenantId, paymentId);
+    const payment = await getPaymentOrderById(tenantId, paymentId);
     if (!payment) throw new ApiError(404, `Order ${paymentId} not found`);
 
     const nextStatus = status as PaymentStatus;
@@ -138,11 +138,11 @@ export async function syncPayment(tenantId: string | number, paymentId: string |
         return;
     }
 
-    await updatePaymentStatus(tenantId, paymentId, nextStatus, providerPaymentId);
+    await updatePaymentOrderStatus(String(tenantId), paymentId, nextStatus, providerPaymentId);
     
     // T7: Entitlement Grant
     if (nextStatus === 'approved') {
-        const current = await getPaymentById(tenantId, paymentId);
+        const current = await getPaymentOrderById(tenantId, paymentId);
         if (current && Array.isArray(current.items)) {
             for (const item of current.items) {
                 const slug = item.recipeSlug || item.recipeId; // Fallback to ID if slug missing
