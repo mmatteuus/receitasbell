@@ -1,28 +1,23 @@
-# Baseline Diagnostic Result
+# Baseline checks
 
-## Environment
-- **Node.js**: v24.14.0
-- **NPM**: 10.9.2
+## Branch Consolidation
+- Source branches: `origin/feat/phase-1-security`
+- Target: `main`
+- Merge status: Success
 
-## Command Outputs
+## npm ci
+- Status: Success
+- Output: added 850 packages
 
-### npm run build (npx vite build)
-> Status: SUCCESS
-> Duration: 10.65s
-> Result: All assets generated in `dist/`.
+## typecheck
+- Status: Success
+- Output: No errors
 
-### npm run typecheck (npx tsc --noEmit)
-> Status: SUCCESS
-> Result: No TypeScript errors found in the current codebase.
+## build
+- Status: Success
+- Output: dist generated
 
-### npm test (npx vitest run)
-> Status: SUCCESS
-> Result: 20 tests passed, 0 failed.
-> Test files:
-> - tests/masking.test.ts
-> - tests/oauth-state.test.ts
-> - tests/scaleIngredient.test.ts
-> - tests/oauth-service.test.ts
-> - tests/tenant-resolution.test.ts
-> - tests/payment-service.test.ts
-> - tests/webhook-signature.test.ts
+## test:unit
+- Status: Failed
+- Reason: Missing Baserow table IDs (expected as envs are not set)
+- Detail: 1 failed (src/server/integrations/baserow/tables.ts), 19 passed.
