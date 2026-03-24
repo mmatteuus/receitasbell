@@ -1,4 +1,5 @@
-import { fetchBaserow, BASEROW_TABLES } from "../integrations/baserow/client.js";
+import { fetchBaserow } from "../integrations/baserow/client.js";
+import { baserowTables as BASEROW_TABLES } from "../integrations/baserow/tables.js";
 
 export type PaymentStatus = 'created' | 'pending' | 'approved' | 'rejected' | 'cancelled' | 'refunded' | 'chargeback' | 'failed';
 

@@ -1,5 +1,6 @@
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
+import { env } from "../shared/env.js";
 
 type RateLimitResult = {
   success: boolean;
@@ -9,36 +10,25 @@ type RateLimitResult = {
 
 const UPSTASH_URL = process.env.UPSTASH_REDIS_REST_URL;
 const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
-const LIMIT = 5;
-const WINDOW_SECONDS = 60;
 
-let upstashLimiter: Ratelimit | null = null;
+let upstashRedis: Redis | null = null;
 if (UPSTASH_URL && UPSTASH_TOKEN) {
-  const redis = new Redis({ url: UPSTASH_URL, token: UPSTASH_TOKEN });
-  upstashLimiter = new Ratelimit({
-    redis,
-    limiter: Ratelimit.slidingWindow(LIMIT, "1 m"),
-  });
+  upstashRedis = new Redis({ url: UPSTASH_URL, token: UPSTASH_TOKEN });
 }
 
+/**
+ * In-memory fallback for environments without Redis.
+ * Note: Limited effectiveness in serverless due to instance isolation.
+ */
 const memoryStore = new Map<string, { count: number; windowStart: number; blockedUntil?: number }>();
 
-function getMemoryKeyState(key: string) {
+function consumeMemoryLimit(key: string, limit: number, windowSeconds: number): RateLimitResult {
   const now = Date.now();
   const entry = memoryStore.get(key);
-  if (!entry || now - entry.windowStart > WINDOW_SECONDS * 1000) {
-    return { count: 0, windowStart: now, blockedUntil: undefined };
-  }
-  return entry;
-}
-
-function setMemoryKeyState(key: string, state: { count: number; windowStart: number; blockedUntil?: number }) {
-  memoryStore.set(key, state);
-}
-
-function consumeMemoryLimit(key: string): RateLimitResult {
-  const now = Date.now();
-  const state = getMemoryKeyState(key);
+  
+  let state = (!entry || (now - entry.windowStart > windowSeconds * 1000)) 
+    ? { count: 0, windowStart: now, blockedUntil: undefined }
+    : entry;
 
   if (state.blockedUntil && state.blockedUntil > now) {
     return {
@@ -49,46 +39,69 @@ function consumeMemoryLimit(key: string): RateLimitResult {
   }
 
   const nextCount = state.count + 1;
-  const resetAfter = Math.ceil((state.windowStart + WINDOW_SECONDS * 1000 - now) / 1000);
-  if (nextCount > LIMIT) {
-    const blockedUntil = now + WINDOW_SECONDS * 1000;
-    state.blockedUntil = blockedUntil;
+  const resetAfter = Math.ceil((state.windowStart + windowSeconds * 1000 - now) / 1000);
+  
+  if (nextCount > limit) {
+    state.blockedUntil = now + windowSeconds * 1000;
     state.count = 0;
     state.windowStart = now;
-    setMemoryKeyState(key, state);
+    memoryStore.set(key, state);
     return {
       success: false,
       remaining: 0,
-      resetAfter: WINDOW_SECONDS,
+      resetAfter: windowSeconds,
     };
   }
 
   state.count = nextCount;
-  setMemoryKeyState(key, state);
+  memoryStore.set(key, state);
 
   return {
     success: true,
-    remaining: LIMIT - nextCount,
-    resetAfter: resetAfter > 0 ? resetAfter : WINDOW_SECONDS,
+    remaining: limit - nextCount,
+    resetAfter: resetAfter > 0 ? resetAfter : windowSeconds,
   };
 }
 
-export function getClientAddress(request: any) {
-  const forwarded = request.headers['x-forwarded-for'];
-  if (Array.isArray(forwarded)) return forwarded[0] || 'unknown';
-  if (typeof forwarded === 'string') return forwarded.split(',')[0]?.trim() || 'unknown';
-  return request.socket?.remoteAddress || 'unknown';
-}
-
-export async function consumeAdminRateLimit(key: string): Promise<RateLimitResult> {
-  if (upstashLimiter) {
-    const result = await upstashLimiter.limit(key);
+/**
+ * Standardized Rate Limiter.
+ * Uses Upstash Redis if configured, otherwise falls back to memory.
+ */
+export async function rateLimit(key: string, options: { limit: number; window: string }): Promise<RateLimitResult> {
+  if (upstashRedis) {
+    const [count, unit] = options.window.split(" ");
+    const limiter = new Ratelimit({
+      redis: upstashRedis,
+      limiter: Ratelimit.slidingWindow(options.limit, options.window as any),
+    });
+    
+    const result = await limiter.limit(key);
     return {
       success: result.success,
-      remaining: result.remaining ?? 0,
-      resetAfter: result.reset ? Math.max(1, Math.ceil((result.reset - Date.now()) / 1000)) : WINDOW_SECONDS,
+      remaining: result.remaining,
+      resetAfter: Math.max(1, Math.ceil((result.reset - Date.now()) / 1000)),
     };
   }
 
-  return consumeMemoryLimit(key);
+  // Pure memory fallback
+  const windowSeconds = options.window.includes("m") 
+    ? parseInt(options.window) * 60 
+    : parseInt(options.window);
+    
+  return consumeMemoryLimit(key, options.limit, windowSeconds || 60);
 }
+
+/**
+ * Specialized rate limits
+ */
+export const AuthRateLimit = {
+  async check(identifier: string) {
+    return rateLimit(`auth:${identifier}`, { limit: 5, window: "5 m" });
+  }
+};
+
+export const AdminRateLimit = {
+  async check(identifier: string) {
+    return rateLimit(`admin:${identifier}`, { limit: 10, window: "1 m" });
+  }
+};

@@ -1,54 +1,59 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-import crypto from 'node:crypto';
-import { env } from './env.js';
+import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { Logger } from "./logger.js";
+import { env } from "./env.js";
 
 export class ApiError extends Error {
-  constructor(
-    public status: number,
-    message: string,
-    public details?: unknown,
-  ) {
+  constructor(public status: number, message: string, public details?: unknown) {
     super(message);
+    this.name = 'ApiError';
   }
 }
 
-export function getRequestId(req: VercelRequest): string {
-  // prefer um id existente se houver, senão gera
-  const incoming = req.headers['x-request-id'] || req.headers['x-vercel-id'];
-  if (typeof incoming === 'string' && incoming.trim()) return incoming;
-  return crypto.randomUUID();
+export function assertMethod(request: VercelRequest, methods: string[]) {
+  if (!methods.includes(request.method ?? "")) {
+    throw new ApiError(405, `Method ${request.method} not allowed`);
+  }
 }
 
-export function assertMethod(req: VercelRequest, allowed: string[]) {
-  const m = (req.method ?? 'GET').toUpperCase();
-  if (!allowed.includes(m)) throw new ApiError(405, `Method ${m} not allowed`);
+/**
+ * Vercel Cron: com CRON_SECRET configurado, a Vercel envia Authorization automaticamente.
+ * Doc oficial: CRON_SECRET -> Authorization header.
+ */
+export function requireCronAuth(request: VercelRequest) {
+  const authHeader = request.headers.authorization;
+  if (!authHeader || authHeader !== `Bearer ${env.CRON_SECRET}`) {
+    throw new ApiError(401, "Unauthorized");
+  }
 }
 
-export function requireCronAuth(req: VercelRequest) {
-  // Vercel envia Authorization automaticamente quando CRON_SECRET existe
-  const auth = req.headers.authorization;
-  if (auth !== `Bearer ${env.CRON_SECRET}`) throw new ApiError(401, 'Unauthorized');
+export function sendJson(response: VercelResponse, status: number, body: unknown) {
+  response.status(status).json(body);
 }
 
-export function noStore(res: VercelResponse) {
-  res.setHeader('Cache-Control', 'no-store');
+// Para manter compatibilidade com código existente que usa json()
+export const json = sendJson;
+
+export function requireQueryParam(request: VercelRequest, name: string): string {
+  const value = request.query[name];
+  if (!value || typeof value !== "string") throw new ApiError(400, `Missing required query parameter: ${name}`);
+  return value;
 }
 
-export function json(res: VercelResponse, status: number, body: unknown) {
-  noStore(res);
-  res.status(status).json(body);
-}
-
-export async function readJsonBody<T>(req: VercelRequest): Promise<T> {
-  if (req.body) return req.body;
+/**
+ * Lê JSON do body com fallback para stream (Vercel geralmente já parseia).
+ */
+export async function readJsonBody<T>(request: VercelRequest): Promise<T> {
+  if (request.body && typeof request.body === "object" && !Array.isArray(request.body)) {
+    return request.body as T;
+  }
   return new Promise((resolve, reject) => {
-    let body = '';
-    req.on('data', chunk => { body += chunk; });
-    req.on('end', () => {
+    let body = "";
+    request.on("data", (chunk) => (body += chunk));
+    request.on("end", () => {
       try {
-        resolve(JSON.parse(body));
-      } catch (e) {
-        reject(new ApiError(400, 'Invalid JSON body'));
+        resolve(JSON.parse(body) as T);
+      } catch {
+        reject(new ApiError(400, "Invalid JSON body"));
       }
     });
   });
@@ -56,23 +61,8 @@ export async function readJsonBody<T>(req: VercelRequest): Promise<T> {
 
 export function getAppBaseUrl(request: VercelRequest): string {
   const host = request.headers.host;
-  const protocol = host?.includes('localhost') ? 'http' : 'https';
+  const protocol = host?.includes("localhost") ? "http" : "https";
   return `${protocol}://${host}`;
-}
-
-export function getClientAddress(request: VercelRequest): string {
-  const forwarded = request.headers['x-forwarded-for'];
-  if (Array.isArray(forwarded)) {
-    return forwarded[0]?.split(',')[0]?.trim() || 'unknown';
-  }
-  if (typeof forwarded === 'string') {
-    return forwarded.split(',')[0]?.trim() || 'unknown';
-  }
-  return request.socket.remoteAddress || 'unknown';
-}
-
-export function setPublicCache(res: VercelResponse, seconds: number) {
-  res.setHeader('Cache-Control', `public, s-maxage=${seconds}, stale-while-revalidate`);
 }
 
 export function getQueryValue(value: string | string[] | undefined): string | null {
@@ -81,21 +71,39 @@ export function getQueryValue(value: string | string[] | undefined): string | nu
   return value;
 }
 
+export function getClientAddress(request: VercelRequest): string {
+  const forwarded = request.headers["x-forwarded-for"];
+  if (Array.isArray(forwarded)) return forwarded[0]?.split(",")[0]?.trim() || "unknown";
+  if (typeof forwarded === "string") return forwarded.split(",")[0]?.trim() || "unknown";
+  return request.socket.remoteAddress || "unknown";
+}
+
+function setDefaultApiHeaders(response: VercelResponse) {
+  response.setHeader("Cache-Control", "no-store");
+  response.setHeader("X-Content-Type-Options", "nosniff");
+  response.setHeader("Referrer-Policy", "no-referrer");
+}
+
 export async function withApiHandler(
-  req: VercelRequest,
-  res: VercelResponse,
-  fn: (ctx: { requestId: string }) => Promise<void>,
+  request: VercelRequest,
+  response: VercelResponse,
+  handler: (context: { logger: Logger; requestId: string }) => Promise<void | unknown> | void | unknown
 ) {
-  const requestId = getRequestId(req);
-  res.setHeader('x-request-id', requestId);
+  setDefaultApiHeaders(response);
+
+  const requestId = (request.headers["x-vercel-id"] as string) || (request.headers["x-request-id"] as string) || crypto.randomUUID();
+  const logger = new Logger({ requestId, path: request.url, method: request.method });
 
   try {
-    await fn({ requestId });
-  } catch (err) {
-    if (err instanceof ApiError) {
-      return json(res, err.status, { success: false, error: { message: err.message, details: err.details ?? null }, requestId });
+    const result = await handler({ logger, requestId });
+    if (result && !response.writableEnded) {
+       return sendJson(response, 200, result);
     }
-    console.error(`[API ERROR] ${requestId}:`, err);
-    return json(res, 500, { success: false, error: { message: 'Internal server error' }, requestId });
+  } catch (error: any) {
+    if (error instanceof ApiError) {
+      return sendJson(response, error.status, { error: { message: error.message, details: error.details ?? null }, requestId });
+    }
+    logger.error("Unhandled API error", error);
+    return sendJson(response, 500, { error: { message: "Internal server error" }, requestId });
   }
 }

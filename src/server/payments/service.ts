@@ -142,15 +142,17 @@ export async function syncPayment(tenantId: string | number, paymentId: string |
     
     // T7: Entitlement Grant
     if (nextStatus === 'approved') {
-        // Re-fetch to be sure of state or use memory
         const current = await getPaymentById(tenantId, paymentId);
-        if (current) {
-            for (const rid of current.recipeIds) {
-                await createEntitlement(tenantId, {
-                    paymentId: String(paymentId),
-                    payerEmail: current.payerEmail,
-                    recipeSlug: rid,
-                });
+        if (current && Array.isArray(current.items)) {
+            for (const item of current.items) {
+                const slug = item.recipeSlug || item.recipeId; // Fallback to ID if slug missing
+                if (slug) {
+                    await createEntitlement(tenantId, {
+                        paymentId: String(paymentId),
+                        payerEmail: current.payerEmail,
+                        recipeSlug: String(slug),
+                    });
+                }
             }
         }
     }

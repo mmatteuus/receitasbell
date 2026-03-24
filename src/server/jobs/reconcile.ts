@@ -1,4 +1,5 @@
-import { baserowFetch, BASEROW_TABLES } from "../integrations/baserow/client.js";
+import { fetchBaserow } from "../integrations/baserow/client.js";
+import { baserowTables as BASEROW_TABLES } from "../integrations/baserow/tables.js";
 import { fetchMercadoPagoPayment } from "../integrations/mercadopago/client.js";
 import { syncPayment } from "../payments/service.js";
 import { Logger } from "../shared/logger.js";
@@ -8,9 +9,8 @@ const logger = new Logger({ job: "reconcile" });
 export async function runReconciliationJob() {
   logger.info("Starting payment reconciliation job...");
   
-  // Fetch pending and created payments within the last 7 days to avoid excessive processing
-  // (In real scenario, could filter by updated_at > now - 7d)
-  const pendingPayments = await baserowFetch<{ results: any[] }>(
+  // Fetch pending and created payments
+  const pendingPayments = await fetchBaserow<{ results: any[] }>(
     `/api/database/rows/table/${BASEROW_TABLES.PAYMENTS}/?user_field_names=true&filter__status__in=pending,created`
   );
 
@@ -19,11 +19,10 @@ export async function runReconciliationJob() {
 
   for (const payment of pendingPayments.results) {
     try {
-      // Need provider_payment_id or preference_id to reconcile
-      const provId = payment.payment_id;
+      const provId = payment.payment_id || payment.paymentId;
       if (!provId) continue;
       
-      const mpData = await fetchMercadoPagoPayment(payment.tenantId, provId);
+      const mpData = await fetchMercadoPagoPayment(payment.tenantId, String(provId));
       const mpStatus = String(mpData.status || 'pending');
 
       if (mpStatus !== payment.status) {
@@ -33,12 +32,12 @@ export async function runReconciliationJob() {
             newStatus: mpStatus
         });
         
-        await syncPayment(payment.tenantId, payment.id, mpStatus, provId);
+        await syncPayment(payment.tenantId, payment.id, mpStatus, String(provId));
         updatedCount++;
       }
-    } catch (err) {
+    } catch (err: any) {
       errorCount++;
-      logger.error(`Failed to reconcile payment ${payment.id}`, { error: err instanceof Error ? err.message : err });
+      logger.error(`Failed to reconcile payment ${payment.id}`, { error: err?.message || err });
     }
   }
 

@@ -33,6 +33,7 @@
   ],
   "exclude": [
     "src/_legacy/**",
-    "src/_legacy/**/*"
+    "api/_legacy/**",
+    "**/*.legacy.*"
   ]
 }

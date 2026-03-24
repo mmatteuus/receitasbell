@@ -1,21 +1,37 @@
-# Environment Variables
+# Environment Variables Documentation
 
-## Core
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `APP_BASE_URL` | Application base URL | `https://receitasbell.vercel.app` |
-| `CRON_SECRET` | Authentication key for cron jobs | `16+ character string` |
+## Core Variables
+- `NODE_ENV`: `production` or `development`.
+- `APP_BASE_URL`: Full URL of the application (e.g., `https://receitasbell.com.br`).
+- `CRON_SECRET`: Random string for authenticating Vercel Cron Jobs.
 
-## Baserow
-| Variable | Description |
-|----------|-------------|
-| `BASEROW_API_URL` | Baserow instance URL |
-| `BASEROW_API_TOKEN` | API Token for authentication |
-| `BASEROW_TABLE_*` | Table IDs for various entities |
+## Storage (Baserow)
+- `BASEROW_API_URL`: URL of the Baserow instance (e.g., `https://api.baserow.io`).
+- `BASEROW_API_TOKEN`: Your Baserow API token.
 
-## Mercado Pago
-| Variable | Description |
-|----------|-------------|
-| `MP_ACCESS_TOKEN` | Production Access Token |
-| `MP_PUBLIC_KEY` | Production Public Key |
-| `MP_WEBHOOK_SECRET` | Secret for signature validation |
+### Table IDs
+All required table IDs must be provided as strings.
+- `BASEROW_TABLE_TENANTS`
+- `BASEROW_TABLE_USERS`
+- `BASEROW_TABLE_TENANT_USERS`
+- `BASEROW_TABLE_RECIPES`
+- `BASEROW_TABLE_CATEGORIES`
+- `BASEROW_TABLE_SETTINGS`
+- `BASEROW_TABLE_PAYMENT_ORDERS`
+- `BASEROW_TABLE_PAYMENT_EVENTS`
+- `BASEROW_TABLE_SESSIONS`
+- `BASEROW_TABLE_MAGIC_LINKS`
+
+## Email (Resend)
+- `RESEND_API_KEY`: Resend API key for sending emails.
+- `EMAIL_FROM`: The FROM email address.
+
+## Mercado Pago (10/10)
+- `MP_WEBHOOK_SECRET`: Secret for verifying webhook HMAC signatures.
+- `MP_APP_CLIENT_ID`: Mercado Pago App Client ID for OAuth.
+- `MP_APP_CLIENT_SECRET`: Mercado Pago App Client Secret for OAuth.
+- `MP_APP_REDIRECT_URI`: Registered redirect URI for OAuth.
+
+## Security
+- `APP_COOKIE_SECRET`: Key for signing cookies and sensitive data.
+- `APP_ENCRYPTION_KEY`: Key for server-side field encryption.
