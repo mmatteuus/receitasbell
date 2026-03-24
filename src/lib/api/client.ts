@@ -3,11 +3,13 @@ import { buildTenantAdminPath, getCurrentTenantSlug } from "@/lib/tenant";
 export class ApiClientError extends Error {
   status: number;
   details?: unknown;
+  requestId?: string;
 
-  constructor(status: number, message: string, details?: unknown) {
+  constructor(status: number, message: string, details?: unknown, requestId?: string) {
     super(message);
     this.status = status;
     this.details = details;
+    this.requestId = requestId;
   }
 }
 
@@ -83,12 +85,13 @@ export async function jsonFetch<T>(path: string, options: JsonFetchOptions = {})
           `${loginPath}?redirect=${encodeURIComponent(redirect)}`,
         );
       }
-      throw new ApiClientError(401, "Sessão de admin expirada. Faça login novamente.", payload?.details);
+      throw new ApiClientError(401, "Sessão de admin expirada. Faça login novamente.", payload?.details, payload?.requestId);
     }
     throw new ApiClientError(
       response.status,
       payload?.error || payload?.message || response.statusText || "Erro ao comunicar com a API.",
       payload?.details,
+      payload?.requestId,
     );
   }
 

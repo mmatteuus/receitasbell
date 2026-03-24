@@ -1,19 +1,21 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { withApiHandler, sendJson, requireIdentityUser } from '../../src/server/shared/http.js';
+import { withApiHandler, json } from '../../src/server/shared/http.js';
+import { requireIdentityUser } from '../../src/server/auth/guards.js';
 import { requireTenantFromRequest } from '../../src/server/tenancy/resolver.js';
-import { fetchBaserow, BASEROW_TABLES } from '../../src/server/integrations/baserow/client.js';
+import { baserowFetch } from '../../src/server/integrations/baserow/client.js';
+import { baserowTables } from '../../src/server/integrations/baserow/tables.js';
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
-  return withApiHandler(request, response, async () => {
+  return withApiHandler(request, response, async ({ requestId }) => {
     const { tenant } = await requireTenantFromRequest(request);
     const user = await requireIdentityUser(request);
 
-    // Filter by tenant and the authenticated user's email (used as userId in this system)
-    const data = await fetchBaserow<{ results: any[] }>(
-      `/api/database/rows/table/${BASEROW_TABLES.PAYMENTS}/?user_field_names=true&filter__tenantId__equal=${tenant.id}&filter__userId__equal=${user.email}`
+    // Filter by tenant and the authenticated user's ID
+    const data = await baserowFetch<{ results: any[] }>(
+      `/api/database/rows/table/${baserowTables.paymentOrders}/?user_field_names=true&filter__tenantId__equal=${tenant.id}&filter__userId__equal=${user.user?.id}`
     );
 
-    return sendJson(response, 200, {
+    return json(response, 200, {
       items: data.results.map(row => ({
         id: String(row.id),
         amount: Number(row.amount),
@@ -24,7 +26,8 @@ export default async function handler(request: VercelRequest, response: VercelRe
       })),
       meta: {
         total: data.results.length
-      }
+      },
+      requestId
     });
   });
 }

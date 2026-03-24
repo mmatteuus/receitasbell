@@ -1,39 +1,43 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { withApiHandler, requireQueryParam, ApiError } from '../../src/server/shared/http.js';
-import { verifyMagicLinkToken } from '../../src/server/auth/magicLink.js';
+import { withApiHandler, ApiError, getClientAddress } from '../../src/server/shared/http.js';
+import { consumeMagicLink } from '../../src/server/auth/magicLinks.js';
 import { findOrCreateUserByEmail } from '../../src/server/identity/repo.js';
-import { signSession, setUserSessionCookie } from '../../src/server/auth/sessions.js';
+import { startUserSession } from '../../src/server/auth/sessions.js';
 import { createAuditLog } from '../../src/server/audit/service.js';
+import { AuthRateLimit } from '../../src/server/shared/rateLimit.js';
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
-  return withApiHandler(request, response, async () => {
-    const token = requireQueryParam(request, 'token');
-    const tenantId = requireQueryParam(request, 'tenantId');
+  return withApiHandler(request, response, async ({ requestId }) => {
+    const url = new URL(request.url || '', 'http://localhost');
+    const token = url.searchParams.get('token');
+    const tenantId = url.searchParams.get('tenantId');
     
-    const record = await verifyMagicLinkToken(tenantId, token);
-    if (!record) {
-      throw new ApiError(401, "Invalid or expired token");
-    }
+    if (!token || !tenantId) throw new ApiError(400, "Missing required parameters");
     
-    // O record deve conter o email que salvamos no createMagicLinkToken
-    const email = record.email || "";
-    if (!email) {
-      throw new ApiError(500, "Token verification failed: missing email in record");
+    const ip = getClientAddress(request);
+    const rl = await AuthRateLimit.check(`${ip}:verify`);
+    if (!rl.success) {
+        response.setHeader('Retry-After', String(rl.resetAfter));
+        throw new ApiError(429, `Muitos pedidos. Tente novamente em ${rl.resetAfter}s.`);
     }
 
+    const record = await consumeMagicLink({
+        tenantId,
+        token,
+        purpose: 'user_login'
+    });
+    
+    if (!record) throw new ApiError(401, "Invalid or expired token");
+    
+    const email = record.email;
     const user = await findOrCreateUserByEmail(tenantId, email);
     
-    const sessionToken = signSession({
-      sessionId: crypto.randomUUID(),
+    await startUserSession(request, response, {
+      tenantId: String(tenantId),
       userId: String(user.id),
       email: user.email,
-      role: 'user', // Definindo o papel explicitamente
-      tenantId: String(tenantId), // Adicionando o tenantId para consistência
-      issuedAt: Date.now(),
-      expiresAt: Date.now() + 1000 * 60 * 60 * 24 * 7, // 7 dias
+      role: 'user', 
     });
-
-    setUserSessionCookie(response, sessionToken);
 
     await createAuditLog(request, {
       tenantId: String(tenantId),
@@ -41,10 +45,11 @@ export default async function handler(request: VercelRequest, response: VercelRe
       actorId: String(user.id),
       action: 'user.login',
       resourceType: 'session',
-      resourceId: String(user.id),
+      resourceId: requestId,
       payload: { email: user.email },
     });
 
-    return response.redirect('/');
+    const redirectTo = record.redirectTo || '/';
+    response.redirect(redirectTo);
   });
 }

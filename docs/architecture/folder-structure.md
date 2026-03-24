@@ -1,0 +1,22 @@
+# Folder Structure
+
+- `api/`: Vercel Serverless Functions handlers.
+  - `admin/`: Admin-protected routes (Auth session + role required).
+  - `auth/`: Identity and session management (Magic links, logout, me).
+  - `checkout/`: Payment orchestration and webhooks.
+  - `health/`: Liveness and readiness probes.
+  - `jobs/`: Scheduled tasks (Cron).
+  - `me/`: User-scoped resources (Auth session required).
+  - `public/`: Public catalog and read-only metadata (Cached).
+- `src/`:
+  - `components/`: Pure UI components and layouts.
+  - `contexts/`: React context providers for global state.
+  - `features/`: Modular components with specific business logic.
+  - `hooks/`: Domain-specific React hooks.
+  - `lib/`: Shared utilities, API clients and frontend-safe repos.
+  - `pages/`: Route-level container components.
+  - `server/`: **STRICT ENCLAVE**. Repository patterns and 3rd-party integrations. 
+    - *Note: Code here MUST NOT be imported by the frontend.*
+  - `types/`: Domain models and interface definitions.
+- `docs/`: Audit, Architecture and Operations registries.
+- `tests/`: Integration and unit suites (Vitest).
