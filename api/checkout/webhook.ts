@@ -1,9 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { withApiHandler, sendJson, readJsonBody, assertMethod, getQueryValue } from '../../src/server/shared/http.js';
+import { withApiHandler, json, assertMethod, getQueryValue } from '../../src/server/shared/http.js';
 import { requireTenantFromRequest } from '../../src/server/tenancy/resolver.js';
-import { fetchMercadoPagoPayment } from '../../src/server/integrations/mercadopago/client.js';
-import { syncPayment } from '../../src/server/payments/service.js';
-import { createPaymentEvent } from '../../src/server/payments/repo.js';
+import { assertMercadoPagoWebhookSignature, processMercadoPagoWebhook } from '../../src/server/integrations/mercadopago/webhook.js';
 import { createAuditLog } from '../../src/server/audit/service.js';
 
 function extractPaymentId(request: VercelRequest, payload: any) {
@@ -17,55 +15,47 @@ function extractPaymentId(request: VercelRequest, payload: any) {
 }
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
-  return withApiHandler(request, response, async (log) => {
+  return withApiHandler(request, response, async ({ requestId }) => {
     assertMethod(request, ['POST']);
+    
+    // No CSRF required for external webhooks
+    
     const { tenant } = await requireTenantFromRequest(request);
-    const payload = await readJsonBody<Record<string, any>>(request);
+    const payload = request.body;
     const paymentId = extractPaymentId(request, payload);
     
     if (!paymentId) {
-        log.info('Webhook ignorado: paymentId não encontrado no payload', { payload_id: payload.id });
-        return sendJson(response, 202, { received: true, ignored: true });
+        return json(response, 202, { received: true, ignored: true, requestId });
     }
 
-    log.info('Processando webhook Mercado Pago', { 
-        action: 'process_webhook', 
-        paymentId, 
-        mp_action: payload.action 
-    });
+    // Enforce Signature Verification (Phase 2 hardening)
+    let signatureValid = false;
+    try {
+      await assertMercadoPagoWebhookSignature(request, paymentId);
+      signatureValid = true;
+    } catch (err) {
+      // In Phase 2, we log if invalid but might still process if it matches our DB 
+      // OR we reject. Per Plano 10/10, we should reject.
+      throw err; 
+    }
 
-    // T4/T5: Persist Event for Idempotency/Audit
-    const dedupeKey = `mp_evt_${payload.id || paymentId}_${payload.action || 'sync'}`;
-    await createPaymentEvent(tenant.id, {
-        tenantId: tenant.id,
-        paymentId,
-        dedupeKey,
-        topic: payload.topic || payload.type,
-        action: payload.action,
-        payloadJson: payload,
-        createdAt: new Date().toISOString(),
-    });
-
-    const mpPayment = await fetchMercadoPagoPayment(tenant.id, paymentId);
-    log.info('Sincronizando status de pagamento', { paymentId, status: mpPayment.status });
-    
-    await syncPayment(tenant.id, paymentId, String(mpPayment.status), String(mpPayment.id));
+    await processMercadoPagoWebhook(tenant.id, payload, signatureValid);
     
     await createAuditLog(request, {
       tenantId: String(tenant.id),
       actorType: 'system',
       actorId: 'mercadopago_webhook',
-      action: 'payment.webhook_received',
+      action: 'payment.webhook_processed',
       resourceType: 'payment_order',
       resourceId: paymentId,
       payload: { 
-        status: mpPayment.status,
-        mp_id: mpPayment.id,
-        action: payload.action
+        topic: payload.topic || payload.type,
+        action: payload.action,
+        signatureValid
       },
     });
 
-    return sendJson(response, 202, { success: true });
+    return json(response, 202, { success: true, requestId });
   });
 }
 

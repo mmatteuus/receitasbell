@@ -61,6 +61,7 @@ export async function createCheckout(tenantId: string | number, input: {
       failure: `${input.baseUrl}/checkout/failure?orderId=${payment.id}`,
     },
     notification_url: input.enableNotifications ? `${input.baseUrl}/api/checkout/webhook?tenantId=${tenantId}&paymentId=${payment.id}` : undefined,
+    idempotencyKey: input.checkoutReference,
   });
 
   // Update order with preferenceId

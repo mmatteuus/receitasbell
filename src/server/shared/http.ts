@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import crypto from 'node:crypto';
 import { env } from './env.js';
-import { Logger } from './logger.js';
 
 export class ApiError extends Error {
   constructor(
@@ -12,43 +12,42 @@ export class ApiError extends Error {
   }
 }
 
-export function assertMethod(request: VercelRequest, methods: string[]) {
-  if (!methods.includes(request.method ?? '')) {
-    throw new ApiError(405, `Method ${request.method} not allowed`);
-  }
+export function getRequestId(req: VercelRequest): string {
+  // prefer um id existente se houver, senão gera
+  const incoming = req.headers['x-request-id'] || req.headers['x-vercel-id'];
+  if (typeof incoming === 'string' && incoming.trim()) return incoming;
+  return crypto.randomUUID();
 }
 
-export function requireCronAuth(request: VercelRequest) {
-  const authHeader = request.headers.authorization;
-  if (!authHeader || authHeader !== `Bearer ${env.CRON_SECRET}`) {
-    throw new ApiError(401, 'Unauthorized');
-  }
+export function assertMethod(req: VercelRequest, allowed: string[]) {
+  const m = (req.method ?? 'GET').toUpperCase();
+  if (!allowed.includes(m)) throw new ApiError(405, `Method ${m} not allowed`);
 }
 
-export function sendJson(response: VercelResponse, status: number, body: unknown) {
-  response.status(status).json(body);
+export function requireCronAuth(req: VercelRequest) {
+  // Vercel envia Authorization automaticamente quando CRON_SECRET existe
+  const auth = req.headers.authorization;
+  if (auth !== `Bearer ${env.CRON_SECRET}`) throw new ApiError(401, 'Unauthorized');
 }
 
-export function requireQueryParam(request: VercelRequest, name: string): string {
-  const value = request.query[name];
-  if (!value || typeof value !== 'string') {
-    throw new ApiError(400, `Missing required query parameter: ${name}`);
-  }
-  return value;
+export function noStore(res: VercelResponse) {
+  res.setHeader('Cache-Control', 'no-store');
 }
 
-export async function readJsonBody<T>(request: VercelRequest): Promise<T> {
-  if (request.body && typeof request.body === 'object' && !Array.isArray(request.body)) {
-    return request.body as T;
-  }
-  // If not already parsed by Vercel
+export function json(res: VercelResponse, status: number, body: unknown) {
+  noStore(res);
+  res.status(status).json(body);
+}
+
+export async function readJsonBody<T>(req: VercelRequest): Promise<T> {
+  if (req.body) return req.body;
   return new Promise((resolve, reject) => {
     let body = '';
-    request.on('data', (chunk) => { body += chunk; });
-    request.on('end', () => {
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
       try {
-        resolve(JSON.parse(body) as T);
-      } catch (err) {
+        resolve(JSON.parse(body));
+      } catch (e) {
         reject(new ApiError(400, 'Invalid JSON body'));
       }
     });
@@ -59,12 +58,6 @@ export function getAppBaseUrl(request: VercelRequest): string {
   const host = request.headers.host;
   const protocol = host?.includes('localhost') ? 'http' : 'https';
   return `${protocol}://${host}`;
-}
-
-export function getQueryValue(value: string | string[] | undefined): string | null {
-  if (!value) return null;
-  if (Array.isArray(value)) return value[0];
-  return value;
 }
 
 export function getClientAddress(request: VercelRequest): string {
@@ -78,34 +71,31 @@ export function getClientAddress(request: VercelRequest): string {
   return request.socket.remoteAddress || 'unknown';
 }
 
+export function setPublicCache(res: VercelResponse, seconds: number) {
+  res.setHeader('Cache-Control', `public, s-maxage=${seconds}, stale-while-revalidate`);
+}
+
+export function getQueryValue(value: string | string[] | undefined): string | null {
+  if (!value) return null;
+  if (Array.isArray(value)) return value[0];
+  return value;
+}
+
 export async function withApiHandler(
-  request: VercelRequest,
-  response: VercelResponse,
-  handler: (logger: Logger) => Promise<void | unknown> | void | unknown,
+  req: VercelRequest,
+  res: VercelResponse,
+  fn: (ctx: { requestId: string }) => Promise<void>,
 ) {
-  const logger = new Logger({ 
-    path: request.url, 
-    method: request.method,
-    requestId: request.headers['x-vercel-id'] as string || crypto.randomUUID()
-  });
+  const requestId = getRequestId(req);
+  res.setHeader('x-request-id', requestId);
 
   try {
-    await handler(logger);
-  } catch (error: any) {
-    if (error instanceof ApiError) {
-      return sendJson(response, error.status, {
-        error: {
-          message: error.message,
-          details: error.details ?? null,
-        },
-      });
+    await fn({ requestId });
+  } catch (err) {
+    if (err instanceof ApiError) {
+      return json(res, err.status, { success: false, error: { message: err.message, details: err.details ?? null }, requestId });
     }
-
-    logger.error('[API Error]', error);
-    return sendJson(response, 500, {
-      error: {
-        message: 'Internal server error',
-      },
-    });
+    console.error(`[API ERROR] ${requestId}:`, err);
+    return json(res, 500, { success: false, error: { message: 'Internal server error' }, requestId });
   }
 }

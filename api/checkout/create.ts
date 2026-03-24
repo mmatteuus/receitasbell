@@ -1,17 +1,21 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { withApiHandler, sendJson, readJsonBody, assertMethod, getAppBaseUrl } from '../../src/server/shared/http.js';
+import crypto from 'node:crypto';
+import { withApiHandler, json, ApiError, assertMethod, getAppBaseUrl } from '../../src/server/shared/http.js';
 import { requireTenantFromRequest } from '../../src/server/tenancy/resolver.js';
 import { createCheckout } from '../../src/server/payments/service.js';
 import { getSettingsMap, mapTypedSettings } from '../../src/server/settings/repo.js';
 import { checkoutCreateSchema } from '../../src/server/shared/validators.js';
 import { createAuditLog } from '../../src/server/audit/service.js';
+import { requireCsrf } from '../../src/server/security/csrf.js';
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
-  return withApiHandler(request, response, async (log) => {
+  return withApiHandler(request, response, async ({ requestId }) => {
     assertMethod(request, ['POST']);
+    requireCsrf(request);
+
     const { tenant } = await requireTenantFromRequest(request);
     const settings = mapTypedSettings(await getSettingsMap(tenant.id));
-    const body = checkoutCreateSchema.parse(await readJsonBody(request));
+    const body = checkoutCreateSchema.parse(request.body);
     
     const checkoutInput = {
       recipeIds: body.recipeIds,
@@ -20,15 +24,9 @@ export default async function handler(request: VercelRequest, response: VercelRe
       baseUrl: getAppBaseUrl(request),
     };
 
-    if (settings.payment_mode === 'production' && settings.mp_access_token) {
-      const result = await createCheckout(tenant.id, checkoutInput);
-      return sendJson(response, 201, result);
-    }
-    
-    // For now, using createCheckout for everything since it should handle mock/production 
     const result = await createCheckout(tenant.id, checkoutInput);
 
-    // Audit the checkout creation with detailed info
+    // Audit the checkout creation
     await createAuditLog(request, {
       tenantId: String(tenant.id),
       actorType: 'user',
@@ -43,7 +41,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
       },
     });
 
-    return sendJson(response, 201, result);
+    return json(response, 201, { ...result, requestId });
   });
 }
 

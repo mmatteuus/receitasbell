@@ -29,4 +29,6 @@ export const baserowTables = {
   ratings: requireTable('BASEROW_TABLE_RATINGS', env.BASEROW_TABLE_RATINGS),
   entitlements: requireTable('BASEROW_TABLE_ENTITLEMENTS', env.BASEROW_TABLE_ENTITLEMENTS),
   oauthStates: requireTable('BASEROW_TABLE_OAUTH_STATES', env.BASEROW_TABLE_OAUTH_STATES),
+  userSessions: requireTable('BASEROW_TABLE_USER_SESSIONS', env.BASEROW_TABLE_USER_SESSIONS),
+  authTokens: requireTable('BASEROW_TABLE_AUTH_TOKENS', env.BASEROW_TABLE_AUTH_TOKENS),
 };

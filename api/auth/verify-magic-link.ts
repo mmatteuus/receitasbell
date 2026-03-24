@@ -1,39 +1,32 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { withApiHandler, requireQueryParam, ApiError } from '../../src/server/shared/http.js';
+import { withApiHandler, ApiError } from '../../src/server/shared/http.js';
 import { verifyMagicLinkToken } from '../../src/server/auth/magicLink.js';
 import { findOrCreateUserByEmail } from '../../src/server/identity/repo.js';
-import { signSession, setUserSessionCookie } from '../../src/server/auth/sessions.js';
+import { createUserSession } from '../../src/server/auth/sessions.js';
 import { createAuditLog } from '../../src/server/audit/service.js';
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
-  return withApiHandler(request, response, async () => {
-    const token = requireQueryParam(request, 'token');
-    const tenantId = requireQueryParam(request, 'tenantId');
+  return withApiHandler(request, response, async ({ requestId }) => {
+    const url = new URL(request.url || '', 'http://localhost');
+    const token = url.searchParams.get('token');
+    const tenantId = url.searchParams.get('tenantId');
+    
+    if (!token || !tenantId) throw new ApiError(400, "Missing required parameters");
     
     const record = await verifyMagicLinkToken(tenantId, token);
-    if (!record) {
-      throw new ApiError(401, "Invalid or expired token");
-    }
+    if (!record) throw new ApiError(401, "Invalid or expired token");
     
-    // O record deve conter o email que salvamos no createMagicLinkToken
     const email = record.email || "";
-    if (!email) {
-      throw new ApiError(500, "Token verification failed: missing email in record");
-    }
+    if (!email) throw new ApiError(500, "Token verification failed: missing email");
 
     const user = await findOrCreateUserByEmail(tenantId, email);
     
-    const sessionToken = signSession({
-      sessionId: crypto.randomUUID(),
+    await createUserSession({
       userId: String(user.id),
       email: user.email,
-      role: 'user', // Definindo o papel explicitamente
-      tenantId: String(tenantId), // Adicionando o tenantId para consistência
-      issuedAt: Date.now(),
-      expiresAt: Date.now() + 1000 * 60 * 60 * 24 * 7, // 7 dias
+      req: request,
+      res: response,
     });
-
-    setUserSessionCookie(response, sessionToken);
 
     await createAuditLog(request, {
       tenantId: String(tenantId),
@@ -41,10 +34,10 @@ export default async function handler(request: VercelRequest, response: VercelRe
       actorId: String(user.id),
       action: 'user.login',
       resourceType: 'session',
-      resourceId: String(user.id),
+      resourceId: requestId,
       payload: { email: user.email },
     });
 
-    return response.redirect('/');
+    response.redirect('/');
   });
 }

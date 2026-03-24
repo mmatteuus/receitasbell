@@ -1,68 +1,137 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { createHmac, timingSafeEqual } from "node:crypto";
-import { env } from "../shared/env.js";
+import crypto from 'node:crypto';
+import { env, isProd } from '../shared/env.js';
+import { baserowFetch } from '../integrations/baserow/client.js';
+import { setCookie, clearCookie } from '../shared/cookies.js';
 
-export type SessionRole = 'user' | 'admin' | 'superadmin';
+const SESSION_COOKIE = '__Host-rb_user_session';
+const SESSION_TTL_SECONDS = 60 * 60 * 24 * 14; // 14 dias
 
-export type UserSession = {
+type SessionRow = {
+  id: number;
+  session_hash: string;
+  user_id: string;
+  email: string;
+  role: 'user' | 'admin' | 'superadmin';
+  tenant_id: string | null;
+  issued_at: string;
+  expires_at: string;
+  revoked_at?: string | null;
+};
+
+function sha256Hex(input: string) {
+  return crypto.createHash('sha256').update(input).digest('hex');
+}
+
+function parseCookies(header: string | undefined): Record<string, string> {
+  if (!header) return {};
+  return Object.fromEntries(
+    header.split(';').map(p => p.trim()).filter(Boolean).map(p => {
+      const idx = p.indexOf('=');
+      if (idx === -1) return [p, ''];
+      return [p.slice(0, idx), decodeURIComponent(p.slice(idx + 1))];
+    }),
+  );
+}
+
+export interface UserSession {
   sessionId: string;
   userId: string;
   email: string;
-  role: SessionRole;
-  tenantId?: string; // Added for multi-tenancy audit/security
+  role: 'user' | 'admin' | 'superadmin';
+  tenantId?: string;
   issuedAt: number;
   expiresAt: number;
-};
-
-const COOKIE_NAME = 'rb_user_session';
-
-export function signSession(data: UserSession): string {
-  const secret = env.APP_COOKIE_SECRET;
-  const payload = Buffer.from(JSON.stringify(data)).toString("base64");
-  const signature = createHmac("sha256", secret).update(payload).digest("base64");
-  return `${payload}.${signature}`;
 }
 
-export function verifySession(token: string): UserSession | null {
-  try {
-    const secret = env.APP_COOKIE_SECRET;
-    const [payloadBase64, signature] = token.split(".");
-    if (!payloadBase64 || !signature) return null;
+export async function createUserSession(input: { 
+  userId: string; 
+  email: string; 
+  role: 'user' | 'admin' | 'superadmin';
+  tenantId?: string;
+  req: VercelRequest; 
+  res: VercelResponse; 
+}) {
+  const rawSessionId = crypto.randomBytes(32).toString('hex');
+  const sessionHash = sha256Hex(rawSessionId);
+  const now = new Date();
+  const expires = new Date(now.getTime() + SESSION_TTL_SECONDS * 1000);
 
-    const expectedSignature = createHmac("sha256", secret).update(payloadBase64).digest("base64");
-    
-    if (!timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) {
-      return null;
-    }
+  await baserowFetch<{ id: number }>(`/api/database/rows/table/${env.BASEROW_TABLE_USER_SESSIONS}/?user_field_names=true`, {
+    method: 'POST',
+    body: JSON.stringify({
+      session_hash: sessionHash,
+      user_id: input.userId,
+      email: input.email,
+      role: input.role,
+      tenant_id: input.tenantId || null,
+      issued_at: now.toISOString(),
+      expires_at: expires.toISOString(),
+      revoked_at: null,
+      last_seen_at: now.toISOString(),
+      ip: (input.req.headers['x-forwarded-for'] ?? '').toString().slice(0, 200),
+      user_agent: (input.req.headers['user-agent'] ?? '').toString().slice(0, 300),
+    }),
+  });
 
-    const data = JSON.parse(Buffer.from(payloadBase64, "base64").toString()) as UserSession;
-    if (Date.now() > data.expiresAt) return null;
+  input.res.setHeader('Set-Cookie', [
+    setCookie(SESSION_COOKIE, rawSessionId, {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: 'Lax',
+      path: '/', // obrigatório p/ __Host-
+      maxAgeSeconds: SESSION_TTL_SECONDS,
+    }),
+  ]);
 
-    return data;
-  } catch (err) {
-    return null;
-  }
+  return { sessionId: rawSessionId, expiresAt: expires.getTime() };
 }
 
-export async function getUserSession(request: VercelRequest): Promise<UserSession | null> {
-  const cookieHeader = request.headers.cookie || "";
-  const cookies = Object.fromEntries(
-    cookieHeader.split(";").map((c: string) => {
-        const parts = c.trim().split("=");
-        return [parts[0], parts.slice(1).join("=")];
-    })
+export async function getUserSession(req: VercelRequest): Promise<UserSession | null> {
+  const cookies = parseCookies(req.headers.cookie);
+  const rawSessionId = cookies[SESSION_COOKIE];
+  if (!rawSessionId) return null;
+
+  const sessionHash = sha256Hex(rawSessionId);
+  const rows = await baserowFetch<{ results: SessionRow[] }>(
+    `/api/database/rows/table/${env.BASEROW_TABLE_USER_SESSIONS}/?user_field_names=true&filter__session_hash__equal=${sessionHash}`,
   );
-  const token = cookies[COOKIE_NAME];
-  if (!token) return null;
-  return verifySession(token);
+
+  const row = rows.results[0];
+  if (!row) return null;
+  if (row.revoked_at) return null;
+
+  const issued = Date.parse(row.issued_at);
+  const exp = Date.parse(row.expires_at);
+  if (!Number.isFinite(exp) || Date.now() > exp) return null;
+
+  return {
+    sessionId: rawSessionId,
+    userId: row.user_id,
+    email: row.email,
+    role: row.role || 'user',
+    tenantId: row.tenant_id || undefined,
+    issuedAt: issued,
+    expiresAt: exp
+  };
 }
 
-export function setUserSessionCookie(response: VercelResponse, value: string) {
-  const isProd = process.env.NODE_ENV === "production";
-  const secure = isProd ? "; Secure" : "";
-  response.setHeader('Set-Cookie', `${COOKIE_NAME}=${value}; Path=/; HttpOnly; SameSite=Lax${secure}`);
-}
+export async function revokeUserSession(req: VercelRequest, res: VercelResponse) {
+  const cookies = parseCookies(req.headers.cookie);
+  const rawSessionId = cookies[SESSION_COOKIE];
+  res.setHeader('Set-Cookie', [clearCookie(SESSION_COOKIE)]);
 
-export function clearUserSessionCookie(response: VercelResponse) {
-  response.setHeader('Set-Cookie', `${COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`);
+  if (!rawSessionId) return;
+  const sessionHash = sha256Hex(rawSessionId);
+
+  const rows = await baserowFetch<{ results: { id: number }[] }>(
+    `/api/database/rows/table/${env.BASEROW_TABLE_USER_SESSIONS}/?user_field_names=true&filter__session_hash__equal=${sessionHash}`,
+  );
+  const row = rows.results[0];
+  if (!row) return;
+
+  await baserowFetch(
+    `/api/database/rows/table/${env.BASEROW_TABLE_USER_SESSIONS}/${row.id}/?user_field_names=true`,
+    { method: 'PATCH', body: JSON.stringify({ revoked_at: new Date().toISOString() }) },
+  );
 }

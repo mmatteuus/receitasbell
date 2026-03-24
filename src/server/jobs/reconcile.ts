@@ -1,7 +1,7 @@
-import { fetchBaserow, BASEROW_TABLES } from "../../integrations/baserow/client.js";
-import { fetchMercadoPagoPayment } from "../../integrations/mercadopago/service.js";
+import { baserowFetch, BASEROW_TABLES } from "../integrations/baserow/client.js";
+import { fetchMercadoPagoPayment } from "../integrations/mercadopago/client.js";
 import { syncPayment } from "../payments/service.js";
-import { Logger } from "../observability/logger.js";
+import { Logger } from "../shared/logger.js";
 
 const logger = new Logger({ job: "reconcile" });
 
@@ -10,7 +10,7 @@ export async function runReconciliationJob() {
   
   // Fetch pending and created payments within the last 7 days to avoid excessive processing
   // (In real scenario, could filter by updated_at > now - 7d)
-  const pendingPayments = await fetchBaserow<{ results: any[] }>(
+  const pendingPayments = await baserowFetch<{ results: any[] }>(
     `/api/database/rows/table/${BASEROW_TABLES.PAYMENTS}/?user_field_names=true&filter__status__in=pending,created`
   );
 

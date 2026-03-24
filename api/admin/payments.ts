@@ -1,11 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { withApiHandler, sendJson, ApiError } from '../../src/server/shared/http.js';
+import { withApiHandler, json, ApiError } from '../../src/server/shared/http.js';
 import { requireAdminAccess } from '../../src/server/admin/guards.js';
 import { requireTenantFromRequest } from '../../src/server/tenancy/resolver.js';
 import { listPayments, getPaymentById } from '../../src/server/payments/repo.js';
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
-  return withApiHandler(request, response, async () => {
+  return withApiHandler(request, response, async ({ requestId }) => {
     const { tenant } = await requireTenantFromRequest(request);
     await requireAdminAccess(request);
 
@@ -15,11 +15,11 @@ export default async function handler(request: VercelRequest, response: VercelRe
     if (id) {
       const payment = await getPaymentById(tenant.id, id);
       if (!payment) throw new ApiError(404, 'Payment not found');
-      return sendJson(response, 200, payment);
+      return json(response, 200, { data: payment, requestId });
     }
 
     const items = await listPayments(tenant.id);
-    return sendJson(response, 200, { items, meta: { total: items.length } });
+    return json(response, 200, { items, meta: { total: items.length }, requestId });
   });
 }
 
