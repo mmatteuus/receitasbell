@@ -1,37 +1,26 @@
-import type { VercelRequest } from '@vercel/node';
-import { logAuditEvent } from './repo.js';
-import { getClientAddress } from '../shared/http.js';
+import { baserowFetch } from "../integrations/baserow/client.js";
+import { baserowTables } from "../integrations/baserow/tables.js";
 
-export type AuditLogEntry = {
-  tenantId: string | number;
-  actorType: 'user' | 'admin' | 'system';
-  actorId: string | number;
+export async function auditLog(entry: {
+  tenantId: string;
+  actorType: "user" | "admin" | "system";
+  actorId: string;
   action: string;
   resourceType: string;
-  resourceId: string | number;
-  payload?: any;
-};
-
-/**
- * Creates an audit log entry, automatically extracting IP and User-Agent from the request.
- */
-export async function createAuditLog(request: VercelRequest, entry: AuditLogEntry) {
-  await logAuditEvent({
-    ...entry,
-    ip: getClientAddress(request),
-    userAgent: request.headers['user-agent'] || 'unknown',
+  resourceId: string;
+  payload?: unknown;
+}) {
+  await baserowFetch(`/api/database/rows/table/${baserowTables.auditLogs}/?user_field_names=true`, {
+    method: "POST",
+    body: JSON.stringify({
+      tenant_id: entry.tenantId,
+      actor_type: entry.actorType,
+      actor_id: entry.actorId,
+      action: entry.action,
+      resource_type: entry.resourceType,
+      resource_id: entry.resourceId,
+      payload_json: JSON.stringify(entry.payload ?? null),
+      created_at: new Date().toISOString(),
+    }),
   });
-  return entry;
-}
-
-/**
- * Low-level audit log creation for system events without a request object.
- */
-export async function createSystemAuditLog(entry: AuditLogEntry) {
-  await logAuditEvent({
-    ...entry,
-    ip: 'system-process',
-    userAgent: 'server-side-job',
-  });
-  return entry;
 }
