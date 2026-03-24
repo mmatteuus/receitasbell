@@ -1,16 +1,14 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "vite",
-  "buildCommand": "npm run typecheck && npm run build",
+  "buildCommand": "npm ci && npm run typecheck && npm run build && npm run test:unit",
   "headers": [
     {
-      "source": "/(.*)",
+      "source": "/api/(.*)",
       "headers": [
+        { "key": "Cache-Control", "value": "no-store" },
         { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "X-Frame-Options", "value": "DENY" },
-        { "key": "X-XSS-Protection", "value": "1; mode=block" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" }
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
       ]
     }
   ],
@@ -23,8 +21,6 @@
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
   "crons": [
-    { "path": "/api/jobs/reconcile", "schedule": "*/10 * * * *" },
-    { "path": "/api/jobs/cleanup", "schedule": "0 * * * *" },
-    { "path": "/api/jobs/consistency", "schedule": "0 4 * * *" }
+    { "path": "/api/jobs/reconcile", "schedule": "*/10 * * * *" }
   ]
 }
