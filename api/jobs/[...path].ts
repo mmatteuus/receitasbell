@@ -1,0 +1,51 @@
+import type { VercelRequest, VercelResponse } from "@vercel/node";
+
+import jobCleanup from "../../api_handlers/jobs/cleanup.js";
+import jobConsistency from "../../api_handlers/jobs/consistency.js";
+import jobReconcile from "../../api_handlers/jobs/reconcile.js";
+import jobRepairConnections from "../../api_handlers/jobs/payments/repair-connections.js";
+
+type RouteHandler = (request: VercelRequest, response: VercelResponse) => Promise<unknown> | unknown;
+
+function readPath(request: VercelRequest, prefix: string): string[] {
+  const value = request.query.path;
+  if (Array.isArray(value) && value.length > 0) {
+    return value
+      .map((part) => String(part).trim())
+      .filter(Boolean);
+  }
+  if (typeof value === "string" && value.length > 0) {
+    return value
+      .split("/")
+      .map((part) => part.trim())
+      .filter(Boolean);
+  }
+
+  const pathname = (request.url || "").split("?")[0] || "";
+  if (!pathname.startsWith(prefix)) return [];
+
+  return pathname
+    .slice(prefix.length)
+    .split("/")
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+const routes: Record<string, RouteHandler> = {
+  "cleanup": jobCleanup,
+  "consistency": jobConsistency,
+  "reconcile": jobReconcile,
+  "payments/repair-connections": jobRepairConnections,
+};
+
+export default async function handler(request: VercelRequest, response: VercelResponse) {
+  const key = readPath(request, "/api/jobs/").join("/");
+  const target = routes[key];
+
+  if (!target) {
+    response.status(404).json({ error: "Not found" });
+    return;
+  }
+
+  await target(request, response);
+}

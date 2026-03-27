@@ -1,0 +1,385 @@
+{
+  "generatedAt": "2026-03-25T22:55:14.792Z",
+  "mode": {
+    "apply": false,
+    "archiveDuplicates": false,
+    "allowWeakPasswordMigration": false
+  },
+  "databaseId": "399490",
+  "summary": {
+    "tableCount": 22,
+    "canonicalByEnv": {},
+    "duplicateGroups": [
+      {
+        "normalizedName": "tenant_sessions",
+        "tables": [
+          {
+            "id": 897407,
+            "name": "tenant_sessions",
+            "count": 2
+          },
+          {
+            "id": 897409,
+            "name": "tenant_sessions",
+            "count": 2
+          }
+        ]
+      }
+    ]
+  },
+  "passwordMigration": {
+    "usersTableId": 896984,
+    "passwordHashFieldCreated": false,
+    "migratedUsers": [],
+    "skippedWeakUsers": [
+      {
+        "id": 1,
+        "email": "mateus@receitasbell.com.br",
+        "issues": [
+          "min_10_chars",
+          "insufficient_character_variety",
+          "common_weak_password"
+        ]
+      }
+    ]
+  },
+  "archivedDuplicates": [],
+  "tables": [
+    {
+      "id": 896975,
+      "name": "Tenants",
+      "order": 1,
+      "count": 3,
+      "fieldNames": [
+        "Name",
+        "Notes",
+        "Active",
+        "name",
+        "slug",
+        "host",
+        "Tabletenant_sessions"
+      ]
+    },
+    {
+      "id": 896976,
+      "name": "Settings",
+      "order": 2,
+      "count": 12,
+      "fieldNames": [
+        "Name",
+        "Notes",
+        "Active",
+        "key",
+        "value",
+        "tenantId"
+      ]
+    },
+    {
+      "id": 896977,
+      "name": "Categories",
+      "order": 3,
+      "count": 11,
+      "fieldNames": [
+        "Name",
+        "Notes",
+        "Active",
+        "name",
+        "tenantId",
+        "slug",
+        "description",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "id": 896978,
+      "name": "Recipes",
+      "order": 4,
+      "count": 15,
+      "fieldNames": [
+        "Name",
+        "Notes",
+        "Active",
+        "slug",
+        "title",
+        "description",
+        "image",
+        "diff",
+        "kcal",
+        "videoId",
+        "categoryId",
+        "tenantId",
+        "tags_json",
+        "prep_time",
+        "cook_time",
+        "total_time",
+        "servings",
+        "access_tier",
+        "price_brl",
+        "full_ingredients_json",
+        "full_instructions_json",
+        "is_featured",
+        "excerpt",
+        "seo_title",
+        "seo_description",
+        "image_file_meta_json",
+        "status",
+        "published_at",
+        "created_at",
+        "updated_at",
+        "created_by_user_id"
+      ]
+    },
+    {
+      "id": 896979,
+      "name": "Payments",
+      "order": 5,
+      "count": 2,
+      "fieldNames": [
+        "Name",
+        "Notes",
+        "Active",
+        "amount",
+        "status",
+        "mpPaymentId",
+        "customerEmail",
+        "tenantId",
+        "created_at",
+        "updated_at"
+      ]
+    },
+    {
+      "id": 896984,
+      "name": "Users",
+      "order": 6,
+      "count": 2,
+      "fieldNames": [
+        "Name",
+        "Notes",
+        "Active",
+        "email",
+        "username",
+        "display_name",
+        "role",
+        "tenantId",
+        "created_at",
+        "updated_at",
+        "Tabletenant_sessions",
+        "password",
+        "password_hash"
+      ]
+    },
+    {
+      "id": 896987,
+      "name": "Comments",
+      "order": 7,
+      "count": 2,
+      "fieldNames": [
+        "Name",
+        "Notes",
+        "Active",
+        "recipeId",
+        "authorName",
+        "authorEmail",
+        "userId",
+        "text",
+        "tenantId",
+        "created_at"
+      ]
+    },
+    {
+      "id": 896988,
+      "name": "Favorites",
+      "order": 8,
+      "count": 2,
+      "fieldNames": [
+        "Name",
+        "Notes",
+        "Active",
+        "userId",
+        "recipeId",
+        "tenantId",
+        "created_at"
+      ]
+    },
+    {
+      "id": 896989,
+      "name": "Newsletter",
+      "order": 9,
+      "count": 2,
+      "fieldNames": [
+        "Name",
+        "Notes",
+        "Active",
+        "email",
+        "tenantId",
+        "created_at"
+      ]
+    },
+    {
+      "id": 896990,
+      "name": "ShoppingList",
+      "order": 10,
+      "count": 2,
+      "fieldNames": [
+        "Name",
+        "Notes",
+        "Active",
+        "userId",
+        "recipeId",
+        "items_json",
+        "tenantId",
+        "updated_at"
+      ]
+    },
+    {
+      "id": 896991,
+      "name": "Ratings",
+      "order": 11,
+      "count": 2,
+      "fieldNames": [
+        "Name",
+        "Notes",
+        "Active",
+        "recipeId",
+        "userId",
+        "value",
+        "tenantId",
+        "updated_at"
+      ]
+    },
+    {
+      "id": 896992,
+      "name": "Entitlements",
+      "order": 12,
+      "count": 2,
+      "fieldNames": [
+        "Name",
+        "Notes",
+        "Active",
+        "userId",
+        "recipeSlug",
+        "paymentId",
+        "tenantId",
+        "created_at"
+      ]
+    },
+    {
+      "id": 897385,
+      "name": "Tabletenant_sessions",
+      "order": 13,
+      "count": 3,
+      "fieldNames": [
+        "ID",
+        "tenant_id",
+        "tenant_user_id",
+        "session_token_hash",
+        "expires_at",
+        "last_seen_at"
+      ]
+    },
+    {
+      "id": 897407,
+      "name": "tenant_sessions",
+      "order": 14,
+      "count": 2,
+      "fieldNames": [
+        "Name",
+        "Notes",
+        "Active"
+      ]
+    },
+    {
+      "id": 897409,
+      "name": "tenant_sessions",
+      "order": 15,
+      "count": 2,
+      "fieldNames": [
+        "tenant_id",
+        "Notes",
+        "Active"
+      ]
+    },
+    {
+      "id": 897418,
+      "name": "Table",
+      "order": 16,
+      "count": 2,
+      "fieldNames": [
+        "Name",
+        "Notes",
+        "Active"
+      ]
+    },
+    {
+      "id": 897419,
+      "name": "mercado_pago_connections",
+      "order": 17,
+      "count": 2,
+      "fieldNames": [
+        "Name",
+        "Notes",
+        "Active"
+      ]
+    },
+    {
+      "id": 897420,
+      "name": "mercado_pago_oauth_states",
+      "order": 18,
+      "count": 2,
+      "fieldNames": [
+        "Name",
+        "Notes",
+        "Active"
+      ]
+    },
+    {
+      "id": 897423,
+      "name": "payment_events",
+      "order": 19,
+      "count": 2,
+      "fieldNames": [
+        "Name",
+        "Notes",
+        "Active"
+      ]
+    },
+    {
+      "id": 897424,
+      "name": "payment_notes",
+      "order": 20,
+      "count": 2,
+      "fieldNames": [
+        "Name",
+        "Notes",
+        "Active"
+      ]
+    },
+    {
+      "id": 897425,
+      "name": "audit_logs",
+      "order": 21,
+      "count": 2,
+      "fieldNames": [
+        "Name",
+        "Notes",
+        "Active"
+      ]
+    },
+    {
+      "id": 900630,
+      "name": "magic_links",
+      "order": 22,
+      "count": 2,
+      "fieldNames": [
+        "tenantId",
+        "email",
+        "token",
+        "purpose",
+        "redirectTo",
+        "expiresAt",
+        "consumedAt"
+      ]
+    }
+  ]
+}
