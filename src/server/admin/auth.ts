@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { timingSafeEqual } from "node:crypto";
 import { env } from "../shared/env.js";
 import { ApiError } from "../shared/http.js";
+import { Logger } from "../shared/logger.js";
 import { countTenants } from "../tenancy/repo.js";
 import { createTenantBootstrap } from "../tenancy/service.js";
 import { requireTenantFromRequest } from "../tenancy/resolver.js";
@@ -88,8 +89,10 @@ export async function loginAdmin(
   request: VercelRequest,
   response: VercelResponse,
   input: { email?: string; password?: string },
+  options: { logger?: Logger } = {},
 ): Promise<AdminSessionResponse> {
   const tenantCount = await countTenants();
+  const logger = options.logger ?? Logger.fromRequest(request);
 
   if (tenantCount === 0) {
     const bootstrapSecret = env.ADMIN_API_SECRET || "";
@@ -99,6 +102,11 @@ export async function loginAdmin(
     assertStrongAdminPassword(bootstrapSecret, "ADMIN_API_SECRET");
 
     if (!input.password || !safeStringEquals(input.password, bootstrapSecret)) {
+      logger.warn("admin.login_failed", {
+        action: "admin.login_failed",
+        reason: "password_invalid",
+        mode: "bootstrap",
+      });
       throw new ApiError(401, "Invalid bootstrap password");
     }
 
@@ -117,7 +125,16 @@ export async function loginAdmin(
     });
   }
 
-  const { tenant } = await requireTenantFromRequest(request);
+  let tenant: { id: string | number; slug: string; name: string };
+  try {
+    ({ tenant } = await requireTenantFromRequest(request));
+  } catch (error) {
+    logger.warn("admin.login_failed", {
+      action: "admin.login_failed",
+      reason: "tenant_resolution_failed",
+    });
+    throw error;
+  }
   const email = input.email?.trim().toLowerCase();
   const password = input.password;
   if (!email || !password) {
@@ -126,6 +143,11 @@ export async function loginAdmin(
 
   const user = await findUserByEmail(tenant.id, email);
   if (!user || !hasAdminRole(user.role)) {
+    logger.warn("admin.login_failed", {
+      action: "admin.login_failed",
+      reason: "user_not_found_or_not_admin",
+      tenantId: String(tenant.id),
+    });
     throw new ApiError(401, "Invalid credentials or insufficient permissions");
   }
 
@@ -145,6 +167,12 @@ export async function loginAdmin(
   }
 
   if (!authenticated) {
+    logger.warn("admin.login_failed", {
+      action: "admin.login_failed",
+      reason: "password_invalid",
+      tenantId: String(tenant.id),
+      userId: String(user.id),
+    });
     throw new ApiError(401, "Invalid password");
   }
 

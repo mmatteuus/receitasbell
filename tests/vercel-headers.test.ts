@@ -30,5 +30,16 @@ describe("vercel.json hardening headers", () => {
     expect(rewriteSources.has("/api/checkout")).toBe(true);
     expect(rewriteSources.has("/api/payments/mercadopago/create-preference")).toBe(false);
     expect(rewriteSources.has("/api/payments/mercadopago/webhook")).toBe(false);
+
+    const fallback = (parsed.rewrites || []).find((entry) => entry.destination === "/index.html");
+    expect(fallback).toBeTruthy();
+    expect(fallback?.source).toContain("assets/");
+    expect(fallback?.source).toContain("images/");
+    expect(fallback?.source).toContain("favicon");
+    expect(fallback?.source).toContain("manifest\\.webmanifest");
+    expect(fallback?.source).toContain("registerSW\\.js");
+    expect(fallback?.source).toContain("sw\\.js");
+    expect(fallback?.source).toContain("workbox-");
+    expect(fallback?.source).toContain("robots\\.txt");
   });
 });

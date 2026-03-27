@@ -3,7 +3,7 @@ import { assertMethod, readJsonBody, json, withApiHandler } from "../../../src/s
 import { loginAdmin, logoutAdmin, readAdminSession } from "../../../src/server/admin/auth.js";
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
-  return withApiHandler(request, response, async ({ requestId }) => {
+  return withApiHandler(request, response, async ({ requestId, logger }) => {
     assertMethod(request, ["GET", "POST", "DELETE"]);
 
     if (request.method === "GET") {
@@ -12,7 +12,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
     if (request.method === "POST") {
       const body = await readJsonBody<{ email?: string; password?: string }>(request);
-      const session = await loginAdmin(request, response, body);
+      const session = await loginAdmin(request, response, body, { logger });
       return json(response, 200, { ...session, requestId });
     }
 
