@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "vite",
   "installCommand": "npm ci",
-  "buildCommand": "npm run gate",
+  "buildCommand": "npm run build:deploy",
   "headers": [
     {
       "source": "/(.*)",
@@ -64,7 +64,7 @@
   ],
   "rewrites": [
     { "source": "/api/checkout", "destination": "/api/checkout/create" },
-    { "source": "/api/jobs/:path*", "destination": "/api/jobs/:path*" },
+
     { "source": "/(@vite|src|node_modules)/:path*", "destination": "/$1/:path*" },
     {
       "source": "/((?!api/|assets/|images/|favicon|manifest\\.webmanifest|registerSW\\.js|sw\\.js|workbox-|robots\\.txt).*)",
