@@ -54,14 +54,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   return withApiHandler(req, res, async ({ requestId, logger }) => {
     requireCronAuth(req);
 
-    // Find orders still pending
-    const data = await baserowFetch<{ results: PaymentOrderRow[] }>(
-      `/api/database/rows/table/${baserowTables.paymentOrders}/?user_field_names=true&filter__status__equal=pending`
-    );
+    // Find orders still pending (paginated)
+    let page = 1;
+    let hasMore = true;
+    const allOrders: PaymentOrderRow[] = [];
+
+    while (hasMore) {
+      const data = await baserowFetch<{ results: PaymentOrderRow[]; next: string | null }>(
+        `/api/database/rows/table/${baserowTables.paymentOrders}/?user_field_names=true&filter__status__equal=pending&page=${page}&size=200`
+      );
+      allOrders.push(...data.results);
+      hasMore = data.next !== null;
+      page++;
+    }
 
     let updated = 0;
     const tokenCache = new Map<string, { accessToken: string; connectionId: string }>();
-    for (const order of data.results) {
+    for (const order of allOrders) {
       const extRef = String(order.external_reference || "");
       const tenantId = String(order.tenant_id);
       const fallbackExtRef = buildPaymentExternalReference(tenantId, order.id);
