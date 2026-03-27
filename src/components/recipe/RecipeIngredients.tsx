@@ -67,7 +67,7 @@ export default function RecipeIngredients({
           </span>
         </h2>
         <Button variant="outline" size="sm" className="gap-2 print:hidden" onClick={() => void handleAddToShoppingList()} disabled={shoppingListLoading}>
-          <ListPlus className="h-4 w-4" />
+          <ListPlus aria-hidden="true" className="h-4 w-4" />
           {shoppingListLoading ? "Salvando..." : "Enviar para lista de compras"}
         </Button>
       </div>

@@ -17,7 +17,7 @@ export function CartButton({ mobile = false, onClick }: CartButtonProps) {
   if (mobile) {
     return (
       <Link to="/carrinho" className="relative p-2" onClick={onClick}>
-        <ShoppingCart className="h-5 w-5" />
+        <ShoppingCart aria-hidden="true" className="h-5 w-5" />
         {count > 0 && (
           <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
             {count}
@@ -36,7 +36,7 @@ export function CartButton({ mobile = false, onClick }: CartButtonProps) {
         isActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground",
       )}
     >
-      <ShoppingCart className="h-4 w-4" />
+      <ShoppingCart aria-hidden="true" className="h-4 w-4" />
       Carrinho
       {count > 0 && (
         <Badge className="ml-1 h-5 min-w-[20px] justify-center rounded-full px-1.5 text-[10px]">

@@ -10,7 +10,11 @@ export default async function handler(request: VercelRequest, response: VercelRe
   return withApiHandler(request, response, async ({ requestId }) => {
     assertMethod(request, ['POST']);
     requireSameOriginIfPresent(request);
-    const limiter = await rateLimit(`newsletter:${getClientAddress(request)}`, { limit: 10, window: "10 m" });
+    const limiter = await rateLimit(`newsletter:${getClientAddress(request)}`, {
+      limit: 10,
+      window: "10 m",
+      endpoint: "public.newsletter",
+    });
     if (!limiter.success) {
       throw new ApiError(429, "Too many newsletter submissions. Please try again later.");
     }
@@ -21,4 +25,3 @@ export default async function handler(request: VercelRequest, response: VercelRe
     return json(response, 201, { subscriber: result, requestId });
   });
 }
-

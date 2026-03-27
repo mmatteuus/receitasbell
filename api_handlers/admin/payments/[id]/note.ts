@@ -22,10 +22,12 @@ function getUserAgent(request: VercelRequest) {
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   return withApiHandler(request, response, async ({ requestId }) => {
     assertMethod(request, ['POST']);
-    requireCsrf(request);
 
     const { tenant } = await requireTenantFromRequest(request);
     const access = await requireAdminAccess(request);
+    if (access.type === "session") {
+      requireCsrf(request);
+    }
 
     const id = getRouteId(request);
     if (!id) throw new ApiError(400, 'Missing payment ID');

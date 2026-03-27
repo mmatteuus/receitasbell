@@ -10,7 +10,7 @@ interface CartItemsListProps {
   onUpdateQuantity?: (recipeId: string, delta: number) => void;
 }
 
-export function CartItemsList({ items, onRemove }: CartItemsListProps) {
+export function CartItemsList({ items, onRemove, onUpdateQuantity }: CartItemsListProps) {
   return (
     <div className="space-y-4">
       {items.map((item) => (
@@ -58,8 +58,9 @@ export function CartItemsList({ items, onRemove }: CartItemsListProps) {
                     className="h-6 w-6"
                     onClick={() => onUpdateQuantity?.(item.recipeId, -1)}
                     disabled={item.quantity <= 1}
+                    aria-label="Diminuir quantidade"
                   >
-                    <Minus className="h-3 w-3" />
+                    <Minus aria-hidden="true" className="h-3 w-3" />
                   </Button>
                   <span className="w-4 text-center text-xs font-medium">
                     {item.quantity}
@@ -69,8 +70,9 @@ export function CartItemsList({ items, onRemove }: CartItemsListProps) {
                     size="icon"
                     className="h-6 w-6"
                     onClick={() => onUpdateQuantity?.(item.recipeId, 1)}
+                    aria-label="Aumentar quantidade"
                   >
-                    <Plus className="h-3 w-3" />
+                    <Plus aria-hidden="true" className="h-3 w-3" />
                   </Button>
                 </div>
                 
@@ -79,8 +81,9 @@ export function CartItemsList({ items, onRemove }: CartItemsListProps) {
                   size="icon"
                   className="h-8 w-8 text-destructive"
                   onClick={() => onRemove(item.recipeId)}
+                  aria-label="Remover item do carrinho"
                 >
-                  <X className="h-4 w-4" />
+                  <X aria-hidden="true" className="h-4 w-4" />
                 </Button>
               </div>
             </div>

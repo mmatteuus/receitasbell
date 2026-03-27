@@ -8,10 +8,12 @@ import { requireCsrf } from "../../../src/server/security/csrf.js";
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   return withApiHandler(request, response, async ({ requestId }) => {
     assertMethod(request, ["POST"]);
-    requireCsrf(request);
 
     const { tenant } = await requireTenantFromRequest(request);
     const access = await requireAdminAccess(request);
+    if (access.type === "session") {
+      requireCsrf(request);
+    }
     const body = (
       typeof request.body === "string" ? JSON.parse(request.body || "{}") : (request.body ?? {})
     ) as { returnTo?: string | null };

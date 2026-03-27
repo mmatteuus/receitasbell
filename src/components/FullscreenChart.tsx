@@ -22,7 +22,7 @@ export function FullscreenChart({ title, children }: FullscreenChartProps) {
         variant="ghost"
         size="icon"
         onClick={() => setOpen(true)}
-        title="Tela cheia"
+        aria-label={`Expandir gráfico: ${title}`}
         className="shrink-0"
       >
         <Maximize2 className="h-4 w-4" />
@@ -32,7 +32,7 @@ export function FullscreenChart({ title, children }: FullscreenChartProps) {
         <DialogContent className="max-w-[95vw] w-[95vw] max-h-[90vh] h-[85vh] flex flex-col">
           <DialogHeader className="flex flex-row items-center justify-between shrink-0">
             <DialogTitle>{title}</DialogTitle>
-            <Button variant="ghost" size="icon" onClick={() => setOpen(false)}>
+            <Button variant="ghost" size="icon" onClick={() => setOpen(false)} aria-label="Recolher gráfico">
               <Minimize2 className="h-4 w-4" />
             </Button>
           </DialogHeader>

@@ -28,7 +28,7 @@ export function CartSummary({ total, onClear }: CartSummaryProps) {
           </Link>
         </Button>
         <Button variant="outline" size="lg" className="gap-2" onClick={onClear}>
-          <Trash2 className="h-4 w-4" /> Limpar
+          <Trash2 aria-hidden="true" className="h-4 w-4" /> Limpar
         </Button>
       </div>
     </>

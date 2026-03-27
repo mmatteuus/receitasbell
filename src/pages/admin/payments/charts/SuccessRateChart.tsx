@@ -45,7 +45,7 @@ export function SuccessRateChart({ data }: Props) {
           <CardDescription>Percentual de transações aprovadas em relação ao total diário</CardDescription>
         </div>
         <div className="flex gap-1">
-          <Button variant="ghost" size="icon" onClick={() => exportChartAsPNG(ref, "taxa-sucesso")} title="Exportar como PNG">
+          <Button variant="ghost" size="icon" onClick={() => exportChartAsPNG(ref, "taxa-sucesso")} aria-label="Exportar gráfico como PNG">
             <Camera className="h-4 w-4" />
           </Button>
           <FullscreenChart title="Taxa de Sucesso por Dia">

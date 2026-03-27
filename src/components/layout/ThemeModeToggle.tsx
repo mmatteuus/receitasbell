@@ -28,9 +28,8 @@ export default function ThemeModeToggle({
         onClick?.();
       }}
       aria-label={nextLabel}
-      title={nextLabel}
     >
-      {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+      {theme === "light" ? <Moon aria-hidden="true" className="h-4 w-4" /> : <Sun aria-hidden="true" className="h-4 w-4" />}
       {!compact && <span>{nextLabel}</span>}
     </Button>
   );

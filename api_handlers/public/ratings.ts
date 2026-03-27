@@ -11,7 +11,11 @@ export default async function handler(request: VercelRequest, response: VercelRe
   return withApiHandler(request, response, async ({ requestId }) => {
     assertMethod(request, ['POST']);
     requireSameOriginIfPresent(request);
-    const limiter = await rateLimit(`ratings:${getClientAddress(request)}`, { limit: 30, window: "5 m" });
+    const limiter = await rateLimit(`ratings:${getClientAddress(request)}`, {
+      limit: 30,
+      window: "5 m",
+      endpoint: "public.ratings",
+    });
     if (!limiter.success) {
       throw new ApiError(429, "Too many rating submissions. Please try again later.");
     }
@@ -30,4 +34,3 @@ export default async function handler(request: VercelRequest, response: VercelRe
     return json(response, 200, { ...summary, requestId });
   });
 }
-

@@ -16,7 +16,6 @@ import { pickFeaturedRecipes, pickGratinRecipes, pickPremiumRecipes } from '@/li
 import { getRecipeImage, getRecipePresentation } from '@/lib/recipes/presentation';
 import { resolveCategoryDisplay } from '@/lib/categoriesDisplay';
 import { trackEvent } from '@/lib/telemetry';
-import { BackToTop } from '@/components/BackToTop';
 import { RECENT_RECIPES_KEY } from '@/lib/constants';
 import type { RecipeRecord } from '@/lib/recipes/types';
 
@@ -101,7 +100,7 @@ export default function HomePage() {
                   onClick={() => navigate(settings.heroPrimaryCtaHref || '/buscar')}
                 >
                   {settings.heroPrimaryCtaLabel}
-                  <ArrowRight className="h-4 w-4" />
+                  <ArrowRight aria-hidden="true" className="h-4 w-4" />
                 </Button>
                 <Button
                   size="lg"
@@ -253,7 +252,7 @@ export default function HomePage() {
                     className="gap-2"
                   >
                     Ver receita
-                    <ArrowRight className="h-4 w-4" />
+                    <ArrowRight aria-hidden="true" className="h-4 w-4" />
                   </Button>
                 </div>
               </article>
@@ -296,10 +295,10 @@ export default function HomePage() {
                   variant="ghost"
                   size="icon"
                   onClick={toggleTheme}
-                  title="Alternar tema"
+                  aria-label={theme === 'light' ? 'Ativar modo escuro' : 'Ativar modo claro'}
                   className="border border-white/20 text-white/80 hover:text-white"
                 >
-                  {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+                  {theme === 'light' ? <Moon aria-hidden="true" className="h-4 w-4" /> : <Sun aria-hidden="true" className="h-4 w-4" />}
                 </Button>
                 <Button
                   onClick={() => {
@@ -309,7 +308,7 @@ export default function HomePage() {
                   className="gap-2 bg-white text-zinc-950 hover:bg-zinc-200 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200"
                 >
                   Explorar premium
-                  <Sparkles className="h-4 w-4" />
+                  <Sparkles aria-hidden="true" className="h-4 w-4" />
                 </Button>
                 <div className="flex gap-2">
                   <Button
@@ -419,7 +418,7 @@ export default function HomePage() {
                 className="gap-2"
               >
                 Conhecer mais
-                <ArrowRight className="h-4 w-4" />
+                <ArrowRight aria-hidden="true" className="h-4 w-4" />
               </Button>
             </div>
             <SmartImage
@@ -469,7 +468,7 @@ export default function HomePage() {
       {isError && (
         <section className="container px-4 py-14">
           <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed px-6 py-12 text-center">
-            <AlertTriangle className="h-8 w-8 text-destructive" />
+            <AlertTriangle aria-hidden="true" className="h-8 w-8 text-destructive" />
             <p className="text-muted-foreground">Não foi possível carregar as receitas.</p>
             <button
               onClick={() => void refetch()}
@@ -487,7 +486,6 @@ export default function HomePage() {
           </div>
         </section>
       )}
-      <BackToTop />
     </div>
   );
 }

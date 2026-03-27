@@ -6,7 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import {
   bootstrapAdmin,
-  getAdminSession,
   loginAdmin,
   type AdminSessionResponse,
 } from "@/lib/api/adminSession";
@@ -68,12 +67,6 @@ export default function AdminLoginPage() {
     };
   }, [navigate, redirectTo, resolveAdminRedirect]);
 
-  async function refreshSession() {
-    const nextSession = await getAdminSession();
-    setSession(nextSession);
-    return nextSession;
-  }
-
   async function handleTenantLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
@@ -91,29 +84,6 @@ export default function AdminLoginPage() {
         setError(err.message || "Credenciais inválidas.");
       } else {
         setError("Não foi possível autenticar no momento.");
-      }
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleLegacyUnlock(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setLoading(true);
-    setError("");
-    try {
-      const result = await loginAdmin({ password });
-      setSession(result);
-      if (result.authenticated) {
-        navigate(resolveAdminRedirect(result), { replace: true });
-        return;
-      }
-      await refreshSession();
-    } catch (err) {
-      if (err instanceof ApiClientError) {
-        setError(err.message || "Senha inválida.");
-      } else {
-        setError("Não foi possível validar a senha do admin legado.");
       }
     } finally {
       setLoading(false);
@@ -148,7 +118,7 @@ export default function AdminLoginPage() {
 
   if (checking) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4">
+      <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4" aria-live="polite" aria-busy="true">
         <p className="text-sm text-muted-foreground">Preparando acesso do admin...</p>
       </div>
     );
@@ -167,7 +137,7 @@ export default function AdminLoginPage() {
       <Card className="w-full max-w-md border-0 shadow-xl">
         <CardHeader className="space-y-3 text-center">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-            <ChefHat className="h-6 w-6" />
+            <ChefHat aria-hidden="true" className="h-6 w-6" />
           </div>
           <CardTitle className="text-2xl">Painel Receitas Bell</CardTitle>
           <CardDescription>
@@ -180,50 +150,24 @@ export default function AdminLoginPage() {
         </CardHeader>
         <CardContent>
           {showLegacyUnlock ? (
-            <form className="space-y-4" onSubmit={handleLegacyUnlock}>
+            <div className="space-y-6 text-center py-2">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
+                <LockKeyhole aria-hidden="true" className="h-6 w-6" />
+              </div>
               <div className="space-y-2">
-                <label htmlFor="admin-password" className="text-sm font-medium">
-                  Senha do admin global
-                </label>
-                <div className="relative">
-                  <LockKeyhole className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="admin-password"
-                    type={showPassword ? "text" : "password"}
-                    autoComplete="current-password"
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    placeholder="Digite a senha"
-                    className="pl-9 pr-10"
-                    required
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4 text-muted-foreground" />
-                    ) : (
-                      <Eye className="h-4 w-4 text-muted-foreground" />
-                    )}
-                    <span className="sr-only">{showPassword ? "Ocultar senha" : "Exibir senha"}</span>
-                  </Button>
-                </div>
+                <p className="text-sm font-medium">Configuração inicial pendente</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  O sistema está aguardando a configuração inicial da plataforma.
+                  Entre em contato com o suporte para continuar.
+                </p>
               </div>
 
               {error ? <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p> : null}
 
-              <Button type="submit" className="w-full" disabled={loading || !password.trim()}>
-                {loading ? "Validando..." : "Desbloquear bootstrap"}
-              </Button>
-
               <Button type="button" variant="ghost" className="w-full" asChild>
                 <Link to={buildTenantPath("/", tenantSlugFromPath)}>Voltar para o site</Link>
               </Button>
-            </form>
+            </div>
           ) : showBootstrapForm ? (
             <form className="space-y-4" onSubmit={handleBootstrap}>
               <div className="space-y-2">
@@ -231,7 +175,7 @@ export default function AdminLoginPage() {
                   Nome do tenant
                 </label>
                 <div className="relative">
-                  <Store className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Store aria-hidden="true" className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="tenant-name"
                     value={tenantName}
@@ -373,6 +317,7 @@ export default function AdminLoginPage() {
                     id="admin-email"
                     type="email"
                     autoComplete="email"
+                    autoFocus
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
                     placeholder="admin@cliente.com"

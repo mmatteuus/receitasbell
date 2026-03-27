@@ -36,7 +36,9 @@ export async function updateTenantSettingsFromRequest(input: {
   access: AdminAccessResult;
   body: Record<string, unknown>;
 }) {
-  requireCsrf(input.request);
+  if (input.access.type === "session") {
+    requireCsrf(input.request);
+  }
 
   const patch = extractSettingsPatch(input.body);
   await assertPaymentSettingsPatchAllowed(input.tenantId, patch);

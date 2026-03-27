@@ -87,7 +87,7 @@ export function MonthlyChart({ data }: Props) {
           <CardDescription>Evolução da receita e volume de transações por mês</CardDescription>
         </div>
         <div className="flex gap-1">
-          <Button variant="ghost" size="icon" onClick={() => exportChartAsPNG(ref, "comparacao-mensal")} title="Exportar como PNG">
+          <Button variant="ghost" size="icon" onClick={() => exportChartAsPNG(ref, "comparacao-mensal")} aria-label="Exportar gráfico como PNG">
             <Camera className="h-4 w-4" />
           </Button>
           <FullscreenChart title="Comparação Mês a Mês">

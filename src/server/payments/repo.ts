@@ -196,6 +196,17 @@ export async function getPaymentOrderByExternalReference(
   return row ? mapRowToPayment(row) : null;
 }
 
+export async function findPaymentOrderByIdempotencyKey(
+  tenantId: string,
+  idempotencyKey: string,
+): Promise<PaymentRecord | null> {
+  const data = await baserowFetch<{ results: PaymentOrderRow[] }>(
+    `/api/database/rows/table/${baserowTables.paymentOrders}/?user_field_names=true&filter__tenant_id__equal=${encodeURIComponent(tenantId)}&filter__idempotency_key__equal=${encodeURIComponent(idempotencyKey)}`,
+  );
+  const row = data.results[0];
+  return row ? mapRowToPayment(row) : null;
+}
+
 export async function updatePaymentOrderStatus(
   tenantId: string,
   id: string | number,
@@ -223,6 +234,20 @@ export async function setPaymentOrderExternalReference(
     method: "PATCH",
     body: JSON.stringify({
       external_reference: externalReference,
+      updated_at: new Date().toISOString(),
+    }),
+  });
+}
+
+export async function setPaymentOrderPreferenceId(
+  tenantId: string,
+  id: string | number,
+  preferenceId: string,
+): Promise<void> {
+  await baserowFetch(`/api/database/rows/table/${baserowTables.paymentOrders}/${id}/?user_field_names=true`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      preference_id: preferenceId,
       updated_at: new Date().toISOString(),
     }),
   });

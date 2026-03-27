@@ -54,6 +54,11 @@ export async function loginAdminSession(
     return false;
   }
 
+  if (page.url() === 'about:blank') {
+    await page.goto(baseURL, { waitUntil: 'load' });
+    await page.waitForTimeout(250);
+  }
+
   const response = await appRequest<{ authenticated: boolean }>(page, '/api/admin/auth/session', {
     method: 'POST',
     body: { email, password },
@@ -120,6 +125,27 @@ export async function appRequest<T>(
         nextHeaders.set('X-Tenant-Slug', tenant);
       }
 
+      if (!['GET', 'HEAD', 'OPTIONS'].includes(String(method).toUpperCase())) {
+        const csrfCookieName = '__Host-rb_csrf';
+        const existingCookie = document.cookie
+          .split(';')
+          .map((part) => part.trim())
+          .find((part) => part.startsWith(`${csrfCookieName}=`));
+
+        let csrfToken = '';
+        if (existingCookie) {
+          csrfToken = decodeURIComponent(existingCookie.slice(csrfCookieName.length + 1));
+        } else {
+          const bytes = new Uint8Array(32);
+          window.crypto.getRandomValues(bytes);
+          csrfToken = Array.from(bytes, (value) => value.toString(16).padStart(2, '0')).join('');
+          const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+          document.cookie = `${csrfCookieName}=${encodeURIComponent(csrfToken)}; Path=/; SameSite=Lax${secure}`;
+        }
+
+        nextHeaders.set('X-CSRF-Token', csrfToken);
+      }
+
       const result = await fetch(requestPath, {
         method,
         credentials: 'same-origin',
@@ -162,9 +188,6 @@ export async function createRecipeFixture(page: Page, input: RecipeFixtureInput)
 
   let response = await appRequest<{ recipe: CreatedRecipe; error?: string }>(page, '/api/admin/recipes', {
     method: 'POST',
-    headers: {
-      'x-admin-token': adminSecret!,
-    },
     body: {
       title: input.title,
       slug: input.slug,
@@ -192,9 +215,6 @@ export async function createRecipeFixture(page: Page, input: RecipeFixtureInput)
     await wait(65_000);
     response = await appRequest<{ recipe: CreatedRecipe; error?: string }>(page, '/api/admin/recipes', {
       method: 'POST',
-      headers: {
-        'x-admin-token': adminSecret!,
-      },
       body: {
         title: input.title,
         slug: input.slug,
@@ -250,9 +270,6 @@ export async function deleteRecipeFixture(page: Page, recipeId: string) {
     `/api/admin/recipes/${encodeURIComponent(recipeId)}`,
     {
       method: 'DELETE',
-      headers: {
-        'x-admin-token': adminSecret,
-      },
     }
   );
 

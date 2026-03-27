@@ -59,7 +59,7 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
               void toggleFavorite(recipe.id);
             }}
           >
-            <Heart className={`h-4 w-4 transition-all duration-300 ${isFav ? "fill-red-500 text-red-500 scale-110" : "text-muted-foreground"}`} />
+            <Heart aria-hidden="true" className={`h-4 w-4 transition-all duration-300 ${isFav ? "fill-red-500 text-red-500 scale-110" : "text-muted-foreground"}`} />
             <span className="sr-only">Favoritar</span>
           </Button>
         </div>
@@ -84,11 +84,11 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
 
         <div className="mt-auto flex items-center gap-4 pt-4 text-xs text-muted-foreground">
           <div className="flex items-center gap-1.5">
-            <Clock className="h-3.5 w-3.5 text-primary/60" />
+            <Clock aria-hidden="true" className="h-3.5 w-3.5 text-primary/60" />
             <span>{recipe.totalTime} min</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <Users className="h-3.5 w-3.5 text-primary/60" />
+            <Users aria-hidden="true" className="h-3.5 w-3.5 text-primary/60" />
             <span>{recipe.servings} porções</span>
           </div>
         </div>
@@ -100,7 +100,7 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
             onClick={(e) => { e.preventDefault(); addToCart(buildCartItemFromRecipe(recipe)); }}
             disabled={inCart(recipe.id)}
           >
-            <ShoppingCart className="h-3.5 w-3.5" />
+            <ShoppingCart aria-hidden="true" className="h-3.5 w-3.5" />
             {inCart(recipe.id) ? "No carrinho ✓" : "Adicionar ao carrinho"}
           </Button>
         )}

@@ -40,7 +40,7 @@ export function TrendsChart({ data }: Props) {
           <CardDescription>Receita aprovada por dia no período selecionado</CardDescription>
         </div>
         <div className="flex gap-1">
-          <Button variant="ghost" size="icon" onClick={() => exportChartAsPNG(ref, "tendencia-receita")} title="Exportar como PNG">
+          <Button variant="ghost" size="icon" onClick={() => exportChartAsPNG(ref, "tendencia-receita")} aria-label="Exportar gráfico como PNG">
             <Camera className="h-4 w-4" />
           </Button>
           <FullscreenChart title="Tendência de Receita">

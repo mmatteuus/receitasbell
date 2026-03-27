@@ -28,7 +28,11 @@ export default async function handler(request: VercelRequest, response: VercelRe
     noStore(response);
 
     const clientAddress = getClientAddress(request);
-    const limiter = await rateLimit(`csp-report:${clientAddress}`, { limit: 120, window: "1 m" });
+    const limiter = await rateLimit(`csp-report:${clientAddress}`, {
+      limit: 120,
+      window: "1 m",
+      endpoint: "security.csp_report",
+    });
     if (!limiter.success) {
       throw new ApiError(429, "Too many CSP reports.");
     }

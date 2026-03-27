@@ -27,10 +27,10 @@ export function FocusContainer({ isFocused, onClose, children, className }: Focu
 
   if (isFocused) {
     return (
-      <div className="fixed inset-0 z-[100] overflow-y-auto bg-background/95 backdrop-blur-sm p-4 sm:p-8 animate-in fade-in duration-300">
+      <div className="fixed inset-0 z-[100] overflow-y-auto bg-background/95 backdrop-blur-sm p-4 sm:p-8 animate-in fade-in duration-300" role="dialog" aria-modal="true" aria-label="Modo de foco">
         <div className="fixed top-4 right-4 z-[101] print:hidden">
            <Button variant="outline" size="sm" onClick={onClose} className="gap-2 shadow-md bg-background hover:bg-accent">
-             <Minimize2 className="h-4 w-4" />
+             <Minimize2 aria-hidden="true" className="h-4 w-4" />
              Sair do Foco
            </Button>
         </div>

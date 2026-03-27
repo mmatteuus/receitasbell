@@ -2,6 +2,8 @@
 
 Guia prático para resolução de incidentes comuns na operação do Receitas Bell.
 
+Para incidentes de pagamento e checkout, consulte tambem `docs/runbooks/payments.md`.
+
 ## 1. Falha de Webhook (Mercado Pago)
 **Sintoma**: Pagamento aprovado no MP mas não atualizado no portal.
 **Onde olhar**: Logs da Vercel filtrando por `/api/checkout/webhook`.

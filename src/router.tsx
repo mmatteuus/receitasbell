@@ -73,6 +73,44 @@ const router = createBrowserRouter([
     ],
   },
   {
+    path: "/pwa/entry",
+    lazy: lazyRoute(() => import("@/pwa/entry/PwaEntryPage")),
+  },
+  {
+    path: "/pwa/login",
+    lazy: lazyRoute(() => import("@/pwa/pages/UserLoginPage")),
+  },
+  {
+    path: "/pwa/admin/login",
+    lazy: lazyRoute(() => import("@/pwa/pages/AdminLoginPage")),
+  },
+  {
+    path: "/pwa/app",
+    lazy: async () => {
+      const { UserPwaShell } = await import("@/pwa/components/PwaShell");
+      return { element: <UserPwaShell /> };
+    },
+    children: [
+      { index: true, lazy: lazyRoute(() => import("@/pwa/pages/UserHomePage")) },
+      { path: "favoritos", lazy: lazyRoute(() => import("@/pages/Favorites")) },
+      { path: "lista-de-compras", lazy: lazyRoute(() => import("@/pages/ShoppingListPage")) },
+      { path: "compras", element: <Navigate to="/pwa/app?tab=compras" replace /> },
+    ],
+  },
+  {
+    path: "/pwa/admin",
+    element: (
+      <RequireAdminAuth>
+        <AdminLayout />
+      </RequireAdminAuth>
+    ),
+    children: buildAdminChildren(),
+  },
+  {
+    path: "/pwa/*",
+    lazy: lazyRoute(() => import("@/pwa/pages/PwaNotFoundPage")),
+  },
+  {
     path: "/admin/login",
     lazy: lazyRoute(() => import("@/pages/admin/LoginPage")),
   },

@@ -15,8 +15,12 @@ test.describe("ReceitasBell Operational & Security", () => {
     const response = await request.get("/api/health/ready");
     expect([200, 503]).toContain(response.status());
     const body = await response.json();
-    expect(body.status).toMatch(/ready|not_ready/);
+    expect(body.status).toMatch(/ready|degraded|unavailable/);
     expect(body.checks).toBeDefined();
+    expect(body.checks.env).toBeDefined();
+    expect(body.checks.baserow).toBeDefined();
+    expect(body.checks.mp).toBeDefined();
+    expect(body.checks.rateLimit).toBeDefined();
   });
 
   test("Cron Jobs - Acesso sem Secret deve retornar 401", async ({ request }) => {

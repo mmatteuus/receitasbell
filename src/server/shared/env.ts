@@ -18,6 +18,7 @@ const schema = z.object({
 
   BASEROW_API_URL: z.string().optional(),
   BASEROW_API_TOKEN: z.string().min(10).optional(),
+  BASEROW_TIMEOUT_MS: z.string().optional(),
 
   RESEND_API_KEY: z.string().min(10).optional(),
   EMAIL_FROM: z.string().optional(),
@@ -73,6 +74,7 @@ export const env = schema.parse({
 
   BASEROW_API_URL: readEnv("BASEROW_API_URL"),
   BASEROW_API_TOKEN: readEnv("BASEROW_API_TOKEN"),
+  BASEROW_TIMEOUT_MS: readEnv("BASEROW_TIMEOUT_MS"),
 
   RESEND_API_KEY: readEnv("RESEND_API_KEY"),
   EMAIL_FROM: readEnv("EMAIL_FROM"),

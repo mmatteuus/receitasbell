@@ -12,7 +12,11 @@ export default async function handler(request: VercelRequest, response: VercelRe
   return withApiHandler(request, response, async ({ requestId }) => {
     assertMethod(request, ['POST']);
     requireSameOriginIfPresent(request);
-    const limiter = await rateLimit(`checkout:${getClientAddress(request)}`, { limit: 20, window: "1 m" });
+    const limiter = await rateLimit(`checkout:${getClientAddress(request)}`, {
+      limit: 20,
+      window: "1 m",
+      endpoint: "checkout.create",
+    });
     if (!limiter.success) {
       throw new ApiError(429, "Too many checkout requests. Please try again shortly.");
     }
@@ -47,4 +51,3 @@ export default async function handler(request: VercelRequest, response: VercelRe
     return json(response, 201, { ...result, requestId });
   });
 }
-

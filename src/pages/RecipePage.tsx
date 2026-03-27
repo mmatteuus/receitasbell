@@ -17,7 +17,6 @@ import { PriceBadge } from "@/components/price-badge";
 import { PaywallBox } from "@/components/recipe/PaywallBox";
 import { useCart } from "@/hooks/use-cart";
 import { ShareButtons } from "@/components/ShareButtons";
-import { BackToTop } from "@/components/BackToTop";
 import { ReadingProgress } from "@/components/ReadingProgress";
 import { FocusContainer } from "@/components/FocusContainer";
 import { useAppContext } from "@/contexts/app-context";
@@ -185,9 +184,9 @@ export default function RecipePage() {
 
       <nav className="mb-4 flex flex-wrap items-center gap-1 text-sm text-muted-foreground print:hidden">
         <Link to="/" className="hover:text-primary">Home</Link>
-        <ChevronRight className="h-3 w-3" />
+        <ChevronRight aria-hidden="true" className="h-3 w-3" />
         {cat && <Link to={`/categorias/${cat.slug}`} className="hover:text-primary">{cat.name}</Link>}
-        <ChevronRight className="h-3 w-3" />
+        <ChevronRight aria-hidden="true" className="h-3 w-3" />
         <span className="truncate text-foreground">{recipe.title}</span>
       </nav>
 
@@ -202,22 +201,22 @@ export default function RecipePage() {
         </div>
         <div className="flex flex-wrap gap-2 print:hidden">
           <ShareButtons title={recipe.title} slug={recipe.slug} />
-          <Button variant="outline" size="icon" onClick={() => setIsFocused(true)} title="Modo Leitura">
-            <ChefHat className="h-4 w-4" />
+          <Button variant="outline" size="icon" onClick={() => setIsFocused(true)} aria-label="Modo Leitura">
+            <ChefHat aria-hidden="true" className="h-4 w-4" />
           </Button>
-          <Button variant="outline" className="gap-2" onClick={handleExportPdf} title="Exportar PDF">
-            <FileText className="h-4 w-4" />
+          <Button variant="outline" className="gap-2" onClick={handleExportPdf} aria-label="Exportar PDF">
+            <FileText aria-hidden="true" className="h-4 w-4" />
             PDF
           </Button>
           {recipe.videoUrl && (
-            <Button asChild variant="outline" className="gap-2" title="Assistir Vídeo">
+            <Button asChild variant="outline" className="gap-2" aria-label="Assistir Vídeo">
                <a href={recipe.videoUrl} target="_blank" rel="noopener noreferrer">
-                 <PlayCircle className="h-4 w-4" /> Vídeo
+                 <PlayCircle aria-hidden="true" className="h-4 w-4" /> Vídeo
                </a>
             </Button>
           )}
-          <Button variant="outline" size="icon" onClick={() => window.print()} title="Imprimir">
-            <Printer className="h-4 w-4" />
+          <Button variant="outline" size="icon" onClick={() => window.print()} aria-label="Imprimir">
+            <Printer aria-hidden="true" className="h-4 w-4" />
           </Button>
         </div>
       </div>
@@ -235,31 +234,31 @@ export default function RecipePage() {
         </div>
       ) : (
         <div className="mt-6 flex h-48 items-center justify-center rounded-xl bg-muted text-muted-foreground sm:h-64 print:hidden">
-          <ChefHat className="h-16 w-16 opacity-20" />
+          <ChefHat aria-hidden="true" className="h-16 w-16 opacity-20" />
         </div>
       )}
 
       <div className="mt-4 flex flex-wrap gap-2 sm:mt-6 sm:gap-3 print:mt-4">
         {recipe.totalTime > 0 && (
           <div className="flex items-center gap-1.5 rounded-lg border bg-card px-2.5 py-1.5 text-sm">
-            <Clock className="h-4 w-4 text-primary" />
+            <Clock aria-hidden="true" className="h-4 w-4 text-primary" />
             <span className="font-medium text-muted-foreground">{recipe.totalTime}m</span>
           </div>
         )}
         {recipe.difficulty && (
           <div className="flex items-center gap-1.5 rounded-lg border bg-card px-2.5 py-1.5 text-sm">
-            <BarChart className="h-4 w-4 text-primary" />
+            <BarChart aria-hidden="true" className="h-4 w-4 text-primary" />
             <span className="font-medium text-muted-foreground">{recipe.difficulty}</span>
           </div>
         )}
         {recipe.calories && (
           <div className="flex items-center gap-1.5 rounded-lg border bg-card px-2.5 py-1.5 text-sm text-center">
-            <Flame className="h-4 w-4 text-primary" />
+            <Flame aria-hidden="true" className="h-4 w-4 text-primary" />
             <span className="font-medium text-muted-foreground">{recipe.calories} kcal</span>
           </div>
         )}
         <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2 text-sm shadow-sm transition-all hover:border-primary/30">
-          <Users className="h-4 w-4 text-primary" />
+          <Users aria-hidden="true" className="h-4 w-4 text-primary" />
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
@@ -267,7 +266,7 @@ export default function RecipePage() {
               className="h-6 w-6 shrink-0 print:hidden"
               onClick={() => setCustomServings(Math.max(1, currentServings - 1))}
             >
-              <Minus className="h-3 w-3" />
+              <Minus aria-hidden="true" className="h-3 w-3" />
             </Button>
             <span className="min-w-[4rem] text-center font-bold">
               {currentServings} {currentServings === 1 ? "porção" : "porções"}
@@ -278,7 +277,7 @@ export default function RecipePage() {
               className="h-6 w-6 shrink-0 print:hidden"
               onClick={() => setCustomServings(currentServings + 1)}
             >
-              <Plus className="h-3 w-3" />
+              <Plus aria-hidden="true" className="h-3 w-3" />
             </Button>
           </div>
         </div>
@@ -292,7 +291,7 @@ export default function RecipePage() {
 
       <div className="mt-4 flex flex-wrap items-center gap-3 sm:mt-6 print:hidden">
         <Button variant={favorite ? "default" : "outline"} onClick={() => void handleFavorite()} className="gap-2">
-          <Heart className={`h-4 w-4 ${favorite ? "fill-current" : ""}`} />
+          <Heart aria-hidden="true" className={`h-4 w-4 ${favorite ? "fill-current" : ""}`} />
           {favorite ? "Salvo" : "Favoritar"}
         </Button>
         {showPaywall && (
@@ -302,7 +301,7 @@ export default function RecipePage() {
             onClick={() => addToCart(buildCartItemFromRecipe(recipe))}
             disabled={inCart(recipe.id)}
           >
-            <ShoppingCart className="h-4 w-4" />
+            <ShoppingCart aria-hidden="true" className="h-4 w-4" />
             {inCart(recipe.id) ? "No carrinho ✓" : "Adicionar ao carrinho"}
           </Button>
         )}
@@ -378,7 +377,6 @@ export default function RecipePage() {
         )}
       </div>
 
-      {!isFocused && <BackToTop />}
     </FocusContainer>
   );
 }

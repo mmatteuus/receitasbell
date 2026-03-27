@@ -1,6 +1,13 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import type { VercelRequest } from "@vercel/node";
 
+const envMock = vi.hoisted(() => ({
+  env: {
+    ADMIN_API_SECRET: "super-secret",
+  },
+  isProd: true,
+}));
+
 const authMocks = vi.hoisted(() => ({
   getUserSession: vi.fn(),
 }));
@@ -9,10 +16,10 @@ const tenancyMocks = vi.hoisted(() => ({
   requireTenantFromRequest: vi.fn(),
 }));
 
+vi.mock("../src/server/shared/env.js", () => envMock);
 vi.mock("../src/server/auth/sessions.js", () => ({
   getUserSession: authMocks.getUserSession,
 }));
-
 vi.mock("../src/server/tenancy/resolver.js", () => ({
   requireTenantFromRequest: tenancyMocks.requireTenantFromRequest,
 }));
@@ -25,15 +32,15 @@ describe("assertAdminAccess", () => {
     tenancyMocks.requireTenantFromRequest.mockReset();
   });
 
-  test("permite API key valida", async () => {
-    const result = await assertAdminAccess({
-      headers: {
-        "x-admin-token": process.env.ADMIN_API_SECRET,
-      },
-    } as unknown as VercelRequest);
-
-    expect(result).toEqual({ type: "api_key" });
-    expect(authMocks.getUserSession).not.toHaveBeenCalled();
+  test("rejeita x-admin-token mestre em producao", async () => {
+    await expect(
+      assertAdminAccess({
+        headers: {
+          "x-admin-token": envMock.env.ADMIN_API_SECRET,
+          "x-tenant-slug": "demo",
+        },
+      } as unknown as VercelRequest),
+    ).rejects.toThrow("Forbidden: Admin access required");
   });
 
   test("permite sessao admin do tenant correto", async () => {

@@ -25,12 +25,40 @@ export default defineConfig(() => ({
       workbox: {
         cleanupOutdatedCaches: true,
         sourcemap: false,
-        maximumFileSizeToCacheInBytes: 180 * 1024,
+        maximumFileSizeToCacheInBytes: 250 * 1024, // Increased to 250KB
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'google-fonts-cache',
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 60 * 24 * 365 // <== 365 days
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          },
+          {
+            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'gstatic-fonts-cache',
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 60 * 24 * 365 // <== 365 days
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          }
+        ],
         globIgnores: [
           "**/*.map",
           "**/assets/vendor-*.js",
-          "**/assets/charts-vendor-*.js",
-          "**/assets/export-vendor-*.js",
         ],
       },
       manifest: {
@@ -40,16 +68,30 @@ export default defineConfig(() => ({
         theme_color: "#ffffff",
         background_color: "#ffffff",
         display: "standalone",
+        start_url: "/pwa/entry",
+        scope: "/pwa/",
         icons: [
           {
-            src: "favicon.svg",
+            src: "/pwa/icons/icon-192.png",
             sizes: "192x192",
-            type: "image/svg+xml"
+            type: "image/png"
           },
           {
-            src: "favicon.svg",
+            src: "/pwa/icons/icon-512.png",
             sizes: "512x512",
-            type: "image/svg+xml"
+            type: "image/png"
+          },
+          {
+            src: "/pwa/icons/icon-maskable-192.png",
+            sizes: "192x192",
+            type: "image/png",
+            purpose: "maskable"
+          },
+          {
+            src: "/pwa/icons/icon-maskable-512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "maskable"
           }
         ]
       }

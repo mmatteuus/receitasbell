@@ -3,6 +3,7 @@ import { useSearchParams, Link } from "react-router-dom";
 import { CheckCircle, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/hooks/use-cart";
+import { PageHead } from "@/components/PageHead";
 
 export default function SuccessPage() {
   const [searchParams] = useSearchParams();
@@ -18,6 +19,7 @@ export default function SuccessPage() {
 
   return (
     <div className="container max-w-lg px-4 py-20 text-center animate-in zoom-in-95 duration-500">
+      <PageHead title="Compra Confirmada" noindex />
       <div className="mx-auto h-24 w-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6 dark:bg-green-900/30 dark:text-green-400">
         <CheckCircle className="h-12 w-12" />
       </div>

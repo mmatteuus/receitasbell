@@ -1,0 +1,260 @@
+openapi: 3.0.3
+info:
+  title: Receitas Bell API
+  version: 1.0.0
+servers:
+  - url: /
+paths:
+  /api/checkout:
+    post:
+      summary: Create checkout
+      operationId: createCheckout
+      tags: [checkout]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckoutCreateRequest'
+      responses:
+        '201':
+          description: Checkout created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CheckoutCreateResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /api/checkout/webhook:
+    post:
+      summary: Mercado Pago webhook
+      operationId: checkoutWebhook
+      tags: [checkout]
+      parameters:
+        - in: query
+          name: paymentId
+          schema:
+            type: string
+        - in: query
+          name: tenantId
+          schema:
+            type: string
+        - in: query
+          name: data.id
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Webhook processed or ignored
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /api/jobs/reconcile:
+    get:
+      summary: Reconcile pending payments
+      operationId: reconcilePayments
+      tags: [jobs]
+      parameters:
+        - in: query
+          name: secret
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Reconcile completed
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /api/admin/auth/session:
+    get:
+      summary: Read admin session
+      operationId: getAdminSession
+      tags: [admin-auth]
+      responses:
+        '200':
+          description: Current session state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminSessionResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    post:
+      summary: Login admin session
+      operationId: loginAdminSession
+      tags: [admin-auth]
+      parameters:
+        - in: header
+          name: x-csrf-token
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminLoginRequest'
+      responses:
+        '200':
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminSessionResponse'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    delete:
+      summary: Logout admin session
+      operationId: logoutAdminSession
+      tags: [admin-auth]
+      parameters:
+        - in: header
+          name: x-csrf-token
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Logged out
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/ServerError'
+components:
+  responses:
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    Forbidden:
+      description: Authenticated but not authorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    Conflict:
+      description: Request conflicts with existing state
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    TooManyRequests:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    ServerError:
+      description: Unexpected server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+  schemas:
+    ErrorEnvelope:
+      type: object
+      properties:
+        error:
+          oneOf:
+            - type: string
+            - type: object
+        message:
+          type: string
+        details:
+          nullable: true
+      additionalProperties: true
+    CheckoutCreateRequest:
+      type: object
+      required: [recipeIds, buyerEmail]
+      properties:
+        recipeIds:
+          type: array
+          items:
+            type: string
+        buyerEmail:
+          type: string
+          format: email
+        checkoutReference:
+          type: string
+    CheckoutCreateResponse:
+      type: object
+      properties:
+        paymentOrderId:
+          oneOf:
+            - type: string
+            - type: number
+        paymentId:
+          type: string
+        paymentIds:
+          type: array
+          items:
+            type: string
+        checkoutUrl:
+          nullable: true
+          type: string
+        checkoutUrlKind:
+          nullable: true
+          type: string
+        paymentMode:
+          type: string
+        preferenceId:
+          nullable: true
+          type: string
+        status:
+          type: string
+        unlockedCount:
+          type: integer
+        gateway:
+          type: string
+    AdminLoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+    AdminSessionResponse:
+      type: object
+      properties:
+        authenticated:
+          type: boolean
+        mode:
+          type: string
+        bootstrapRequired:
+          type: boolean
+        tenant:
+          nullable: true
+          type: object
+        user:
+          nullable: true
+          type: object

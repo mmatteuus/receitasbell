@@ -81,7 +81,7 @@ export default function RecipeListPage() {
     if (!confirm('Tem certeza que deseja excluir esta receita?')) return;
 
     try {
-      await deleteRecipe(recipe.id, recipe.imageFileMeta);
+      await deleteRecipe(recipe.id);
       setRecipes((current) => current.filter((item) => item.id !== recipe.id));
       toast.success('Receita excluida');
     } catch (error) {
@@ -183,7 +183,7 @@ export default function RecipeListPage() {
                       <TableCell>
                         <div className="flex justify-end gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
                           <Link to={buildTenantAdminPath(`receitas/${recipe.id}/editar`, tenantSlug)}>
-                            <Button variant="ghost" size="icon" className="h-8 w-8" title="Editar">
+                            <Button variant="ghost" size="icon" className="h-8 w-8" aria-label={`Editar ${presentation.cardTitle}`}>
                               <Pencil className="h-4 w-4 text-primary" />
                             </Button>
                           </Link>
@@ -192,7 +192,7 @@ export default function RecipeListPage() {
                             target="_blank"
                             rel="noopener"
                           >
-                            <Button variant="ghost" size="icon" className="h-8 w-8" title="Preview">
+                            <Button variant="ghost" size="icon" className="h-8 w-8" aria-label={`Ver pré-visualização de ${presentation.cardTitle}`}>
                               <Eye className="h-4 w-4" />
                             </Button>
                           </a>
@@ -200,7 +200,7 @@ export default function RecipeListPage() {
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8"
-                            title={recipe.status === 'published' ? 'Despublicar' : 'Publicar'}
+                            aria-label={recipe.status === 'published' ? `Despublicar ${presentation.cardTitle}` : `Publicar ${presentation.cardTitle}`}
                             onClick={() => void handleTogglePublish(recipe)}
                           >
                             {recipe.status === 'published' ? (
@@ -213,7 +213,7 @@ export default function RecipeListPage() {
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8"
-                            title="Duplicar"
+                            aria-label={`Duplicar ${presentation.cardTitle}`}
                             onClick={() => void handleDuplicate(recipe)}
                           >
                             <Copy className="h-4 w-4" />
@@ -222,7 +222,7 @@ export default function RecipeListPage() {
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                            title="Excluir"
+                            aria-label={`Excluir ${presentation.cardTitle}`}
                             onClick={() => void handleDelete(recipe)}
                           >
                             <Trash2 className="h-4 w-4" />

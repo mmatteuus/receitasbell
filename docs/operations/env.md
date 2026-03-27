@@ -3,7 +3,7 @@
 ## Core
 - `NODE_ENV`: `production` or `development`.
 - `APP_BASE_URL`: Public base URL of the app (for callbacks and links).
-- `ADMIN_API_SECRET`: Shared admin secret (header/bearer fallback).
+- `ADMIN_API_SECRET`: Bootstrap secret for first-run admin setup. In production it is not a global admin bypass.
 - `CRON_SECRET`: Secret used by `/api/jobs/*`.
 - `APP_COOKIE_SECRET`: Cookie signing secret.
 - `ENCRYPTION_KEY`: Base64 value for a 32-byte key (AES-256-GCM for encrypted fields at rest).
@@ -11,6 +11,7 @@
 ## Storage (Baserow)
 - `BASEROW_API_URL`
 - `BASEROW_API_TOKEN`
+- `BASEROW_TIMEOUT_MS`: Optional timeout for Baserow requests in milliseconds.
 
 ### Required table IDs
 - `BASEROW_TABLE_TENANTS`
@@ -43,6 +44,12 @@
 - `MP_WEBHOOK_SECRET`: Legacy alias for webhook secret.
 
 O fluxo operacional de checkout seller-aware usa exclusivamente conexões OAuth por tenant persistidas em `MP_CONNECTIONS`.
+
+## Rate limit / readiness
+- `UPSTASH_REDIS_REST_URL`
+- `UPSTASH_REDIS_REST_TOKEN`
+
+If Upstash is missing, readiness can report `degraded` and rate limiting can fall back to in-memory only for non-critical environments.
 
 ## Email
 - `RESEND_API_KEY`

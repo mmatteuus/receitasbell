@@ -26,13 +26,15 @@ function slugify(value: string) {
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   return withApiHandler(request, response, async ({ requestId }) => {
     const { tenant } = await requireTenantFromRequest(request);
-    await requireAdminAccess(request);
+    const access = await requireAdminAccess(request);
+    const actorType = access.type === "session" ? "admin" : "system";
+    const actorId = access.type === "session" ? access.userId : "admin-api";
 
     const method = (request.method || 'GET').toUpperCase();
     const url = new URL(request.url || '', 'http://localhost');
     const id = url.searchParams.get('id');
 
-    if (method === 'GET') {
+      if (method === 'GET') {
       if (id) {
         const items = await listCategories(tenant.id);
         const category = items.find((item) => String(item.id) === String(id));
@@ -45,7 +47,9 @@ export default async function handler(request: VercelRequest, response: VercelRe
     }
 
     // CSRF required for mutations
-    requireCsrf(request);
+    if (access.type === "session") {
+      requireCsrf(request);
+    }
 
     if (method === 'POST') {
       const body = categorySchema.parse(request.body);
@@ -57,8 +61,8 @@ export default async function handler(request: VercelRequest, response: VercelRe
       
       await logAuditEvent({
         tenantId: tenant.id,
-        actorType: "admin",
-        actorId: "admin",
+        actorType,
+        actorId,
         action: "create_category",
         resourceType: "category",
         resourceId: String(result.id),
@@ -78,8 +82,8 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
       await logAuditEvent({
         tenantId: tenant.id,
-        actorType: "admin",
-        actorId: "admin",
+        actorType,
+        actorId,
         action: "update_category",
         resourceType: "category",
         resourceId: String(id),
@@ -95,8 +99,8 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
       await logAuditEvent({
         tenantId: tenant.id,
-        actorType: "admin",
-        actorId: "admin",
+        actorType,
+        actorId,
         action: "delete_category",
         resourceType: "category",
         resourceId: String(id)
@@ -108,4 +112,3 @@ export default async function handler(request: VercelRequest, response: VercelRe
     throw new ApiError(405, `Method ${method} not allowed`);
   });
 }
-

@@ -2,10 +2,13 @@ import { ApiError } from "../shared/http.js";
 import { getRecipeById } from "../recipes/repo.js";
 import { 
   createPaymentOrder, 
-  getPaymentOrderById, 
+  findPaymentOrderByIdempotencyKey,
+  getPaymentOrderById,
   setPaymentOrderExternalReference,
+  setPaymentOrderPreferenceId,
   updatePaymentOrderStatus,
   PaymentStatus,
+  type PaymentRecord,
 } from "./repo.js";
 import { createEntitlement } from "../identity/entitlements.repo.js";
 import { createMercadoPagoPreference, MercadoPagoApiError, type MercadoPagoPreference } from "../integrations/mercadopago/client.js"; 
@@ -91,6 +94,58 @@ async function logCheckoutAuditEvent(input: {
   });
 }
 
+type CheckoutFingerprint = {
+  recipeIds: string[];
+  buyerEmail: string;
+  userId: string | null;
+  amount: number;
+  paymentMethod: string;
+  provider: string;
+};
+
+function buildCheckoutFingerprint(input: {
+  recipeIds: string[];
+  buyerEmail: string;
+  userId?: string | number | null;
+  amount: number;
+  paymentMethod: string;
+  provider: string;
+}): CheckoutFingerprint {
+  return {
+    recipeIds: [...input.recipeIds],
+    buyerEmail: input.buyerEmail.trim().toLowerCase(),
+    userId: input.userId == null ? null : String(input.userId),
+    amount: input.amount,
+    paymentMethod: input.paymentMethod,
+    provider: input.provider,
+  };
+}
+
+function checkoutFingerprintMatches(order: PaymentRecord, expected: CheckoutFingerprint) {
+  return (
+    JSON.stringify(order.recipeIds) === JSON.stringify(expected.recipeIds) &&
+    order.payerEmail.trim().toLowerCase() === expected.buyerEmail &&
+    Number(order.amount) === Number(expected.amount) &&
+    String(order.userId ?? null) === String(expected.userId ?? null) &&
+    String(order.paymentMethod || "") === String(expected.paymentMethod) &&
+    String(order.provider || "") === String(expected.provider)
+  );
+}
+
+const TERMINAL_PAYMENT_STATUSES = new Set([
+  "approved",
+  "rejected",
+  "cancelled",
+  "refunded",
+  "chargeback",
+  "charged_back",
+  "failed",
+]);
+
+function isTerminalPaymentStatus(status: string) {
+  return TERMINAL_PAYMENT_STATUSES.has(String(status).toLowerCase());
+}
+
 export async function createCheckout(tenantId: string | number, input: {
   recipeIds: string[];
   buyerEmail: string;
@@ -118,8 +173,37 @@ export async function createCheckout(tenantId: string | number, input: {
     totalAmount += recipe.priceBRL || 0;
   }
 
+  const checkoutFingerprint = buildCheckoutFingerprint({
+    recipeIds: input.recipeIds,
+    buyerEmail,
+    userId: input.userId ?? null,
+    amount: totalAmount,
+    paymentMethod: "mercadopago",
+    provider: "mercadopago",
+  });
+
+  const existingOrder = await findPaymentOrderByIdempotencyKey(String(tenantId), `chk_${input.checkoutReference}`);
+  if (existingOrder) {
+    if (!checkoutFingerprintMatches(existingOrder, checkoutFingerprint)) {
+      throw new ApiError(409, "Checkout idempotency key already used for a different payload.", {
+        tenantId: String(tenantId),
+        idempotencyKey: `chk_${input.checkoutReference}`,
+        paymentOrderId: existingOrder.id,
+      });
+    }
+
+    logger.info("checkout.idempotent_reuse", {
+      action: "checkout.idempotent_reuse",
+      tenantId,
+      paymentOrderId: existingOrder.id,
+      idempotencyKey: `chk_${input.checkoutReference}`,
+      amount: totalAmount,
+      buyerEmail,
+    });
+  }
+
   // T2/T3: Create Internal Order FIRST
-  const payment = await createPaymentOrder(String(tenantId), {
+  const payment = existingOrder || await createPaymentOrder(String(tenantId), {
     amount: totalAmount,
     status: 'created',
     externalReference: input.checkoutReference,
@@ -133,6 +217,30 @@ export async function createCheckout(tenantId: string | number, input: {
 
   const typedSettings = mapTypedSettings(await getSettingsMap(String(tenantId)));
   const paymentMode = typedSettings.payment_mode;
+
+  if (existingOrder && isTerminalPaymentStatus(existingOrder.status)) {
+    logger.info("checkout.idempotent_terminal_reuse", {
+      action: "checkout.idempotent_terminal_reuse",
+      tenantId,
+      paymentOrderId: existingOrder.id,
+      idempotencyKey: `chk_${input.checkoutReference}`,
+      status: existingOrder.status,
+    });
+
+    return {
+      paymentOrderId: existingOrder.id,
+      paymentId: String(existingOrder.id),
+      paymentIds: [String(existingOrder.id)],
+      checkoutUrl: null,
+      checkoutUrlKind: null,
+      paymentMode,
+      preferenceId: existingOrder.preferenceId || null,
+      status: existingOrder.status as PaymentStatus,
+      unlockedCount: 0,
+      gateway: existingOrder.provider === "mock" ? "mock" : "mercado_pago",
+    };
+  }
+
   const sellerExternalReference = buildPaymentExternalReference(tenantId, payment.id);
   await setPaymentOrderExternalReference(String(tenantId), payment.id, sellerExternalReference);
   const preferencePayload = {
@@ -346,6 +454,10 @@ export async function createCheckout(tenantId: string | number, input: {
       },
     });
     throw error;
+  }
+
+  if (mpPref?.id) {
+    await setPaymentOrderPreferenceId(String(tenantId), payment.id, String(mpPref.id));
   }
 
   // Only mark the order as pending once the active runtime mode has a usable launch URL.

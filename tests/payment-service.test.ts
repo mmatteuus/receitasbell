@@ -53,8 +53,10 @@ vi.mock("../src/server/settings/repo.js", () => settingsMock);
 vi.mock("../src/server/audit/repo.js", () => auditMock);
 vi.mock("../src/server/payments/repo.js", () => ({
   createPaymentOrder: vi.fn(),
+  findPaymentOrderByIdempotencyKey: vi.fn(),
   getPaymentOrderById: vi.fn(),
   setPaymentOrderExternalReference: vi.fn(),
+  setPaymentOrderPreferenceId: vi.fn(),
   updatePaymentOrderStatus: vi.fn(),
   PaymentStatus: {} as Record<string, unknown>
 }));
@@ -74,7 +76,12 @@ describe("mercado pago payment service", () => {
     connectionsMock.getUsableMercadoPagoAccessToken.mockReset();
     connectionsMock.markConnectionReconnectRequired.mockReset();
     connectionsMock.refreshMercadoPagoConnection.mockReset();
+    repoMock.createPaymentOrder?.mockReset?.();
+    repoMock.findPaymentOrderByIdempotencyKey?.mockReset?.();
+    repoMock.getPaymentOrderById?.mockReset?.();
     repoMock.setPaymentOrderExternalReference?.mockReset?.();
+    repoMock.setPaymentOrderPreferenceId?.mockReset?.();
+    repoMock.updatePaymentOrderStatus?.mockReset?.();
     recipesMock.getRecipeById.mockReset();
     settingsMock.getSettingsMap.mockReset();
     settingsMock.mapTypedSettings.mockReset();
@@ -154,6 +161,7 @@ describe("mercado pago payment service", () => {
       "pay-1",
       "t:tenant-1:p:pay-1",
     );
+    expect(repoMock.setPaymentOrderPreferenceId).toHaveBeenCalledWith("tenant-1", "pay-1", "pref-123");
     expect(repoMock.updatePaymentOrderStatus).toHaveBeenCalledWith("tenant-1", "pay-1", "pending", undefined);
     expect(fetchMock).toHaveBeenCalledTimes(1);
     
@@ -326,5 +334,120 @@ describe("mercado pago payment service", () => {
         resourceId: "pay-3",
       }),
     );
+  });
+
+  test("reaproveita a mesma ordem quando a chave de idempotencia ja existe", async () => {
+    repoMock.findPaymentOrderByIdempotencyKey.mockResolvedValue({
+      id: "pay-10",
+      tenantId: "tenant-1",
+      amount: 19.9,
+      status: "created",
+      externalReference: "checkout-10",
+      idempotencyKey: "chk_checkout-10",
+      payerEmail: "cliente@exemplo.com",
+      paymentMethod: "mercadopago",
+      provider: "mercadopago",
+      recipeIds: ["recipe-1"],
+      items: [{ recipeId: "recipe-1", title: "Bolo", priceBRL: 19.9 }],
+      createdAt: "2026-03-24T12:00:00.000Z",
+      updatedAt: "2026-03-24T12:00:00.000Z",
+    });
+    repoMock.createPaymentOrder.mockResolvedValue({
+      id: "pay-10",
+      tenantId: "tenant-1",
+      amount: 19.9,
+      status: "created",
+      externalReference: "checkout-10",
+      idempotencyKey: "chk_checkout-10",
+      payerEmail: "cliente@exemplo.com",
+      paymentMethod: "mercadopago",
+      provider: "mercadopago",
+      recipeIds: ["recipe-1"],
+      items: [{ recipeId: "recipe-1", title: "Bolo", priceBRL: 19.9 }],
+      createdAt: "2026-03-24T12:00:00.000Z",
+      updatedAt: "2026-03-24T12:00:00.000Z",
+    });
+    repoMock.updatePaymentOrderStatus.mockResolvedValue(undefined);
+    repoMock.setPaymentOrderExternalReference.mockResolvedValue(undefined);
+    repoMock.setPaymentOrderPreferenceId.mockResolvedValue(undefined);
+    recipesMock.getRecipeById.mockResolvedValue({
+      id: "recipe-1",
+      title: "Bolo",
+      slug: "bolo",
+      priceBRL: 19.9,
+    });
+    settingsMock.getSettingsMap.mockResolvedValue({
+      payment_mode: "sandbox",
+      webhooks_enabled: "true",
+      payment_topic_enabled: "true",
+    });
+    settingsMock.mapTypedSettings.mockReturnValue({
+      payment_mode: "sandbox",
+      webhooks_enabled: true,
+      payment_topic_enabled: true,
+    });
+    connectionsMock.getUsableMercadoPagoAccessToken.mockResolvedValue({
+      accessToken: "seller-token-tenant-1",
+      connection: { id: "conn-1", tenantId: "tenant-1", status: "connected" },
+    });
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 201,
+      json: async () => ({
+        id: "pref-10",
+        init_point: "https://mp.com/init",
+        sandbox_init_point: "https://mp.com/sandbox",
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await createTenantMercadoPagoCheckout("tenant-1", {
+      recipeIds: ["recipe-1"],
+      buyerEmail: "cliente@exemplo.com",
+      checkoutReference: "checkout-10",
+      baseUrl: "https://app.exemplo.com",
+      enableNotifications: true,
+    });
+
+    expect(repoMock.createPaymentOrder).not.toHaveBeenCalled();
+    expect(result.paymentOrderId).toBe("pay-10");
+    expect(result.paymentId).toBe("pay-10");
+    expect(result.preferenceId).toBe("pref-10");
+  });
+
+  test("falha com 409 quando a mesma chave de idempotencia chega com payload diferente", async () => {
+    repoMock.findPaymentOrderByIdempotencyKey.mockResolvedValue({
+      id: "pay-11",
+      tenantId: "tenant-1",
+      amount: 19.9,
+      status: "created",
+      externalReference: "checkout-11",
+      idempotencyKey: "chk_checkout-11",
+      payerEmail: "cliente@exemplo.com",
+      paymentMethod: "mercadopago",
+      provider: "mercadopago",
+      recipeIds: ["recipe-1"],
+      items: [{ recipeId: "recipe-1", title: "Bolo", priceBRL: 19.9 }],
+      createdAt: "2026-03-24T12:00:00.000Z",
+      updatedAt: "2026-03-24T12:00:00.000Z",
+    });
+    recipesMock.getRecipeById.mockResolvedValue({
+      id: "recipe-1",
+      title: "Bolo",
+      slug: "bolo",
+      priceBRL: 29.9,
+    });
+
+    await expect(
+      createTenantMercadoPagoCheckout("tenant-1", {
+        recipeIds: ["recipe-1"],
+        buyerEmail: "cliente@exemplo.com",
+        checkoutReference: "checkout-11",
+        baseUrl: "https://app.exemplo.com",
+      }),
+    ).rejects.toMatchObject({
+      status: 409,
+      message: expect.stringContaining("idempotency key"),
+    });
   });
 });

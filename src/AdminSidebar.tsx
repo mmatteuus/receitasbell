@@ -46,6 +46,8 @@ const sidebarItems = [
   { title: "Página Inicial", path: "configuracoes/pagina-inicial", icon: Home },
 ];
 
+import { InstallAppButton } from "@/pwa/components/InstallAppButton";
+
 /* ── Sidebar nav content (shared between desktop and mobile) ── */
 function SidebarNav({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: () => void }) {
   const location = useLocation();
@@ -76,7 +78,7 @@ function SidebarNav({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?
             <Link
               key={item.path || "dashboard"}
               to={href}
-              title={item.title}
+              aria-label={collapsed ? item.title : undefined}
               onClick={onNavigate}
               className={cn(
                 "flex items-center gap-3 rounded-md transition-colors text-sm font-medium",
@@ -86,7 +88,7 @@ function SidebarNav({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?
                   : "text-muted-foreground hover:bg-muted hover:text-foreground"
               )}
             >
-              <item.icon className="h-4 w-4 shrink-0" />
+              <item.icon aria-hidden="true" className="h-4 w-4 shrink-0" />
               {!collapsed && item.title}
             </Link>
           );
@@ -95,8 +97,13 @@ function SidebarNav({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?
 
       <div className="border-t p-2 space-y-1">
         <DarkModeButton collapsed={collapsed} />
+        {!collapsed && (
+          <div className="px-1 py-1">
+            <InstallAppButton context="admin" className="w-full justify-start h-9 text-xs" variant="ghost" />
+          </div>
+        )}
         <button
-          title="Sair do Admin"
+          aria-label="Sair do Admin"
           onClick={() => {
             void handleLogout();
           }}
@@ -105,7 +112,7 @@ function SidebarNav({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?
             collapsed ? "justify-center px-2 py-2.5" : "px-3 py-2.5"
           )}
         >
-          <LogOut className="h-4 w-4 shrink-0" />
+          <LogOut aria-hidden="true" className="h-4 w-4 shrink-0" />
           {!collapsed && "Sair do Admin"}
         </button>
       </div>
@@ -119,13 +126,13 @@ function DarkModeButton({ collapsed }: { collapsed: boolean }) {
   return (
     <button
       onClick={toggleDark}
-      title={dark ? "Modo claro" : "Modo escuro"}
+      aria-label={dark ? "Ativar modo claro" : "Ativar modo escuro"}
       className={cn(
         "flex items-center gap-3 rounded-md text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors w-full",
         collapsed ? "justify-center px-2 py-2.5" : "px-3 py-2.5"
       )}
     >
-      {dark ? <Sun className="h-4 w-4 shrink-0" /> : <Moon className="h-4 w-4 shrink-0" />}
+      {dark ? <Sun aria-hidden="true" className="h-4 w-4 shrink-0" /> : <Moon aria-hidden="true" className="h-4 w-4 shrink-0" />}
       {!collapsed && (dark ? "Modo Claro" : "Modo Escuro")}
     </button>
   );
@@ -147,9 +154,10 @@ export function AdminSidebar() {
         {!collapsed && <h2 className="text-xl font-bold text-primary whitespace-nowrap">Admin</h2>}
         <button
           onClick={toggle}
+          aria-label={collapsed ? "Expandir menu lateral" : "Recolher menu lateral"}
           className="ml-auto rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
         >
-          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          {collapsed ? <ChevronRight aria-hidden="true" className="h-4 w-4" /> : <ChevronLeft aria-hidden="true" className="h-4 w-4" />}
         </button>
       </div>
 
@@ -184,9 +192,10 @@ export function AdminMobileSidebar() {
           <h2 className="text-xl font-bold text-primary">Admin</h2>
           <button
             onClick={() => setMobileOpen(false)}
+            aria-label="Fechar menu"
             className="ml-auto rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
           >
-            <X className="h-4 w-4" />
+            <X aria-hidden="true" className="h-4 w-4" />
           </button>
         </div>
 
@@ -202,9 +211,10 @@ export function AdminMobileMenuButton() {
   return (
     <button
       onClick={() => setMobileOpen(true)}
+      aria-label="Abrir menu de navegação"
       className="rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground md:hidden"
     >
-      <Menu className="h-5 w-5" />
+      <Menu aria-hidden="true" className="h-5 w-5" />
     </button>
   );
 }

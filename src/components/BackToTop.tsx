@@ -8,7 +8,7 @@ export function BackToTop() {
 
   useEffect(() => {
     const toggleVisibility = () => {
-      if (window.scrollY > 300) {
+      if (window.scrollY > 2 * window.innerHeight) {
         setIsVisible(true);
       } else {
         setIsVisible(false);
@@ -35,7 +35,7 @@ export function BackToTop() {
         isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10 pointer-events-none"
       )}
       onClick={scrollToTop}
-      title="Voltar ao topo"
+      aria-label="Voltar ao topo"
     >
       <ArrowUp className="h-6 w-6" />
     </Button>

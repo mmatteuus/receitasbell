@@ -25,4 +25,3 @@ export default async function handler(request: VercelRequest, response: VercelRe
     throw new ApiError(405, `Method ${method} not allowed`);
   });
 }
-

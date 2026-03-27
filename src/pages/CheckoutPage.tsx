@@ -14,6 +14,7 @@ import { paymentRepo } from '@/lib/repos/paymentRepo';
 import { resolveCheckoutResultPath } from '@/lib/payments/checkout';
 import { buildCartItemFromRecipe } from '@/lib/utils/recipeAccess';
 import { ApiClientError } from '@/lib/api/client';
+import { PageHead } from '@/components/PageHead';
 
 export default function CheckoutPage() {
   const [searchParams] = useSearchParams();
@@ -66,6 +67,7 @@ export default function CheckoutPage() {
       }
 
       const result = await paymentRepo.createCheckout({
+        recipeIds: items.map((item) => item.recipeId),
         items,
         payerName: payerName.trim() || buyerEmail.split('@')[0],
         payerEmail: buyerEmail,
@@ -80,9 +82,7 @@ export default function CheckoutPage() {
       }
 
       if (isCartCheckout && result.status === 'approved') clearCart();
-      toast.success(
-        result.status === 'approved' ? 'Pagamento aprovado! (simulação)' : 'Checkout iniciado.'
-      );
+      toast.info('Criamos seu pedido. A confirmação final depende do Mercado Pago.');
       const slug = items.length === 1 ? items[0].slug : '';
       const path = resolveCheckoutResultPath(result.status);
       navigate(
@@ -103,6 +103,7 @@ export default function CheckoutPage() {
   if (!items.length) {
     return (
       <div className="container max-w-lg px-4 py-20 text-center">
+        <PageHead title="Finalizar Compra" noindex />
         <h1 className="text-xl font-bold sm:text-2xl">Nenhuma receita selecionada</h1>
         <p className="text-muted-foreground mt-2">Não foi possível carregar os dados.</p>
         <Button asChild variant="outline" className="mt-6">
@@ -114,6 +115,7 @@ export default function CheckoutPage() {
 
   return (
     <div className="container max-w-lg px-4 py-8 sm:py-12 animate-in fade-in duration-500">
+      <PageHead title="Finalizar Compra" noindex />
       <h1 className="font-heading text-2xl font-bold text-center sm:text-3xl">Finalizar Compra</h1>
       <p className="text-center text-muted-foreground mt-2 text-sm">
         {items.length === 1
@@ -144,8 +146,9 @@ export default function CheckoutPage() {
         <Separator />
 
         <div className="space-y-2">
-          <label className="text-sm font-medium">Nome do pagador</label>
+          <label htmlFor="payer-name" className="text-sm font-medium">Nome do pagador</label>
           <Input
+            id="payer-name"
             value={payerName}
             onChange={(event) => setPayerName(event.target.value)}
             placeholder="Ex: Bell Ferreira"

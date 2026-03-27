@@ -12,10 +12,14 @@ import {
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   return withApiHandler(request, response, async ({ requestId }) => {
     const { tenant } = await requireTenantFromRequest(request);
-    await requireAdminAccess(request);
+    const access = await requireAdminAccess(request);
+    const actorType = access.type === "session" ? "admin" : "system";
+    const actorId = access.type === "session" ? access.userId : "admin-api";
 
     if (request.method === "POST") {
-      requireCsrf(request);
+      if (access.type === "session") {
+        requireCsrf(request);
+      }
 
       const payload = request.body as {
         paymentId?: string;
@@ -35,8 +39,8 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
       await logAuditEvent({
         tenantId: tenant.id,
-        actorType: "admin",
-        actorId: "admin",
+        actorType,
+        actorId,
         action: "create_entitlement",
         resourceType: "entitlement",
         resourceId: String(entitlement.id),
@@ -47,7 +51,9 @@ export default async function handler(request: VercelRequest, response: VercelRe
     }
 
     if (request.method === "DELETE") {
-      requireCsrf(request);
+      if (access.type === "session") {
+        requireCsrf(request);
+      }
 
       const payload = request.body as {
         paymentId?: string;
@@ -66,8 +72,8 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
       await logAuditEvent({
         tenantId: tenant.id,
-        actorType: "admin",
-        actorId: "admin",
+        actorType,
+        actorId,
         action: "revoke_entitlement",
         resourceType: "entitlement",
         resourceId: String(payload.paymentId),

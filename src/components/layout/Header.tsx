@@ -79,7 +79,7 @@ export default function Header() {
           {settings.logoUrl ? (
             <img src={settings.logoUrl} alt={settings.siteName} className="h-6 w-6 rounded object-cover sm:h-7 sm:w-7" />
           ) : (
-            <ChefHat className="h-6 w-6 text-primary sm:h-7 sm:w-7" />
+            <ChefHat aria-hidden="true" className="h-6 w-6 text-primary sm:h-7 sm:w-7" />
           )}
           <span className="font-heading text-lg font-bold text-foreground sm:text-xl">
             {settings.siteName}
@@ -95,7 +95,7 @@ export default function Header() {
                 isActive(link.to) ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              {link.icon && <link.icon className="h-4 w-4" />}
+              {link.icon && <link.icon aria-hidden="true" className="h-4 w-4" />}
               {link.label}
             </Link>
           ))}
@@ -127,7 +127,7 @@ export default function Header() {
           <ThemeModeToggle />
           <Link to={adminPath}>
             <Button variant="outline" size="sm" className="ml-2 gap-1.5">
-              <Settings className="h-3.5 w-3.5" />
+              <Settings aria-hidden="true" className="h-3.5 w-3.5" />
               Admin
             </Button>
           </Link>
@@ -137,7 +137,7 @@ export default function Header() {
           <CartButton mobile />
           <ThemeModeToggle compact />
           <button onClick={() => setOpen(!open)} aria-label="Menu de navegação" aria-expanded={open}>
-            {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            {open ? <X aria-hidden="true" className="h-6 w-6" /> : <Menu aria-hidden="true" className="h-6 w-6" />}
           </button>
         </div>
       </div>
@@ -154,12 +154,12 @@ export default function Header() {
                   isActive(link.to) ? "bg-primary/10 text-primary" : "text-muted-foreground"
                 }`}
               >
-                {link.icon && <link.icon className="h-4 w-4" />}
+                {link.icon && <link.icon aria-hidden="true" className="h-4 w-4" />}
                 {link.label}
               </Link>
             ))}
             <Link to="/minha-conta" onClick={() => setOpen(false)} className="flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground">
-              <UserCircle2 className="h-4 w-4" /> Minha Conta
+              <UserCircle2 aria-hidden="true" className="h-4 w-4" /> Minha Conta
             </Link>
             <CartButton onClick={() => setOpen(false)} />
             <div className="my-2 border-t" />
@@ -176,22 +176,13 @@ export default function Header() {
             ))}
             <div className="my-2 border-t" />
             <ThemeModeToggle className="w-full justify-start" onClick={() => setOpen(false)} />
-            {deferredInstallPrompt && !isAppInstalled && (
-              <Button
-                variant="outline"
-                className="mt-3 w-full justify-center"
-                onClick={() => {
-                  handleInstallClick();
-                  setOpen(false);
-                }}
-              >
-                Instalar app
-              </Button>
-            )}
+            <div className="mt-3">
+              <InstallAppButton context="user" className="w-full justify-center" variant="outline" />
+            </div>
             <div className="my-2 border-t" />
             <Link to={adminPath} onClick={() => setOpen(false)}>
               <Button variant="outline" size="sm" className="w-full gap-1.5">
-                <Settings className="h-3.5 w-3.5" />
+                <Settings aria-hidden="true" className="h-3.5 w-3.5" />
                 Admin
               </Button>
             </Link>

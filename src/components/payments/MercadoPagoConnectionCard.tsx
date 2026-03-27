@@ -55,13 +55,13 @@ export function MercadoPagoConnectionCard({
               "bg-primary/10 text-primary"
             )}>
               {loading ? (
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                <Loader2 aria-hidden="true" className="h-6 w-6 animate-spin text-muted-foreground" />
               ) : isConnected ? (
-                <CheckCircle2 className="h-6 w-6" />
+                <CheckCircle2 aria-hidden="true" className="h-6 w-6" />
               ) : reconnectRequired ? (
-                <AlertCircle className="h-6 w-6" />
+                <AlertCircle aria-hidden="true" className="h-6 w-6" />
               ) : (
-                <CreditCard className="h-6 w-6" />
+                <CreditCard aria-hidden="true" className="h-6 w-6" />
               )}
             </div>
             <div>
@@ -87,13 +87,18 @@ export function MercadoPagoConnectionCard({
               <span className="text-[10px] font-bold uppercase tracking-widest text-green-600 bg-green-100 dark:bg-green-900/40 px-2 py-0.5 rounded">Ativo</span>
             </div>
           )}
+          {reconnectRequired && !isConnected && (
+            <div className="hidden sm:flex flex-col items-end">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-amber-600 bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 rounded">Atenção</span>
+            </div>
+          )}
         </div>
       </CardHeader>
 
       <CardContent className="space-y-4">
         {!loading && settings && !canConnect && (
           <div className="flex items-start gap-3 rounded-xl border border-amber-400/30 bg-amber-400/5 p-4 text-sm text-amber-800 dark:text-amber-200">
-            <Lock className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+            <Lock aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
             <div>
               <p className="font-bold text-xs uppercase tracking-tight">Recurso Indisponível</p>
               <p className="mt-1 text-xs opacity-90 leading-relaxed">
@@ -107,17 +112,17 @@ export function MercadoPagoConnectionCard({
           <div className="space-y-4 pt-2">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="flex items-center gap-3 rounded-xl bg-green-500/[0.08] p-3 text-xs font-semibold text-green-700 dark:text-green-400 border border-green-500/10">
-                <ShieldCheck className="h-4 w-4" />
+                <ShieldCheck aria-hidden="true" className="h-4 w-4" />
                 Vendas Habilitadas
               </div>
               <div className="flex items-center gap-3 rounded-xl border bg-card/50 p-3 text-xs text-muted-foreground">
-                <Zap className="h-4 w-4 text-amber-500" />
+                <Zap aria-hidden="true" className="h-4 w-4 text-amber-500" />
                 {settings.userId ? `ID: ${settings.userId}` : "Checkout Direto"}
               </div>
             </div>
             
             <div className="flex items-center gap-2 text-[10px] text-muted-foreground px-1">
-              <Network className="h-3 w-3" />
+              <Network aria-hidden="true" className="h-3 w-3" />
               <span>Conexão estável estabelecida com a API do Mercado Pago</span>
             </div>
 
@@ -127,8 +132,9 @@ export function MercadoPagoConnectionCard({
               className="w-full h-10 gap-2 text-destructive hover:bg-destructive/5 font-medium border border-transparent hover:border-destructive/20 transition-all"
               onClick={() => void onDisconnect()}
               disabled={disconnecting}
+              aria-label="Desconectar conta Mercado Pago"
             >
-              {disconnecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2Off className="h-4 w-4" />}
+              {disconnecting ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : <Link2Off aria-hidden="true" className="h-4 w-4" />}
               {disconnecting ? "Desconectando..." : "Desconectar conta atual"}
             </Button>
           </div>
@@ -143,8 +149,9 @@ export function MercadoPagoConnectionCard({
                   : "bg-muted text-muted-foreground grayscale"
               )}
               onClick={() => void onConnect()}
+              aria-label={reconnectRequired ? 'Reconectar conta Mercado Pago' : 'Conectar com Mercado Pago'}
             >
-              {connecting ? <Loader2 className="h-5 w-5 animate-spin" /> : <ExternalLink className="h-5 w-5" />}
+              {connecting ? <Loader2 aria-hidden="true" className="h-5 w-5 animate-spin" /> : <ExternalLink aria-hidden="true" className="h-5 w-5" />}
               <span className="font-bold tracking-tight">
                 {reconnectRequired ? "Reconectar Conta" : "Conectar com Mercado Pago"}
               </span>

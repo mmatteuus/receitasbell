@@ -24,8 +24,8 @@ Os Cron Jobs executados na Vercel foram blindados:
 ## 4. Health & Readiness
 O monitoramento do estado da aplicação foi elevado:
 - `/api/health/live`: Verifica se o runtime está respondendo.
-- `/api/health/ready`: Valida se as variáveis críticas estão carregadas e se o Baserow está acessível.
-- Uso de `validateCriticalEnv()` para falha precoce (fail-fast) em caso de configuração errada.
+- `/api/health/ready`: Explicita `ready`, `degraded` e `unavailable` com checks para env, Baserow, Mercado Pago, rate limit e email.
+- O helper `validateCriticalEnv()` continua disponivel como utilitario, mas o readiness operacional agora depende do endpoint dedicado.
 
 ## 5. Estratégia de Cache
 - Default: `no-cache` para todas as rotas privadas, admin e operacionais.

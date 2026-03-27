@@ -12,7 +12,7 @@ export default function RatingStars({ value = 0, onChange, readonly = false, siz
   const [hover, setHover] = useState(0);
 
   return (
-    <div className="flex gap-0.5">
+    <div className="flex gap-0.5" role="group" aria-label="Avaliação por estrelas">
       {[1, 2, 3, 4, 5].map((star) => {
         const filled = star <= (hover || value);
         return (
@@ -24,8 +24,10 @@ export default function RatingStars({ value = 0, onChange, readonly = false, siz
             onMouseEnter={() => !readonly && setHover(star)}
             onMouseLeave={() => setHover(0)}
             className={`transition-colors ${readonly ? "cursor-default" : "cursor-pointer"}`}
+            aria-label={`Avaliar com ${star} estrelas`}
           >
             <Star
+              aria-hidden="true"
               size={size}
               className={filled ? "fill-primary text-primary" : "text-muted-foreground/40"}
             />

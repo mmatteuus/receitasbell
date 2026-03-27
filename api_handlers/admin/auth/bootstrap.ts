@@ -1,10 +1,12 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { assertMethod, readJsonBody, json, withApiHandler } from "../../../src/server/shared/http.js";
+import { requireCsrf } from "../../../src/server/security/csrf.js";
 import { bootstrapTenantAdmin } from "../../../src/server/admin/auth.js";
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   return withApiHandler(request, response, async ({ requestId }) => {
     assertMethod(request, ["POST"]);
+    requireCsrf(request);
     const body = await readJsonBody<{
       tenantName?: string;
       tenantSlug?: string;

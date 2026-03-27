@@ -138,7 +138,7 @@ export function MethodsChart({ revenueByMethod, statusDistribution, onMethodClic
             <CardDescription>Clique em uma barra para filtrar transações por status</CardDescription>
           </div>
           <div className="flex gap-1">
-            <Button variant="ghost" size="icon" onClick={() => exportChartAsPNG(ref, "metodos-pagamento")} title="Exportar como PNG">
+            <Button variant="ghost" size="icon" onClick={() => exportChartAsPNG(ref, "metodos-pagamento")} aria-label="Exportar gráfico como PNG">
               <Camera className="h-4 w-4" />
             </Button>
             <FullscreenChart title="Distribuição de Status">
