@@ -42,7 +42,6 @@ export default async function handler(request: VercelRequest, response: VercelRe
       ["ENCRYPTION_KEY", env.ENCRYPTION_KEY],
       ["BASEROW_TABLE_TENANTS", env.BASEROW_TABLE_TENANTS],
       ["BASEROW_TABLE_USERS", env.BASEROW_TABLE_USERS],
-      ["BASEROW_TABLE_TENANT_USERS", env.BASEROW_TABLE_TENANT_USERS],
       ["BASEROW_TABLE_RECIPES", env.BASEROW_TABLE_RECIPES],
       ["BASEROW_TABLE_CATEGORIES", env.BASEROW_TABLE_CATEGORIES],
       ["BASEROW_TABLE_SETTINGS", env.BASEROW_TABLE_SETTINGS],
@@ -65,7 +64,6 @@ export default async function handler(request: VercelRequest, response: VercelRe
     const tableChecks = await Promise.allSettled([
       pingTable(Number(env.BASEROW_TABLE_TENANTS), "baserow.tenants"),
       pingTable(Number(env.BASEROW_TABLE_USERS), "baserow.users"),
-      pingTable(Number(env.BASEROW_TABLE_TENANT_USERS), "baserow.tenant_users"),
       pingTable(Number(env.BASEROW_TABLE_RECIPES), "baserow.recipes"),
       pingTable(Number(env.BASEROW_TABLE_CATEGORIES), "baserow.categories"),
       pingTable(Number(env.BASEROW_TABLE_SETTINGS), "baserow.settings"),
@@ -84,7 +82,6 @@ export default async function handler(request: VercelRequest, response: VercelRe
         table: [
           "tenants",
           "users",
-          "tenantUsers",
           "recipes",
           "categories",
           "settings",

@@ -1,4 +1,8 @@
-import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
+
+export function sha256Hex(v: string) {
+  return createHash("sha256").update(v).digest("hex");
+}
 
 function readEncryptionKey() {
   const raw = process.env.ENCRYPTION_KEY?.trim();

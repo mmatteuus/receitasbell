@@ -1,6 +1,7 @@
-import crypto from "node:crypto";
 import { baserowFetch } from "../integrations/baserow/client.js";
 import { baserowTables } from "../integrations/baserow/tables.js";
+import { sha256Hex } from "../shared/crypto.js";
+import crypto from "node:crypto";
 
 type MagicLinkRow = {
   id?: string | number;
@@ -13,15 +14,10 @@ type MagicLinkRow = {
   purpose?: string;
 };
 
-function sha256Hex(v: string) {
-  return crypto.createHash("sha256").update(v).digest("hex");
-}
-
 export async function createMagicLink(input: { tenantId: string; email: string; purpose: "user"; redirectTo?: string }) {
   const token = crypto.randomBytes(32).toString("hex");
   const tokenHash = sha256Hex(token);
-  const now = new Date();
-  const exp = new Date(now.getTime() + 15 * 60_000);
+  const exp = new Date(Date.now() + 15 * 60_000);
 
   await baserowFetch(`/api/database/rows/table/${baserowTables.magicLinks}/?user_field_names=true`, {
     method: "POST",

@@ -4,6 +4,7 @@ import { baserowFetch } from "../integrations/baserow/client.js";
 import { baserowTables } from "../integrations/baserow/tables.js";
 import { isProd, env } from "../shared/env.js";
 import { ApiError } from "../shared/http.js";
+import { sha256Hex } from "../shared/crypto.js";
 
 const COOKIE_NAME = isProd ? "__Host-rb_session" : "rb_session";
 const TTL_DAYS = 14;
@@ -27,10 +28,6 @@ function parseCookies(header?: string) {
     out[k] = decodeURIComponent(rest.join("=") || "");
   }
   return out;
-}
-
-function sha256Hex(v: string) {
-  return crypto.createHash("sha256").update(v).digest("hex");
 }
 
 export type Session = {
