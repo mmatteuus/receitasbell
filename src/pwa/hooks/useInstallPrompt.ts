@@ -11,6 +11,9 @@ interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
 }
 
+type NavigatorStandalone = Navigator & { standalone?: boolean };
+type WindowWithMSStream = Window & { MSStream?: unknown };
+
 export function useInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
@@ -32,7 +35,7 @@ export function useInstallPrompt() {
     // Initial check for standalone mode
     if (
       window.matchMedia("(display-mode: standalone)").matches ||
-      (window.navigator as any).standalone === true
+      (window.navigator as NavigatorStandalone).standalone === true
     ) {
       setIsInstalled(true);
     }
@@ -57,7 +60,7 @@ export function useInstallPrompt() {
 
   const isIOS = () => {
     const ua = window.navigator.userAgent;
-    return /iPad|iPhone|iPod/.test(ua) && !(window as any).MSStream;
+    return /iPad|iPhone|iPod/.test(ua) && !(window as WindowWithMSStream).MSStream;
   };
 
   const isMobile = () => {

@@ -46,6 +46,8 @@ export function NewsletterSignup() {
         <Input
           id="newsletter-email"
           type="email"
+          aria-invalid={status === "error"}
+          aria-describedby={message ? "newsletter-feedback" : undefined}
           placeholder="seu@email.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -57,7 +59,9 @@ export function NewsletterSignup() {
       </div>
       {message && (
         <p
-          role="status"
+          id="newsletter-feedback"
+          role={status === "error" ? "alert" : "status"}
+          aria-live="polite"
           className={`mt-3 text-sm ${status === "success" ? "text-green-600" : "text-destructive"}`}
         >
           {message}

@@ -1,11 +1,17 @@
 import { listRecipes } from "@/lib/api/recipes";
-import { listFavoritesOfflineAware } from "./favorites-offline-repo";
-import { listShoppingItemsOfflineAware } from "./shopping-offline-repo";
 import { fetchMe } from "@/lib/api/identity";
 import { listByEmail } from "@/lib/repos/entitlementRepo";
 import { getCurrentTenantSlug } from "@/lib/tenant";
 import { getProfileSnapshot, saveProfileSnapshot } from "../cache/profile-snapshot";
 import { upsertRecipeSnapshots } from "../cache/recipe-snapshot";
+
+async function loadFavoritesRepo() {
+  return import("./favorites-offline-repo");
+}
+
+async function loadShoppingRepo() {
+  return import("./shopping-offline-repo");
+}
 
 export async function getProfileOverviewOfflineAware() {
   const session = await fetchMe();
@@ -27,6 +33,10 @@ export async function getProfileOverviewOfflineAware() {
   }
 
   try {
+    const [{ listFavoritesOfflineAware }, { listShoppingItemsOfflineAware }] = await Promise.all([
+      loadFavoritesRepo(),
+      loadShoppingRepo(),
+    ]);
     const [favoriteRecords, shoppingItems, entitlements, recipes] = await Promise.all([
       listFavoritesOfflineAware(),
       listShoppingItemsOfflineAware(),

@@ -6,6 +6,7 @@ type SmartImageProps = Omit<JSX.IntrinsicElements["img"], "src" | "decoding" | "
   priority?: boolean;
   width?: number;
   height?: number;
+  sizes?: string;
 };
 
 export default function SmartImage({
@@ -14,6 +15,7 @@ export default function SmartImage({
   priority = false,
   width,
   height,
+  sizes,
   loading,
   ...props
 }: SmartImageProps) {
@@ -32,6 +34,7 @@ export default function SmartImage({
   return (
     <img
       {...props}
+      sizes={sizes}
       {...({ fetchpriority: priority ? "high" : "auto" } as Record<string, string>)}
       src={currentSrc}
       loading={priority ? "eager" : loading ?? "lazy"}

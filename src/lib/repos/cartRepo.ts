@@ -18,7 +18,7 @@ function read(): CartItem[] {
   try {
     const raw = localStorage.getItem(KEY) || "[]";
     if (raw === cachedRaw) {
-      return cachedItems;
+      return cachedItems.map((item) => ({ ...item }));
     }
 
     const parsed = JSON.parse(raw);
@@ -40,7 +40,7 @@ function read(): CartItem[] {
         (typeof item.imageUrl === "string" || item.imageUrl === null),
     );
     cachedRaw = raw;
-    return cachedItems;
+    return cachedItems.map((item) => ({ ...item }));
   } catch {
     cachedRaw = "[]";
     cachedItems = [];
@@ -80,22 +80,28 @@ function list() {
 
 function add(item: CartItem) {
   const items = read();
-  const existing = items.find((current) => current.recipeId === item.recipeId);
-  if (existing) {
-    existing.quantity = (existing.quantity || 1) + (item.quantity || 1);
-  } else {
-    items.push({ ...item, quantity: item.quantity || 1 });
-  }
-  write(items);
+  const index = items.findIndex((current) => current.recipeId === item.recipeId);
+
+  const next =
+    index >= 0
+      ? items.map((current, i) =>
+          i === index
+            ? { ...current, quantity: (current.quantity || 1) + (item.quantity || 1) }
+            : current,
+        )
+      : [...items, { ...item, quantity: item.quantity || 1 }];
+
+  write(next);
 }
 
 function updateQuantity(recipeId: string, delta: number) {
   const items = read();
-  const item = items.find((i) => i.recipeId === recipeId);
-  if (item) {
-    item.quantity = Math.max(1, (item.quantity || 1) + delta);
-    write(items);
-  }
+  const next = items.map((item) =>
+    item.recipeId === recipeId
+      ? { ...item, quantity: Math.max(1, (item.quantity || 1) + delta) }
+      : item,
+  );
+  write(next);
 }
 
 function remove(recipeId: string) {

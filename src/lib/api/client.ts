@@ -65,6 +65,36 @@ function ensureClientCsrfCookie() {
   return token;
 }
 
+async function safeParseResponse(response: Response) {
+  const text = await response.text();
+  if (!text) return null;
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { raw: text };
+  }
+}
+
+function getErrorMessage(payload: unknown, fallback: string) {
+  if (!payload || typeof payload !== "object") return fallback;
+
+  const anyPayload = payload as Record<string, unknown>;
+  if (typeof anyPayload.message === "string") return anyPayload.message;
+  if (typeof anyPayload.error === "string") return anyPayload.error;
+
+  if (
+    typeof anyPayload.error === "object" &&
+    anyPayload.error &&
+    typeof (anyPayload.error as Record<string, unknown>).message === "string"
+  ) {
+    return (anyPayload.error as Record<string, unknown>).message as string;
+  }
+
+  if (typeof anyPayload.raw === "string") return anyPayload.raw;
+  return fallback;
+}
+
 export function buildQuery(params: Record<string, string | number | boolean | undefined | null | string[]>) {
   const search = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
@@ -117,38 +147,23 @@ export async function jsonFetch<T>(path: string, options: JsonFetchOptions = {})
     return undefined as T;
   }
 
-  const text = await response.text();
-  const payload = text ? JSON.parse(text) : null;
+  const payload = await safeParseResponse(response);
 
   if (!response.ok) {
-    const nestedError =
-      payload && typeof payload === "object" && payload.error && typeof payload.error === "object"
-        ? (payload.error as { message?: unknown; details?: unknown })
-        : null;
-    const nestedMessage =
-      payload && typeof payload === "object" && typeof payload.error === "string"
-        ? payload.error
-        : nestedError?.message;
-    const nestedDetails = nestedError?.details;
-
     if (admin && response.status === 401) {
       const loginPath = buildTenantAdminPath("login", tenantSlug);
       if (typeof window !== "undefined" && window.location.pathname !== loginPath) {
         const redirect = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-        window.location.assign(
-          `${loginPath}?redirect=${encodeURIComponent(redirect)}`,
-        );
+        window.location.assign(`${loginPath}?redirect=${encodeURIComponent(redirect)}`);
       }
-      throw new ApiClientError(401, "Sessão de admin expirada. Faça login novamente.", nestedDetails ?? payload?.details, payload?.requestId);
     }
     throw new ApiClientError(
       response.status,
-      (typeof nestedMessage === "string" ? nestedMessage : undefined)
-        || payload?.message
-        || response.statusText
-        || "Erro ao comunicar com a API.",
-      nestedDetails ?? payload?.details,
-      payload?.requestId,
+      getErrorMessage(payload, response.statusText || "Erro ao comunicar com a API."),
+      payload,
+      typeof payload === "object" && payload && "requestId" in payload
+        ? String((payload as Record<string, unknown>).requestId)
+        : undefined,
     );
   }
 

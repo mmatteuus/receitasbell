@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Search as SearchIcon } from "lucide-react";
+import { PageHead } from "@/components/PageHead";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { listPublicRecipes } from "@/lib/repos/recipeRepo";
@@ -133,6 +134,11 @@ export default function SearchPage() {
 
   return (
     <div className="container px-4 py-8 sm:py-10">
+      <PageHead
+        title="Buscar Receitas"
+        description="Encontre receitas por categoria, tempo de preparo e tipo de acesso."
+        canonicalPath="/buscar"
+      />
       <h1 className="font-heading text-2xl font-bold sm:text-3xl">Buscar Receitas</h1>
       <p className="mt-1 text-sm text-muted-foreground">Refine por categoria, tempo e tipo de acesso.</p>
       <div className="mt-4 grid gap-3 sm:mt-6 sm:grid-cols-2 lg:grid-cols-5">

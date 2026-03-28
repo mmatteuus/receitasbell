@@ -15,6 +15,8 @@ import { OfflineLockedScreen } from "@/pwa/offline/ui/OfflineLockedScreen";
 import { ConflictResolutionDialog } from "@/pwa/offline/ui/ConflictResolutionDialog";
 import { useConflictCenter } from "@/pwa/offline/hooks/useConflictCenter";
 
+type NavigatorStandalone = Navigator & { standalone?: boolean };
+
 export function UserPwaShell() {
   const [loading, setLoading] = useState(true);
   const [offlineLocked, setOfflineLocked] = useState(false);
@@ -26,7 +28,9 @@ export function UserPwaShell() {
 
   useEffect(() => {
     // Telemetry for PWA usage
-    const isStandalone = window.matchMedia("(display-mode: standalone)").matches || (window.navigator as any).standalone;
+    const isStandalone =
+      window.matchMedia("(display-mode: standalone)").matches
+      || (window.navigator as NavigatorStandalone).standalone === true;
     trackEvent("pwa.vitals", { 
       mode: isStandalone ? "standalone" : "browser",
       path: location.pathname 

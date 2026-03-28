@@ -1,5 +1,6 @@
 import { useParams, Link } from "react-router-dom";
 import { Mail, FileText, Shield } from "lucide-react";
+import { PageHead } from "@/components/PageHead";
 
 const pages: Record<string, { title: string; icon: React.ElementType; content: string }> = {
   contato: {
@@ -34,6 +35,11 @@ export default function Institutional() {
 
   return (
     <div className="container max-w-2xl px-4 py-10">
+      <PageHead
+        title={info.title}
+        description={info.content}
+        canonicalPath={`/institucional/${page || ""}`}
+      />
       <div className="mb-2 text-sm text-muted-foreground">
         <Link to="/" className="hover:text-primary">Home</Link> › {info.title}
       </div>

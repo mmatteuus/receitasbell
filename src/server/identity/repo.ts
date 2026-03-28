@@ -11,6 +11,7 @@ type UserRow = {
   password?: string;
   status?: string;
   tenantId?: string | number;
+  tenant_id?: string | number;
   created_at?: string;
   updated_at?: string;
 };
@@ -29,16 +30,68 @@ export interface UserRecord {
   updatedAt: string;
 }
 
-export async function findUserByEmail(tenantId: string | number, email: string): Promise<UserRecord | null> {
-  const normalized = email.trim().toLowerCase();
+function normalize(value: unknown) {
+  return String(value ?? "").trim().toLowerCase();
+}
+
+function mapUserRowToRecord(row: UserRow): UserRecord {
+  let role = row.role || "viewer";
+  if (role === "administrador") role = "admin";
+
+  return {
+    id: row.id ?? "",
+    email: row.email ?? "",
+    username: row.username ?? "",
+    displayName: row.display_name ?? "",
+    role,
+    passwordHash: row.password_hash || "",
+    legacyPassword: row.password || "",
+    status: row.status === "inactive" ? "inactive" : "active",
+    tenantId: row.tenantId ?? row.tenant_id ?? "",
+    createdAt: row.created_at ?? "",
+    updatedAt: row.updated_at ?? "",
+  };
+}
+
+async function findUserByEmailByTenantId(tenantId: string | number, email: string): Promise<UserRecord | null> {
+  const normalizedEmail = email.trim().toLowerCase();
   const data = await fetchBaserow<{ results: UserRow[] }>(
-    `/api/database/rows/table/${BASEROW_TABLES.USERS}/?user_field_names=true&filter__tenantId__equal=${tenantId}&filter__email__equal=${normalized}`
+    `/api/database/rows/table/${BASEROW_TABLES.USERS}/?user_field_names=true&filter__tenantId__equal=${encodeURIComponent(String(tenantId))}&filter__email__equal=${encodeURIComponent(normalizedEmail)}`
   );
-  
+
   const record = data.results[0];
   if (!record) return null;
-  
+
   return mapUserRowToRecord(record);
+}
+
+export async function findUserByEmailForTenant(
+  tenant: { id: string | number; slug: string; name: string },
+  email: string,
+): Promise<UserRecord | null> {
+  const normalizedEmail = email.trim().toLowerCase();
+
+  const data = await fetchBaserow<{ results: UserRow[] }>(
+    `/api/database/rows/table/${BASEROW_TABLES.USERS}/?user_field_names=true&filter__email__equal=${encodeURIComponent(normalizedEmail)}`
+  );
+
+  const acceptedTenantKeys = new Set([
+    normalize(tenant.id),
+    normalize(tenant.slug),
+    normalize(tenant.name),
+  ]);
+
+  const matched = data.results.find((row) => {
+    const candidateKeys = [
+      normalize(row.tenantId),
+      normalize(row.tenant_id),
+    ].filter(Boolean);
+
+    return candidateKeys.some((candidate) => acceptedTenantKeys.has(candidate));
+  });
+
+  if (!matched) return null;
+  return mapUserRowToRecord(matched);
 }
 
 export async function createUser(input: {
@@ -76,7 +129,7 @@ export async function createUser(input: {
 }
 
 export async function findOrCreateUserByEmail(tenantId: string | number, email: string, displayName?: string): Promise<UserRecord> {
-  const existing = await findUserByEmail(tenantId, email);
+  const existing = await findUserByEmailByTenantId(tenantId, email);
   if (existing) return existing;
 
   return createUser({
@@ -105,23 +158,4 @@ export async function updateUserPasswordCredentials(input: {
   );
 
   return mapUserRowToRecord(record);
-}
-
-function mapUserRowToRecord(row: UserRow): UserRecord {
-  let role = row.role || "viewer";
-  if (role === "administrador") role = "admin";
-
-  return {
-    id: row.id ?? "",
-    email: row.email ?? "",
-    username: row.username ?? "",
-    displayName: row.display_name ?? "",
-    role,
-    passwordHash: row.password_hash || "",
-    legacyPassword: row.password || "",
-    status: row.status === "active" ? "active" : "inactive",
-    tenantId: row.tenantId ?? "",
-    createdAt: row.created_at ?? "",
-    updatedAt: row.updated_at ?? "",
-  };
 }

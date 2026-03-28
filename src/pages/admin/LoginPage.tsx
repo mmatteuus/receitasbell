@@ -19,7 +19,8 @@ export default function AdminLoginPage() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const tenantSlugFromPath = useMemo(() => extractTenantSlugFromPath(location.pathname), [location.pathname]);
-  const defaultRedirect = buildTenantAdminPath("", tenantSlugFromPath);
+  const canonicalTenantSlug = tenantSlugFromPath || "receitasbell";
+  const defaultRedirect = buildTenantAdminPath("", canonicalTenantSlug);
   const redirectTo = params.get("redirect") || defaultRedirect;
 
   const [session, setSession] = useState<AdminSessionResponse | null>(null);
@@ -39,8 +40,8 @@ export default function AdminLoginPage() {
 
   const resolveAdminRedirect = useCallback(
     (nextSession: AdminSessionResponse) =>
-      params.get("redirect") || buildTenantAdminPath("", nextSession.tenant?.slug || tenantSlugFromPath),
-    [params, tenantSlugFromPath],
+      params.get("redirect") || buildTenantAdminPath("", nextSession.tenant?.slug || canonicalTenantSlug),
+    [canonicalTenantSlug, params],
   );
 
   useEffect(() => {
@@ -166,7 +167,7 @@ export default function AdminLoginPage() {
               {error ? <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p> : null}
 
               <Button type="button" variant="ghost" className="w-full" asChild>
-                <Link to={buildTenantPath("/", tenantSlugFromPath)}>Voltar para o site</Link>
+                <Link to={buildTenantPath("/", canonicalTenantSlug)}>Voltar para o site</Link>
               </Button>
             </div>
           ) : showBootstrapForm ? (

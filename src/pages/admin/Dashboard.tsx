@@ -77,7 +77,7 @@ export default function Dashboard() {
     }
 
     void loadDashboard();
-  }, []);
+  }, [tenantSlug]);
 
   const published = recipes.filter((recipe) => recipe.status === 'published').length;
   const drafts = recipes.filter((recipe) => recipe.status === 'draft').length;

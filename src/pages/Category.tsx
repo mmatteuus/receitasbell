@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import { PageHead } from "@/components/PageHead";
 import { listPublicRecipes } from "@/lib/repos/recipeRepo";
 import { useAppContext } from "@/contexts/app-context";
 import RecipeCard from "@/components/RecipeCard";
@@ -36,6 +37,11 @@ export default function Category() {
 
   return (
     <div className="container px-4 py-8 sm:py-10">
+      <PageHead
+        title={`Categoria: ${cat.name}`}
+        description={cat.description || `Receitas selecionadas da categoria ${cat.name}.`}
+        canonicalPath={`/categorias/${cat.slug}`}
+      />
       <div className="mb-2 text-sm text-muted-foreground">
         <Link to="/" className="hover:text-primary">Home</Link> › {cat.name}
       </div>

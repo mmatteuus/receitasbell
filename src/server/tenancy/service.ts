@@ -1,6 +1,7 @@
 import { 
   getTenantBySlug, 
   getTenantById,
+  getTenantByHost,
   createTenant,
 } from "./repo.js";
 import { createUser } from "../identity/repo.js";
@@ -15,8 +16,7 @@ export async function findTenantById(id: string | number) {
 }
 
 export async function findTenantByHost(host: string) {
-  // Simulação de busca por host no repo se necessário
-  return null; 
+  return getTenantByHost(host);
 }
 
 function normalizeTenantSlug(slug: string) {

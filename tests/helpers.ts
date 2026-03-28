@@ -6,12 +6,14 @@ export const baseOrigin = new URL(baseURL).origin;
 export const bootstrapUrl = process.env.PLAYWRIGHT_BOOTSTRAP_URL;
 export const adminSecret = process.env.PLAYWRIGHT_ADMIN_SECRET ?? null;
 export const adminEmail = process.env.PLAYWRIGHT_ADMIN_EMAIL ?? null;
-export const tenantSlug = process.env.PLAYWRIGHT_TENANT_SLUG ?? null;
+const envTenantSlug = process.env.PLAYWRIGHT_TENANT_SLUG?.trim();
+export const tenantSlug = envTenantSlug ? envTenantSlug : 'receitasbell';
 
 type RequestOptions = {
   method?: string;
   body?: unknown;
   headers?: Record<string, string>;
+  tenantSlug?: string | null;
 };
 
 type RecipeFixtureInput = {
@@ -31,6 +33,19 @@ export type CreatedRecipe = {
   slug: string;
   title: string;
 };
+
+type RouteOptions = {
+  tenantSlug?: string | null;
+};
+
+function resolveTenantSlug(override?: string | null) {
+  if (override !== undefined) {
+    const normalized = typeof override === 'string' ? override.trim() : null;
+    return normalized || null;
+  }
+
+  return tenantSlug;
+}
 
 export function createSuffix() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -82,16 +97,18 @@ export async function setIdentityCookie(context: BrowserContext, email: string) 
   ]);
 }
 
-export async function openRoute(page: Page, path: string) {
+export async function openRoute(page: Page, path: string, options: RouteOptions = {}) {
   let finalPath = path;
 
-  if (tenantSlug && !path.startsWith('/api') && !path.startsWith('/t/')) {
+  const resolvedTenant = resolveTenantSlug(options.tenantSlug);
+
+  if (resolvedTenant && !path.startsWith('/api') && !path.startsWith('/t/')) {
     if (path === '/') {
-      finalPath = `/t/${tenantSlug}`;
+      finalPath = `/t/${resolvedTenant}`;
     } else if (path.startsWith('/admin')) {
-      finalPath = `/t/${tenantSlug}${path}`;
+      finalPath = `/t/${resolvedTenant}${path}`;
     } else {
-      finalPath = `/t/${tenantSlug}${path.startsWith('/') ? path : `/${path}`}`;
+      finalPath = `/t/${resolvedTenant}${path.startsWith('/') ? path : `/${path}`}`;
     }
   }
 
@@ -115,6 +132,7 @@ export async function appRequest<T>(
   path: string,
   options: RequestOptions = {}
 ): Promise<{ status: number; body: T }> {
+  const resolvedTenant = resolveTenantSlug(options.tenantSlug);
   const response = await page.evaluate(
     async ({ requestPath, method, body, headers, tenant }) => {
       const nextHeaders = new Headers(headers);
@@ -173,7 +191,7 @@ export async function appRequest<T>(
       method: options.method ?? 'GET',
       body: options.body,
       headers: options.headers ?? {},
-      tenant: tenantSlug,
+      tenant: resolvedTenant,
     }
   );
 

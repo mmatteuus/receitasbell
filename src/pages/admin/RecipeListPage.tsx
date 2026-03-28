@@ -70,7 +70,7 @@ export default function RecipeListPage() {
     }
 
     void loadRecipes();
-  }, []);
+  }, [tenantSlug]);
 
   async function refresh() {
     try {

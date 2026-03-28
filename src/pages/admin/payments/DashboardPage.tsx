@@ -95,7 +95,7 @@ export default function DashboardPage() {
     }
 
     void loadPaymentsForDashboard();
-  }, [dateRange]);
+  }, [dateRange, tenantSlug]);
 
   const stats = useMemo(() => {
     const totalRevenue = payments.reduce((acc, p) => p.status === 'approved' ? acc + p.totalBRL : acc, 0);

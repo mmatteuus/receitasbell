@@ -2,17 +2,14 @@ import type { CartItem } from '@/types/cart';
 import type { Comment } from '@/types/recipe';
 import type { CreatePaymentPreferenceResult } from '@/types/payment';
 import { buildQuery, jsonFetch } from './client';
-import {
-  addFavoriteOfflineAware,
-  deleteFavoriteOfflineAware,
-  listFavoritesOfflineAware,
-} from '@/pwa/offline/repos/favorites-offline-repo';
-import {
-  createShoppingItemsOfflineAware,
-  deleteShoppingItemOfflineAware,
-  listShoppingItemsOfflineAware,
-  updateShoppingItemOfflineAware,
-} from '@/pwa/offline/repos/shopping-offline-repo';
+
+async function loadFavoritesRepo() {
+  return import('@/pwa/offline/repos/favorites-offline-repo');
+}
+
+async function loadShoppingRepo() {
+  return import('@/pwa/offline/repos/shopping-offline-repo');
+}
 
 export interface FavoriteRecord {
   id: string;
@@ -65,18 +62,22 @@ export async function submitRating(input: { recipeId: string; value: number }) {
 }
 
 export async function listFavorites() {
+  const { listFavoritesOfflineAware } = await loadFavoritesRepo();
   return listFavoritesOfflineAware();
 }
 
 export async function addFavorite(recipeId: string) {
+  const { addFavoriteOfflineAware } = await loadFavoritesRepo();
   return addFavoriteOfflineAware(recipeId);
 }
 
 export async function deleteFavorite(recipeId: string) {
+  const { deleteFavoriteOfflineAware } = await loadFavoritesRepo();
   await deleteFavoriteOfflineAware(recipeId);
 }
 
 export async function listShoppingList() {
+  const { listShoppingItemsOfflineAware } = await loadShoppingRepo();
   return listShoppingItemsOfflineAware();
 }
 
@@ -88,6 +89,7 @@ export async function createShoppingListItems(
     checked?: boolean;
   }>
 ) {
+  const { createShoppingItemsOfflineAware } = await loadShoppingRepo();
   return createShoppingItemsOfflineAware(items);
 }
 
@@ -95,10 +97,12 @@ export async function updateShoppingListItem(
   itemId: string,
   patch: Partial<Pick<ShoppingListItem, 'text' | 'checked'>>
 ) {
+  const { updateShoppingItemOfflineAware } = await loadShoppingRepo();
   return updateShoppingItemOfflineAware(itemId, patch);
 }
 
 export async function deleteShoppingListItem(itemId: string) {
+  const { deleteShoppingItemOfflineAware } = await loadShoppingRepo();
   await deleteShoppingItemOfflineAware(itemId);
 }
 

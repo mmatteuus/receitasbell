@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type PropsWithChildren } from "react";
 import { AlertTriangle } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -16,7 +17,7 @@ export class ErrorBoundary extends Component<PropsWithChildren, ErrorBoundarySta
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error("[ErrorBoundary]", error, info.componentStack);
+    logger.error("error-boundary", error, info.componentStack);
   }
 
   handleReset = () => {

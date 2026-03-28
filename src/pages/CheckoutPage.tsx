@@ -15,6 +15,7 @@ import { resolveCheckoutResultPath } from '@/lib/payments/checkout';
 import { buildCartItemFromRecipe } from '@/lib/utils/recipeAccess';
 import { ApiClientError } from '@/lib/api/client';
 import { PageHead } from '@/components/PageHead';
+import { logger } from '@/lib/logger';
 
 export default function CheckoutPage() {
   const [searchParams] = useSearchParams();
@@ -24,6 +25,7 @@ export default function CheckoutPage() {
   const [items, setItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [payerName, setPayerName] = useState('');
+  const [payerNameError, setPayerNameError] = useState('');
   const { items: cartItems, clear: clearCart } = useCart();
   const { identityEmail, requireIdentity, settings } = useAppContext();
 
@@ -39,7 +41,7 @@ export default function CheckoutPage() {
           const recipe = await getRecipeBySlug(recipeSlug);
           setItems(recipe ? [buildCartItemFromRecipe(recipe)] : []);
         } catch (error) {
-          console.error('Failed to load checkout recipe', error);
+          logger.error('checkout-recipe', error);
           setItems([]);
         }
       }
@@ -51,6 +53,7 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (identityEmail && !payerName) {
       setPayerName(identityEmail.split('@')[0]);
+      setPayerNameError('');
     }
   }, [identityEmail, payerName]);
 
@@ -59,6 +62,11 @@ export default function CheckoutPage() {
   const handleCheckout = async () => {
     if (!items.length) return;
     setLoading(true);
+    if (!payerName.trim()) {
+      setPayerNameError('Informe o nome do pagador.');
+      setLoading(false);
+      return;
+    }
     try {
       const buyerEmail = await requireIdentity('Digite seu e-mail para concluir a compra.');
       if (!buyerEmail) {
@@ -89,7 +97,7 @@ export default function CheckoutPage() {
         `${path}?slug=${slug}&status=${result.status}&payment_id=${result.paymentId || ''}&count=${result.unlockedCount}`
       );
     } catch (error) {
-      console.error('Failed to complete checkout', error);
+      logger.error('checkout', error);
       toast.error(
         error instanceof ApiClientError
           ? error.message
@@ -150,9 +158,19 @@ export default function CheckoutPage() {
           <Input
             id="payer-name"
             value={payerName}
-            onChange={(event) => setPayerName(event.target.value)}
+            onChange={(event) => {
+              setPayerName(event.target.value);
+              setPayerNameError('');
+            }}
+            aria-invalid={Boolean(payerNameError)}
+            aria-describedby={payerNameError ? 'payer-name-error' : undefined}
             placeholder="Ex: Bell Ferreira"
           />
+          {payerNameError && (
+            <p id="payer-name-error" role="alert" className="text-sm text-destructive">
+              {payerNameError}
+            </p>
+          )}
         </div>
 
         <div className="flex justify-between items-center">

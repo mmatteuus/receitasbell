@@ -25,6 +25,17 @@ function fieldByLabel(page: Page, label: string, selector = "input, textarea") {
 test.describe("ReceitasBell user flows", () => {
   test.describe.configure({ mode: "serial" });
 
+  test("rotas admin resolvem com e sem tenant slug", async ({ page }) => {
+    await openRoute(page, "/admin");
+    await expect(page).toHaveURL(new RegExp(`/t/${tenantSlug}/admin`));
+
+    await openRoute(page, "/admin", { tenantSlug: null });
+    await expect(page).toHaveURL(/\/admin/);
+
+    await openRoute(page, "/t/receitasbell/admin", { tenantSlug: null });
+    await expect(page).toHaveURL(/\/t\/receitasbell\/admin/);
+  });
+
   test("favoritos persistem para o usuario identificado", async ({ page }) => {
     test.setTimeout(180_000);
     test.skip(!adminSecret, "PLAYWRIGHT_ADMIN_SECRET e necessario para montar os dados de teste.");

@@ -3,14 +3,13 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 
 const tenancyRepoMocks = vi.hoisted(() => ({
   countTenants: vi.fn(),
+  getTenantBySlug: vi.fn(),
+  getTenantByHost: vi.fn(),
+  listActiveTenants: vi.fn(),
 }));
 
 const tenancyServiceMocks = vi.hoisted(() => ({
   createTenantBootstrap: vi.fn(),
-}));
-
-const tenancyResolverMocks = vi.hoisted(() => ({
-  requireTenantFromRequest: vi.fn(),
 }));
 
 const sessionMocks = vi.hoisted(() => ({
@@ -24,7 +23,7 @@ const auditMocks = vi.hoisted(() => ({
 }));
 
 const identityMocks = vi.hoisted(() => ({
-  findUserByEmail: vi.fn(),
+  findUserByEmailForTenant: vi.fn(),
   updateUserPasswordCredentials: vi.fn(),
 }));
 
@@ -36,14 +35,13 @@ const passwordMocks = vi.hoisted(() => ({
 
 vi.mock("../src/server/tenancy/repo.js", () => ({
   countTenants: tenancyRepoMocks.countTenants,
+  getTenantBySlug: tenancyRepoMocks.getTenantBySlug,
+  getTenantByHost: tenancyRepoMocks.getTenantByHost,
+  listActiveTenants: tenancyRepoMocks.listActiveTenants,
 }));
 
 vi.mock("../src/server/tenancy/service.js", () => ({
   createTenantBootstrap: tenancyServiceMocks.createTenantBootstrap,
-}));
-
-vi.mock("../src/server/tenancy/resolver.js", () => ({
-  requireTenantFromRequest: tenancyResolverMocks.requireTenantFromRequest,
 }));
 
 vi.mock("../src/server/auth/sessions.js", () => ({
@@ -57,7 +55,7 @@ vi.mock("../src/server/audit/service.js", () => ({
 }));
 
 vi.mock("../src/server/identity/repo.js", () => ({
-  findUserByEmail: identityMocks.findUserByEmail,
+  findUserByEmailForTenant: identityMocks.findUserByEmailForTenant,
   updateUserPasswordCredentials: identityMocks.updateUserPasswordCredentials,
 }));
 
@@ -72,17 +70,23 @@ import { bootstrapTenantAdmin, loginAdmin } from "../src/server/admin/auth.js";
 describe("admin auth", () => {
   beforeEach(() => {
     tenancyRepoMocks.countTenants.mockReset();
+    tenancyRepoMocks.getTenantBySlug.mockReset();
+    tenancyRepoMocks.getTenantByHost.mockReset();
+    tenancyRepoMocks.listActiveTenants.mockReset();
     tenancyServiceMocks.createTenantBootstrap.mockReset();
-    tenancyResolverMocks.requireTenantFromRequest.mockReset();
     sessionMocks.getSession.mockReset();
     sessionMocks.createSession.mockReset();
     sessionMocks.revokeSession.mockReset();
     auditMocks.auditLog.mockReset();
-    identityMocks.findUserByEmail.mockReset();
+    identityMocks.findUserByEmailForTenant.mockReset();
     identityMocks.updateUserPasswordCredentials.mockReset();
     passwordMocks.assertStrongAdminPassword.mockReset();
     passwordMocks.hashAdminPassword.mockReset();
     passwordMocks.verifyAdminPasswordHash.mockReset();
+
+    tenancyRepoMocks.getTenantBySlug.mockResolvedValue(null);
+    tenancyRepoMocks.getTenantByHost.mockResolvedValue(null);
+    tenancyRepoMocks.listActiveTenants.mockResolvedValue([]);
   });
 
   test("bootstrap cria tenant real e troca para sessao owner do tenant", async () => {
@@ -157,10 +161,12 @@ describe("admin auth", () => {
 
   test("login admin retorna contrato completo no modo tenant", async () => {
     tenancyRepoMocks.countTenants.mockResolvedValue(1);
-    tenancyResolverMocks.requireTenantFromRequest.mockResolvedValue({
-      tenant: { id: "tenant-1", slug: "demo", name: "Demo" },
+    tenancyRepoMocks.getTenantBySlug.mockResolvedValue({
+      id: "tenant-1",
+      slug: "demo",
+      name: "Demo",
     });
-    identityMocks.findUserByEmail.mockResolvedValue({
+    identityMocks.findUserByEmailForTenant.mockResolvedValue({
       id: "user-1",
       email: "admin@demo.com",
       role: "owner",
@@ -187,10 +193,12 @@ describe("admin auth", () => {
 
   test("migra credencial legada em texto puro para hash", async () => {
     tenancyRepoMocks.countTenants.mockResolvedValue(1);
-    tenancyResolverMocks.requireTenantFromRequest.mockResolvedValue({
-      tenant: { id: "tenant-1", slug: "demo", name: "Demo" },
+    tenancyRepoMocks.getTenantBySlug.mockResolvedValue({
+      id: "tenant-1",
+      slug: "demo",
+      name: "Demo",
     });
-    identityMocks.findUserByEmail.mockResolvedValue({
+    identityMocks.findUserByEmailForTenant.mockResolvedValue({
       id: "user-1",
       email: "admin@demo.com",
       role: "admin",
@@ -211,5 +219,106 @@ describe("admin auth", () => {
       passwordHash: "scrypt$migrated",
       legacyPassword: "",
     });
+  });
+
+  test("bloqueia administrador inativo", async () => {
+    tenancyRepoMocks.countTenants.mockResolvedValue(1);
+    tenancyRepoMocks.getTenantBySlug.mockResolvedValue({
+      id: "tenant-1",
+      slug: "demo",
+      name: "Demo",
+    });
+    identityMocks.findUserByEmailForTenant.mockResolvedValue({
+      id: "user-1",
+      email: "admin@demo.com",
+      role: "admin",
+      passwordHash: "scrypt$mock",
+      legacyPassword: "",
+      status: "inactive",
+    });
+
+    await expect(
+      loginAdmin(
+        { headers: { "x-tenant-slug": "demo" } } as unknown as VercelRequest,
+        { setHeader: vi.fn() } as unknown as VercelResponse,
+        { email: "admin@demo.com", password: "SenhaForte!123" },
+      ),
+    ).rejects.toThrow("Inactive administrator");
+  });
+
+  test("login sem header autentica quando existe um unico tenant ativo", async () => {
+    tenancyRepoMocks.countTenants.mockResolvedValue(1);
+    tenancyRepoMocks.listActiveTenants.mockResolvedValue([
+      { id: "tenant-1", slug: "demo", name: "Demo" },
+    ]);
+    identityMocks.findUserByEmailForTenant.mockResolvedValue({
+      id: "user-1",
+      email: "admin@demo.com",
+      role: "owner",
+      passwordHash: "scrypt$mock",
+      legacyPassword: "",
+    });
+    passwordMocks.verifyAdminPasswordHash.mockResolvedValue(true);
+
+    const result = await loginAdmin(
+      { headers: {} } as unknown as VercelRequest,
+      { setHeader: vi.fn() } as unknown as VercelResponse,
+      { email: "admin@demo.com", password: "SenhaForte!123" },
+    );
+
+    expect(result).toMatchObject({
+      authenticated: true,
+      mode: "tenant",
+      bootstrapRequired: false,
+      tenant: { id: "tenant-1", slug: "demo", name: "Demo" },
+      user: { id: "user-1", email: "admin@demo.com", role: "owner" },
+    });
+  });
+
+  test("login resolve tenant pelo host exato", async () => {
+    tenancyRepoMocks.countTenants.mockResolvedValue(1);
+    tenancyRepoMocks.getTenantByHost.mockResolvedValue({
+      id: "tenant-1",
+      slug: "receitasbell",
+      name: "Receitas Bell",
+    });
+    identityMocks.findUserByEmailForTenant.mockResolvedValue({
+      id: "user-1",
+      email: "admin@demo.com",
+      role: "owner",
+      passwordHash: "scrypt$mock",
+      legacyPassword: "",
+    });
+    passwordMocks.verifyAdminPasswordHash.mockResolvedValue(true);
+
+    const result = await loginAdmin(
+      { headers: { host: "receitasbell.mtsferreira.dev" } } as unknown as VercelRequest,
+      { setHeader: vi.fn() } as unknown as VercelResponse,
+      { email: "admin@demo.com", password: "SenhaForte!123" },
+    );
+
+    expect(result).toMatchObject({
+      authenticated: true,
+      mode: "tenant",
+      bootstrapRequired: false,
+      tenant: { id: "tenant-1", slug: "receitasbell", name: "Receitas Bell" },
+      user: { id: "user-1", email: "admin@demo.com", role: "owner" },
+    });
+  });
+
+  test("login falha sem contexto quando existem multiplos tenants ativos", async () => {
+    tenancyRepoMocks.countTenants.mockResolvedValue(2);
+    tenancyRepoMocks.listActiveTenants.mockResolvedValue([
+      { id: "tenant-1", slug: "demo", name: "Demo" },
+      { id: "tenant-2", slug: "outro", name: "Outro" },
+    ]);
+
+    await expect(
+      loginAdmin(
+        { headers: {} } as unknown as VercelRequest,
+        { setHeader: vi.fn() } as unknown as VercelResponse,
+        { email: "admin@demo.com", password: "SenhaForte!123" },
+      ),
+    ).rejects.toThrow("Tenant context is required.");
   });
 });

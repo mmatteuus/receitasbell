@@ -1,31 +1,38 @@
 import type { VercelRequest } from '@vercel/node';
 import { ApiError } from '../shared/http.js';
-import { getTenantBySlug } from './repo.js';
+import { getTenantBySlug, getTenantByHost, listActiveTenants } from './repo.js';
+
+function normalizeHost(input: string) {
+  return input.trim().toLowerCase().replace(/:\d+$/, '');
+}
 
 export async function requireTenantFromRequest(request: VercelRequest) {
-  const slug = request.headers['x-tenant-slug'] as string;
-  const host = request.headers.host || '';
+  const slug = String(request.headers['x-tenant-slug'] || '').trim();
+  const host = normalizeHost(String(request.headers['x-forwarded-host'] || request.headers.host || ''));
 
-  // 1. Tentar por header explícito (Admin/Mobile)
   if (slug) {
     const tenant = await getTenantBySlug(slug);
     if (!tenant) throw new ApiError(404, `Tenant not found for slug: ${slug}`);
     return { tenant };
   }
 
-  // 2. Tentar por subdomínio/host
-  // Ex: tenant1.receitasbell.com.br
-  const domainParts = host.split('.');
-  if (domainParts.length >= 2) {
-    const potentialSlug = domainParts[0];
+  if (host) {
+    const byHost = await getTenantByHost(host);
+    if (byHost) return { tenant: byHost };
+
+    const potentialSlug = host.split('.')[0];
     if (potentialSlug && potentialSlug !== 'www' && potentialSlug !== 'localhost') {
-      const tenant = await getTenantBySlug(potentialSlug);
-      if (tenant) return { tenant };
+      const bySlug = await getTenantBySlug(potentialSlug);
+      if (bySlug) return { tenant: bySlug };
     }
   }
 
-  // 3. Fallback ou erro se for obrigatório
-  throw new ApiError(401, 'Tenant context is required. Missing x-tenant-slug header or invalid host.');
+  const activeTenants = await listActiveTenants();
+  if (activeTenants.length === 1) {
+    return { tenant: activeTenants[0] };
+  }
+
+  throw new ApiError(401, 'Tenant context is required.');
 }
 
 export function getTenantSlugFromRequest(request: VercelRequest): string | null {

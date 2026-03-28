@@ -5,7 +5,9 @@ type TenantRow = {
   id?: string | number;
   slug?: string;
   name?: string;
+  host?: string | null;
   domain?: string | null;
+  Active?: boolean;
   status?: string;
   created_at?: string;
 };
@@ -14,7 +16,7 @@ export interface TenantRecord {
   id: string | number;
   slug: string;
   name: string;
-  domain?: string;
+  host?: string;
   status: "active" | "inactive";
   createdAt: string;
 }
@@ -35,6 +37,23 @@ export async function getTenantById(id: string | number): Promise<TenantRecord |
   } catch { return null; }
 }
 
+export async function getTenantByHost(host: string): Promise<TenantRecord | null> {
+  const normalized = host.trim().toLowerCase().replace(/:\d+$/, "");
+  const data = await fetchBaserow<{ results: TenantRow[] }>(
+    `/api/database/rows/table/${BASEROW_TABLES.TENANTS}/?user_field_names=true&filter__host__equal=${encodeURIComponent(normalized)}`
+  );
+  const record = data.results[0];
+  if (!record) return null;
+  return mapTenantRowToRecord(record);
+}
+
+export async function listActiveTenants(): Promise<TenantRecord[]> {
+  const data = await fetchBaserow<{ results: TenantRow[] }>(
+    `/api/database/rows/table/${BASEROW_TABLES.TENANTS}/?user_field_names=true&size=200`
+  );
+  return data.results.map(mapTenantRowToRecord).filter((tenant) => tenant.status === "active");
+}
+
 export async function countTenants(): Promise<number> {
   const data = await fetchBaserow<{ count: number }>(`/api/database/rows/table/${BASEROW_TABLES.TENANTS}/?user_field_names=true&size=1`);
   return data.count;
@@ -43,7 +62,7 @@ export async function countTenants(): Promise<number> {
 export async function createTenant(input: {
   slug: string;
   name: string;
-  domain?: string | null;
+  host?: string | null;
 }) {
   const record = await fetchBaserow<TenantRow>(
     `/api/database/rows/table/${BASEROW_TABLES.TENANTS}/?user_field_names=true`,
@@ -52,8 +71,8 @@ export async function createTenant(input: {
       body: JSON.stringify({
         slug: input.slug,
         name: input.name,
-        domain: input.domain || "",
-        status: "active",
+        host: input.host || "",
+        Active: true,
         created_at: new Date().toISOString(),
       }),
     },
@@ -67,8 +86,8 @@ function mapTenantRowToRecord(row: TenantRow): TenantRecord {
     id: row.id ?? "",
     slug: row.slug ?? "",
     name: row.name ?? "",
-    domain: row.domain || "",
-    status: row.status === "active" ? "active" : "inactive",
+    host: row.host || row.domain || "",
+    status: row.Active === false || row.status === "inactive" ? "inactive" : "active",
     createdAt: row.created_at ?? "",
   };
 }

@@ -17,14 +17,14 @@ describe("vercel.json hardening headers", () => {
     expect(keys.has("Permissions-Policy")).toBe(true);
   });
 
-  test("enforces the production gate and single checkout route", () => {
+  test("enforces the production build command and single checkout route", () => {
     const raw = readFileSync("vercel.json", "utf8");
     const parsed = JSON.parse(raw) as {
       buildCommand?: string;
       rewrites?: Array<{ source: string; destination: string }>;
     };
 
-    expect(parsed.buildCommand).toBe("npm run gate");
+    expect(parsed.buildCommand).toBe("npm run build:deploy");
 
     const rewriteSources = new Set((parsed.rewrites || []).map((entry) => entry.source));
     expect(rewriteSources.has("/api/checkout")).toBe(true);

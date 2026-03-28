@@ -27,8 +27,8 @@ import { getRecipeImage, getRecipePresentation } from "@/lib/recipes/presentatio
 import SmartImage from "@/components/SmartImage";
 import { buildCartItemFromRecipe } from "@/lib/utils/recipeAccess";
 import { usePublicRecipes, useRecipeBySlug } from "@/features/recipes/use-recipes";
-import { exportRecipeToPDF } from "@/lib/recipes/export";
 import { RECENT_RECIPES_KEY } from "@/lib/constants";
+import { logger } from "@/lib/logger";
 
 type RatingState = {
   avg: number;
@@ -123,6 +123,11 @@ export default function RecipePage() {
   const favorite = isFavorite(recipe.id);
   const imageUrl = getRecipeImage(recipe);
   const presentation = getRecipePresentation(recipe);
+  const pageDescription =
+    recipe.seoDescription
+    || recipe.description
+    || presentation.cardSubtitle
+    || `Receita ${recipe.title} com ingredientes e modo de preparo.`;
   const unlocked = recipe.accessTier === "free" || Boolean(recipe.hasAccess);
   const showPaywall = !unlocked && recipe.accessTier === "paid";
   const ingredients = recipe.fullIngredients;
@@ -148,12 +153,13 @@ export default function RecipePage() {
         toast.error(error.message);
         return;
       }
-      console.error("Failed to save rating", error);
+      logger.error("recipe-rating", error);
       toast.error("Não foi possível salvar sua avaliação.");
     }
   }
 
-  function handleExportPdf() {
+  async function handleExportPdf() {
+    const { exportRecipeToPDF } = await import("@/lib/recipes/export");
     const opened = exportRecipeToPDF({
       recipe,
       ingredients: ingredients.map((ingredient) => scaleIngredient(ingredient, baseServings, currentServings)),
@@ -170,9 +176,10 @@ export default function RecipePage() {
     <FocusContainer isFocused={isFocused} onClose={() => setIsFocused(false)} className="container max-w-3xl px-4 py-8 sm:py-10 animate-in fade-in duration-500 print:py-0 print:max-w-none">
       <PageHead
         title={recipe.seoTitle || recipe.title}
-        description={recipe.seoDescription || recipe.description}
+        description={pageDescription}
         imageUrl={imageUrl}
         canonicalPath={`/receitas/${recipe.slug}`}
+        ogType="article"
       />
       {!isFocused && <ReadingProgress />}
 
@@ -226,6 +233,7 @@ export default function RecipePage() {
           <SmartImage
             src={imageUrl}
             alt={recipe.title}
+            sizes="(min-width: 1024px) 768px, 100vw"
             className="w-full max-h-[420px] object-cover transition-transform hover:scale-105 print:object-contain"
           />
           <div className="absolute right-3 top-3 print:hidden">

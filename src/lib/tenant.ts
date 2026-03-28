@@ -44,20 +44,11 @@ export function getCurrentTenantSlug(pathname?: string | null) {
         ? window.location.pathname
         : null;
 
-  if (!pathToInspect) {
-    return null;
-  }
+  if (!pathToInspect) return getStoredPwaTenantSlug();
 
   const pathTenant = extractTenantSlugFromPath(pathToInspect);
-  if (pathTenant) {
-    return pathTenant;
-  }
-
-  if (pathToInspect.startsWith("/pwa/")) {
-    return getStoredPwaTenantSlug();
-  }
-
-  return null;
+  if (pathTenant) return pathTenant;
+  return getStoredPwaTenantSlug();
 }
 
 export function clearStoredPwaTenantSlug() {

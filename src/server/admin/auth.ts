@@ -9,7 +9,7 @@ import { requireTenantFromRequest } from "../tenancy/resolver.js";
 import { getSession, createSession, revokeSession } from "../auth/sessions.js";
 import { auditLog } from "../audit/service.js";
 import { assertStrongAdminPassword, hashAdminPassword, verifyAdminPasswordHash } from "../auth/passwords.js";
-import { findUserByEmail, updateUserPasswordCredentials } from "../identity/repo.js";
+import { findUserByEmailForTenant, updateUserPasswordCredentials } from "../identity/repo.js";
 
 export type AdminSessionResponse = {
   authenticated: boolean;
@@ -141,7 +141,10 @@ export async function loginAdmin(
     throw new ApiError(400, "Email and password required");
   }
 
-  const user = await findUserByEmail(tenant.id, email);
+  const user = await findUserByEmailForTenant(
+    { id: tenant.id, slug: tenant.slug, name: tenant.name },
+    email,
+  );
   if (!user || !hasAdminRole(user.role)) {
     logger.warn("admin.login_failed", {
       action: "admin.login_failed",
@@ -149,6 +152,15 @@ export async function loginAdmin(
       tenantId: String(tenant.id),
     });
     throw new ApiError(401, "Invalid credentials or insufficient permissions");
+  }
+  if (user.status === "inactive") {
+    logger.warn("admin.login_failed", {
+      action: "admin.login_failed",
+      reason: "user_inactive",
+      tenantId: String(tenant.id),
+      userId: String(user.id),
+    });
+    throw new ApiError(403, "Inactive administrator");
   }
 
   let authenticated = false;
