@@ -7,9 +7,13 @@ import { upsertTenantMercadoPagoConnection } from "./connections.js";
 type OAuthStateRow = {
   id?: string | number;
   tenantId?: string | number;
+  tenant_id?: string | number;
   tenantUserId?: string | number;
+  tenant_user_id?: string | number;
   expiresAt?: string;
+  expires_at?: string;
   returnTo?: string | null;
+  return_to?: string | null;
 };
 
 type OAuthTokenResponse = {
@@ -26,6 +30,55 @@ function sanitizeReturnTo(value: string | undefined | null) {
   return value;
 }
 
+function isBadRequestError(error: unknown) {
+  if (!error || typeof error !== "object" || !("status" in error)) {
+    return false;
+  }
+  return Number((error as { status?: unknown }).status) === 400;
+}
+
+function normalizeOAuthStateRow(row: OAuthStateRow | undefined) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    tenantId: row.tenantId ?? row.tenant_id,
+    tenantUserId: row.tenantUserId ?? row.tenant_user_id,
+    expiresAt: row.expiresAt ?? row.expires_at,
+    returnTo: row.returnTo ?? row.return_to,
+  };
+}
+
+async function createOAuthStateRow(tableId: string | number, payload: {
+  tenantId: string;
+  tenantUserId: string;
+  stateHash: string;
+  expiresAt: string;
+  returnTo: string;
+}) {
+  const basePath = `/api/database/rows/table/${tableId}/?user_field_names=true`;
+  try {
+    await fetchBaserow(basePath, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  } catch (error) {
+    if (!isBadRequestError(error)) {
+      throw error;
+    }
+
+    await fetchBaserow(basePath, {
+      method: "POST",
+      body: JSON.stringify({
+        tenant_id: payload.tenantId,
+        tenant_user_id: payload.tenantUserId,
+        state_hash: payload.stateHash,
+        expires_at: payload.expiresAt,
+        return_to: payload.returnTo,
+      }),
+    });
+  }
+}
+
 export async function getMercadoPagoConnectUrl(tenantId: string | number, input: {
   tenantUserId?: string | null;
   returnTo?: string | null;
@@ -34,19 +87,28 @@ export async function getMercadoPagoConnectUrl(tenantId: string | number, input:
     throw new ApiError(500, "OAuth states table is not configured.");
   }
 
-  const { clientId, redirectUri } = await getMercadoPagoAppEnvAsync(String(tenantId));
+  let clientId = "";
+  let redirectUri = "";
+  try {
+    const appEnv = await getMercadoPagoAppEnvAsync(String(tenantId));
+    clientId = appEnv.clientId;
+    redirectUri = appEnv.redirectUri;
+  } catch {
+    throw new ApiError(
+      503,
+      "A configuração OAuth do Mercado Pago não está disponível. Verifique CLIENT_ID/CLIENT_SECRET.",
+    );
+  }
+
   const state = createOpaqueState();
   const stateHash = hashOpaqueState(state);
 
-  await fetchBaserow(`/api/database/rows/table/${BASEROW_TABLES.OAUTH_STATES}/?user_field_names=true`, {
-    method: "POST",
-    body: JSON.stringify({
-      tenantId: String(tenantId),
-      tenantUserId: input.tenantUserId ?? "system",
-      stateHash,
-      expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
-      returnTo: sanitizeReturnTo(input.returnTo),
-    }),
+  await createOAuthStateRow(BASEROW_TABLES.OAUTH_STATES, {
+    tenantId: String(tenantId),
+    tenantUserId: String(input.tenantUserId ?? "system"),
+    stateHash,
+    expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+    returnTo: sanitizeReturnTo(input.returnTo),
   });
 
   const url = new URL("https://auth.mercadopago.com/authorization");
@@ -68,10 +130,17 @@ export async function handleMercadoPagoOAuthCallback(code: string, state: string
   }
 
   const stateHash = hashOpaqueState(state);
-  const data = await fetchBaserow<{ results: OAuthStateRow[] }>(
-      `/api/database/rows/table/${BASEROW_TABLES.OAUTH_STATES}/?user_field_names=true&filter__stateHash__equal=${stateHash}`
+  const primaryData = await fetchBaserow<{ results: OAuthStateRow[] }>(
+      `/api/database/rows/table/${BASEROW_TABLES.OAUTH_STATES}/?user_field_names=true&filter__stateHash__equal=${encodeURIComponent(stateHash)}`
   );
-  const oauthState = data.results[0];
+  const fallbackData =
+    primaryData.results.length === 0
+      ? await fetchBaserow<{ results: OAuthStateRow[] }>(
+          `/api/database/rows/table/${BASEROW_TABLES.OAUTH_STATES}/?user_field_names=true&filter__state_hash__equal=${encodeURIComponent(stateHash)}`
+        )
+      : null;
+
+  const oauthState = normalizeOAuthStateRow((fallbackData?.results ?? primaryData.results)[0]);
   if (!oauthState) throw new ApiError(400, "OAuth state inválido ou expirado.");
   const tenantId = oauthState.tenantId != null ? String(oauthState.tenantId) : "";
   if (!tenantId) throw new ApiError(400, "OAuth state sem tenant.");
@@ -84,7 +153,21 @@ export async function handleMercadoPagoOAuthCallback(code: string, state: string
   // One-time state: consume it before exchanging the code to prevent replay.
   await fetchBaserow(`/api/database/rows/table/${BASEROW_TABLES.OAUTH_STATES}/${oauthState.id}/`, { method: "DELETE" });
 
-  const { clientId, clientSecret, redirectUri } = await getMercadoPagoAppEnvAsync(tenantId);
+  let clientId = "";
+  let clientSecret = "";
+  let redirectUri = "";
+  try {
+    const appEnv = await getMercadoPagoAppEnvAsync(tenantId);
+    clientId = appEnv.clientId;
+    clientSecret = appEnv.clientSecret;
+    redirectUri = appEnv.redirectUri;
+  } catch {
+    throw new ApiError(
+      503,
+      "A configuração OAuth do Mercado Pago não está disponível. Verifique CLIENT_ID/CLIENT_SECRET.",
+    );
+  }
+
   const tokenResponse = await fetch("https://api.mercadopago.com/oauth/token", {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },

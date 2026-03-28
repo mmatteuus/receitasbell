@@ -61,6 +61,22 @@ describe("mercado pago oauth service", () => {
     expect(result.state).toBeTruthy();
   });
 
+  test("faz fallback para schema snake_case ao persistir state OAuth", async () => {
+    const badRequest = Object.assign(new Error("bad request"), { status: 400 });
+    baserowMock.fetchBaserow
+      .mockRejectedValueOnce(badRequest)
+      .mockResolvedValueOnce({ id: "state-row-snake" });
+
+    await createMercadoPagoOAuthStart("tenant-1", {
+      tenantUserId: "user-1",
+      returnTo: "/admin/custom",
+    });
+
+    expect(baserowMock.fetchBaserow).toHaveBeenCalledTimes(2);
+    expect(String(baserowMock.fetchBaserow.mock.calls[0]?.[1]?.body || "")).toContain("\"tenantId\"");
+    expect(String(baserowMock.fetchBaserow.mock.calls[1]?.[1]?.body || "")).toContain("\"tenant_id\"");
+  });
+
   test("conclui callback, consome state e persiste conexao", async () => {
     // 1. Mock finding the state in Baserow
     baserowMock.fetchBaserow.mockResolvedValueOnce({
