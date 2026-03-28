@@ -11,6 +11,7 @@ type RecipeRow = {
   image?: string | null;
   image_file_meta_json?: string | null;
   categoryId?: string;
+  category_id?: string;
   tags_json?: string | null;
   status?: string;
   prep_time?: string | number;
@@ -33,6 +34,7 @@ type RecipeRow = {
   published_at?: string | null;
   created_by_user_id?: string | number | null;
   tenantId?: string | number;
+  tenant_id?: string | number;
 };
 
 export type RecipeListTier = "all" | "free" | "paid";
@@ -74,6 +76,38 @@ function sortRecipes(recipes: RecipeRecord[], order: RecipeListOrder) {
   });
 }
 
+function buildListUrl(
+  tenantId: string | number,
+  options: {
+    includeDrafts?: boolean;
+    categorySlug?: string;
+    q?: string;
+    tier?: RecipeListTier;
+  },
+  fields: { tenant: "tenantId" | "tenant_id"; category: "categoryId" | "category_id" },
+) {
+  let url = `/api/database/rows/table/${BASEROW_TABLES.RECIPES}/?user_field_names=true&filter__${fields.tenant}__equal=${encodeURIComponent(String(tenantId))}`;
+
+  if (options.categorySlug && options.categorySlug !== "all") {
+    url += `&filter__${fields.category}__equal=${encodeURIComponent(options.categorySlug)}`;
+  }
+  if (options.q) {
+    url += `&filter__title__contains=${encodeURIComponent(options.q)}`;
+  }
+  if (options.tier && options.tier !== "all") {
+    url += `&filter__access_tier__equal=${encodeURIComponent(options.tier)}`;
+  }
+
+  return url;
+}
+
+function parseStatus(value: unknown): "published" | "draft" {
+  const normalized = String(value ?? "")
+    .trim()
+    .toLowerCase();
+  return normalized === "published" || normalized === "publicado" ? "published" : "draft";
+}
+
 export async function listRecipes(tenantId: string | number, options: { 
   includeDrafts?: boolean;
   categorySlug?: string;
@@ -83,15 +117,21 @@ export async function listRecipes(tenantId: string | number, options: {
   tempo?: RecipeListTempo;
   ordem?: RecipeListOrder;
 } = {}): Promise<RecipeRecord[]> {
-  let url = `/api/database/rows/table/${BASEROW_TABLES.RECIPES}/?user_field_names=true&filter__tenantId__equal=${tenantId}`;
-  
-  if (!options.includeDrafts) url += "&filter__status__equal=published";
-  if (options.categorySlug && options.categorySlug !== "all") url += `&filter__categoryId__equal=${encodeURIComponent(options.categorySlug)}`;
-  if (options.q) url += `&filter__title__contains=${encodeURIComponent(options.q)}`;
-  if (options.tier && options.tier !== "all") url += `&filter__access_tier__equal=${encodeURIComponent(options.tier)}`;
+  const primaryUrl = buildListUrl(tenantId, options, { tenant: "tenantId", category: "categoryId" });
+  const primaryData = await fetchBaserow<{ results: RecipeRow[] }>(primaryUrl);
 
-  const data = await fetchBaserow<{ results: RecipeRow[] }>(url);
-  let recipes = data.results.map(record => mapRecipeRowToRecord(record));
+  const fallbackData =
+    primaryData.results.length === 0
+      ? await fetchBaserow<{ results: RecipeRow[] }>(
+          buildListUrl(tenantId, options, { tenant: "tenant_id", category: "category_id" }),
+        )
+      : null;
+
+  let recipes = (fallbackData?.results ?? primaryData.results).map((record) => mapRecipeRowToRecord(record));
+
+  if (!options.includeDrafts) {
+    recipes = recipes.filter((recipe) => recipe.status === "published");
+  }
 
   if (options.ids?.length) {
     const wanted = new Set(options.ids.map((id) => String(id)));
@@ -108,10 +148,16 @@ export async function listRecipes(tenantId: string | number, options: {
 }
 
 export async function getRecipeBySlug(tenantId: string | number, slug: string): Promise<RecipeRecord | null> {
-  const data = await fetchBaserow<{ results: RecipeRow[] }>(
-    `/api/database/rows/table/${BASEROW_TABLES.RECIPES}/?user_field_names=true&filter__tenantId__equal=${tenantId}&filter__slug__equal=${slug}`
+  const primaryData = await fetchBaserow<{ results: RecipeRow[] }>(
+    `/api/database/rows/table/${BASEROW_TABLES.RECIPES}/?user_field_names=true&filter__tenantId__equal=${encodeURIComponent(String(tenantId))}&filter__slug__equal=${encodeURIComponent(slug)}`
   );
-  const record = data.results[0];
+  const fallbackData =
+    primaryData.results.length === 0
+      ? await fetchBaserow<{ results: RecipeRow[] }>(
+          `/api/database/rows/table/${BASEROW_TABLES.RECIPES}/?user_field_names=true&filter__tenant_id__equal=${encodeURIComponent(String(tenantId))}&filter__slug__equal=${encodeURIComponent(slug)}`
+        )
+      : null;
+  const record = (fallbackData?.results ?? primaryData.results)[0];
   if (!record) return null;
   return mapRecipeRowToRecord(record);
 }
@@ -119,7 +165,8 @@ export async function getRecipeBySlug(tenantId: string | number, slug: string): 
 export async function getRecipeById(tenantId: string | number, id: string | number): Promise<RecipeRecord | null> {
   try {
     const record = await fetchBaserow<RecipeRow>(`/api/database/rows/table/${BASEROW_TABLES.RECIPES}/${id}/?user_field_names=true`);
-    if (String(record.tenantId) !== String(tenantId)) return null;
+    const rowTenantId = record.tenantId ?? record.tenant_id;
+    if (rowTenantId != null && String(rowTenantId) !== String(tenantId)) return null;
     return mapRecipeRowToRecord(record);
   } catch (err) {
     return null;
@@ -143,9 +190,9 @@ function mapRecipeRowToRecord(row: RecipeRow): RecipeRecord {
     description: row.description ?? "",
     imageUrl: row.image || null,
     imageFileMeta: parseJson(row.image_file_meta_json, null),
-    categorySlug: row.categoryId ?? "",
+    categorySlug: row.categoryId ?? row.category_id ?? "",
     tags: parseJson(row.tags_json, []),
-    status: row.status === "published" ? "published" : "draft",
+    status: parseStatus(row.status),
     prepTime: Number(row.prep_time || 0),
     cookTime: Number(row.cook_time || 0),
     totalTime: Number(row.total_time || 0),

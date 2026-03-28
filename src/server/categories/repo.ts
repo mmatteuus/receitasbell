@@ -9,6 +9,7 @@ type CategoryRow = {
   description?: string | null;
   created_at?: string;
   tenantId?: string | number;
+  tenant_id?: string | number;
 };
 
 export interface Category {
@@ -20,10 +21,21 @@ export interface Category {
   tenantId: string | number;
 }
 
-export async function listCategories(tenantId: string | number): Promise<Category[]> {
-  const data = await fetchBaserow<{ results: CategoryRow[] }>(
-    `/api/database/rows/table/${BASEROW_TABLES.CATEGORIES}/?user_field_names=true&filter__tenantId__equal=${tenantId}`
+async function fetchCategoryRowsByTenant(
+  tenantId: string | number,
+  tenantField: "tenantId" | "tenant_id",
+) {
+  return fetchBaserow<{ results: CategoryRow[] }>(
+    `/api/database/rows/table/${BASEROW_TABLES.CATEGORIES}/?user_field_names=true&filter__${tenantField}__equal=${encodeURIComponent(String(tenantId))}`
   );
+}
+
+export async function listCategories(tenantId: string | number): Promise<Category[]> {
+  const primary = await fetchCategoryRowsByTenant(tenantId, "tenantId");
+  const data =
+    primary.results.length === 0
+      ? await fetchCategoryRowsByTenant(tenantId, "tenant_id")
+      : primary;
   
   if (data.results.length === 0 && tenantId === "system") {
       return DEFAULT_CATEGORIES.map(c => ({ ...c, tenantId: "system" })) as Category[];
@@ -33,9 +45,15 @@ export async function listCategories(tenantId: string | number): Promise<Categor
 }
 
 export async function getCategoryBySlug(tenantId: string | number, slug: string): Promise<Category | null> {
-  const data = await fetchBaserow<{ results: CategoryRow[] }>(
-    `/api/database/rows/table/${BASEROW_TABLES.CATEGORIES}/?user_field_names=true&filter__tenantId__equal=${tenantId}&filter__slug__equal=${slug}`
+  const primary = await fetchBaserow<{ results: CategoryRow[] }>(
+    `/api/database/rows/table/${BASEROW_TABLES.CATEGORIES}/?user_field_names=true&filter__tenantId__equal=${encodeURIComponent(String(tenantId))}&filter__slug__equal=${encodeURIComponent(slug)}`
   );
+  const data =
+    primary.results.length === 0
+      ? await fetchBaserow<{ results: CategoryRow[] }>(
+          `/api/database/rows/table/${BASEROW_TABLES.CATEGORIES}/?user_field_names=true&filter__tenant_id__equal=${encodeURIComponent(String(tenantId))}&filter__slug__equal=${encodeURIComponent(slug)}`
+        )
+      : primary;
   if (!data.results[0]) return null;
   return mapCategoryRowToRecord(data.results[0]);
 }
@@ -51,7 +69,8 @@ export async function createCategory(tenantId: string | number, input: { name: s
 export async function updateCategory(tenantId: string | number, id: string | number, input: Partial<{ name: string; slug: string; description: string }>): Promise<Category> {
     // Security check: verify ownership
     const existing = await fetchBaserow<CategoryRow>(`/api/database/rows/table/${BASEROW_TABLES.CATEGORIES}/${id}/?user_field_names=true`);
-    if (String(existing.tenantId) !== String(tenantId)) {
+    const rowTenantId = existing.tenantId ?? existing.tenant_id;
+    if (rowTenantId != null && String(rowTenantId) !== String(tenantId)) {
         throw new Error("Category not found or does not belong to this tenant");
     }
 
@@ -65,7 +84,8 @@ export async function updateCategory(tenantId: string | number, id: string | num
 export async function deleteCategory(tenantId: string | number, id: string | number): Promise<void> {
     // Security check: verify ownership
     const existing = await fetchBaserow<CategoryRow>(`/api/database/rows/table/${BASEROW_TABLES.CATEGORIES}/${id}/?user_field_names=true`);
-    if (String(existing.tenantId) !== String(tenantId)) {
+    const rowTenantId = existing.tenantId ?? existing.tenant_id;
+    if (rowTenantId != null && String(rowTenantId) !== String(tenantId)) {
         throw new Error("Category not found or does not belong to this tenant");
     }
 
@@ -79,6 +99,6 @@ function mapCategoryRowToRecord(record: CategoryRow): Category {
         name: record.name ?? "",
         description: record.description ?? "",
         createdAt: record.created_at ?? "",
-        tenantId: record.tenantId ?? "",
+        tenantId: record.tenantId ?? record.tenant_id ?? "",
     };
 }
