@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__claude_ai_baserow__list_tables",
+      "mcp__claude_ai_baserow__list_table_rows",
+      "Bash(curl -s -X POST \"https://api.baserow.io/api/database/tables/database/399490/\" -H \"Authorization: Token Z0IXS0fFqiot6iXXzxxTAwB327CUWQRj\" -H \"Content-Type: application/json\" -d '{\"\"name\"\": \"\"Sessions\"\"}')",
+      "Bash(curl -s \"https://api.baserow.io/api/database/rows/table/896979/?user_field_names=true&size=1\" -H \"Authorization: Token Z0IXS0fFqiot6iXXzxxTAwB327CUWQRj\")",
+      "mcp__claude_ai_baserow__delete_table_row",
+      "Bash(vercel --version)",
+      "mcp__claude_ai_baserow__update_row_table_896984",
+      "Bash(vercel whoami:*)",
+      "Bash(vercel env:*)",
+      "Bash(grep -E \"OAUTH|MP_CONNECTIONS|TABLE_USERS$\" .env.prod.tmp)",
+      "Bash(rm -f .env.prod.tmp)"
+    ]
+  }
+}
