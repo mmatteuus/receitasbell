@@ -34,7 +34,7 @@ export const baserowTables = {
     return reqId("BASEROW_TABLE_SETTINGS", env.BASEROW_TABLE_SETTINGS);
   },
   get paymentOrders() {
-    return optionalId("BASEROW_TABLE_PAYMENT_ORDERS", env.BASEROW_TABLE_PAYMENT_ORDERS);
+    return reqId("BASEROW_TABLE_PAYMENT_ORDERS", env.BASEROW_TABLE_PAYMENT_ORDERS);
   },
   get paymentEvents() {
     return reqId("BASEROW_TABLE_PAYMENT_EVENTS", env.BASEROW_TABLE_PAYMENT_EVENTS);

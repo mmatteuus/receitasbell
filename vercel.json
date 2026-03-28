@@ -63,6 +63,7 @@
     }
   ],
   "rewrites": [
+    { "source": "/api/health", "destination": "/api/health/live" },
     { "source": "/api/checkout", "destination": "/api/checkout/create" },
 
     { "source": "/(@vite|src|node_modules)/:path*", "destination": "/$1/:path*" },
