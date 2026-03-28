@@ -65,6 +65,22 @@
   "rewrites": [
     { "source": "/api/health", "destination": "/api/health/live" },
     { "source": "/api/checkout", "destination": "/api/checkout/create" },
+    {
+      "source": "/api/admin/payments/settings",
+      "destination": "/api/admin/payments?path=payments/settings"
+    },
+    {
+      "source": "/api/admin/payments/:id/note",
+      "destination": "/api/admin/payments?path=payments/:id/note"
+    },
+    {
+      "source": "/api/admin/payments/:id",
+      "destination": "/api/admin/payments?path=payments/:id"
+    },
+    {
+      "source": "/api/admin/mercadopago/:action",
+      "destination": "/api/admin/payments?path=mercadopago/:action"
+    },
 
     { "source": "/(@vite|src|node_modules)/:path*", "destination": "/$1/:path*" },
     {

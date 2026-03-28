@@ -22,6 +22,7 @@ export default {
       fontFamily: {
         heading: ['"Playfair Display"', "serif"],
         sans: ['"DM Sans"', "sans-serif"],
+        serif: ['"DM Serif Display"', "serif"],
       },
       colors: {
         border: "hsl(var(--border))",

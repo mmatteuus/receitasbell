@@ -25,14 +25,14 @@ Flags úteis:
 - `--allow-weak-password-migration`: permite migrar senhas legadas fracas para hash (não recomendado).
 - `--database-id`, `--api-token`, `--email`, `--password`: alternativas para não depender de env no shell.
 
-Uso rápido do script `sse-listener.js` para conectar a um endpoint SSE e gravar eventos em JSONL.
+Uso rápido do script `sse-listener.cjs` para conectar a um endpoint SSE e gravar eventos em JSONL.
 
 Exemplos:
 
 1) Executar diretamente com URL e arquivo de saída:
 
 ```bash
-node scripts/sse-listener.js https://api.baserow.io/mcp/Fsl5g1tHWCLi7qRfQAoF9UPxG2X2OHJK/sse sse-events.jsonl
+node scripts/sse-listener.cjs https://api.baserow.io/mcp/Fsl5g1tHWCLi7qRfQAoF9UPxG2X2OHJK/sse sse-events.jsonl
 ```
 
 2) Usar variáveis de ambiente (útil para tokens):
@@ -41,7 +41,7 @@ node scripts/sse-listener.js https://api.baserow.io/mcp/Fsl5g1tHWCLi7qRfQAoF9UPx
 export SSE_URL="https://.../sse"
 export SSE_OUT="meus-eventos.jsonl"
 export SSE_HEADERS='{"Authorization":"Bearer TOKEN"}'
-node scripts/sse-listener.js
+node scripts/sse-listener.cjs
 ```
 
 No Windows PowerShell:
@@ -50,7 +50,7 @@ No Windows PowerShell:
 $env:SSE_URL = "https://.../sse"
 $env:SSE_OUT = "meus-eventos.jsonl"
 $env:SSE_HEADERS = '{"Authorization":"Bearer TOKEN"}'
-node scripts/sse-listener.js
+node scripts/sse-listener.cjs
 ```
 
 Formato de saída:

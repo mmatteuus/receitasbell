@@ -4,9 +4,10 @@ import type { Payment as AdminPayment, PaymentEvent, PaymentNote } from "../../l
 import type { PaymentStatus as AppPaymentStatus } from "../../types/payment.js";
 import type { RecipeRecord } from "../../lib/recipes/types.js";
 import { listEntitlementsByEmail, type Entitlement as ServerEntitlement } from "../identity/entitlements.repo.js";
-import { baserowFetch } from "../integrations/baserow/client.js";
+import { BaserowError, baserowFetch } from "../integrations/baserow/client.js";
 import { baserowTables } from "../integrations/baserow/tables.js";
 import { listRecipes } from "../recipes/repo.js";
+import { ApiError } from "../shared/http.js";
 
 export type PaymentStatus =
   | "created"
@@ -127,6 +128,40 @@ type CreatePaymentNoteInput = {
 
 const DEFAULT_PAGE_SIZE = 200;
 const PAYMENT_NOTE_ACTION = "payment.note_added";
+const PAYMENT_ORDERS_TABLE_ENV_NAME = "BASEROW_TABLE_PAYMENT_ORDERS";
+
+function isMissingTableError(error: unknown) {
+  if (!(error instanceof BaserowError) || error.status !== 404) {
+    return false;
+  }
+
+  const body = error.body;
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return false;
+  }
+
+  return (body as { error?: unknown }).error === "ERROR_TABLE_DOES_NOT_EXIST";
+}
+
+function normalizePaymentOrdersError(error: unknown): never {
+  if (isMissingTableError(error)) {
+    throw new ApiError(503, "Payments storage is not configured.", {
+      code: "payments_storage_not_configured",
+      tableEnv: PAYMENT_ORDERS_TABLE_ENV_NAME,
+      tableId: baserowTables.paymentOrders,
+    });
+  }
+
+  throw error;
+}
+
+async function paymentOrdersFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  try {
+    return await baserowFetch<T>(path, init);
+  } catch (error) {
+    normalizePaymentOrdersError(error);
+  }
+}
 
 export async function createPaymentOrder(
   tenantId: string,
@@ -145,7 +180,7 @@ export async function createPaymentOrder(
   },
 ): Promise<PaymentRecord> {
   const now = new Date().toISOString();
-  const record = await baserowFetch<PaymentOrderRow>(
+  const record = await paymentOrdersFetch<PaymentOrderRow>(
     `/api/database/rows/table/${baserowTables.paymentOrders}/?user_field_names=true`,
     {
       method: "POST",
@@ -175,13 +210,19 @@ export async function getPaymentOrderById(
   id: string | number,
 ): Promise<PaymentRecord | null> {
   try {
-    const row = await baserowFetch<PaymentOrderRow>(
+    const row = await paymentOrdersFetch<PaymentOrderRow>(
       `/api/database/rows/table/${baserowTables.paymentOrders}/${id}/?user_field_names=true`,
     );
     if (String(row.tenant_id) !== String(tenantId)) return null;
     return mapRowToPayment(row);
-  } catch {
-    return null;
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error;
+    }
+    if (error instanceof BaserowError && error.status === 404) {
+      return null;
+    }
+    throw error;
   }
 }
 
@@ -189,7 +230,7 @@ export async function getPaymentOrderByExternalReference(
   tenantId: string,
   externalReference: string,
 ): Promise<PaymentRecord | null> {
-  const data = await baserowFetch<{ results: PaymentOrderRow[] }>(
+  const data = await paymentOrdersFetch<{ results: PaymentOrderRow[] }>(
     `/api/database/rows/table/${baserowTables.paymentOrders}/?user_field_names=true&filter__tenant_id__equal=${encodeURIComponent(tenantId)}&filter__external_reference__equal=${encodeURIComponent(externalReference)}`,
   );
   const row = data.results[0];
@@ -200,7 +241,7 @@ export async function findPaymentOrderByIdempotencyKey(
   tenantId: string,
   idempotencyKey: string,
 ): Promise<PaymentRecord | null> {
-  const data = await baserowFetch<{ results: PaymentOrderRow[] }>(
+  const data = await paymentOrdersFetch<{ results: PaymentOrderRow[] }>(
     `/api/database/rows/table/${baserowTables.paymentOrders}/?user_field_names=true&filter__tenant_id__equal=${encodeURIComponent(tenantId)}&filter__idempotency_key__equal=${encodeURIComponent(idempotencyKey)}`,
   );
   const row = data.results[0];
@@ -219,7 +260,7 @@ export async function updatePaymentOrderStatus(
   };
   if (mpPaymentId) payload.mp_payment_id = mpPaymentId;
 
-  await baserowFetch(`/api/database/rows/table/${baserowTables.paymentOrders}/${id}/?user_field_names=true`, {
+  await paymentOrdersFetch(`/api/database/rows/table/${baserowTables.paymentOrders}/${id}/?user_field_names=true`, {
     method: "PATCH",
     body: JSON.stringify(payload),
   });
@@ -230,7 +271,7 @@ export async function setPaymentOrderExternalReference(
   id: string | number,
   externalReference: string,
 ): Promise<void> {
-  await baserowFetch(`/api/database/rows/table/${baserowTables.paymentOrders}/${id}/?user_field_names=true`, {
+  await paymentOrdersFetch(`/api/database/rows/table/${baserowTables.paymentOrders}/${id}/?user_field_names=true`, {
     method: "PATCH",
     body: JSON.stringify({
       external_reference: externalReference,
@@ -244,7 +285,7 @@ export async function setPaymentOrderPreferenceId(
   id: string | number,
   preferenceId: string,
 ): Promise<void> {
-  await baserowFetch(`/api/database/rows/table/${baserowTables.paymentOrders}/${id}/?user_field_names=true`, {
+  await paymentOrdersFetch(`/api/database/rows/table/${baserowTables.paymentOrders}/${id}/?user_field_names=true`, {
     method: "PATCH",
     body: JSON.stringify({
       preference_id: preferenceId,

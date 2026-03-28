@@ -3,7 +3,7 @@
 Este documento serve como a "Fonte da Verdade" para o estado atual do projeto após a execução do plano de limpeza e profissionalização da infraestrutura. Use este contexto ao iniciar novas conversas.
 
 ## 🏗️ Arquitetura Atual (ESM & Multi-tenant)
-- **Unificação:** Todas as branches foram fundidas na `main`. Código legado foi movido para `src/_legacy`.
+- **Unificação:** Todas as branches foram fundidas na `main`. O legado isolado de `src/_legacy` foi removido após validação das rotas oficiais.
 - **Backend:** Rotas puras em TypeScript no `/api/`, seguindo os padrões do Vercel Node Runtime.
 - **Banco de Dados:** Multi-tenant via **Baserow**. Todos os repositórios em `src/server/` usam o cliente consolidado (`fetchBaserow`).
 - **Segurança:** 
@@ -29,7 +29,7 @@ As seguintes variáveis de ambiente foram configuradas na Vercel com estes IDs:
 ## 🚀 Pendências e Próximos Passos
 1. **Redeploy na Vercel:** Os builds estão travados por cota excedida (12m/12m gastos). É necessário aguardar o reset ou adquirir minutos adicionais para que o código pushado comece a rodar.
 2. **Hardening de Frontend:** Revisar se as chamadas de API do admin já incluem o header `x-csrf-token`.
-3. **Limpeza Legada:** Analisar se os arquivos em `src/_legacy` podem ser deletados definitivamente após validação das novas rotas.
+3. **Limpeza Legada:** manter a política de evitar reintrodução de código legado fora do fluxo oficial.
 
 ---
 *Contexto gerado para agilizar o setup de novas sessões de IA.*

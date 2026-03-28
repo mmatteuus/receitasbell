@@ -80,7 +80,7 @@ Baseado no estado atual do repo em 2026-03-25, cruzando a arvore de arquivos com
 
 | Path | Status | Acao | Motivo | Risco | Criterio de aceite |
 | --- | --- | --- | --- | --- | --- |
-| `src/_legacy/**` | quarentena | manter isolado por enquanto | legado ja esta fora do build e documentado como rollback | baixo | segue excluido do TypeScript e sem imports vivos |
+| `src/_legacy/**` | quarentena | remover ao final da fase | legado ja estava fora do build, sem imports vivos e sem papel operacional atual | baixo | repositorio sem arvore legacy isolada nem referencias vivas |
 
 ## Nao remover nesta fase
 
@@ -106,5 +106,5 @@ Baseado no estado atual do repo em 2026-03-25, cruzando a arvore de arquivos com
 - nao ha barrel sem uso em `src/features/`;
 - nao ha alias morto em `src/lib/`;
 - nao ha redirect legacy no router do admin;
-- `src/_legacy/**` permanece isolado e sem imports vivos;
+- `src/_legacy/**` foi removido sem imports vivos remanescentes;
 - o gate tecnico continua verde: lint, typecheck e build.

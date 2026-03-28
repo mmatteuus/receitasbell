@@ -1,6 +1,17 @@
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 const baserowFetch = vi.hoisted(() => vi.fn());
+const BaserowErrorMock = vi.hoisted(() => class BaserowError extends Error {
+  status: number;
+  body?: unknown;
+
+  constructor(status: number, message: string, body?: unknown) {
+    super(message);
+    this.name = 'BaserowError';
+    this.status = status;
+    this.body = body;
+  }
+});
 const recipesMock = vi.hoisted(() => ({
   listRecipes: vi.fn(),
 }));
@@ -8,7 +19,10 @@ const entitlementsMock = vi.hoisted(() => ({
   listEntitlementsByEmail: vi.fn(),
 }));
 
-vi.mock('../src/server/integrations/baserow/client.js', () => ({ baserowFetch }));
+vi.mock('../src/server/integrations/baserow/client.js', () => ({
+  baserowFetch,
+  BaserowError: BaserowErrorMock,
+}));
 vi.mock('../src/server/integrations/baserow/tables.js', () => ({
   baserowTables: {
     paymentOrders: 'paymentOrders',
@@ -269,6 +283,20 @@ describe('admin payments repo', () => {
       created_by_user_id: 'admin-1',
       created_at: '2026-03-25T10:07:00.000Z',
       updated_at: '2026-03-25T10:07:00.000Z',
+    });
+  });
+
+  test('explicita erro de configuracao quando a tabela de payment orders nao existe', async () => {
+    baserowFetch.mockRejectedValue(
+      new BaserowErrorMock(404, 'Baserow HTTP 404', { error: 'ERROR_TABLE_DOES_NOT_EXIST' }),
+    );
+
+    await expect(listPayments('tenant-1')).rejects.toMatchObject({
+      status: 503,
+      details: expect.objectContaining({
+        code: 'payments_storage_not_configured',
+        tableEnv: 'BASEROW_TABLE_PAYMENT_ORDERS',
+      }),
     });
   });
 });

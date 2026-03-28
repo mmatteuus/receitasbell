@@ -32,8 +32,6 @@
     "src/server"
   ],
   "exclude": [
-    "src/_legacy/**",
-    "api/_legacy/**",
     "**/*.legacy.*"
   ]
 }
