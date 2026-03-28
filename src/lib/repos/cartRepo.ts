@@ -10,42 +10,52 @@ function canUseStorage() {
   return typeof window !== "undefined" && typeof localStorage !== "undefined";
 }
 
-function read(): CartItem[] {
-  if (!canUseStorage()) {
+function normalize(items: CartItem[]): CartItem[] {
+  return items.map((item) => ({ ...item }));
+}
+
+function sanitizeCartItems(parsed: unknown): CartItem[] {
+  if (!Array.isArray(parsed)) {
     return [];
+  }
+
+  return parsed.filter(
+    (item): item is CartItem =>
+      item &&
+      typeof item === "object" &&
+      typeof item.recipeId === "string" &&
+      typeof item.title === "string" &&
+      typeof item.slug === "string" &&
+      typeof item.priceBRL === "number" &&
+      typeof item.quantity === "number" &&
+      (typeof item.imageUrl === "string" || item.imageUrl === null),
+  );
+}
+
+function readSnapshot(): CartItem[] {
+  if (!canUseStorage()) {
+    return cachedItems;
   }
 
   try {
     const raw = localStorage.getItem(KEY) || "[]";
     if (raw === cachedRaw) {
-      return cachedItems.map((item) => ({ ...item }));
+      return cachedItems;
     }
 
     const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) {
-      cachedRaw = "[]";
-      cachedItems = [];
-      return [];
-    }
-
-    cachedItems = parsed.filter(
-      (item): item is CartItem =>
-        item &&
-        typeof item === "object" &&
-        typeof item.recipeId === "string" &&
-        typeof item.title === "string" &&
-        typeof item.slug === "string" &&
-        typeof item.priceBRL === "number" &&
-        typeof item.quantity === "number" &&
-        (typeof item.imageUrl === "string" || item.imageUrl === null),
-    );
+    cachedItems = sanitizeCartItems(parsed);
     cachedRaw = raw;
-    return cachedItems.map((item) => ({ ...item }));
+    return cachedItems;
   } catch {
     cachedRaw = "[]";
     cachedItems = [];
-    return [];
+    return cachedItems;
   }
+}
+
+function read(): CartItem[] {
+  return normalize(readSnapshot());
 }
 
 function write(items: CartItem[]) {
@@ -53,9 +63,10 @@ function write(items: CartItem[]) {
     return;
   }
 
-  const raw = JSON.stringify(items);
+  const nextItems = normalize(items);
+  const raw = JSON.stringify(nextItems);
   cachedRaw = raw;
-  cachedItems = items;
+  cachedItems = nextItems;
   localStorage.setItem(KEY, raw);
   window.dispatchEvent(new Event(CART_UPDATED_EVENT));
 }
@@ -76,6 +87,10 @@ function subscribe(onStoreChange: () => void) {
 
 function list() {
   return read();
+}
+
+function snapshot() {
+  return readSnapshot();
 }
 
 function add(item: CartItem) {
@@ -126,6 +141,7 @@ function getTotal() {
 
 export const cartRepo = {
   subscribe,
+  snapshot,
   list,
   add,
   remove,

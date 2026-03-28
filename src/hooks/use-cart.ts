@@ -1,10 +1,11 @@
-import { useCallback, useSyncExternalStore } from "react";
+import { useCallback, useMemo, useSyncExternalStore } from "react";
 import type { CartItem } from "@/types/cart";
 import { cartRepo } from "@/lib/repos/cartRepo";
 import { trackEvent } from "@/lib/telemetry";
 
 export function useCart() {
-  const items = useSyncExternalStore(cartRepo.subscribe, cartRepo.list, cartRepo.list);
+  const snapshot = useSyncExternalStore(cartRepo.subscribe, cartRepo.snapshot, cartRepo.snapshot);
+  const items = useMemo(() => snapshot.map((item) => ({ ...item })), [snapshot]);
 
   const add = useCallback((item: CartItem) => {
     cartRepo.add(item);

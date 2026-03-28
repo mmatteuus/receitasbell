@@ -16,7 +16,7 @@ export function useFavoritesProvider({ identityEmail, requireIdentity, onIdentit
 
   const refreshFavorites = useCallback(async () => {
     if (!identityEmail) {
-      setFavoriteRecords([]);
+      setFavoriteRecords((current) => (current.length === 0 ? current : []));
       return [];
     }
 
@@ -41,7 +41,7 @@ export function useFavoritesProvider({ identityEmail, requireIdentity, onIdentit
 
   useEffect(() => {
     if (!identityEmail) {
-      setFavoriteRecords([]);
+      setFavoriteRecords((current) => (current.length === 0 ? current : []));
       return;
     }
 

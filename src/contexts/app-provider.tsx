@@ -1,4 +1,4 @@
-import { useMemo, type PropsWithChildren } from "react";
+import { useCallback, useMemo, type PropsWithChildren } from "react";
 import { toast } from "sonner";
 import { ApiClientError } from "@/lib/api/client";
 import { AppContext, type AppContextValue } from "@/contexts/app-context";
@@ -11,10 +11,15 @@ export function AppProvider({ children }: PropsWithChildren) {
   const bootstrap = useAppBootstrapProvider();
   const identity = useIdentityProvider();
   const theme = useThemeProvider();
+  const { setIdentityEmail } = identity;
+  const handleIdentityExpired = useCallback(() => {
+    setIdentityEmail(null);
+  }, [setIdentityEmail]);
+
   const favorites = useFavoritesProvider({
     identityEmail: identity.identityEmail,
     requireIdentity: identity.requireIdentity,
-    onIdentityExpired: () => identity.setIdentityEmail(null),
+    onIdentityExpired: handleIdentityExpired,
   });
   const {
     favoriteRecords,
