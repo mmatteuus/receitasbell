@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Clock, Users, Heart, ShoppingCart } from "lucide-react";
 import type { RecipeRecord } from "@/lib/recipes/types";
 import { PriceBadge } from "@/components/price-badge";
@@ -11,12 +11,15 @@ import { useAppContext } from "@/contexts/app-context";
 import { resolveCategoryDisplay } from "@/lib/categoriesDisplay";
 import SmartImage from "@/components/SmartImage";
 import { buildCartItemFromRecipe } from "@/lib/utils/recipeAccess";
+import { buildPwaPath } from "@/pwa/app/navigation/pwa-paths";
+import { resolvePwaTenantSlug } from "@/pwa/app/tenant/pwa-tenant-path";
 
 interface RecipeCardProps {
   recipe: RecipeRecord;
 }
 
 export default function RecipeCard({ recipe }: RecipeCardProps) {
+  const location = useLocation();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { has: inCart, add: addToCart } = useCart();
   const { categories } = useAppContext();
@@ -27,6 +30,10 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
   const imageUrl = getRecipeImage(recipe);
   const presentation = getRecipePresentation(recipe);
   const category = resolveCategoryDisplay(categories, recipe.categorySlug);
+  const tenantSlug = resolvePwaTenantSlug(location.pathname);
+  const recipePath = location.pathname.includes("/pwa")
+    ? buildPwaPath("recipe", { tenantSlug, slug: recipe.slug })
+    : `/receitas/${recipe.slug}`;
 
   function handleMouseMove(e: React.MouseEvent<HTMLDivElement>) {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -39,7 +46,7 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
       className="card-glow group relative flex flex-col overflow-hidden rounded-2xl border bg-card shadow-sm transition-all duration-500 hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/5"
       onMouseMove={handleMouseMove}
     >
-      <Link to={`/receitas/${recipe.slug}`} className="relative aspect-[4/3] overflow-hidden">
+      <Link to={recipePath} className="relative aspect-[4/3] overflow-hidden">
         <SmartImage
           src={imageUrl}
           alt={recipe.title}
@@ -73,7 +80,7 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
           </Badge>
         </div>
 
-        <Link to={`/receitas/${recipe.slug}`} className="link-underline">
+        <Link to={recipePath} className="link-underline">
           <h3 className="line-clamp-2 font-heading text-base font-bold leading-tight text-foreground sm:text-lg">
             {presentation.cardTitle}
           </h3>

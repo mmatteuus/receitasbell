@@ -1,14 +1,15 @@
 import type { ReactNode } from "react";
 import { useEffect } from "react";
 import { Navigate, useLocation, useParams } from "react-router-dom";
-import { setActiveTenantSlug } from "@/lib/tenant";
+import { persistActiveTenantSlug } from "@/pwa/app/tenant/pwa-tenant-storage";
+import { buildTenantAwarePwaPath } from "@/pwa/app/tenant/pwa-tenant-path";
 
 export function PwaTenantBridge({ children }: { children: ReactNode }) {
   const { tenantSlug } = useParams();
 
   useEffect(() => {
     if (tenantSlug) {
-      setActiveTenantSlug(tenantSlug);
+      persistActiveTenantSlug(tenantSlug);
     }
   }, [tenantSlug]);
 
@@ -27,7 +28,7 @@ export function PwaTenantRuntimeRedirect({
 
   useEffect(() => {
     if (tenantSlug) {
-      setActiveTenantSlug(tenantSlug);
+      persistActiveTenantSlug(tenantSlug);
     }
   }, [tenantSlug]);
 
@@ -35,6 +36,7 @@ export function PwaTenantRuntimeRedirect({
   const suffix = wildcard?.trim() ? `/${wildcard.replace(/^\/+/, "")}` : "";
   const search = location.search || "";
   const hash = location.hash || "";
+  const targetPath = `${normalizedBasePath}${suffix}${search}${hash}`;
 
-  return <Navigate to={`${normalizedBasePath}${suffix}${search}${hash}`} replace />;
+  return <Navigate to={buildTenantAwarePwaPath(targetPath, null)} replace />;
 }

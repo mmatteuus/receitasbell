@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { 
   Search, Heart, ListChecks, ShoppingBag, 
   Sparkles, Clock, ChevronRight, UserCircle2,
@@ -13,11 +13,15 @@ import { getRecipeImage, getRecipePresentation } from "@/lib/recipes/presentatio
 import SmartImage from "@/components/SmartImage";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { resolvePwaTenantSlug } from "@/pwa/app/tenant/pwa-tenant-path";
+import { buildPwaPath } from "@/pwa/app/navigation/pwa-paths";
 
 export default function UserHomePage() {
   const { identityEmail, favoriteRecords } = useAppContext();
   const { data: recipes = [], isLoading } = usePublicRecipes();
   const navigate = useNavigate();
+  const location = useLocation();
+  const tenantSlug = resolvePwaTenantSlug(location.pathname);
 
   const recentRecipes = useMemo(() => {
     try {
@@ -37,10 +41,10 @@ export default function UserHomePage() {
   }, [recipes]);
 
   const quickLinks = [
-    { label: "Buscar", icon: Search, to: "/buscar", color: "bg-blue-500/10 text-blue-600" },
-    { label: "Favoritos", icon: Heart, to: "/pwa/app/favoritos", color: "bg-red-500/10 text-red-600" },
-    { label: "Compras", icon: ShoppingBag, to: "/pwa/app/compras", color: "bg-green-500/10 text-green-600" },
-    { label: "Minha Lista", icon: ListChecks, to: "/pwa/app/lista-de-compras", color: "bg-orange-500/10 text-orange-600" },
+    { label: "Buscar", icon: Search, to: buildPwaPath("search", { tenantSlug }), color: "bg-blue-500/10 text-blue-600" },
+    { label: "Favoritos", icon: Heart, to: buildPwaPath("favorites", { tenantSlug }), color: "bg-red-500/10 text-red-600" },
+    { label: "Compras", icon: ShoppingBag, to: buildPwaPath("purchases", { tenantSlug }), color: "bg-green-500/10 text-green-600" },
+    { label: "Minha Lista", icon: ListChecks, to: buildPwaPath("shopping", { tenantSlug }), color: "bg-orange-500/10 text-orange-600" },
   ];
 
   return (
@@ -87,7 +91,7 @@ export default function UserHomePage() {
             {recentRecipes.map((recipe) => (
               <Link 
                 key={recipe.id}
-                to={`/receitas/${recipe.slug}`}
+                to={buildPwaPath("recipe", { tenantSlug, slug: recipe.slug })}
                 className="flex-shrink-0 w-64 snap-start group"
               >
                 <div className="relative h-36 w-full overflow-hidden rounded-2xl border bg-muted mb-2">
@@ -118,7 +122,7 @@ export default function UserHomePage() {
             <Sparkles className="h-4 w-4 text-amber-500" />
             <h2 className="text-lg font-bold tracking-tight">Seleção Premium</h2>
           </div>
-          <Link to="/buscar?tier=paid" className="text-xs font-semibold text-primary flex items-center gap-0.5">
+          <Link to={`${buildPwaPath("search", { tenantSlug })}?tier=paid`} className="text-xs font-semibold text-primary flex items-center gap-0.5">
             Ver tudo <ChevronRight className="h-3 w-3" />
           </Link>
         </div>
@@ -131,7 +135,7 @@ export default function UserHomePage() {
           ) : featuredRecipes.map((recipe) => (
             <Link 
               key={recipe.id}
-              to={`/receitas/${recipe.slug}`}
+              to={buildPwaPath("recipe", { tenantSlug, slug: recipe.slug })}
               className="flex-shrink-0 w-40 snap-start group"
             >
               <div className="relative h-48 w-full overflow-hidden rounded-2xl bg-muted shadow-lg border border-border">

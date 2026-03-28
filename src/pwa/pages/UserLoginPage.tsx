@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,38 +7,79 @@ import { ChefHat, Mail, ArrowRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { isValidEmail, requestMagicLink } from "@/lib/api/identity";
 import { InstallAppButton } from "../components/InstallAppButton";
+import { buildPwaPath } from "@/pwa/app/navigation/pwa-paths";
+import {
+  persistPwaUserLoginEmail,
+  readPwaUserLoginEmail,
+} from "@/pwa/app/auth/pwa-auth-storage";
+import { readPwaRedirect, savePwaRedirect } from "@/pwa/app/auth/pwa-auth-redirect";
+import { resolvePwaTenantSlug } from "@/pwa/app/tenant/pwa-tenant-path";
+
+type UserLoginState =
+  | "idle"
+  | "submitting"
+  | "sent"
+  | "offline_error"
+  | "retryable_error";
 
 export default function UserLoginPage() {
-  const [email, setEmail] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [sent, setSent] = useState(false);
+  const location = useLocation();
+  const [email, setEmail] = useState(() => readPwaUserLoginEmail());
+  const [state, setState] = useState<UserLoginState>("idle");
+  const [feedback, setFeedback] = useState("");
+  const tenantSlug = useMemo(
+    () => resolvePwaTenantSlug(location.pathname),
+    [location.pathname],
+  );
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  async function submitMagicLink() {
     const normalized = email.trim().toLowerCase();
-    
+
+    persistPwaUserLoginEmail(normalized);
+
     if (!isValidEmail(normalized)) {
+      setState("retryable_error");
+      setFeedback("Por favor, informe um e-mail válido.");
       toast.error("Por favor, informe um e-mail válido.");
       return;
     }
 
-    setLoading(true);
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      setState("offline_error");
+      setFeedback("Você está offline. Conecte-se para solicitar o link mágico.");
+      return;
+    }
+
+    setState("submitting");
+    setFeedback("");
+
+    const redirectTarget =
+      readPwaRedirect()
+      || buildPwaPath("home", { tenantSlug });
+    savePwaRedirect(redirectTarget);
+
     try {
       await requestMagicLink({
         email: normalized,
-        redirectTo: "/pwa/app",
+        redirectTo: redirectTarget,
       });
 
-      setSent(true);
+      setState("sent");
+      setFeedback(`Enviamos um link de acesso para ${normalized}.`);
       toast.success("Link de acesso enviado!");
     } catch {
+      setState("retryable_error");
+      setFeedback("Ocorreu um erro ao enviar o link. Tente novamente.");
       toast.error("Ocorreu um erro ao enviar o link. Tente novamente.");
-    } finally {
-      setLoading(false);
     }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await submitMagicLink();
   };
 
-  if (sent) {
+  if (state === "sent") {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-background p-6">
         <Card className="w-full max-w-sm border-none shadow-none bg-transparent text-center">
@@ -52,11 +94,21 @@ export default function UserLoginPage() {
               </CardDescription>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-3">
+            <p aria-live="polite" className="text-sm text-muted-foreground">
+              {feedback}
+            </p>
+            <Button
+              variant="default"
+              className="w-full"
+              onClick={() => void submitMagicLink()}
+            >
+              Reenviar link
+            </Button>
             <Button 
               variant="outline" 
               className="w-full" 
-              onClick={() => setSent(false)}
+              onClick={() => setState("idle")}
             >
               Tentar com outro e-mail
             </Button>
@@ -89,14 +141,30 @@ export default function UserLoginPage() {
                 type="email"
                 placeholder="seu@email.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  persistPwaUserLoginEmail(e.target.value);
+                  if (state === "offline_error" || state === "retryable_error") {
+                    setState("idle");
+                    setFeedback("");
+                  }
+                }}
                 required
                 className="h-12 text-base"
                 autoFocus
               />
             </div>
-            <Button type="submit" className="w-full h-12 text-base font-medium" disabled={loading}>
-              {loading ? (
+            {(state === "offline_error" || state === "retryable_error") && (
+              <p aria-live="polite" className="text-sm text-destructive">
+                {feedback}
+              </p>
+            )}
+            <Button
+              type="submit"
+              className="w-full h-12 text-base font-medium"
+              disabled={state === "submitting"}
+            >
+              {state === "submitting" ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Enviando...

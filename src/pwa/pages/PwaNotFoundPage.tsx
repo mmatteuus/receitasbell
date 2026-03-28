@@ -1,8 +1,12 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
+import { resolvePwaTenantSlug } from "@/pwa/app/tenant/pwa-tenant-path";
+import { buildPwaPath } from "@/pwa/app/navigation/pwa-paths";
 
 export default function PwaNotFoundPage() {
+  const tenantSlug = resolvePwaTenantSlug();
+
   return (
     <div className="flex h-[calc(100vh-120px)] flex-col items-center justify-center p-6 text-center">
       <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-muted text-muted-foreground">
@@ -13,7 +17,7 @@ export default function PwaNotFoundPage() {
         A página que você está procurando não existe ou foi movida.
       </p>
       <Button asChild className="h-12 w-full">
-        <Link to="/pwa/app">Voltar para o Início</Link>
+        <Link to={buildPwaPath("home", { tenantSlug })}>Voltar para o Início</Link>
       </Button>
     </div>
   );

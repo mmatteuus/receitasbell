@@ -33,6 +33,16 @@ test.describe("PWA Namespace and Auth Flow", () => {
     expect(page.url()).toContain("/pwa/login");
   });
 
+  test("should protect nested PWA routes without escaping to web namespace", async ({ page }) => {
+    await page.goto("/pwa/app/buscar");
+    await page.waitForURL("**/pwa/login");
+    expect(page.url()).toContain("/pwa/login");
+
+    await page.goto("/pwa/app/receitas/receita-inexistente");
+    await page.waitForURL("**/pwa/login");
+    expect(page.url()).toContain("/pwa/login");
+  });
+
   test("should show install button on login pages", async ({ page }) => {
     await page.goto("/pwa/login");
     

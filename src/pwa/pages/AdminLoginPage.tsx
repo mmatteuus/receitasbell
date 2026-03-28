@@ -1,5 +1,5 @@
-import { FormEvent, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { FormEvent, useMemo, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ChefHat, LockKeyhole, Mail, ArrowRight, Loader2, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,32 +7,56 @@ import { Input } from "@/components/ui/input";
 import { loginAdmin } from "@/lib/api/adminSession";
 import { ApiClientError } from "@/lib/api/client";
 import { InstallAppButton } from "../components/InstallAppButton";
+import { persistPwaAdminLoginEmail, readPwaAdminLoginEmail } from "@/pwa/app/auth/pwa-auth-storage";
+import { buildPwaAdminPath } from "@/pwa/app/navigation/pwa-paths";
+import { resolvePwaTenantSlug } from "@/pwa/app/tenant/pwa-tenant-path";
+
+type AdminLoginState =
+  | "idle"
+  | "submitting"
+  | "sent"
+  | "offline_error"
+  | "retryable_error";
 
 export default function PwaAdminLoginPage() {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [email, setEmail] = useState("");
+  const location = useLocation();
+  const [state, setState] = useState<AdminLoginState>("idle");
+  const [feedback, setFeedback] = useState("");
+  const [email, setEmail] = useState(() => readPwaAdminLoginEmail());
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const tenantSlug = useMemo(
+    () => resolvePwaTenantSlug(location.pathname),
+    [location.pathname],
+  );
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setLoading(true);
-    setError("");
+    persistPwaAdminLoginEmail(email);
+
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      setState("offline_error");
+      setFeedback("Você está offline. Conecte-se para autenticar o admin.");
+      return;
+    }
+
+    setState("submitting");
+    setFeedback("");
     try {
       const result = await loginAdmin({ email, password });
       if (result.authenticated) {
-        navigate("/pwa/admin", { replace: true });
+        setState("sent");
+        navigate(buildPwaAdminPath({ tenantSlug }), { replace: true });
       }
     } catch (err) {
       if (err instanceof ApiClientError) {
-        setError(err.message || "Credenciais inválidas.");
+        setState("retryable_error");
+        setFeedback(err.message || "Credenciais inválidas.");
       } else {
-        setError("Não foi possível autenticar no momento.");
+        setState("retryable_error");
+        setFeedback("Não foi possível autenticar no momento.");
       }
-    } finally {
-      setLoading(false);
     }
   }
 
@@ -62,7 +86,14 @@ export default function PwaAdminLoginPage() {
                     type="email"
                     placeholder="admin@email.com"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      persistPwaAdminLoginEmail(e.target.value);
+                      if (state === "offline_error" || state === "retryable_error") {
+                        setState("idle");
+                        setFeedback("");
+                      }
+                    }}
                     required
                     className="h-12 pl-10 text-base"
                     autoFocus
@@ -76,7 +107,13 @@ export default function PwaAdminLoginPage() {
                     type={showPassword ? "text" : "password"}
                     placeholder="Sua senha"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      if (state === "offline_error" || state === "retryable_error") {
+                        setState("idle");
+                        setFeedback("");
+                      }
+                    }}
                     required
                     className="h-12 pl-10 pr-10 text-base"
                   />
@@ -97,10 +134,14 @@ export default function PwaAdminLoginPage() {
               </div>
             </div>
 
-            {error && <p className="text-sm font-medium text-destructive animate-in fade-in">{error}</p>}
+            {(state === "offline_error" || state === "retryable_error") && (
+              <p aria-live="polite" className="animate-in fade-in text-sm font-medium text-destructive">
+                {feedback}
+              </p>
+            )}
 
-            <Button type="submit" className="w-full h-12 text-base font-medium" disabled={loading}>
-              {loading ? (
+            <Button type="submit" className="w-full h-12 text-base font-medium" disabled={state === "submitting"}>
+              {state === "submitting" ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Entrando...

@@ -93,14 +93,16 @@ const router = createBrowserRouter([
   {
     path: "/pwa/app",
     lazy: async () => {
-      const { UserPwaShell } = await import("@/pwa/components/PwaShell");
+      const { UserPwaShell } = await import("@/pwa/app/shell/UserPwaShell");
       return { element: <UserPwaShell /> };
     },
     children: [
       { index: true, lazy: lazyRoute(() => import("@/pwa/pages/UserHomePage")) },
       { path: "favoritos", lazy: lazyRoute(() => import("@/pages/Favorites")) },
       { path: "lista-de-compras", lazy: lazyRoute(() => import("@/pages/ShoppingListPage")) },
-      { path: "compras", element: <Navigate to="/pwa/app?tab=compras" replace /> },
+      { path: "compras", lazy: lazyRoute(() => import("@/pwa/pages/PwaPurchasesPage")) },
+      { path: "buscar", lazy: lazyRoute(() => import("@/pwa/pages/PwaSearchPage")) },
+      { path: "receitas/:slug", lazy: lazyRoute(() => import("@/pwa/pages/PwaRecipePage")) },
     ],
   },
   {

@@ -1,18 +1,76 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { getAdminSession } from "@/lib/api/adminSession";
+import { fetchMe } from "@/lib/api/identity";
 import { getInstallContext } from "../lib/install-context";
+import { buildPwaAdminPath, buildPwaPath } from "@/pwa/app/navigation/pwa-paths";
+import {
+  clearPwaRedirect,
+  readPwaRedirect,
+} from "@/pwa/app/auth/pwa-auth-redirect";
+import { resolvePwaTenantSlug } from "@/pwa/app/tenant/pwa-tenant-path";
 
 export default function PwaEntryPage() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
-    const context = getInstallContext();
-    if (context === "admin") {
-      navigate("/pwa/admin/login", { replace: true });
-    } else {
-      navigate("/pwa/login", { replace: true });
+    let active = true;
+
+    async function run() {
+      const tenantSlug = resolvePwaTenantSlug(location.pathname);
+      const installContext = getInstallContext();
+      const pendingRedirect = readPwaRedirect();
+
+      try {
+        const [adminSession, userSession] = await Promise.all([
+          getAdminSession({ allowOffline: true }).catch(() => ({
+            authenticated: false as const,
+          })),
+          fetchMe({ allowOffline: true }),
+        ]);
+
+        if (!active) {
+          return;
+        }
+
+        if (adminSession.authenticated) {
+          navigate(buildPwaAdminPath({ tenantSlug }), { replace: true });
+          return;
+        }
+
+        if (userSession?.email) {
+          const target =
+            pendingRedirect
+            || buildPwaPath("home", { tenantSlug: userSession.tenantSlug ?? tenantSlug });
+          clearPwaRedirect();
+          navigate(target, { replace: true });
+          return;
+        }
+      } catch {
+        if (!active) {
+          return;
+        }
+      }
+
+      if (!active) {
+        return;
+      }
+
+      if (installContext === "admin") {
+        navigate(buildPwaPath("adminLogin", { tenantSlug }), { replace: true });
+        return;
+      }
+
+      navigate(buildPwaPath("login", { tenantSlug }), { replace: true });
     }
-  }, [navigate]);
+
+    void run();
+
+    return () => {
+      active = false;
+    };
+  }, [location.pathname, navigate]);
 
   return (
     <div className="flex h-screen items-center justify-center bg-background p-6 text-center">

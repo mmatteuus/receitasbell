@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useSearchParams, Link } from "react-router-dom";
+import { useLocation, useParams, useSearchParams, Link } from "react-router-dom";
 import { Heart, Clock, ChevronRight, Printer, ChefHat, ShoppingCart, FileText, BarChart, Flame, PlayCircle, Plus, Minus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +29,8 @@ import { buildCartItemFromRecipe } from "@/lib/utils/recipeAccess";
 import { usePublicRecipes, useRecipeBySlug } from "@/features/recipes/use-recipes";
 import { RECENT_RECIPES_KEY } from "@/lib/constants";
 import { logger } from "@/lib/logger";
+import { buildPwaPath } from "@/pwa/app/navigation/pwa-paths";
+import { resolvePwaTenantSlug } from "@/pwa/app/tenant/pwa-tenant-path";
 
 type RatingState = {
   avg: number;
@@ -38,8 +40,17 @@ type RatingState = {
 
 export default function RecipePage() {
   const { slug } = useParams<{ slug: string }>();
+  const location = useLocation();
   const [params] = useSearchParams();
   const isPreview = params.get("preview") === "1";
+  const tenantSlug = resolvePwaTenantSlug(location.pathname);
+  const isPwaNamespace = location.pathname.includes("/pwa/app");
+  const homePath = isPwaNamespace
+    ? buildPwaPath("home", { tenantSlug })
+    : "/";
+  const searchPath = isPwaNamespace
+    ? buildPwaPath("search", { tenantSlug })
+    : "/buscar";
 
   const { data: recipe, isLoading: loading } = useRecipeBySlug(slug);
   const [rating, setRating] = useState<RatingState>({ avg: 0, count: 0, userValue: null });
@@ -114,12 +125,17 @@ export default function RecipePage() {
     return (
       <div className="container px-4 py-20 text-center">
         <h1 className="font-heading text-2xl font-bold sm:text-3xl">Receita não encontrada</h1>
-        <Link to="/" className="mt-4 inline-block text-primary hover:underline">Voltar</Link>
+        <Link to={homePath} className="mt-4 inline-block text-primary hover:underline">Voltar</Link>
       </div>
     );
   }
 
   const cat = categories.find((category) => category.slug === recipe.categorySlug);
+  const categoryPath = cat
+    ? isPwaNamespace
+      ? `${searchPath}?category=${encodeURIComponent(cat.slug)}`
+      : `/categorias/${cat.slug}`
+    : null;
   const favorite = isFavorite(recipe.id);
   const imageUrl = getRecipeImage(recipe);
   const presentation = getRecipePresentation(recipe);
@@ -190,9 +206,13 @@ export default function RecipePage() {
       )}
 
       <nav className="mb-4 flex flex-wrap items-center gap-1 text-sm text-muted-foreground print:hidden">
-        <Link to="/" className="hover:text-primary">Home</Link>
+        <Link to={homePath} className="hover:text-primary">Home</Link>
         <ChevronRight aria-hidden="true" className="h-3 w-3" />
-        {cat && <Link to={`/categorias/${cat.slug}`} className="hover:text-primary">{cat.name}</Link>}
+        {cat && categoryPath && (
+          <Link to={categoryPath} className="hover:text-primary">
+            {cat.name}
+          </Link>
+        )}
         <ChevronRight aria-hidden="true" className="h-3 w-3" />
         <span className="truncate text-foreground">{recipe.title}</span>
       </nav>
