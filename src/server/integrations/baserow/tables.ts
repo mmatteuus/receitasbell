@@ -22,7 +22,7 @@ export const baserowTables = {
     return reqId("BASEROW_TABLE_USERS", env.BASEROW_TABLE_USERS);
   },
   get tenantUsers() {
-    return reqId("BASEROW_TABLE_TENANT_USERS", env.BASEROW_TABLE_TENANT_USERS);
+    return optionalId("BASEROW_TABLE_TENANT_USERS", env.BASEROW_TABLE_TENANT_USERS);
   },
   get recipes() {
     return reqId("BASEROW_TABLE_RECIPES", env.BASEROW_TABLE_RECIPES);
@@ -34,7 +34,7 @@ export const baserowTables = {
     return reqId("BASEROW_TABLE_SETTINGS", env.BASEROW_TABLE_SETTINGS);
   },
   get paymentOrders() {
-    return reqId("BASEROW_TABLE_PAYMENT_ORDERS", env.BASEROW_TABLE_PAYMENT_ORDERS);
+    return optionalId("BASEROW_TABLE_PAYMENT_ORDERS", env.BASEROW_TABLE_PAYMENT_ORDERS);
   },
   get paymentEvents() {
     return reqId("BASEROW_TABLE_PAYMENT_EVENTS", env.BASEROW_TABLE_PAYMENT_EVENTS);

@@ -5,9 +5,12 @@ import { baserowTables } from "../integrations/baserow/tables.js";
 type MagicLinkRow = {
   id?: string | number;
   email?: string;
-  redirect_to?: string | null;
-  used_at?: string | null;
-  expires_at?: string | null;
+  redirectTo?: string | null;
+  consumedAt?: string | null;
+  expiresAt?: string | null;
+  token?: string;
+  tenantId?: string;
+  purpose?: string;
 };
 
 function sha256Hex(v: string) {
@@ -23,14 +26,13 @@ export async function createMagicLink(input: { tenantId: string; email: string; 
   await baserowFetch(`/api/database/rows/table/${baserowTables.magicLinks}/?user_field_names=true`, {
     method: "POST",
     body: JSON.stringify({
-      tenant_id: input.tenantId,
+      tenantId: input.tenantId,
       email: input.email.toLowerCase(),
       purpose: input.purpose,
-      token_hash: tokenHash,
-      created_at: now.toISOString(),
-      expires_at: exp.toISOString(),
-      used_at: "",
-      redirect_to: input.redirectTo || "",
+      token: tokenHash,
+      expiresAt: exp.toISOString().split("T")[0],
+      consumedAt: null,
+      redirectTo: input.redirectTo || null,
     }),
   });
 
@@ -40,20 +42,20 @@ export async function createMagicLink(input: { tenantId: string; email: string; 
 export async function consumeMagicLink(input: { tenantId: string; token: string; purpose: "user" }) {
   const tokenHash = sha256Hex(input.token);
   const rows = await baserowFetch<{ results: MagicLinkRow[] }>(
-    `/api/database/rows/table/${baserowTables.magicLinks}/?user_field_names=true&filter__tenant_id__equal=${encodeURIComponent(
+    `/api/database/rows/table/${baserowTables.magicLinks}/?user_field_names=true&filter__tenantId__equal=${encodeURIComponent(
       input.tenantId
-    )}&filter__purpose__equal=${input.purpose}&filter__token_hash__equal=${tokenHash}`
+    )}&filter__purpose__equal=${input.purpose}&filter__token__equal=${tokenHash}`
   );
 
   const row = rows.results[0];
   if (!row) return null;
-  if (row.used_at) return null;
-  if (!row.expires_at || new Date(row.expires_at).getTime() <= Date.now()) return null;
+  if (row.consumedAt) return null;
+  if (!row.expiresAt || new Date(row.expiresAt + "T23:59:59Z").getTime() <= Date.now()) return null;
 
   await baserowFetch(`/api/database/rows/table/${baserowTables.magicLinks}/${row.id}/?user_field_names=true`, {
     method: "PATCH",
-    body: JSON.stringify({ used_at: new Date().toISOString() }),
+    body: JSON.stringify({ consumedAt: new Date().toISOString() }),
   });
 
-  return { email: String(row.email), redirectTo: row.redirect_to ? String(row.redirect_to) : null };
+  return { email: String(row.email), redirectTo: row.redirectTo ? String(row.redirectTo) : null };
 }
