@@ -12,6 +12,7 @@ import type { RecipeRecord } from "@/lib/recipes/types";
 import { ApiClientError } from "@/lib/api/client";
 import { getProfileOverview } from "@/lib/repos/profileRepo";
 import { toast } from "sonner";
+import { LastSyncBadge } from "@/pwa/offline/ui/LastSyncBadge";
 
 type AccountTab = "resumo" | "minhas-receitas" | "favoritos" | "compras";
 
@@ -33,6 +34,7 @@ export default function AccountHome() {
   const [unlocked, setUnlocked] = useState<RecipeRecord[]>([]);
   const [paidOwned, setPaidOwned] = useState<RecipeRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
 
   useEffect(() => {
     setIdentityInput(identityEmail || "");
@@ -59,6 +61,7 @@ export default function AccountHome() {
         setShoppingPreview(overview.shoppingItems.slice(0, 6).map((item) => item.text));
         setUnlocked(overview.unlockedRecipes);
         setPaidOwned(overview.purchasedRecipes);
+        setLastSyncedAt(overview.lastSyncedAt || null);
       } catch (error) {
         console.error("Failed to load account data", error);
       } finally {
@@ -152,6 +155,9 @@ export default function AccountHome() {
               <UserRound className="h-4 w-4 text-primary" />
               {identityEmail || "Visitante"}
             </p>
+            <div className="mt-2">
+              <LastSyncBadge lastSyncedAt={lastSyncedAt} />
+            </div>
           </div>
         </div>
       </div>

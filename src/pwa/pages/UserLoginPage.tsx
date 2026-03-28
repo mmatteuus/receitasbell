@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChefHat, Mail, ArrowRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { isValidEmail } from "@/lib/api/identity";
+import { isValidEmail, requestMagicLink } from "@/lib/api/identity";
 import { InstallAppButton } from "../components/InstallAppButton";
 
 export default function UserLoginPage() {
@@ -23,17 +23,14 @@ export default function UserLoginPage() {
 
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/request", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: normalized }),
+      await requestMagicLink({
+        email: normalized,
+        redirectTo: "/pwa/app",
       });
-
-      if (!res.ok) throw new Error("Falha ao solicitar login");
 
       setSent(true);
       toast.success("Link de acesso enviado!");
-    } catch (error) {
+    } catch {
       toast.error("Ocorreu um erro ao enviar o link. Tente novamente.");
     } finally {
       setLoading(false);

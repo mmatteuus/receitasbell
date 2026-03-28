@@ -6,6 +6,7 @@ import { useAppContext } from "@/contexts/app-context";
 import ThemeModeToggle from "@/components/layout/ThemeModeToggle";
 import { CartButton } from "@/components/cart/CartButton";
 import { buildTenantAdminPath, extractTenantSlugFromPath } from "@/lib/tenant";
+import { InstallAppButton } from "@/pwa/components/InstallAppButton";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;

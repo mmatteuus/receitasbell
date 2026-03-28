@@ -3,10 +3,16 @@ import type { RecipeRecord } from "@/lib/recipes/types";
 import { buildQuery, jsonFetch } from "./client";
 import { filterInternetRecipes, getInternetRecipes, isInternetFallbackEnabled } from "./internetRecipes";
 import { normalizeRecipeForUI } from "@/lib/recipes/presentation";
+import {
+  getRecipeSnapshotBySlug,
+  searchRecipeSnapshots,
+  upsertRecipeSnapshots,
+} from "@/pwa/offline/cache/recipe-snapshot";
 
 export type RecipeMutationPayload = {
   id?: string;
   slug?: string;
+  baseServerUpdatedAt?: string | null;
   title: string;
   description?: string;
   imageUrl?: string;
@@ -48,9 +54,19 @@ export async function listRecipes(params: {
       admin: Boolean(params.includeDrafts),
     });
     const recipes = result.recipes ?? result.items ?? [];
-    return recipes.map(normalizeRecipeForUI);
+    const normalized = recipes.map(normalizeRecipeForUI);
+    if (!params.includeDrafts) {
+      void upsertRecipeSnapshots(normalized);
+    }
+    return normalized;
   } catch (error) {
     if (params.includeDrafts || !isInternetFallbackEnabled()) {
+      if (!params.includeDrafts) {
+        const cached = await searchRecipeSnapshots(params);
+        if (cached.length) {
+          return cached.map(normalizeRecipeForUI);
+        }
+      }
       throw error;
     }
 
@@ -72,9 +88,19 @@ export async function getRecipeBySlug(slug: string, options: { includeDrafts?: b
     if (!recipe) {
       throw new Error("Recipe response payload is missing.");
     }
-    return normalizeRecipeForUI(recipe);
+    const normalized = normalizeRecipeForUI(recipe);
+    if (!options.includeDrafts) {
+      void upsertRecipeSnapshots([normalized]);
+    }
+    return normalized;
   } catch (error) {
     if (options.includeDrafts || !isInternetFallbackEnabled()) {
+      if (!options.includeDrafts) {
+        const cached = await getRecipeSnapshotBySlug(slug);
+        if (cached) {
+          return normalizeRecipeForUI(cached.data);
+        }
+      }
       throw error;
     }
 

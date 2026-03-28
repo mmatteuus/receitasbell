@@ -20,6 +20,12 @@ Every agent must read this file before starting and append a new entry when fini
 - Files touched: `.agents/ai-change-log.md` only.
 - Tests run: none.
 
+## 2026-03-27
+- Hardened Upstash rate limit initialization to avoid 500s when env is invalid.
+- Added `api/events.ts` noop endpoint (204) to stop client telemetry 404s.
+- Files touched: `src/server/shared/rateLimit.ts`, `api/events.ts`, `.agents/ai-change-log.md`.
+- Tests run: none.
+
 ## 2026-03-27 — Frontend Hardening F1-F4
 - **F1 Shell/A11y**: `BackToTop.tsx` — threshold `scrollY > 300` → `2 * window.innerHeight`; `title=` → `aria-label="Voltar ao topo"`.
 - **F2 Auth Admin**: `LoginPage.tsx` — bloco `showLegacyUnlock` (formulário "Senha do admin global") substituído por tela neutra informativa. UI não expõe mais mecanismo de desbloqueio legado.
@@ -64,3 +70,8 @@ Every agent must read this file before starting and append a new entry when fini
 - **Files touched**: `vite.config.ts`, `src/router.tsx`, `src/vite-env.d.ts`, `src/pwa/components/PwaShell.tsx`, `src/pwa/components/PwaUpdateBanner.tsx` (novo), `src/pwa/pages/UserHomePage.tsx` (novo).
 - **Tests run**: Verificação visual mockada de tipos OK.
 
+## 2026-03-27
+- Updated `vercel.json` build command to `npm run gate` to keep the production gate enforced.
+- Increased Workbox `maximumFileSizeToCacheInBytes` to 512 KB to stop build failures from the charts bundle.
+- Files touched: `vercel.json`, `vite.config.ts`, `.agents/ai-change-log.md`.
+- Tests run: `npm run gate` (lint warnings only; build OK; Vitest exited with OOM in worker pool).

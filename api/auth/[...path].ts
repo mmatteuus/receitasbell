@@ -34,7 +34,9 @@ function readPath(request: VercelRequest, prefix: string): string[] {
 const routes: Record<string, RouteHandler> = {
   "logout": authLogout,
   "me": authMe,
+  "request": authRequestMagicLink,
   "request-magic-link": authRequestMagicLink,
+  "verify": authVerifyMagicLink,
   "verify-magic-link": authVerifyMagicLink,
 };
 

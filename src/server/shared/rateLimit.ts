@@ -15,16 +15,35 @@ type RateLimitUnit = "s" | "m" | "h" | "d";
 type RateLimitWindow = `${number} ${RateLimitUnit}` | `${number}${RateLimitUnit}`;
 type RateLimitBackend = "upstash" | "memory";
 
-const UPSTASH_URL = process.env.UPSTASH_REDIS_REST_URL;
-const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
-const hasUpstashConfig = Boolean(UPSTASH_URL && UPSTASH_TOKEN);
+const UPSTASH_URL = process.env.UPSTASH_REDIS_REST_URL || "";
+const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN || "";
 
-let upstashRedis: Redis | null = null;
-if (hasUpstashConfig) {
-  upstashRedis = new Redis({ url: UPSTASH_URL, token: UPSTASH_TOKEN });
+function isValidUpstashValue(value: string) {
+  return Boolean(value && value !== "UNSPECIFIED");
 }
 
-let lastBackend: RateLimitBackend = hasUpstashConfig ? "upstash" : "memory";
+function isValidUpstashUrl(value: string) {
+  return isValidUpstashValue(value) && /^https?:\/\//.test(value);
+}
+
+let upstashRedis: Redis | null = null;
+let upstashInitError: Error | null = null;
+
+function getUpstashRedis(): Redis | null {
+  if (upstashRedis || upstashInitError) return upstashRedis;
+  if (!isValidUpstashUrl(UPSTASH_URL) || !isValidUpstashValue(UPSTASH_TOKEN)) {
+    return null;
+  }
+
+  try {
+    upstashRedis = new Redis({ url: UPSTASH_URL, token: UPSTASH_TOKEN });
+  } catch (error) {
+    upstashInitError = error instanceof Error ? error : new Error(String(error));
+  }
+  return upstashRedis;
+}
+
+let lastBackend: RateLimitBackend = "memory";
 let warnedMemoryFallback = false;
 
 /**
@@ -157,7 +176,8 @@ export async function rateLimit(
   const canRetry = options.idempotent ?? false;
   const safeAttempts = canRetry ? 3 : 1;
 
-  if (!upstashRedis) {
+  const redis = getUpstashRedis();
+  if (!redis) {
     if (isProd && !warnedMemoryFallback) {
       warnedMemoryFallback = true;
       logger.warn("rate_limit.backend_unavailable", {
@@ -165,7 +185,7 @@ export async function rateLimit(
         backend: "memory",
         endpoint,
         key,
-        reason: "upstash_not_configured",
+        reason: upstashInitError ? upstashInitError.message : "upstash_not_configured",
       });
     }
     lastBackend = "memory";
@@ -176,7 +196,7 @@ export async function rateLimit(
     const startedAt = Date.now();
     try {
       const limiter = new Ratelimit({
-        redis: upstashRedis,
+        redis,
         limiter: Ratelimit.slidingWindow(options.limit, options.window),
       });
 

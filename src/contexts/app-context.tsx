@@ -13,7 +13,7 @@ export type AppContextValue = {
   identityEmail: string | null;
   requireIdentity: (message?: string) => Promise<string | null>;
   updateIdentity: (email: string) => Promise<void>;
-  clearIdentity: () => void;
+  clearIdentity: () => Promise<void>;
   favoriteRecords: FavoriteRecord[];
   favorites: string[];
   favoritesLoading: boolean;

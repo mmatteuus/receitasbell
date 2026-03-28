@@ -33,7 +33,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
     if (method === 'PATCH' || method === 'PUT') {
       if (!id) throw new ApiError(400, 'Missing item ID');
       const body = shoppingListUpdateSchema.parse(request.body);
-      const item = await updateShoppingListItem(tenant.id, id, [body]);
+      const item = await updateShoppingListItem(tenant.id, userId, id, body);
       return json(response, 200, { item, requestId });
     }
 
@@ -46,4 +46,3 @@ export default async function handler(request: VercelRequest, response: VercelRe
     throw new ApiError(405, `Method ${method} not allowed`);
   });
 }
-

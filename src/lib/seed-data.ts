@@ -12,6 +12,7 @@ export const seedRecipes: RecipeRecord[] = [
     status: "published",
     prepTime: 20, cookTime: 40, totalTime: 60, servings: 10,
     accessTier: "free",
+    priceBRL: null,
     fullIngredients: [
       "3 cenouras médias", "4 ovos", "1 xícara de óleo", "2 xícaras de açúcar",
       "2 e 1/2 xícaras de farinha de trigo", "1 colher de sopa de fermento em pó"
@@ -37,6 +38,7 @@ export const seedRecipes: RecipeRecord[] = [
     status: "published",
     prepTime: 15, cookTime: 25, totalTime: 40, servings: 20,
     accessTier: "free",
+    priceBRL: null,
     fullIngredients: [
       "500g de polvilho azedo", "1 xícara de leite", "1/2 xícara de óleo",
       "2 ovos", "200g de queijo minas curado ralado", "1 colher de chá de sal"
@@ -124,6 +126,7 @@ export const seedRecipes: RecipeRecord[] = [
     status: "published",
     prepTime: 5, cookTime: 0, totalTime: 5, servings: 2,
     accessTier: "free",
+    priceBRL: null,
     fullIngredients: [
       "1 maçã verde", "2 folhas de couve", "1/2 pepino",
       "Suco de 1 limão", "1 pedaço de gengibre", "200ml de água de coco"
@@ -147,6 +150,7 @@ export const seedRecipes: RecipeRecord[] = [
     status: "published",
     prepTime: 15, cookTime: 0, totalTime: 15, servings: 2,
     accessTier: "free",
+    priceBRL: null,
     fullIngredients: [
       "Mix de folhas verdes", "1 pepino", "Tomates cereja", "Azeitonas pretas",
       "Queijo feta", "Azeite extra virgem", "Suco de limão", "Orégano"
@@ -203,6 +207,7 @@ export const seedRecipes: RecipeRecord[] = [
     status: "published",
     prepTime: 10, cookTime: 45, totalTime: 55, servings: 8,
     accessTier: "free",
+    priceBRL: null,
     fullIngredients: [
       "3 ovos", "2 xícaras de leite", "1 xícara de fubá", "1 xícara de açúcar",
       "3 colheres de farinha de trigo", "2 colheres de manteiga", "1 colher de fermento"

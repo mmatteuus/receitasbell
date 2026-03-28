@@ -12,8 +12,10 @@ import { toast } from "sonner";
 import { COLORS, METHOD_LABELS, STATUS_LABELS, STATUS_LABELS_REVERSE } from "./constants";
 import { KPICards } from "./KPICards";
 import type { MethodChartClickData, StatusChartClickData } from "./charts/MethodsChart";
-import { buildTenantAdminPath, extractTenantSlugFromPath } from "@/lib/tenant";
+import { buildTenantAdminPath, getCurrentTenantSlug } from "@/lib/tenant";
 import type { FinancialDashboardStats } from "./FinancialDashboard";
+import { getAdminSnapshot, saveAdminSnapshot } from "@/pwa/offline/cache/admin-snapshot";
+import { LastSyncBadge } from "@/pwa/offline/ui/LastSyncBadge";
 
 const TrendsChart = lazy(() =>
   import("./charts/TrendsChart").then((module) => ({ default: module.TrendsChart })),
@@ -40,9 +42,11 @@ function AnalyticsPanelFallback({ label }: { label: string }) {
 export default function DashboardPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const tenantSlug = extractTenantSlugFromPath(location.pathname);
+  const tenantSlug = getCurrentTenantSlug(location.pathname);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loadingPayments, setLoadingPayments] = useState(true);
+  const [snapshotMode, setSnapshotMode] = useState(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
     const to = new Date();
     const from = new Date();
@@ -59,8 +63,32 @@ export default function DashboardPage() {
           dateTo: dateRange?.to?.toISOString(),
         });
         setPayments(filtered);
+        setSnapshotMode(false);
+        const syncedAt = new Date().toISOString();
+        setLastSyncedAt(syncedAt);
+        if (tenantSlug) {
+          await saveAdminSnapshot({
+            tenantSlug,
+            paymentsSummary: {
+              payments: filtered,
+            },
+            lastSyncedAt: syncedAt,
+          });
+        }
       } catch (error) {
-        console.error("Failed to load payments dashboard", error);
+        if (tenantSlug) {
+          const snapshot = await getAdminSnapshot(tenantSlug);
+          const summary = snapshot?.paymentsSummary as { payments?: Payment[] } | undefined;
+          if (summary?.payments) {
+            setPayments(summary.payments);
+            setSnapshotMode(true);
+            setLastSyncedAt(snapshot?.lastSyncedAt || null);
+          } else {
+            console.error("Failed to load payments dashboard", error);
+          }
+        } else {
+          console.error("Failed to load payments dashboard", error);
+        }
       } finally {
         setLoadingPayments(false);
       }
@@ -214,7 +242,15 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap justify-between items-center gap-3">
-        <h1 className="text-2xl font-bold text-foreground">Analytics de Pagamentos</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Analytics de Pagamentos</h1>
+          {snapshotMode && (
+            <div className="mt-2 space-y-2">
+              <p className="text-sm font-medium text-amber-800">Modo offline — dados podem estar desatualizados.</p>
+              <LastSyncBadge lastSyncedAt={lastSyncedAt} />
+            </div>
+          )}
+        </div>
         <div className="flex items-center gap-2 flex-wrap">
           <DatePickerWithRange onSelect={setDateRange} />
           <Button variant="outline" size="sm" onClick={() => setQuickRange(7)}>7d</Button>

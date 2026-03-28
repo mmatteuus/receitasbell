@@ -8,11 +8,21 @@ import { PwaInstallHintIOS } from "./PwaInstallHintIOS";
 import { PwaUpdateBanner } from "./PwaUpdateBanner";
 
 import { trackEvent } from "@/lib/telemetry";
+import { OfflineBanner } from "@/pwa/offline/ui/OfflineBanner";
+import { PendingChangesBar } from "@/pwa/offline/ui/PendingChangesBar";
+import { SyncCenterSheet } from "@/pwa/offline/ui/SyncCenterSheet";
+import { OfflineLockedScreen } from "@/pwa/offline/ui/OfflineLockedScreen";
+import { ConflictResolutionDialog } from "@/pwa/offline/ui/ConflictResolutionDialog";
+import { useConflictCenter } from "@/pwa/offline/hooks/useConflictCenter";
 
 export function UserPwaShell() {
   const [loading, setLoading] = useState(true);
+  const [offlineLocked, setOfflineLocked] = useState(false);
+  const [syncCenterOpen, setSyncCenterOpen] = useState(false);
+  const [conflictDialogOpen, setConflictDialogOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { conflicts } = useConflictCenter();
 
   useEffect(() => {
     // Telemetry for PWA usage
@@ -30,10 +40,19 @@ export function UserPwaShell() {
         const user = await fetchMe();
         if (!active) return;
         if (!user?.email) {
-          navigate("/pwa/login", { replace: true });
+          if (typeof navigator !== "undefined" && !navigator.onLine) {
+            setOfflineLocked(true);
+          } else {
+            navigate("/pwa/login", { replace: true });
+          }
         }
       } catch {
-        if (active) navigate("/pwa/login", { replace: true });
+        if (!active) return;
+        if (typeof navigator !== "undefined" && !navigator.onLine) {
+          setOfflineLocked(true);
+        } else {
+          navigate("/pwa/login", { replace: true });
+        }
       } finally {
         if (active) setLoading(false);
       }
@@ -41,6 +60,12 @@ export function UserPwaShell() {
     void check();
     return () => { active = false; };
   }, [navigate]);
+
+  useEffect(() => {
+    if (conflicts.length > 0) {
+      setConflictDialogOpen(true);
+    }
+  }, [conflicts.length]);
 
   if (loading) {
     return (
@@ -50,6 +75,17 @@ export function UserPwaShell() {
           <p className="text-sm font-medium text-muted-foreground animate-pulse">Carregando seus dados...</p>
         </div>
       </div>
+    );
+  }
+
+  if (offlineLocked) {
+    return (
+      <OfflineLockedScreen
+        title="Conecte-se uma vez para liberar o modo offline"
+        description="Este dispositivo ainda não possui uma sessão e um snapshot válidos para abrir o app sem internet."
+        ctaHref="/pwa/login"
+        ctaLabel="Ir para o login"
+      />
     );
   }
 
@@ -72,11 +108,15 @@ export function UserPwaShell() {
     <div className="relative min-h-screen bg-background pb-20 flex flex-col items-center">
       <PwaUpdateBanner />
       <PwaTopBar title={getTitle()} showBack={showBack} />
+      <OfflineBanner />
+      <PendingChangesBar onOpenSyncCenter={() => setSyncCenterOpen(true)} />
       <main className="w-full max-w-md mx-auto flex-1 overflow-x-hidden p-4 sm:p-6 animate-in fade-in duration-500">
         <Outlet />
       </main>
       <PwaBottomNav />
       <PwaInstallHintIOS />
+      <SyncCenterSheet open={syncCenterOpen} onOpenChange={setSyncCenterOpen} />
+      <ConflictResolutionDialog open={conflictDialogOpen} onOpenChange={setConflictDialogOpen} />
     </div>
   );
 }

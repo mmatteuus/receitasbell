@@ -2,12 +2,24 @@ import type { CartItem } from '@/types/cart';
 import type { Comment } from '@/types/recipe';
 import type { CreatePaymentPreferenceResult } from '@/types/payment';
 import { buildQuery, jsonFetch } from './client';
+import {
+  addFavoriteOfflineAware,
+  deleteFavoriteOfflineAware,
+  listFavoritesOfflineAware,
+} from '@/pwa/offline/repos/favorites-offline-repo';
+import {
+  createShoppingItemsOfflineAware,
+  deleteShoppingItemOfflineAware,
+  listShoppingItemsOfflineAware,
+  updateShoppingItemOfflineAware,
+} from '@/pwa/offline/repos/shopping-offline-repo';
 
 export interface FavoriteRecord {
   id: string;
   recipeId: string;
   userId: string;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface RatingSummary {
@@ -25,6 +37,8 @@ export interface ShoppingListItem {
   checked: boolean;
   createdAt: string;
   updatedAt: string;
+  clientId?: string;
+  serverId?: string | null;
 }
 
 export async function listComments(recipeId: string) {
@@ -51,28 +65,19 @@ export async function submitRating(input: { recipeId: string; value: number }) {
 }
 
 export async function listFavorites() {
-  const result = await jsonFetch<{ items?: FavoriteRecord[]; favorites?: FavoriteRecord[] }>('/api/me/favorites');
-  return Array.isArray(result.items) ? result.items : Array.isArray(result.favorites) ? result.favorites : [];
+  return listFavoritesOfflineAware();
 }
 
 export async function addFavorite(recipeId: string) {
-  const result = await jsonFetch<{ favorite?: FavoriteRecord } & Partial<FavoriteRecord>>('/api/me/favorites', {
-    method: 'POST',
-    body: { recipeId },
-  });
-  if (result.favorite) return result.favorite;
-  return result as FavoriteRecord;
+  return addFavoriteOfflineAware(recipeId);
 }
 
 export async function deleteFavorite(recipeId: string) {
-  await jsonFetch<void>(`/api/me/favorites${buildQuery({ recipeId })}`, {
-    method: 'DELETE',
-  });
+  await deleteFavoriteOfflineAware(recipeId);
 }
 
 export async function listShoppingList() {
-  const result = await jsonFetch<{ items: ShoppingListItem[] }>('/api/me/shopping-list');
-  return Array.isArray(result.items) ? result.items : [];
+  return listShoppingItemsOfflineAware();
 }
 
 export async function createShoppingListItems(
@@ -83,31 +88,18 @@ export async function createShoppingListItems(
     checked?: boolean;
   }>
 ) {
-  const result = await jsonFetch<{ items: ShoppingListItem[] }>('/api/me/shopping-list', {
-    method: 'POST',
-    body: { items },
-  });
-  return result.items;
+  return createShoppingItemsOfflineAware(items);
 }
 
 export async function updateShoppingListItem(
   itemId: string,
   patch: Partial<Pick<ShoppingListItem, 'text' | 'checked'>>
 ) {
-  const result = await jsonFetch<{ item: ShoppingListItem }>(
-    `/api/me/shopping-list${buildQuery({ id: itemId })}`,
-    {
-      method: 'PUT',
-      body: patch,
-    }
-  );
-  return result.item;
+  return updateShoppingItemOfflineAware(itemId, patch);
 }
 
 export async function deleteShoppingListItem(itemId: string) {
-  await jsonFetch<void>(`/api/me/shopping-list${buildQuery({ id: itemId })}`, {
-    method: 'DELETE',
-  });
+  await deleteShoppingItemOfflineAware(itemId);
 }
 
 export async function subscribeToNewsletter(input: {

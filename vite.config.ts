@@ -25,7 +25,7 @@ export default defineConfig(() => ({
       workbox: {
         cleanupOutdatedCaches: true,
         sourcemap: false,
-        maximumFileSizeToCacheInBytes: 250 * 1024, // Increased to 250KB
+        maximumFileSizeToCacheInBytes: 512 * 1024, // Increased to 512KB to avoid Workbox build failures.
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,

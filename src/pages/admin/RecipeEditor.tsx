@@ -12,7 +12,6 @@ import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { NewCategoryDialog } from "@/components/admin/NewCategoryDialog";
 import {
-  getRecipeById,
   getRecipeTeaser,
   getRecipes,
   removeRecipeImageFile,
@@ -26,10 +25,12 @@ import type { AccessTier, ImageFileMeta, RecipeStatus } from "@/types/recipe";
 import { normalizeBRLInput, parseBRLInput } from "@/lib/helpers";
 import { createImagePreview, revokeImagePreview } from "@/lib/services/storageFallback";
 import { toast } from "sonner";
-import { buildTenantAdminPath, extractTenantSlugFromPath } from "@/lib/tenant";
+import { buildTenantAdminPath, getCurrentTenantSlug } from "@/lib/tenant";
+import { loadAdminRecipeForEditor, saveAdminRecipeDraftLocal } from "@/pwa/offline/repos/admin-recipes-offline-repo";
 
 type EditorState = {
   id?: string;
+  localDraftId?: string;
   title: string;
   slug: string;
   description: string;
@@ -55,6 +56,7 @@ type EditorState = {
   isFeatured: boolean;
   status: RecipeStatus;
   createdAt?: string;
+  updatedAt?: string;
   publishedAt?: string | null;
 };
 
@@ -85,34 +87,42 @@ const EMPTY_STATE: EditorState = {
   status: "draft",
 };
 
-function mapRecipeToState(recipe: RecipeRecord): EditorState {
+function mapRecipeToState(
+  recipe: Partial<RecipeRecord> & {
+    draftId?: string;
+    serverRecipeId?: string | null;
+  },
+): EditorState {
   return {
-    id: recipe.id,
-    title: recipe.title,
-    slug: recipe.slug,
-    description: recipe.description,
+    ...EMPTY_STATE,
+    id: recipe.serverRecipeId || recipe.id,
+    localDraftId: recipe.draftId,
+    title: recipe.title || "",
+    slug: recipe.slug || "",
+    description: recipe.description || "",
     imageUrl: recipe.imageUrl || "",
     imageFileMeta: recipe.imageFileMeta ?? null,
     imagePreviewUrl: recipe.imageUrl || "",
-    categorySlug: recipe.categorySlug,
-    prepTime: recipe.prepTime,
-    cookTime: recipe.cookTime,
-    servings: recipe.servings,
+    categorySlug: recipe.categorySlug || "",
+    prepTime: recipe.prepTime || 0,
+    cookTime: recipe.cookTime || 0,
+    servings: recipe.servings || 1,
     difficulty: recipe.difficulty ?? null,
     calories: recipe.calories ?? null,
     videoUrl: recipe.videoUrl || "",
-    accessTier: recipe.accessTier,
+    accessTier: recipe.accessTier || "free",
     priceBRL: recipe.priceBRL ?? null,
-    priceInput: recipe.priceBRL ? normalizeBRLInput(recipe.priceBRL) : "",
-    ingredientsText: recipe.fullIngredients.join("\n"),
-    instructionsText: recipe.fullInstructions.join("\n"),
-    tagsText: recipe.tags.join(", "),
+    priceInput: typeof recipe.priceBRL === "number" ? normalizeBRLInput(recipe.priceBRL) : "",
+    ingredientsText: (recipe.fullIngredients || []).join("\n"),
+    instructionsText: (recipe.fullInstructions || []).join("\n"),
+    tagsText: (recipe.tags || []).join(", "),
     excerpt: recipe.excerpt || "",
     seoTitle: recipe.seoTitle || "",
     seoDescription: recipe.seoDescription || "",
     isFeatured: Boolean(recipe.isFeatured),
-    status: recipe.status,
+    status: recipe.status || "draft",
     createdAt: recipe.createdAt,
+    updatedAt: recipe.updatedAt,
     publishedAt: recipe.publishedAt ?? null,
   };
 }
@@ -128,7 +138,8 @@ export default function RecipeEditor() {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const tenantSlug = extractTenantSlugFromPath(location.pathname);
+  const tenantSlug = getCurrentTenantSlug(location.pathname);
+  const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
   const isEditing = Boolean(id);
   const { categories, refreshCategories } = useAppContext();
   const [form, setForm] = useState<EditorState>(EMPTY_STATE);
@@ -144,11 +155,16 @@ export default function RecipeEditor() {
     async function loadEditor() {
       setLoading(true);
       try {
-        const recipes = await getRecipes();
-        setExistingRecipes(recipes);
+        try {
+          const recipes = await getRecipes();
+          setExistingRecipes(recipes);
+        } catch (error) {
+          console.warn("Failed to load admin recipe list for editor", error);
+          setExistingRecipes([]);
+        }
 
         if (id) {
-          const recipe = await getRecipeById(id);
+          const recipe = await loadAdminRecipeForEditor(id);
           if (!recipe) {
             navigate(buildTenantAdminPath("receitas", tenantSlug));
             return;
@@ -226,6 +242,10 @@ export default function RecipeEditor() {
     if (!file) {
       return;
     }
+    if (isOffline) {
+      toast.error("Upload de imagem offline não está disponível.");
+      return;
+    }
 
     const previousImageMeta = form.imageFileMeta;
     const localPreviewUrl = createImagePreview(file);
@@ -244,7 +264,7 @@ export default function RecipeEditor() {
         imagePreviewUrl: uploaded.imageUrl,
       }));
       revokeImagePreview(localPreviewUrl);
-      if (previousImageMeta?.storage === "google_drive" && previousImageMeta.fileId !== uploaded.imageFileMeta.fileId) {
+      if (previousImageMeta?.storage === "external" && previousImageMeta.fileId !== uploaded.imageFileMeta.fileId) {
         await removeRecipeImageFile(previousImageMeta);
       }
       toast.success("Imagem enviada");
@@ -262,6 +282,11 @@ export default function RecipeEditor() {
   }
 
   async function handleRemoveImage() {
+    if (isOffline) {
+      toast.error("Remoção de imagem offline não está disponível.");
+      return;
+    }
+
     try {
       await removeRecipeImageFile(form.imageFileMeta);
     } catch (error) {
@@ -278,6 +303,10 @@ export default function RecipeEditor() {
 
   async function handleCreateCategory() {
     if (!newCategoryName.trim()) return;
+    if (isOffline) {
+      toast.error("Criação de categoria offline não está disponível.");
+      return;
+    }
 
     try {
       const category = await addCategory({
@@ -297,7 +326,12 @@ export default function RecipeEditor() {
   }
 
   async function handleSave(status: RecipeStatus) {
-    if (errors.length) {
+    if (isOffline && status === "published") {
+      toast.error("Publicação offline não está disponível.");
+      return;
+    }
+
+    if (!isOffline && errors.length) {
       toast.error("Revise os campos obrigatórios antes de salvar.");
       return;
     }
@@ -306,7 +340,9 @@ export default function RecipeEditor() {
     try {
       const parsedPrice = parseBRLInput(form.priceInput);
       const nextSlug = form.publishedAt ? form.slug : uniqueSlug(form.title, existingRecipes, form.id);
-      await saveRecipe({
+      const publishedAt =
+        status === "published" ? form.publishedAt || new Date().toISOString() : form.publishedAt ?? null;
+      const payload = {
         id: form.id,
         title: form.title.trim(),
         slug: nextSlug,
@@ -331,8 +367,42 @@ export default function RecipeEditor() {
         isFeatured: form.isFeatured,
         status,
         createdAt: form.createdAt,
-        publishedAt: status === "published" ? form.publishedAt || new Date().toISOString() : form.publishedAt ?? null,
-      });
+        updatedAt: form.updatedAt,
+        publishedAt,
+      };
+
+      if (isOffline) {
+        if (!payload.title) {
+          toast.error("Informe pelo menos o título para salvar o rascunho local.");
+          return;
+        }
+
+        const savedDraft = await saveAdminRecipeDraftLocal({
+          draftId: form.localDraftId,
+          tenantSlug,
+          serverRecipeId: form.id,
+          baseServerUpdatedAt: form.updatedAt ?? null,
+          payload: {
+            ...payload,
+            id: form.id || form.localDraftId,
+          },
+        });
+        setForm((current) => ({
+          ...current,
+          localDraftId: savedDraft.draftId,
+          slug: current.slug || nextSlug,
+          status,
+          updatedAt: savedDraft.updatedAt,
+          publishedAt,
+        }));
+        toast.success("Rascunho local salvo neste dispositivo.");
+        if (!form.id) {
+          navigate(buildTenantAdminPath(`receitas/${savedDraft.draftId}/editar`, tenantSlug), { replace: true });
+        }
+        return;
+      }
+
+      await saveRecipe(payload);
       toast.success(status === "published" ? "Receita publicada" : "Rascunho salvo");
       navigate(buildTenantAdminPath("receitas", tenantSlug));
     } catch (error) {
@@ -357,6 +427,11 @@ export default function RecipeEditor() {
           <p className="mt-1 text-sm text-muted-foreground">
             O formulário publica pela camada de API e repositórios, mantendo a UI isolada da persistência.
           </p>
+          {isOffline && (
+            <p className="mt-2 text-sm text-amber-700">
+              Modo offline: apenas rascunhos locais estão liberados neste dispositivo.
+            </p>
+          )}
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
           <Button
@@ -370,7 +445,7 @@ export default function RecipeEditor() {
           <Button
             className="w-full sm:w-auto"
             onClick={() => void handleSave("published")}
-            disabled={saving || uploadingImage}
+            disabled={saving || uploadingImage || isOffline}
           >
             <Globe className="mr-2 h-4 w-4" /> Publicar
           </Button>
@@ -437,7 +512,7 @@ export default function RecipeEditor() {
                   onNameChange={setNewCategoryName}
                   onDescriptionChange={setNewCategoryDescription}
                   onCreate={handleCreateCategory}
-                  disabled={saving || uploadingImage}
+                  disabled={saving || uploadingImage || isOffline}
                 />
               </div>
             </div>
@@ -448,14 +523,14 @@ export default function RecipeEditor() {
                 <Input
                   type="file"
                   accept="image/*"
-                  disabled={uploadingImage}
+                  disabled={uploadingImage || isOffline}
                   onChange={(event) => void handleImageSelect(event.target.files?.[0] || null)}
                 />
                 <Button
                   type="button"
                   variant="outline"
                   className="w-full sm:w-auto"
-                  disabled={!form.imageUrl || uploadingImage}
+                  disabled={!form.imageUrl || uploadingImage || isOffline}
                   onClick={() => void handleRemoveImage()}
                 >
                   <Trash2 className="mr-2 h-4 w-4" />

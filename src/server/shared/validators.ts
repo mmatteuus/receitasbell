@@ -73,18 +73,23 @@ export const shoppingListCreateSchema = z.object({
   items: z
     .array(
       z.object({
+        clientId: z.string().trim().optional(),
         recipeId: z.string().trim().optional().nullable(),
         recipeTitleSnapshot: z.string().trim().optional(),
         text: z.string().trim().min(1),
         checked: z.boolean().optional(),
+        updatedAt: z.string().trim().optional(),
       })
     )
     .min(1),
 });
 
 export const shoppingListUpdateSchema = z.object({
+  clientId: z.string().trim().optional(),
   text: z.string().trim().min(1).optional(),
   checked: z.boolean().optional(),
+  baseVersion: z.string().trim().optional(),
+  updatedAt: z.string().trim().optional(),
 });
 
 export const checkoutCreateSchema = z.object({

@@ -1,5 +1,4 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { z } from 'zod';
 import { withApiHandler, json, ApiError } from '../../src/server/shared/http.js';
 import { requireIdentityUser } from '../../src/server/auth/guards.js';
 import { requireTenantFromRequest } from '../../src/server/tenancy/resolver.js';
@@ -27,7 +26,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
     if (method === 'POST') {
       const body = favoriteSchema.parse(request.body);
       const favorite = await createFavorite(tenant.id, userId, String(body.recipeId));
-      return json(response, 201, { ...favorite, requestId });
+      return json(response, 201, { item: favorite, requestId });
     }
 
     if (method === 'DELETE') {
@@ -41,4 +40,3 @@ export default async function handler(request: VercelRequest, response: VercelRe
     throw new ApiError(405, `Method ${method} not allowed`);
   });
 }
-

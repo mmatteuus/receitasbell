@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import {
   bootstrapAdmin,
+  getAdminSession,
   loginAdmin,
   type AdminSessionResponse,
 } from "@/lib/api/adminSession";

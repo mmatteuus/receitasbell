@@ -17,7 +17,9 @@ import { paymentRepo } from '@/lib/repos/paymentRepo';
 import type { Payment } from '@/lib/payments/types';
 import { METHOD_LABELS } from '@/pages/admin/payments/constants';
 import { getRecipeImage } from '@/lib/recipes/presentation';
-import { buildTenantAdminPath, extractTenantSlugFromPath } from '@/lib/tenant';
+import { buildTenantAdminPath, getCurrentTenantSlug } from '@/lib/tenant';
+import { getAdminSnapshot, saveAdminSnapshot } from '@/pwa/offline/cache/admin-snapshot';
+import { LastSyncBadge } from '@/pwa/offline/ui/LastSyncBadge';
 
 type Period = '7' | '30' | '90';
 
@@ -31,10 +33,12 @@ const PaymentMethodsChart = lazy(() =>
 
 export default function Dashboard() {
   const location = useLocation();
-  const tenantSlug = extractTenantSlugFromPath(location.pathname);
+  const tenantSlug = getCurrentTenantSlug(location.pathname);
   const [period, setPeriod] = useState<Period>('30');
   const [recipes, setRecipes] = useState<RecipeRecord[]>([]);
   const [allPayments, setAllPayments] = useState<Payment[]>([]);
+  const [snapshotMode, setSnapshotMode] = useState(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
   const days = Number(period);
 
   useEffect(() => {
@@ -43,7 +47,31 @@ export default function Dashboard() {
         const [recipeRows, paymentRows] = await Promise.all([getRecipes(), paymentRepo.list()]);
         setRecipes(recipeRows);
         setAllPayments(paymentRows);
+        setSnapshotMode(false);
+        const syncedAt = new Date().toISOString();
+        setLastSyncedAt(syncedAt);
+        if (tenantSlug) {
+          await saveAdminSnapshot({
+            tenantSlug,
+            dashboardSummary: {
+              recipes: recipeRows,
+              payments: paymentRows,
+            },
+            lastSyncedAt: syncedAt,
+          });
+        }
       } catch (error) {
+        if (tenantSlug) {
+          const snapshot = await getAdminSnapshot(tenantSlug);
+          const summary = snapshot?.dashboardSummary as { recipes?: RecipeRecord[]; payments?: Payment[] } | undefined;
+          if (summary) {
+            setRecipes(summary.recipes || []);
+            setAllPayments(summary.payments || []);
+            setSnapshotMode(true);
+            setLastSyncedAt(snapshot?.lastSyncedAt || null);
+            return;
+          }
+        }
         console.error('Failed to load admin dashboard', error);
       }
     }
@@ -183,6 +211,12 @@ export default function Dashboard() {
         <div>
           <h1 className="font-heading text-4xl font-extrabold tracking-tight">Dashboard</h1>
           <p className="mt-1 text-muted-foreground">Bem-vindo de volta! Aqui está o resumo do seu site.</p>
+          {snapshotMode && (
+            <div className="mt-3 space-y-2">
+              <p className="text-sm font-medium text-amber-800">Modo offline — dados podem estar desatualizados.</p>
+              <LastSyncBadge lastSyncedAt={lastSyncedAt} />
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2 bg-muted/50 p-1.5 rounded-2xl border w-fit">
           {(['7', '30', '90'] as Period[]).map((p) => (
@@ -354,4 +388,3 @@ export default function Dashboard() {
     </div>
   );
 }
-

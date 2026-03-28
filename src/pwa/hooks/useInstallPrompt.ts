@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getCurrentTenantSlug } from "@/lib/tenant";
 import { setInstallContext, type InstallContext } from "../lib/install-context";
 
 interface BeforeInstallPromptEvent extends Event {
@@ -45,7 +46,7 @@ export function useInstallPrompt() {
   const install = async (context: InstallContext) => {
     if (!deferredPrompt) return;
 
-    setInstallContext(context);
+    setInstallContext(context, getCurrentTenantSlug());
     deferredPrompt.prompt();
 
     const { outcome } = await deferredPrompt.userChoice;

@@ -18,22 +18,52 @@ import type { RecipeRecord } from '@/lib/recipes/types';
 import { PriceBadge } from '@/components/price-badge';
 import { toast } from 'sonner';
 import { getRecipeImage, getRecipePresentation } from '@/lib/recipes/presentation';
-import { buildTenantAdminPath, extractTenantSlugFromPath } from '@/lib/tenant';
+import { buildTenantAdminPath, getCurrentTenantSlug } from '@/lib/tenant';
+import { getAdminSnapshot, saveAdminSnapshot } from '@/pwa/offline/cache/admin-snapshot';
+import { LastSyncBadge } from '@/pwa/offline/ui/LastSyncBadge';
 
 export default function RecipeListPage() {
   const location = useLocation();
-  const tenantSlug = extractTenantSlugFromPath(location.pathname);
+  const tenantSlug = getCurrentTenantSlug(location.pathname);
   const [recipes, setRecipes] = useState<RecipeRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [snapshotMode, setSnapshotMode] = useState(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
   const { categories } = useAppContext();
 
   useEffect(() => {
     async function loadRecipes() {
       try {
-        setRecipes(await getRecipes());
+        const nextRecipes = await getRecipes();
+        setRecipes(nextRecipes);
+        setSnapshotMode(false);
+        const syncedAt = new Date().toISOString();
+        setLastSyncedAt(syncedAt);
+        if (tenantSlug) {
+          await saveAdminSnapshot({
+            tenantSlug,
+            recipesSummary: {
+              recipes: nextRecipes,
+            },
+            lastSyncedAt: syncedAt,
+          });
+        }
       } catch (error) {
-        console.error('Failed to load recipes', error);
-        toast.error('Nao foi possivel carregar as receitas.');
+        if (tenantSlug) {
+          const snapshot = await getAdminSnapshot(tenantSlug);
+          const summary = snapshot?.recipesSummary as { recipes?: RecipeRecord[] } | undefined;
+          if (summary?.recipes) {
+            setRecipes(summary.recipes);
+            setSnapshotMode(true);
+            setLastSyncedAt(snapshot?.lastSyncedAt || null);
+          } else {
+            console.error('Failed to load recipes', error);
+            toast.error('Nao foi possivel carregar as receitas.');
+          }
+        } else {
+          console.error('Failed to load recipes', error);
+          toast.error('Nao foi possivel carregar as receitas.');
+        }
       } finally {
         setLoading(false);
       }
@@ -44,13 +74,18 @@ export default function RecipeListPage() {
 
   async function refresh() {
     try {
-      setRecipes(await getRecipes());
+      const nextRecipes = await getRecipes();
+      setRecipes(nextRecipes);
     } catch (error) {
       console.error('Failed to refresh recipes', error);
     }
   }
 
   async function handleTogglePublish(recipe: RecipeRecord) {
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      toast.error('Publicação offline não está disponível.');
+      return;
+    }
     const now = new Date().toISOString();
     await saveRecipe({
       ...recipe,
@@ -64,6 +99,10 @@ export default function RecipeListPage() {
   }
 
   async function handleDuplicate(recipe: RecipeRecord) {
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      toast.error('Duplicação offline não está disponível.');
+      return;
+    }
     await saveRecipe({
       ...recipe,
       id: undefined,
@@ -78,6 +117,10 @@ export default function RecipeListPage() {
   }
 
   async function handleDelete(recipe: RecipeRecord) {
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      toast.error('Exclusão offline não está disponível.');
+      return;
+    }
     if (!confirm('Tem certeza que deseja excluir esta receita?')) return;
 
     try {
@@ -103,6 +146,12 @@ export default function RecipeListPage() {
           </Link>
         }
       />
+      {snapshotMode && (
+        <div className="mt-4 space-y-2 rounded-xl border border-amber-200 bg-amber-50 p-4">
+          <p className="text-sm font-medium text-amber-800">Modo offline — dados podem estar desatualizados.</p>
+          <LastSyncBadge lastSyncedAt={lastSyncedAt} />
+        </div>
+      )}
 
       {loading ? (
         <div className="mt-6 rounded-xl border bg-card p-6 text-sm text-muted-foreground">

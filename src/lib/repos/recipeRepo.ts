@@ -17,6 +17,7 @@ function toPayload(recipe: Partial<RecipeRecord>): RecipeMutationPayload {
   return {
     title: recipe.title || '',
     slug: recipe.slug,
+    baseServerUpdatedAt: recipe.updatedAt ?? null,
     description: recipe.description || '',
     imageUrl: recipe.imageUrl || '',
     imageFileMeta: recipe.imageFileMeta ?? null,

@@ -8,6 +8,7 @@ import { requireCsrf } from '../../src/server/security/csrf.js';
 import { z } from 'zod';
 
 const recipeSchema = z.object({
+  baseServerUpdatedAt: z.string().optional().nullable(),
   title: z.string().min(1),
   slug: z.string().min(1).regex(/^[a-z0-9-]+$/, "Slug inválido"),
   description: z.string().optional(),
@@ -87,6 +88,13 @@ export default async function handler(request: VercelRequest, response: VercelRe
     if (method === 'PATCH' || method === 'PUT') {
       if (!id) throw new ApiError(400, 'Missing recipe ID');
       const body = recipeSchema.partial().parse(request.body);
+      const existing = await getRecipeById(tenant.id, id);
+      if (!existing) throw new ApiError(404, "Recipe not found");
+      if (body.baseServerUpdatedAt && existing.updatedAt !== body.baseServerUpdatedAt) {
+        throw new ApiError(409, "Recipe conflict detected", {
+          server: existing,
+        });
+      }
       const result = await updateRecipe(tenant.id, id, {
         ...body,
         categorySlug: body.categorySlug ?? (body.categoryId ? String(body.categoryId) : undefined),

@@ -61,6 +61,8 @@ export default function HomePageSettings() {
       heroTitle: settings.heroTitle,
       heroSubtitle: settings.heroSubtitle,
       heroImageUrl: settings.heroImageUrl,
+      heroImageCaption: settings.heroImageCaption,
+      heroImageSubtitle: settings.heroImageSubtitle,
       heroPrimaryCtaLabel: settings.heroPrimaryCtaLabel,
       heroPrimaryCtaHref: settings.heroPrimaryCtaHref,
       heroSecondaryCtaLabel: settings.heroSecondaryCtaLabel,
@@ -230,6 +232,20 @@ export default function HomePageSettings() {
                 }}
               />
             )}
+          </div>
+          <div className="space-y-2">
+            <Label>Legenda da imagem</Label>
+            <Input
+              value={form.heroImageCaption}
+              onChange={(event) => setField('heroImageCaption', event.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Sublegenda da imagem</Label>
+            <Input
+              value={form.heroImageSubtitle}
+              onChange={(event) => setField('heroImageSubtitle', event.target.value)}
+            />
           </div>
           <div className="space-y-2">
             <Label>CTA primário (texto)</Label>

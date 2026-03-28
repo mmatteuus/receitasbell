@@ -4,6 +4,8 @@ import { RequireAdminAuth } from "@/components/auth/RequireAdminAuth";
 import AdminLayout from "@/components/layout/AdminLayout";
 import PublicLayout from "@/components/layout/PublicLayout";
 import { buildTenantAdminPath } from "@/lib/tenant";
+import { PwaTenantBridge, PwaTenantRuntimeRedirect } from "@/pwa/components/PwaTenantBridge";
+import { RequirePwaAdminAuth } from "@/pwa/components/RequirePwaAdminAuth";
 import HomePage from "@/pages/Index";
 
 type RouteModule = {
@@ -81,6 +83,10 @@ const router = createBrowserRouter([
     lazy: lazyRoute(() => import("@/pwa/pages/UserLoginPage")),
   },
   {
+    path: "/pwa/auth/verify",
+    lazy: lazyRoute(() => import("@/pwa/pages/PwaAuthVerifyPage")),
+  },
+  {
     path: "/pwa/admin/login",
     lazy: lazyRoute(() => import("@/pwa/pages/AdminLoginPage")),
   },
@@ -100,15 +106,75 @@ const router = createBrowserRouter([
   {
     path: "/pwa/admin",
     element: (
-      <RequireAdminAuth>
+      <RequirePwaAdminAuth>
         <AdminLayout />
-      </RequireAdminAuth>
+      </RequirePwaAdminAuth>
     ),
     children: buildAdminChildren(),
   },
   {
     path: "/pwa/*",
     lazy: lazyRoute(() => import("@/pwa/pages/PwaNotFoundPage")),
+  },
+  {
+    path: "/t/:tenantSlug/pwa/entry",
+    lazy: async () => {
+      const { default: Component } = await import("@/pwa/entry/PwaEntryPage");
+      return {
+        element: (
+          <PwaTenantBridge>
+            <Component />
+          </PwaTenantBridge>
+        ),
+      };
+    },
+  },
+  {
+    path: "/t/:tenantSlug/pwa/login",
+    lazy: async () => {
+      const { default: Component } = await import("@/pwa/pages/UserLoginPage");
+      return {
+        element: (
+          <PwaTenantBridge>
+            <Component />
+          </PwaTenantBridge>
+        ),
+      };
+    },
+  },
+  {
+    path: "/t/:tenantSlug/pwa/auth/verify",
+    lazy: async () => {
+      const { default: Component } = await import("@/pwa/pages/PwaAuthVerifyPage");
+      return {
+        element: (
+          <PwaTenantBridge>
+            <Component />
+          </PwaTenantBridge>
+        ),
+      };
+    },
+  },
+  {
+    path: "/t/:tenantSlug/pwa/admin/login",
+    lazy: async () => {
+      const { default: Component } = await import("@/pwa/pages/AdminLoginPage");
+      return {
+        element: (
+          <PwaTenantBridge>
+            <Component />
+          </PwaTenantBridge>
+        ),
+      };
+    },
+  },
+  {
+    path: "/t/:tenantSlug/pwa/app/*",
+    element: <PwaTenantRuntimeRedirect targetBasePath="/pwa/app" />,
+  },
+  {
+    path: "/t/:tenantSlug/pwa/admin/*",
+    element: <PwaTenantRuntimeRedirect targetBasePath="/pwa/admin" />,
   },
   {
     path: "/admin/login",

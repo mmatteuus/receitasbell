@@ -10,7 +10,7 @@ import { DEFAULT_CATEGORIES, DEFAULT_HOME_SETTINGS, DEFAULT_PAYMENT_SETTINGS, DE
 import { addFavorite, deleteFavorite, type FavoriteRecord, listFavorites } from "@/lib/api/interactions";
 import { getSettings } from "@/lib/api/settings";
 import { ApiClientError } from "@/lib/api/client";
-import { isValidEmail, fetchMe } from "@/lib/api/identity";
+import { fetchMe, isValidEmail, logoutUser, requestMagicLink } from "@/lib/api/identity";
 import { applySiteSettings } from "@/lib/theme";
 import type { Category } from "@/types/category";
 import type { SettingsMap } from "@/types/settings";
@@ -21,6 +21,10 @@ import { trackEvent } from "@/lib/telemetry";
 import { logger } from "@/lib/logger";
 import { getCategories } from "@/lib/repos/categoryRepo";
 import { AppContext, type AppContextValue } from "@/contexts/app-context";
+import { runOfflineSanityCheck } from "@/pwa/offline/db/open-db";
+import { attachSyncOnOnline } from "@/pwa/offline/sync/sync-on-online";
+import { attachSyncOnResume } from "@/pwa/offline/sync/sync-on-resume";
+import { isPwaRuntimePath } from "@/pwa/offline/runtime";
 
 type IdentityDialogState = {
   open: boolean;
@@ -115,6 +119,10 @@ export function AppProvider({ children }: PropsWithChildren) {
       return identityEmail;
     }
 
+    if (typeof window !== "undefined" && isPwaRuntimePath(window.location.pathname)) {
+      return null;
+    }
+
     const email = await new Promise<string | null>((resolve) => {
       setIdentityResolver(() => resolve);
       setIdentityDialog({
@@ -142,7 +150,7 @@ export function AppProvider({ children }: PropsWithChildren) {
 
   const clearIdentity = useCallback(async () => {
     try {
-      await fetch("/api/auth/logout", { method: "POST" });
+      await logoutUser();
     } finally {
       setIdentityEmailState(null);
       setFavoriteRecords([]);
@@ -179,6 +187,11 @@ export function AppProvider({ children }: PropsWithChildren) {
   }, []);
 
   useEffect(() => {
+    void runOfflineSanityCheck().catch((error) => {
+      logger.error("offline-db", error);
+    });
+    attachSyncOnOnline();
+    attachSyncOnResume();
     void refreshCategories();
     void refreshSettings();
 
@@ -271,13 +284,9 @@ export function AppProvider({ children }: PropsWithChildren) {
 
     setIdentityLoading(true);
     try {
-      const res = await fetch("/api/auth/request", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: normalized }),
+      await requestMagicLink({
+        email: normalized,
       });
-
-      if (!res.ok) throw new Error("Falha ao solicitar login");
 
       setIdentityDialog((current) => ({ ...current, open: false, error: "" }));
       toast.success("Enviamos um link de confirmação para seu e-mail.");
