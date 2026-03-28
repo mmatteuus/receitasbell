@@ -6,7 +6,16 @@ import { requireTenantFromRequest } from "../../src/server/tenancy/resolver.js";
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   return withApiHandler(req, res, async ({ requestId }) => {
     const s = await getSession(req);
-    if (!s) return json(res, 401, { success: false, error: { message: "Not authenticated" }, requestId });
+    if (!s) {
+      return json(res, 200, {
+        success: true,
+        data: {
+          user: null,
+          authenticated: false,
+        },
+        requestId,
+      });
+    }
 
     let tenantSlug: string | null = null;
     try {
