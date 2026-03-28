@@ -2,8 +2,9 @@ import { logAuditEvent } from "../../audit/repo.js";
 import { decryptSecret, encryptSecret } from "../../shared/crypto.js";
 import { getMercadoPagoAppEnvAsync } from "../../shared/env.js";
 import { ApiError } from "../../shared/http.js";
-import { fetchBaserow, BASEROW_TABLES } from "../baserow/client.js";
+import { BaserowError, fetchBaserow, BASEROW_TABLES } from "../baserow/client.js";
 import { getSettingsMap, updateSettings as saveSettings } from "../../settings/repo.js";
+import { getTenantById } from "../../tenancy/repo.js";
 
 export { getMercadoPagoAppEnvAsync };
 
@@ -110,6 +111,29 @@ function sanitizeTenantId(tenantId: string | number) {
   return encodeURIComponent(String(tenantId));
 }
 
+function isMissingConnectionsTableError(error: unknown) {
+  if (!(error instanceof BaserowError) || error.status !== 404) {
+    return false;
+  }
+
+  const body = error.body;
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return false;
+  }
+
+  return (body as { error?: unknown }).error === "ERROR_TABLE_DOES_NOT_EXIST";
+}
+
+async function fetchConnectionRows(
+  tableId: number,
+  tenantField: "tenant_id" | "tenantId",
+  tenantValue: string,
+) {
+  return fetchBaserow<{ results: MercadoPagoConnectionRow[] }>(
+    `/api/database/rows/table/${tableId}/?user_field_names=true&filter__${tenantField}__equal=${sanitizeTenantId(tenantValue)}&order_by=-id`,
+  );
+}
+
 async function clearLegacySettingsSecrets(tenantId: string | number) {
   const settings = await getSettingsMap(tenantId);
   if (
@@ -131,10 +155,32 @@ async function clearLegacySettingsSecrets(tenantId: string | number) {
 
 async function queryTenantConnections(tenantId: string | number) {
   const tableId = requireConnectionsTableId();
-  const rows = await fetchBaserow<{ results: MercadoPagoConnectionRow[] }>(
-    `/api/database/rows/table/${tableId}/?user_field_names=true&filter__tenant_id__equal=${sanitizeTenantId(tenantId)}&order_by=-id`
-  );
-  return rows.results;
+  const tenantRecord = await getTenantById(tenantId).catch(() => null);
+  const tenantKeys = new Set([String(tenantId)]);
+  if (tenantRecord?.slug) {
+    tenantKeys.add(tenantRecord.slug);
+  }
+
+  const rowsById = new Map<string, MercadoPagoConnectionRow>();
+
+  try {
+    for (const tenantKey of tenantKeys) {
+      for (const tenantField of ["tenant_id", "tenantId"] as const) {
+        const rows = await fetchConnectionRows(tableId, tenantField, tenantKey);
+        for (const row of rows.results) {
+          if (row.id == null) continue;
+          rowsById.set(String(row.id), row);
+        }
+      }
+    }
+  } catch (error) {
+    if (isMissingConnectionsTableError(error)) {
+      return [];
+    }
+    throw error;
+  }
+
+  return Array.from(rowsById.values()).sort((left, right) => Number(right.id || 0) - Number(left.id || 0));
 }
 
 function getActiveConnectionRow(rows: MercadoPagoConnectionRow[]) {

@@ -24,7 +24,7 @@ describe("vercel.json hardening headers", () => {
       rewrites?: Array<{ source: string; destination: string }>;
     };
 
-    expect(parsed.buildCommand).toBe("npm run build:deploy");
+    expect(parsed.buildCommand).toBe("npm run gate");
 
     const rewriteSources = new Set((parsed.rewrites || []).map((entry) => entry.source));
     expect(rewriteSources.has("/api/checkout")).toBe(true);

@@ -25,6 +25,22 @@ Flags úteis:
 - `--allow-weak-password-migration`: permite migrar senhas legadas fracas para hash (não recomendado).
 - `--database-id`, `--api-token`, `--email`, `--password`: alternativas para não depender de env no shell.
 
+Comandos canônicos:
+
+```bash
+npm run baserow:sanitize -- --report docs/operations/baserow-sanitization-report.json
+npm run baserow:tenant-update -- --apply
+```
+
+Wrappers legados preservados por compatibilidade:
+
+- `baserow-aux-setup.cjs`
+- `baserow-schema-update.cjs`
+- `baserow-tenant-update.cjs`
+- `baserow-users-setup.cjs`
+
+Todos redirecionam para `scripts/baserow-sanitize.cjs` e devem ser substituídos gradualmente pelos scripts `npm run baserow:*`.
+
 Uso rápido do script `sse-listener.cjs` para conectar a um endpoint SSE e gravar eventos em JSONL.
 
 Exemplos:

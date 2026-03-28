@@ -13,6 +13,10 @@ const auditMock = vi.hoisted(() => ({
   logAuditEvent: vi.fn(),
 }));
 
+const tenancyMock = vi.hoisted(() => ({
+  getTenantById: vi.fn(),
+}));
+
 vi.mock("../src/server/integrations/baserow/client.js", () => ({
   fetchBaserow: baserowMock.fetchBaserow,
   BASEROW_TABLES: {
@@ -27,6 +31,10 @@ vi.mock("../src/server/settings/repo.js", () => ({
 
 vi.mock("../src/server/audit/repo.js", () => ({
   logAuditEvent: auditMock.logAuditEvent,
+}));
+
+vi.mock("../src/server/tenancy/repo.js", () => ({
+  getTenantById: tenancyMock.getTenantById,
 }));
 
 import {
@@ -44,6 +52,8 @@ describe("mercado pago connections persistence", () => {
     settingsMock.getSettingsMap.mockReset();
     settingsMock.updateSettings.mockReset();
     auditMock.logAuditEvent.mockReset();
+    tenancyMock.getTenantById.mockReset();
+    tenancyMock.getTenantById.mockResolvedValue(null);
     vi.restoreAllMocks();
   });
 
@@ -321,5 +331,62 @@ describe("mercado pago connections persistence", () => {
         action: "mercadopago.connection_repaired",
       }),
     );
+  });
+
+  test("encontra conexao legada salva com slug do tenant quando id numerico nao retorna linhas", async () => {
+    tenancyMock.getTenantById.mockResolvedValue({
+      id: "34",
+      slug: "receitasbell",
+      name: "Receitas Bell",
+      host: "receitasbell.mtsferreira.dev",
+      status: "active",
+      createdAt: "2026-03-28T00:00:00.000Z",
+    });
+    settingsMock.getSettingsMap.mockResolvedValue({
+      mp_access_token: "",
+      mp_refresh_token: "",
+      mp_public_key: "",
+      mp_user_id: "",
+    });
+
+    baserowMock.fetchBaserow.mockImplementation(async (path: string) => {
+      if (path.includes("filter__tenant_id__equal=34")) {
+        return { results: [] };
+      }
+      if (path.includes("filter__tenantId__equal=34")) {
+        return { results: [] };
+      }
+      if (path.includes("filter__tenant_id__equal=receitasbell")) {
+        return {
+          results: [
+            {
+              id: 67,
+              tenant_id: "receitasbell",
+              mercado_pago_user_id: "8533405491426561",
+              access_token_encrypted: encryptSecret("token"),
+              refresh_token_encrypted: "",
+              public_key: "APP_USR-public",
+              status: "connected",
+              connected_at: "2026-03-26T00:00:00.000Z",
+              expires_at: "",
+              disconnected_at: "",
+              last_refresh_at: "2026-03-26T00:00:00.000Z",
+              last_error: "",
+              created_by_user_id: "admin-1",
+              updated_at: "2026-03-26T00:00:00.000Z",
+            },
+          ],
+        };
+      }
+      if (path.includes("filter__tenantId__equal=receitasbell")) {
+        return { results: [] };
+      }
+      return { results: [] };
+    });
+
+    const connection = await getTenantMercadoPagoConnection("34");
+    expect(connection).not.toBeNull();
+    expect(connection?.id).toBe("67");
+    expect(connection?.tenantId).toBe("receitasbell");
   });
 });
