@@ -8,6 +8,13 @@ export type PaymentStatus =
   | "charged_back";
 
 export type PaymentGateway = "mercado_pago" | "mock";
+export type CheckoutPaymentMethod = "checkout_pro" | "pix" | "card";
+export type DirectPaymentMethod = Exclude<CheckoutPaymentMethod, "checkout_pro">;
+
+export interface PaymentIdentification {
+  type: "CPF" | "CNPJ";
+  number: string;
+}
 
 export interface AdminPaymentsFilters {
   status?: PaymentStatus[];
@@ -36,6 +43,26 @@ export interface CreatePaymentPreferenceInput {
   checkoutReference: string;
 }
 
+export interface CreatePixPaymentInput {
+  recipeIds: string[];
+  payerName?: string;
+  buyerEmail: string;
+  checkoutReference: string;
+  identification: PaymentIdentification;
+}
+
+export interface CreateCardPaymentInput {
+  recipeIds: string[];
+  payerName?: string;
+  buyerEmail: string;
+  checkoutReference: string;
+  token: string;
+  paymentMethodId: string;
+  issuerId?: string;
+  installments: number;
+  identification: PaymentIdentification;
+}
+
 export interface CreatePaymentPreferenceResult {
   paymentOrderId: string | number;
   preferenceId: string | null;
@@ -48,6 +75,28 @@ export interface CreatePaymentPreferenceResult {
   unlockedCount: number;
   gateway: PaymentGateway;
   message?: string;
+}
+
+export interface DirectPaymentResult {
+  paymentOrderId: string | number;
+  paymentId: string | null;
+  status: string;
+  internalStatus: PaymentStatus;
+  statusDetail?: string | null;
+  externalReference: string | null;
+  paymentMethod: DirectPaymentMethod;
+  checkoutReference: string;
+  amountBRL: number;
+  qrCode?: string | null;
+  qrCodeBase64?: string | null;
+  qrCodeUrl?: string | null;
+}
+
+export interface CheckoutPaymentConfig {
+  paymentMode: "sandbox" | "production";
+  publicKey: string | null;
+  connectionStatus: string;
+  supportedMethods: CheckoutPaymentMethod[];
 }
 
 export interface AdminPaymentSettingsResponse {

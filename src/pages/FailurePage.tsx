@@ -26,7 +26,7 @@ export default function FailurePage() {
           <li>Cartão recusado pelo emissor</li>
           <li>Saldo insuficiente</li>
           <li>Dados de pagamento incorretos</li>
-          <li>Pagamento expirado (boleto/Pix)</li>
+          <li>PIX expirado ou cancelado</li>
         </ul>
       </div>
 

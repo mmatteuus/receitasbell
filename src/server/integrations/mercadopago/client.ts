@@ -3,6 +3,7 @@ type MercadoPagoErrorPayload = Record<string, unknown> | null;
 export type MercadoPagoPayment = {
   id?: string | number;
   status?: string;
+  status_detail?: string;
   external_reference?: string;
   [key: string]: unknown;
 };
@@ -94,4 +95,58 @@ export async function createMercadoPagoPreference(
   }
 
   return body as MercadoPagoPreference;
+}
+
+export async function createMercadoPagoPayment(
+  accessToken: string,
+  input: Record<string, unknown> & { idempotencyKey?: string },
+): Promise<MercadoPagoPayment> {
+  const { idempotencyKey, ...payload } = input;
+  const headers: Record<string, string> = {
+    ...authHeaders(accessToken),
+    "Content-Type": "application/json",
+  };
+  if (idempotencyKey) headers["X-Idempotency-Key"] = String(idempotencyKey);
+
+  const response = await fetch("https://api.mercadopago.com/v1/payments", {
+    method: "POST",
+    headers,
+    body: JSON.stringify(payload),
+  });
+
+  const body = await parseJsonSafe(response);
+  if (!response.ok) {
+    throw new MercadoPagoApiError(
+      response.status,
+      `MP payment create failed ${response.status}`,
+      body,
+    );
+  }
+
+  return body as MercadoPagoPayment;
+}
+
+export async function cancelMercadoPagoPayment(
+  accessToken: string,
+  paymentId: string,
+): Promise<MercadoPagoPayment> {
+  const response = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+    method: "PUT",
+    headers: {
+      ...authHeaders(accessToken),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ status: "cancelled" }),
+  });
+
+  const body = await parseJsonSafe(response);
+  if (!response.ok) {
+    throw new MercadoPagoApiError(
+      response.status,
+      `MP payment cancel failed ${response.status}`,
+      body,
+    );
+  }
+
+  return body as MercadoPagoPayment;
 }

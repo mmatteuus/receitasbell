@@ -1,5 +1,10 @@
 import { z } from 'zod';
 
+const identificationSchema = z.object({
+  type: z.enum(["CPF", "CNPJ"]),
+  number: z.string().trim().min(11).max(14).regex(/^\d+$/, "Documento deve conter apenas números"),
+});
+
 const imageFileMetaSchema = z.object({
   storage: z.enum(['baserow', 'external', 'fallback']),
   fileId: z.string().trim().min(1),
@@ -97,6 +102,26 @@ export const checkoutCreateSchema = z.object({
   buyerEmail: z.string().trim().email(),
   payerName: z.string().trim().optional(),
   checkoutReference: z.string().trim().optional(),
+});
+
+export const pixPaymentCreateSchema = z.object({
+  recipeIds: z.array(z.string().trim().min(1)).min(1),
+  buyerEmail: z.string().trim().email(),
+  payerName: z.string().trim().min(1).optional(),
+  checkoutReference: z.string().trim().min(1).optional(),
+  identification: identificationSchema,
+});
+
+export const cardPaymentCreateSchema = z.object({
+  recipeIds: z.array(z.string().trim().min(1)).min(1),
+  buyerEmail: z.string().trim().email(),
+  payerName: z.string().trim().min(1).optional(),
+  checkoutReference: z.string().trim().min(1).optional(),
+  token: z.string().trim().min(1),
+  paymentMethodId: z.string().trim().min(1),
+  issuerId: z.string().trim().min(1).optional(),
+  installments: z.number().int().min(1).max(12),
+  identification: identificationSchema,
 });
 
 export const uploadRecipeImageSchema = z.object({

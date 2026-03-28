@@ -22,7 +22,7 @@ export default function PendingPage() {
 
       <div className="bg-card border rounded-xl p-6 shadow-sm mb-8 space-y-3 text-left">
         <p className="text-sm text-muted-foreground">
-          Se você pagou via Pix ou boleto, pode levar alguns minutos para a confirmação.
+          Se você pagou via Pix, a confirmação pode levar alguns minutos.
           Você receberá uma notificação quando o acesso for liberado.
         </p>
         {paymentId && (

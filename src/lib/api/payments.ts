@@ -1,5 +1,11 @@
 import type { AdminPaymentsFilters, CreatePaymentPreferenceResult, Payment, PaymentNote } from "@/lib/payments/types";
 import type { AdminPaymentSettingsResponse } from "@/types/payment";
+import type {
+  CheckoutPaymentConfig,
+  CreateCardPaymentInput,
+  CreatePixPaymentInput,
+  DirectPaymentResult,
+} from "@/types/payment";
 import type { RecipeRecord } from "@/lib/recipes/types";
 import type { Entitlement } from "@/types/entitlement";
 import { buildQuery, jsonFetch } from "./client";
@@ -110,4 +116,33 @@ export async function createMercadoPagoPreference(input: {
       },
     },
   );
+}
+
+export async function getCheckoutPaymentConfig() {
+  const result = await jsonFetch<{ config: CheckoutPaymentConfig }>("/api/payments/config");
+  return result.config;
+}
+
+export async function createPixPayment(input: CreatePixPaymentInput) {
+  return jsonFetch<DirectPaymentResult>("/api/payments/pix", {
+    method: "POST",
+    body: input,
+  });
+}
+
+export async function createCardPayment(input: CreateCardPaymentInput) {
+  return jsonFetch<DirectPaymentResult>("/api/payments/card", {
+    method: "POST",
+    body: input,
+  });
+}
+
+export async function getPaymentStatus(id: string) {
+  return jsonFetch<DirectPaymentResult>(`/api/payments/${encodeURIComponent(id)}`);
+}
+
+export async function cancelPayment(id: string) {
+  return jsonFetch<DirectPaymentResult>(`/api/payments/${encodeURIComponent(id)}/cancel`, {
+    method: "POST",
+  });
 }

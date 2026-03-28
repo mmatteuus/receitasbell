@@ -1,5 +1,20 @@
-import type { AdminPaymentsFilters, CreatePaymentPreferenceInput } from "@/types/payment";
-import { addPaymentNote, getPayment, listPayments } from "@/lib/api/payments";
+import type {
+  AdminPaymentsFilters,
+  CheckoutPaymentConfig,
+  CreateCardPaymentInput,
+  CreatePaymentPreferenceInput,
+  CreatePixPaymentInput,
+  DirectPaymentResult,
+} from "@/types/payment";
+import {
+  addPaymentNote,
+  createCardPayment,
+  createPixPayment,
+  getCheckoutPaymentConfig,
+  getPayment,
+  getPaymentStatus,
+  listPayments,
+} from "@/lib/api/payments";
 import { createCheckout } from "@/lib/api/interactions";
 
 export type ListPaymentsFilters = AdminPaymentsFilters;
@@ -29,9 +44,29 @@ export async function createCheckoutPreference(
   });
 }
 
+export async function getCheckoutConfig(): Promise<CheckoutPaymentConfig> {
+  return getCheckoutPaymentConfig();
+}
+
+export async function createPix(input: CreatePixPaymentInput): Promise<DirectPaymentResult> {
+  return createPixPayment(input);
+}
+
+export async function createCard(input: CreateCardPaymentInput): Promise<DirectPaymentResult> {
+  return createCardPayment(input);
+}
+
+export async function getStatus(id: string): Promise<DirectPaymentResult> {
+  return getPaymentStatus(id);
+}
+
 export const paymentRepo = {
   list,
   getById,
   addNote: (paymentId: string, note: string) => addPaymentNote(paymentId, note),
   createCheckout: createCheckoutPreference,
+  getCheckoutConfig,
+  createPix,
+  createCard,
+  getStatus,
 };

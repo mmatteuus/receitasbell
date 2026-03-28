@@ -44,6 +44,12 @@
       ]
     },
     {
+      "source": "/api/payments/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store" }
+      ]
+    },
+    {
       "source": "/api/jobs/(.*)",
       "headers": [
         { "key": "Cache-Control", "value": "no-store" }
