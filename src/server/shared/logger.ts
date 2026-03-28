@@ -70,6 +70,10 @@ export class Logger {
   }
 
   log(level: LogLevel, message: string, data?: unknown) {
+    if (this.environment === 'test') {
+      return;
+    }
+
     const entry: LogEntry = {
       timestamp: new Date().toISOString(),
       level,

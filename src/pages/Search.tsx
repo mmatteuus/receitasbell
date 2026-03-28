@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Search as SearchIcon } from "lucide-react";
 import { PageHead } from "@/components/PageHead";
@@ -87,6 +87,9 @@ export default function SearchPage() {
         const recipes = await listPublicRecipes({
           q: searchParams.get("q") || undefined,
           categorySlug: readCategoryParam(searchParams) || undefined,
+          tier: normalizeTier(searchParams.get("tier")),
+          tempo: normalizeTime(searchParams.get("tempo")),
+          ordem: normalizeSort(searchParams.get("ordem")),
         });
         setResults(recipes);
       } catch (error) {
@@ -100,26 +103,6 @@ export default function SearchPage() {
     void fetchResults();
   }, [searchParams]);
 
-  const filtered = useMemo(() => {
-    const next = results.filter((recipe) => {
-      const tierMatch = tierFilter === "all" || recipe.accessTier === tierFilter;
-      if (!tierMatch) return false;
-
-      if (timeFilter === "quick") return recipe.totalTime <= 30;
-      if (timeFilter === "medium") return recipe.totalTime > 30 && recipe.totalTime <= 60;
-      if (timeFilter === "long") return recipe.totalTime > 60;
-      return true;
-    });
-
-    if (sortBy === "timeAsc") {
-      return [...next].sort((a, b) => a.totalTime - b.totalTime);
-    }
-    if (sortBy === "timeDesc") {
-      return [...next].sort((a, b) => b.totalTime - a.totalTime);
-    }
-    return [...next].sort((a, b) => (b.publishedAt || b.updatedAt || "").localeCompare(a.publishedAt || a.updatedAt || ""));
-  }, [results, tierFilter, timeFilter, sortBy]);
-
   useEffect(() => {
     trackEvent("search.performed", {
       q: searchParams.get("q") || "",
@@ -128,9 +111,9 @@ export default function SearchPage() {
       tier: tierFilter,
       tempo: timeFilter,
       ordem: sortBy,
-      total: filtered.length,
+      total: results.length,
     });
-  }, [filtered.length, searchParams, tierFilter, timeFilter, sortBy]);
+  }, [results.length, searchParams, tierFilter, timeFilter, sortBy]);
 
   return (
     <div className="container px-4 py-8 sm:py-10">
@@ -189,11 +172,11 @@ export default function SearchPage() {
         </Select>
       </div>
       <p data-testid="search-results-count" className="mt-4 text-sm text-muted-foreground">
-        {loading ? "Atualizando resultados..." : `${filtered.length} resultado${filtered.length !== 1 ? "s" : ""}`}
+        {loading ? "Atualizando resultados..." : `${results.length} resultado${results.length !== 1 ? "s" : ""}`}
       </p>
-      {filtered.length > 0 ? (
+      {results.length > 0 ? (
         <div className="mt-4 grid gap-4 sm:mt-6 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((recipe) => <RecipeCard key={recipe.id} recipe={recipe} />)}
+          {results.map((recipe) => <RecipeCard key={recipe.id} recipe={recipe} />)}
         </div>
       ) : (
         <p className="mt-10 rounded-xl border border-dashed px-4 py-10 text-center text-muted-foreground">

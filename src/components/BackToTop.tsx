@@ -35,7 +35,8 @@ export function BackToTop() {
       variant="secondary"
       size="icon"
       className={cn(
-        "fixed bottom-8 right-8 z-50 h-12 w-12 rounded-full shadow-lg transition-all duration-300 hover:scale-110 bg-white text-muted-foreground hover:bg-orange-100 hover:text-orange-600 dark:bg-card dark:text-foreground dark:hover:bg-orange-900/30 dark:hover:text-orange-400 print:hidden",
+        "fixed z-50 h-12 w-12 rounded-full shadow-lg transition-all duration-300 hover:scale-110 bg-white text-muted-foreground hover:bg-orange-100 hover:text-orange-600 dark:bg-card dark:text-foreground dark:hover:bg-orange-900/30 dark:hover:text-orange-400 print:hidden",
+        "right-4 bottom-[calc(env(safe-area-inset-bottom,0px)+5.5rem)] sm:right-6 sm:bottom-[calc(env(safe-area-inset-bottom,0px)+2rem)]",
         isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10 pointer-events-none"
       )}
       onClick={scrollToTop}

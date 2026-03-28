@@ -4,15 +4,14 @@ import { Heart, ListChecks, LockOpen, ShoppingCart, UserRound, WalletCards } fro
 import { useAppContext } from "@/contexts/app-context";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getRecipeImage, getRecipePresentation } from "@/lib/recipes/presentation";
 import SmartImage from "@/components/SmartImage";
 import type { RecipeRecord } from "@/lib/recipes/types";
-import { ApiClientError } from "@/lib/api/client";
 import { getProfileOverview } from "@/lib/repos/profileRepo";
 import { toast } from "sonner";
 import { LastSyncBadge } from "@/pwa/offline/ui/LastSyncBadge";
+import { logger } from "@/lib/logger";
 
 type AccountTab = "resumo" | "minhas-receitas" | "favoritos" | "compras";
 
@@ -24,21 +23,15 @@ function resolveTab(value: string | null): AccountTab {
 }
 
 export default function AccountHome() {
-  const { favorites, favoriteRecords, identityEmail, requireIdentity, updateIdentity, clearIdentity } = useAppContext();
+  const { favorites, favoriteRecords, identityEmail, requireIdentity, clearIdentity } = useAppContext();
   const [params, setParams] = useSearchParams();
   const [currentTab, setCurrentTab] = useState<AccountTab>(() => resolveTab(params.get("tab")));
-  const [identityInput, setIdentityInput] = useState(identityEmail || "");
-  const [savingIdentity, setSavingIdentity] = useState(false);
   const [shoppingCount, setShoppingCount] = useState(0);
   const [shoppingPreview, setShoppingPreview] = useState<string[]>([]);
   const [unlocked, setUnlocked] = useState<RecipeRecord[]>([]);
   const [paidOwned, setPaidOwned] = useState<RecipeRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
-
-  useEffect(() => {
-    setIdentityInput(identityEmail || "");
-  }, [identityEmail]);
 
   useEffect(() => {
     setCurrentTab(resolveTab(params.get("tab")));
@@ -63,7 +56,7 @@ export default function AccountHome() {
         setPaidOwned(overview.purchasedRecipes);
         setLastSyncedAt(overview.lastSyncedAt || null);
       } catch (error) {
-        console.error("Failed to load account data", error);
+        logger.error("account.overview", error);
       } finally {
         if (isMounted) {
           setLoading(false);
@@ -91,22 +84,6 @@ export default function AccountHome() {
       next.set("tab", tab);
       return next;
     }, { replace: true });
-  }
-
-  async function handleSaveIdentity() {
-    setSavingIdentity(true);
-    try {
-      await updateIdentity(identityInput);
-      toast.success("Identidade atualizada");
-    } catch (error) {
-      if (error instanceof ApiClientError) {
-        toast.error(error.message);
-      } else {
-        toast.error("Não foi possível atualizar o e-mail.");
-      }
-    } finally {
-      setSavingIdentity(false);
-    }
   }
 
   function handleClearIdentity() {
@@ -205,17 +182,12 @@ export default function AccountHome() {
               <CardContent className="space-y-5">
                 <div className="space-y-2">
                   <p className="text-sm font-medium">Identidade</p>
-                  <div className="flex flex-col gap-2 sm:flex-row">
-                    <Input
-                      type="email"
-                      value={identityInput}
-                      onChange={(event) => setIdentityInput(event.target.value)}
-                      placeholder="voce@email.com"
-                    />
-                    <Button onClick={() => void handleSaveIdentity()} disabled={savingIdentity}>
-                      {savingIdentity ? "Salvando..." : "Atualizar"}
-                    </Button>
+                  <div className="rounded-xl border border-dashed p-3 text-sm text-muted-foreground">
+                    {identityEmail}
                   </div>
+                  <p className="text-xs text-muted-foreground">
+                    Atualização de e-mail será reabilitada quando o endpoint de persistência estiver disponível.
+                  </p>
                   <Button variant="ghost" className="px-0 text-muted-foreground" onClick={handleClearIdentity}>
                     Limpar identidade deste dispositivo
                   </Button>

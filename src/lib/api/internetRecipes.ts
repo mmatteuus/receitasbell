@@ -118,17 +118,40 @@ export async function getInternetRecipes(): Promise<RecipeRecord[]> {
 
 export function filterInternetRecipes(
   recipes: RecipeRecord[],
-  params: { categorySlug?: string; q?: string; ids?: string[] } = {},
+  params: {
+    categorySlug?: string;
+    q?: string;
+    ids?: string[];
+    tier?: "all" | "free" | "paid";
+    tempo?: "all" | "quick" | "medium" | "long";
+    ordem?: "latest" | "timeAsc" | "timeDesc";
+  } = {},
 ): RecipeRecord[] {
   const ids = params.ids && params.ids.length > 0 ? new Set(params.ids) : null;
   const q = params.q?.trim().toLowerCase();
 
-  return recipes.filter((recipe) => {
+  const filtered = recipes.filter((recipe) => {
     if (params.categorySlug && recipe.categorySlug !== params.categorySlug) return false;
     if (ids && !ids.has(recipe.id)) return false;
+    if (params.tier && params.tier !== "all" && recipe.accessTier !== params.tier) return false;
+
+    if (params.tempo === "quick" && recipe.totalTime > 30) return false;
+    if (params.tempo === "medium" && (recipe.totalTime <= 30 || recipe.totalTime > 60)) return false;
+    if (params.tempo === "long" && recipe.totalTime <= 60) return false;
+
     if (!q) return true;
 
     const searchable = `${recipe.title} ${recipe.description} ${recipe.tags.join(" ")}`.toLowerCase();
     return searchable.includes(q);
   });
+
+  if (params.ordem === "timeAsc") {
+    return filtered.sort((a, b) => a.totalTime - b.totalTime);
+  }
+
+  if (params.ordem === "timeDesc") {
+    return filtered.sort((a, b) => b.totalTime - a.totalTime);
+  }
+
+  return filtered.sort((a, b) => (b.publishedAt || b.updatedAt || "").localeCompare(a.publishedAt || a.updatedAt || ""));
 }

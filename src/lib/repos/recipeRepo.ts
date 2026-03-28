@@ -6,6 +6,9 @@ import {
   getRecipeById as getRecipeByIdRequest,
   getRecipeBySlug as getRecipeBySlugRequest,
   listRecipes,
+  type PublicRecipeOrderFilter,
+  type PublicRecipeTempoFilter,
+  type PublicRecipeTierFilter,
   type RecipeMutationPayload,
   updateRecipe as updateRecipeRequest,
 } from '@/lib/api/recipes';
@@ -62,6 +65,9 @@ export async function listPublicRecipes(
     categorySlug?: string;
     q?: string;
     ids?: string[];
+    tier?: PublicRecipeTierFilter;
+    tempo?: PublicRecipeTempoFilter;
+    ordem?: PublicRecipeOrderFilter;
   } = {}
 ) {
   return listRecipes(params);

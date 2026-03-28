@@ -2,7 +2,14 @@ import { useQuery } from "@tanstack/react-query";
 import { listPublicRecipes, getRecipeBySlug } from "@/lib/repos/recipeRepo";
 
 export function usePublicRecipes(
-  params: { categorySlug?: string; q?: string; ids?: string[] } = {},
+  params: {
+    categorySlug?: string;
+    q?: string;
+    ids?: string[];
+    tier?: "all" | "free" | "paid";
+    tempo?: "all" | "quick" | "medium" | "long";
+    ordem?: "latest" | "timeAsc" | "timeDesc";
+  } = {},
 ) {
   return useQuery({
     queryKey: ["recipes", params],

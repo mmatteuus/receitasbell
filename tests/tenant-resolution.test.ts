@@ -17,12 +17,14 @@ import {
 } from "../src/server/tenancy/resolver.js";
 
 vi.mock("../src/server/tenancy/repo.js", () => ({
+  getTenantByHost: vi.fn(),
   getTenantBySlug: vi.fn(),
 }));
-import { getTenantBySlug } from "../src/server/tenancy/repo.js";
+import { getTenantByHost, getTenantBySlug } from "../src/server/tenancy/repo.js";
 
 describe("tenant resolution", () => {
   beforeEach(() => {
+    vi.mocked(getTenantByHost).mockReset();
     vi.mocked(getTenantBySlug).mockReset();
   });
 
@@ -51,7 +53,7 @@ describe("tenant resolution", () => {
   });
 
   test("resolve tenant por host (subdominio)", async () => {
-    vi.mocked(getTenantBySlug).mockResolvedValue({
+    vi.mocked(getTenantByHost).mockResolvedValue({
       id: "tenant-2",
       slug: "loja-2",
       name: "Loja 2",

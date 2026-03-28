@@ -9,7 +9,13 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["tests/**/*.test.ts"],
+    include: ["tests/**/*.test.ts", "tests/**/*.test.tsx", "src/**/*.test.ts", "src/**/*.test.tsx"],
+    pool: "forks",
+    maxWorkers: 1,
+    fileParallelism: false,
+    execArgv: ["--max-old-space-size=4096"],
+    disableConsoleIntercept: true,
+    setupFiles: ["tests/setup-vitest.ts"],
     clearMocks: true,
     restoreMocks: true,
     env: {

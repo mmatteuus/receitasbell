@@ -1,4 +1,6 @@
 import { Helmet } from "react-helmet-async";
+import { useAppContext } from "@/contexts/app-context";
+import { resolveSiteMeta } from "@/lib/seo/site-meta";
 
 export type SeoMeta = {
   title: string;
@@ -9,8 +11,6 @@ export type SeoMeta = {
   ogType?: "website" | "article";
 };
 
-const SITE_NAME = "Receitas Bell";
-
 export function PageHead({
   title,
   description,
@@ -19,15 +19,18 @@ export function PageHead({
   noindex,
   ogType = "website",
 }: SeoMeta) {
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
-  const canonicalUrl = canonicalPath ? `${origin}${canonicalPath}` : undefined;
+  const { settings } = useAppContext();
+  const { siteName, canonicalUrl } = resolveSiteMeta({
+    settings,
+    canonicalPath,
+  });
 
   return (
     <Helmet>
       <title>{title}</title>
       {description && <meta name="description" content={description} />}
       {noindex && <meta name="robots" content="noindex,nofollow" />}
-      <meta property="og:site_name" content={SITE_NAME} />
+      <meta property="og:site_name" content={siteName} />
       <meta property="og:title" content={title} />
       <meta property="og:type" content={ogType} />
       {description && <meta property="og:description" content={description} />}

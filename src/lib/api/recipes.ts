@@ -3,6 +3,7 @@ import type { RecipeRecord } from "@/lib/recipes/types";
 import { buildQuery, jsonFetch } from "./client";
 import { filterInternetRecipes, getInternetRecipes, isInternetFallbackEnabled } from "./internetRecipes";
 import { normalizeRecipeForUI } from "@/lib/recipes/presentation";
+import { logger } from "@/lib/logger";
 import {
   getRecipeSnapshotBySlug,
   searchRecipeSnapshots,
@@ -36,17 +37,34 @@ export type RecipeMutationPayload = {
   isFeatured?: boolean;
 };
 
+export type PublicRecipeTierFilter = "all" | "free" | "paid";
+export type PublicRecipeTempoFilter = "all" | "quick" | "medium" | "long";
+export type PublicRecipeOrderFilter = "latest" | "timeAsc" | "timeDesc";
+
 export async function listRecipes(params: {
   categorySlug?: string;
   q?: string;
   ids?: string[];
   includeDrafts?: boolean;
+  tier?: PublicRecipeTierFilter;
+  tempo?: PublicRecipeTempoFilter;
+  ordem?: PublicRecipeOrderFilter;
 } = {}) {
-  const query = buildQuery({
-    categorySlug: params.categorySlug,
-    q: params.q,
-    ids: params.ids,
-  });
+  const query = params.includeDrafts
+    ? buildQuery({
+      categorySlug: params.categorySlug,
+      q: params.q,
+      ids: params.ids,
+    })
+    : buildQuery({
+      category: params.categorySlug,
+      q: params.q,
+      ids: params.ids,
+      tier: params.tier,
+      tempo: params.tempo,
+      ordem: params.ordem,
+    });
+
   const path = params.includeDrafts ? `/api/admin/recipes${query}` : `/api/public/catalog${query}`;
 
   try {
@@ -70,7 +88,11 @@ export async function listRecipes(params: {
       throw error;
     }
 
-    console.warn("API de receitas indisponível. Usando fallback externo controlado.");
+    logger.warn("recipes.api_unavailable", {
+      fallback: "internet",
+      q: params.q,
+      categorySlug: params.categorySlug,
+    });
     const internetRecipes = await getInternetRecipes();
     return filterInternetRecipes(internetRecipes, params).map(normalizeRecipeForUI);
   }
@@ -104,7 +126,10 @@ export async function getRecipeBySlug(slug: string, options: { includeDrafts?: b
       throw error;
     }
 
-    console.warn("API de receita indisponível. Usando fallback externo controlado.");
+    logger.warn("recipe.api_unavailable", {
+      fallback: "internet",
+      slug,
+    });
     const internetRecipes = await getInternetRecipes();
     const fallback = internetRecipes.find((recipe) => recipe.slug === slug);
     if (!fallback) {

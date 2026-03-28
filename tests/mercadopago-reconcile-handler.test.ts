@@ -104,6 +104,7 @@ describe("mercadopago reconcile handler", () => {
         { id: "order-a", tenant_id: "tenant-a", status: "pending", external_reference: "t:tenant-a:p:order-a" },
         { id: "order-b", tenant_id: "tenant-b", status: "pending", external_reference: "t:tenant-b:p:order-b" },
       ],
+      next: null,
     });
 
     getUsableMercadoPagoAccessToken
@@ -144,6 +145,7 @@ describe("mercadopago reconcile handler", () => {
       results: [
         { id: "order-c", tenant_id: "tenant-c", status: "pending", external_reference: "t:tenant-c:p:order-c" },
       ],
+      next: null,
     });
 
     getUsableMercadoPagoAccessToken

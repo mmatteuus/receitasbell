@@ -1,15 +1,43 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { withApiHandler, json, assertMethod, setPublicCache } from '../../src/server/shared/http.js';
-import { requireTenantFromRequest } from '../../src/server/tenancy/resolver.js';
-import { listRecipes } from '../../src/server/recipes/repo.js';
+import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { withApiHandler, json, assertMethod, setPublicCache } from "../../src/server/shared/http.js";
+import { requireTenantFromRequest } from "../../src/server/tenancy/resolver.js";
+import { listRecipes, type RecipeListOrder, type RecipeListTempo, type RecipeListTier } from "../../src/server/recipes/repo.js";
+
+function normalizeTier(value: string | null): RecipeListTier {
+  if (value === "free" || value === "paid") {
+    return value;
+  }
+  return "all";
+}
+
+function normalizeTempo(value: string | null): RecipeListTempo {
+  if (value === "quick" || value === "medium" || value === "long") {
+    return value;
+  }
+  return "all";
+}
+
+function normalizeOrder(value: string | null): RecipeListOrder {
+  if (value === "timeAsc" || value === "timeDesc") {
+    return value;
+  }
+  return "latest";
+}
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   return withApiHandler(request, response, async ({ requestId }) => {
-    assertMethod(request, ['GET']);
+    assertMethod(request, ["GET"]);
     const { tenant } = await requireTenantFromRequest(request);
-    const url = new URL(request.url || '/', 'http://localhost');
+
+    const url = new URL(request.url || "/", "http://localhost");
     const q = url.searchParams.get("q") || undefined;
-    const categorySlug = url.searchParams.get("categorySlug") || undefined;
+    const categorySlug =
+      url.searchParams.get("category") ||
+      url.searchParams.get("categorySlug") ||
+      url.searchParams.get("cat") ||
+      url.searchParams.get("categoria") ||
+      undefined;
+
     const idsParam = url.searchParams.get("ids");
     const ids = idsParam
       ? idsParam
@@ -18,19 +46,36 @@ export default async function handler(request: VercelRequest, response: VercelRe
           .filter(Boolean)
       : undefined;
 
-    const recipes = await listRecipes(tenant.id, { q, categorySlug, ids });
-    
-    setPublicCache(response, 300); // 5 minutes
-    
+    const tier = normalizeTier(url.searchParams.get("tier"));
+    const tempo = normalizeTempo(url.searchParams.get("tempo"));
+    const ordem = normalizeOrder(url.searchParams.get("ordem"));
+
+    const recipes = await listRecipes(tenant.id, {
+      q,
+      categorySlug,
+      ids,
+      tier,
+      tempo,
+      ordem,
+    });
+
+    setPublicCache(response, 300);
+
     return json(response, 200, {
       recipes,
       items: recipes,
       meta: {
         total: recipes.length,
-        tenantId: tenant.id
+        tenantId: tenant.id,
+        filters: {
+          q: q || "",
+          categorySlug: categorySlug || "all",
+          tier,
+          tempo,
+          ordem,
+        },
       },
-      requestId
+      requestId,
     });
   });
 }
-

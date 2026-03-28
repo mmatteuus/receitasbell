@@ -35,25 +35,74 @@ type RecipeRow = {
   tenantId?: string | number;
 };
 
+export type RecipeListTier = "all" | "free" | "paid";
+export type RecipeListTempo = "all" | "quick" | "medium" | "long";
+export type RecipeListOrder = "latest" | "timeAsc" | "timeDesc";
+
+function filterByTempo(recipes: RecipeRecord[], tempo: RecipeListTempo) {
+  if (tempo === "quick") {
+    return recipes.filter((recipe) => Number(recipe.totalTime || 0) <= 30);
+  }
+
+  if (tempo === "medium") {
+    return recipes.filter((recipe) => {
+      const totalTime = Number(recipe.totalTime || 0);
+      return totalTime > 30 && totalTime <= 60;
+    });
+  }
+
+  if (tempo === "long") {
+    return recipes.filter((recipe) => Number(recipe.totalTime || 0) > 60);
+  }
+
+  return recipes;
+}
+
+function sortRecipes(recipes: RecipeRecord[], order: RecipeListOrder) {
+  if (order === "timeAsc") {
+    return [...recipes].sort((a, b) => Number(a.totalTime || 0) - Number(b.totalTime || 0));
+  }
+
+  if (order === "timeDesc") {
+    return [...recipes].sort((a, b) => Number(b.totalTime || 0) - Number(a.totalTime || 0));
+  }
+
+  return [...recipes].sort((a, b) => {
+    const left = b.publishedAt || b.updatedAt || "";
+    const right = a.publishedAt || a.updatedAt || "";
+    return left.localeCompare(right);
+  });
+}
+
 export async function listRecipes(tenantId: string | number, options: { 
   includeDrafts?: boolean;
   categorySlug?: string;
   q?: string;
   ids?: string[];
+  tier?: RecipeListTier;
+  tempo?: RecipeListTempo;
+  ordem?: RecipeListOrder;
 } = {}): Promise<RecipeRecord[]> {
   let url = `/api/database/rows/table/${BASEROW_TABLES.RECIPES}/?user_field_names=true&filter__tenantId__equal=${tenantId}`;
   
   if (!options.includeDrafts) url += "&filter__status__equal=published";
   if (options.categorySlug && options.categorySlug !== "all") url += `&filter__categoryId__equal=${encodeURIComponent(options.categorySlug)}`;
   if (options.q) url += `&filter__title__contains=${encodeURIComponent(options.q)}`;
+  if (options.tier && options.tier !== "all") url += `&filter__access_tier__equal=${encodeURIComponent(options.tier)}`;
 
   const data = await fetchBaserow<{ results: RecipeRow[] }>(url);
-  const recipes = data.results.map(record => mapRecipeRowToRecord(record));
+  let recipes = data.results.map(record => mapRecipeRowToRecord(record));
 
   if (options.ids?.length) {
     const wanted = new Set(options.ids.map((id) => String(id)));
-    return recipes.filter((recipe) => wanted.has(String(recipe.id)));
+    recipes = recipes.filter((recipe) => wanted.has(String(recipe.id)));
   }
+
+  const tempo = options.tempo || "all";
+  const ordem = options.ordem || "latest";
+
+  recipes = filterByTempo(recipes, tempo);
+  recipes = sortRecipes(recipes, ordem);
 
   return recipes;
 }
