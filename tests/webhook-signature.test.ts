@@ -61,4 +61,16 @@ describe("mercado pago webhook signature", () => {
       }),
     ).toBe(true);
   });
+
+  test("rejeita webhook quando o secret nao esta configurado", async () => {
+    delete process.env.MP_WEBHOOK_SECRET;
+    delete process.env.MERCADO_PAGO_WEBHOOK_SECRET;
+
+    expect(
+      verifyMercadoPagoWebhookSignature("123456", "req-789", {
+        ts: "1700000000",
+        v1: "deadbeef",
+      }),
+    ).toBe(false);
+  });
 });

@@ -432,16 +432,36 @@ export async function refreshMercadoPagoConnection(connectionId: string) {
   }
 
   const { clientId, clientSecret } = await getMercadoPagoAppEnvAsync(connection.tenantId);
-  const response = await fetch("https://api.mercadopago.com/oauth/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      client_id: clientId,
-      client_secret: clientSecret,
-      grant_type: "refresh_token",
-      refresh_token: refreshToken,
-    }),
-  });
+  const oauthController = new AbortController();
+  const oauthTimer = setTimeout(() => oauthController.abort(), 10_000);
+  let response: Response;
+  try {
+    response = await fetch("https://api.mercadopago.com/oauth/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id: clientId,
+        client_secret: clientSecret,
+        grant_type: "refresh_token",
+        refresh_token: refreshToken,
+      }),
+      signal: oauthController.signal,
+    });
+  } catch (fetchError: unknown) {
+    if (fetchError instanceof Error && fetchError.name === "AbortError") {
+      await markConnectionReconnectRequired({
+        tenantId: connection.tenantId,
+        reason: "token_refresh_timeout",
+      });
+      throw new ApiError(
+        409,
+        "A conexão com o Mercado Pago expirou (timeout no refresh). Reconecte a conta para continuar.",
+      );
+    }
+    throw fetchError;
+  } finally {
+    clearTimeout(oauthTimer);
+  }
 
   const body = (await response.json().catch(() => null)) as OAuthTokenResponse | null;
   if (!response.ok || !body?.access_token) {

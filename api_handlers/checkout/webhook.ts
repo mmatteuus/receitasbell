@@ -85,7 +85,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!dataIdUrl) throw new ApiError(400, "Missing data.id query param");
 
     const ok = verifyWebhookSignature({ dataIdUrl, xRequestId: xReq, xSignature: xSig });
-    if (!ok) throw new ApiError(401, "Invalid webhook signature");
+    if (!ok) {
+      logger.warn("webhook.signature_invalid", {
+        dataIdUrl,
+        xRequestId: xReq,
+        reason: "hmac_mismatch",
+      });
+      return json(res, 200, { success: false, reason: "invalid_signature", requestId });
+    }
 
     const body = typeof req.body === "string" ? JSON.parse(req.body) : (req.body ?? {});
     const providerPaymentId = String(body?.data?.id ?? dataIdUrl ?? "");

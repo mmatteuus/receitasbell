@@ -42,6 +42,7 @@ import {
   getTenantMercadoPagoConnection,
   getUsableMercadoPagoAccessToken,
   repairMercadoPagoActiveConnections,
+  refreshMercadoPagoConnection,
   upsertTenantMercadoPagoConnection,
 } from "../src/server/integrations/mercadopago/connections.js";
 import { encryptSecret } from "../src/server/shared/crypto.js";
@@ -284,6 +285,81 @@ describe("mercado pago connections persistence", () => {
       expect(auditMock.logAuditEvent).toHaveBeenCalledWith(
         expect.objectContaining({
           action: "mercadopago.refresh_success",
+        }),
+      );
+    } finally {
+      if (previousClientId === undefined) delete process.env.MERCADO_PAGO_CLIENT_ID;
+      else process.env.MERCADO_PAGO_CLIENT_ID = previousClientId;
+      if (previousClientSecret === undefined) delete process.env.MERCADO_PAGO_CLIENT_SECRET;
+      else process.env.MERCADO_PAGO_CLIENT_SECRET = previousClientSecret;
+    }
+  });
+
+  test("marca reconnect_required quando o refresh OAuth expira por timeout", async () => {
+    const previousClientId = process.env.MERCADO_PAGO_CLIENT_ID;
+    const previousClientSecret = process.env.MERCADO_PAGO_CLIENT_SECRET;
+    process.env.MERCADO_PAGO_CLIENT_ID = "client-id";
+    process.env.MERCADO_PAGO_CLIENT_SECRET = "client-secret";
+
+    const nowIso = new Date().toISOString();
+    const oldRow = {
+      id: 41,
+      tenant_id: "tenant-timeout",
+      mercado_pago_user_id: "111",
+      access_token_encrypted: encryptSecret("old-access"),
+      refresh_token_encrypted: encryptSecret("old-refresh"),
+      status: "connected",
+      connected_at: nowIso,
+      expires_at: new Date(Date.now() + 60 * 1000).toISOString(),
+      disconnected_at: "",
+      last_refresh_at: nowIso,
+      last_error: "",
+      created_by_user_id: "admin",
+      updated_at: nowIso,
+    };
+
+    settingsMock.getSettingsMap.mockResolvedValue({
+      mp_access_token: "",
+      mp_refresh_token: "",
+      mp_public_key: "",
+      mp_user_id: "",
+    });
+    settingsMock.updateSettings.mockResolvedValue({});
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockRejectedValue(Object.assign(new Error("timeout"), { name: "AbortError" })),
+    );
+
+    baserowMock.fetchBaserow.mockImplementation(async (path: string, init?: RequestInit) => {
+      if (!init?.method && path.includes("filter__tenant_id__equal=tenant-timeout")) {
+        return { results: [oldRow] };
+      }
+      if (!init?.method && path.includes("/999/41/")) {
+        return oldRow;
+      }
+      if (init?.method === "PATCH" && path.includes("/999/41/")) {
+        return {};
+      }
+      return { results: [] };
+    });
+
+    try {
+      await expect(refreshMercadoPagoConnection("41")).rejects.toMatchObject({
+        status: 409,
+        message: expect.stringContaining("timeout no refresh"),
+      });
+      expect(baserowMock.fetchBaserow).toHaveBeenCalledWith(
+        expect.stringContaining("/999/41/"),
+        expect.objectContaining({
+          method: "PATCH",
+          body: expect.stringContaining("\"status\":\"reconnect_required\""),
+        }),
+      );
+      expect(baserowMock.fetchBaserow).toHaveBeenCalledWith(
+        expect.stringContaining("/999/41/"),
+        expect.objectContaining({
+          method: "PATCH",
+          body: expect.stringContaining("\"token_refresh_timeout\""),
         }),
       );
     } finally {

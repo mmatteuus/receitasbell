@@ -1,3 +1,6 @@
+const MP_FETCH_TIMEOUT_MS = 10_000;
+const MP_MAX_RETRIES = 2;
+
 type MercadoPagoErrorPayload = Record<string, unknown> | null;
 
 export type MercadoPagoPayment = {
@@ -33,19 +36,60 @@ export class MercadoPagoApiError extends Error {
 }
 
 function authHeaders(accessToken: string) {
-  return {
-    Authorization: `Bearer ${accessToken}`,
-  };
+  return { Authorization: `Bearer ${accessToken}` };
 }
 
-async function parseJsonSafe(response: Response) {
-  return response.json().catch(() => null) as Promise<MercadoPagoErrorPayload>;
+async function parseJsonSafe(response: Response): Promise<MercadoPagoErrorPayload> {
+  return response.json().catch(() => null);
+}
+
+async function mpFetch(
+  url: string,
+  init: RequestInit = {},
+  retries = MP_MAX_RETRIES,
+): Promise<Response> {
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), MP_FETCH_TIMEOUT_MS);
+
+    try {
+      const response = await fetch(url, { ...init, signal: controller.signal });
+
+      if ((response.status === 429 || response.status >= 500) && attempt < retries) {
+        const delay = 300 * Math.pow(2, attempt) + Math.random() * 200;
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        continue;
+      }
+
+      return response;
+    } catch (error: unknown) {
+      const isAbort = error instanceof Error && error.name === "AbortError";
+      if (isAbort && attempt < retries) {
+        const delay = 300 * Math.pow(2, attempt) + Math.random() * 200;
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        continue;
+      }
+      if (isAbort) {
+        throw new MercadoPagoApiError(
+          408,
+          `MP request timeout after ${MP_FETCH_TIMEOUT_MS}ms: ${url}`,
+          null,
+        );
+      }
+      throw error;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  throw new MercadoPagoApiError(500, "mpFetch: exit inesperado do loop de retry", null);
 }
 
 export async function mpGetPayment(accessToken: string, paymentId: string): Promise<MercadoPagoPayment> {
-  const response = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
-    headers: authHeaders(accessToken),
-  });
+  const response = await mpFetch(
+    `https://api.mercadopago.com/v1/payments/${paymentId}`,
+    { headers: authHeaders(accessToken) },
+  );
   const payload = await parseJsonSafe(response);
   if (!response.ok) {
     throw new MercadoPagoApiError(response.status, `MP get payment failed ${response.status}`, payload);
@@ -58,9 +102,7 @@ export async function mpSearchPaymentsByExternalReference(
   externalReference: string,
 ): Promise<MercadoPagoSearchResponse> {
   const url = `https://api.mercadopago.com/v1/payments/search?external_reference=${encodeURIComponent(externalReference)}`;
-  const response = await fetch(url, {
-    headers: authHeaders(accessToken),
-  });
+  const response = await mpFetch(url, { headers: authHeaders(accessToken) });
   const payload = await parseJsonSafe(response);
   if (!response.ok) {
     throw new MercadoPagoApiError(response.status, `MP search payments failed ${response.status}`, payload);
@@ -79,7 +121,7 @@ export async function createMercadoPagoPreference(
   };
   if (idempotencyKey) headers["X-Idempotency-Key"] = String(idempotencyKey);
 
-  const response = await fetch("https://api.mercadopago.com/checkout/preferences", {
+  const response = await mpFetch("https://api.mercadopago.com/checkout/preferences", {
     method: "POST",
     headers,
     body: JSON.stringify(payload),
@@ -87,13 +129,8 @@ export async function createMercadoPagoPreference(
 
   const body = await parseJsonSafe(response);
   if (!response.ok) {
-    throw new MercadoPagoApiError(
-      response.status,
-      `MP preference failed ${response.status}`,
-      body,
-    );
+    throw new MercadoPagoApiError(response.status, `MP preference failed ${response.status}`, body);
   }
-
   return body as MercadoPagoPreference;
 }
 
@@ -108,7 +145,7 @@ export async function createMercadoPagoPayment(
   };
   if (idempotencyKey) headers["X-Idempotency-Key"] = String(idempotencyKey);
 
-  const response = await fetch("https://api.mercadopago.com/v1/payments", {
+  const response = await mpFetch("https://api.mercadopago.com/v1/payments", {
     method: "POST",
     headers,
     body: JSON.stringify(payload),
@@ -116,13 +153,8 @@ export async function createMercadoPagoPayment(
 
   const body = await parseJsonSafe(response);
   if (!response.ok) {
-    throw new MercadoPagoApiError(
-      response.status,
-      `MP payment create failed ${response.status}`,
-      body,
-    );
+    throw new MercadoPagoApiError(response.status, `MP payment create failed ${response.status}`, body);
   }
-
   return body as MercadoPagoPayment;
 }
 
@@ -130,23 +162,18 @@ export async function cancelMercadoPagoPayment(
   accessToken: string,
   paymentId: string,
 ): Promise<MercadoPagoPayment> {
-  const response = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
-    method: "PUT",
-    headers: {
-      ...authHeaders(accessToken),
-      "Content-Type": "application/json",
+  const response = await mpFetch(
+    `https://api.mercadopago.com/v1/payments/${paymentId}`,
+    {
+      method: "PUT",
+      headers: { ...authHeaders(accessToken), "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "cancelled" }),
     },
-    body: JSON.stringify({ status: "cancelled" }),
-  });
+  );
 
   const body = await parseJsonSafe(response);
   if (!response.ok) {
-    throw new MercadoPagoApiError(
-      response.status,
-      `MP payment cancel failed ${response.status}`,
-      body,
-    );
+    throw new MercadoPagoApiError(response.status, `MP payment cancel failed ${response.status}`, body);
   }
-
   return body as MercadoPagoPayment;
 }

@@ -10,6 +10,7 @@ const mpGetPayment = vi.hoisted(() => vi.fn());
 const getPaymentOrderById = vi.hoisted(() => vi.fn());
 const syncPayment = vi.hoisted(() => vi.fn());
 const logAuditEvent = vi.hoisted(() => vi.fn());
+const verifyWebhookSignature = vi.hoisted(() => vi.fn(() => true));
 const FakeMercadoPagoApiError = vi.hoisted(() => {
   return class FakeMercadoPagoApiError extends Error {
     status: number;
@@ -21,7 +22,7 @@ const FakeMercadoPagoApiError = vi.hoisted(() => {
 });
 
 vi.mock("../src/server/integrations/mercadopago/webhookSignature.js", () => ({
-  verifyWebhookSignature: vi.fn(() => true),
+  verifyWebhookSignature: (...args: unknown[]) => verifyWebhookSignature(...args),
 }));
 
 vi.mock("../src/server/integrations/baserow/client.js", () => ({ baserowFetch }));
@@ -107,6 +108,24 @@ describe("mercadopago webhook handler", () => {
     getPaymentOrderById.mockReset();
     syncPayment.mockReset();
     logAuditEvent.mockReset();
+    verifyWebhookSignature.mockReset();
+    verifyWebhookSignature.mockReturnValue(true);
+  });
+
+  test("retorna 200 e ignora webhook com assinatura invalida", async () => {
+    verifyWebhookSignature.mockReturnValue(false);
+
+    const res = buildRes();
+    await handler(buildReq(), res);
+
+    expect(getUsableMercadoPagoAccessToken).not.toHaveBeenCalled();
+    expect(mpGetPayment).not.toHaveBeenCalled();
+    expect(syncPayment).not.toHaveBeenCalled();
+    expect(res._state.status).toBe(200);
+    expect(res._state.body).toMatchObject({
+      success: false,
+      reason: "invalid_signature",
+    });
   });
 
   test("faz retry com refresh e sincroniza pagamento quando o primeiro token falha", async () => {

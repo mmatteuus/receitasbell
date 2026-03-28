@@ -71,9 +71,8 @@ export function verifyMercadoPagoWebhookSignature(
     || env.MERCADO_PAGO_WEBHOOK_SECRET
     || env.MP_WEBHOOK_SECRET
     || "";
-  if (!secret || secret === "UNSPECIFIED") {
-    // Se não configurado, permitimos apenas em desenvolvimento.
-    return env.NODE_ENV !== "production";
+  if (!secret || secret === "UNSPECIFIED" || secret.trim() === "") {
+    return false;
   }
 
   return verifyMpWebhookSignature({
