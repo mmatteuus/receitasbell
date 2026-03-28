@@ -4,7 +4,6 @@ import { withApiHandler, sendJson, assertMethod } from "../../src/server/shared/
 import { env } from "../../src/server/shared/env.js";
 import { getRateLimitBackend } from "../../src/server/shared/rateLimit.js";
 import { baserowFetch } from "../../src/server/integrations/baserow/client.js";
-import { baserowTables } from "../../src/server/integrations/baserow/tables.js";
 
 type CheckStatus = "ok" | "degraded" | "fail";
 type ReadyStatus = "ready" | "degraded" | "unavailable";
@@ -17,7 +16,8 @@ function envStatus(names: Array<[string, string | undefined]>) {
   } as const;
 }
 
-async function pingTable(tableId: number, endpoint: string) {
+async function pingTable(tableId: string | undefined, endpoint: string) {
+  if (!tableId) return;
   await baserowFetch(
     `/api/database/rows/table/${tableId}/?user_field_names=true&size=1`,
     {},
@@ -45,11 +45,9 @@ export default async function handler(request: VercelRequest, response: VercelRe
       ["BASEROW_TABLE_RECIPES", env.BASEROW_TABLE_RECIPES],
       ["BASEROW_TABLE_CATEGORIES", env.BASEROW_TABLE_CATEGORIES],
       ["BASEROW_TABLE_SETTINGS", env.BASEROW_TABLE_SETTINGS],
-      ["BASEROW_TABLE_PAYMENT_ORDERS", env.BASEROW_TABLE_PAYMENT_ORDERS],
       ["BASEROW_TABLE_PAYMENT_EVENTS", env.BASEROW_TABLE_PAYMENT_EVENTS],
       ["BASEROW_TABLE_RECIPE_PURCHASES", env.BASEROW_TABLE_RECIPE_PURCHASES],
       ["BASEROW_TABLE_AUDIT_LOGS", env.BASEROW_TABLE_AUDIT_LOGS],
-      ["BASEROW_TABLE_SESSIONS", env.BASEROW_TABLE_SESSIONS],
       ["BASEROW_TABLE_MAGIC_LINKS", env.BASEROW_TABLE_MAGIC_LINKS],
       ["MERCADO_PAGO_CLIENT_ID", env.MERCADO_PAGO_CLIENT_ID],
       ["MERCADO_PAGO_CLIENT_SECRET", env.MERCADO_PAGO_CLIENT_SECRET],
@@ -59,39 +57,39 @@ export default async function handler(request: VercelRequest, response: VercelRe
       ["RESEND_API_KEY", env.RESEND_API_KEY],
       ["UPSTASH_REDIS_REST_URL", process.env.UPSTASH_REDIS_REST_URL],
       ["UPSTASH_REDIS_REST_TOKEN", process.env.UPSTASH_REDIS_REST_TOKEN],
+      ["BASEROW_TABLE_SESSIONS", env.BASEROW_TABLE_SESSIONS],
+      ["BASEROW_TABLE_PAYMENT_ORDERS", env.BASEROW_TABLE_PAYMENT_ORDERS],
     ]);
 
     const tableChecks = await Promise.allSettled([
-      pingTable(Number(env.BASEROW_TABLE_TENANTS), "baserow.tenants"),
-      pingTable(Number(env.BASEROW_TABLE_USERS), "baserow.users"),
-      pingTable(Number(env.BASEROW_TABLE_RECIPES), "baserow.recipes"),
-      pingTable(Number(env.BASEROW_TABLE_CATEGORIES), "baserow.categories"),
-      pingTable(Number(env.BASEROW_TABLE_SETTINGS), "baserow.settings"),
-      pingTable(Number(env.BASEROW_TABLE_PAYMENT_ORDERS), "baserow.payment_orders"),
-      pingTable(Number(env.BASEROW_TABLE_PAYMENT_EVENTS), "baserow.payment_events"),
-      pingTable(Number(env.BASEROW_TABLE_RECIPE_PURCHASES), "baserow.recipe_purchases"),
-      pingTable(Number(env.BASEROW_TABLE_AUDIT_LOGS), "baserow.audit_logs"),
-      pingTable(Number(env.BASEROW_TABLE_SESSIONS), "baserow.sessions"),
-      pingTable(Number(env.BASEROW_TABLE_MAGIC_LINKS), "baserow.magic_links"),
+      pingTable(env.BASEROW_TABLE_TENANTS, "baserow.tenants"),
+      pingTable(env.BASEROW_TABLE_USERS, "baserow.users"),
+      pingTable(env.BASEROW_TABLE_RECIPES, "baserow.recipes"),
+      pingTable(env.BASEROW_TABLE_CATEGORIES, "baserow.categories"),
+      pingTable(env.BASEROW_TABLE_SETTINGS, "baserow.settings"),
+      pingTable(env.BASEROW_TABLE_PAYMENT_EVENTS, "baserow.payment_events"),
+      pingTable(env.BASEROW_TABLE_RECIPE_PURCHASES, "baserow.recipe_purchases"),
+      pingTable(env.BASEROW_TABLE_AUDIT_LOGS, "baserow.audit_logs"),
+      pingTable(env.BASEROW_TABLE_MAGIC_LINKS, "baserow.magic_links"),
     ]);
+
+    const tableNames = [
+      "tenants",
+      "users",
+      "recipes",
+      "categories",
+      "settings",
+      "paymentEvents",
+      "recipePurchases",
+      "auditLogs",
+      "magicLinks",
+    ];
 
     const baserowFailures = tableChecks
       .map((result, index) => ({ result, index }))
       .filter(({ result }) => result.status === "rejected")
       .map(({ index, result }) => ({
-        table: [
-          "tenants",
-          "users",
-          "recipes",
-          "categories",
-          "settings",
-          "paymentOrders",
-          "paymentEvents",
-          "recipePurchases",
-          "auditLogs",
-          "sessions",
-          "magicLinks",
-        ][index],
+        table: tableNames[index],
         reason: result.status === "rejected" ? (result.reason instanceof Error ? result.reason.message : String(result.reason)) : null,
       }));
 
@@ -145,13 +143,11 @@ export default async function handler(request: VercelRequest, response: VercelRe
     const degradedIssues = [
       ...(rateLimitCheck.status === "degraded" ? ["rate_limit_backend_memory"] : []),
       ...(emailCheck.status === "degraded" ? ["email_disabled"] : []),
+      ...(optionalEnv.missing.includes("BASEROW_TABLE_SESSIONS") ? ["sessions_table_missing"] : []),
+      ...(optionalEnv.missing.includes("BASEROW_TABLE_PAYMENT_ORDERS") ? ["payment_orders_table_missing"] : []),
     ];
 
-    const mpCheck = criticalEnv.missing.includes("MERCADO_PAGO_CLIENT_ID") || criticalEnv.missing.includes("MERCADO_PAGO_CLIENT_SECRET")
-      ? { status: "fail" as CheckStatus, reason: "mercado_pago_config_missing" }
-      : { status: "ok" as CheckStatus };
-
-    const status: ReadyStatus = criticalIssues.length > 0 || mpCheck.status === "fail" || rateLimitCheck.status === "fail"
+    const status: ReadyStatus = criticalIssues.length > 0 || rateLimitCheck.status === "fail"
       ? "unavailable"
       : degradedIssues.length > 0 || rateLimitCheck.status === "degraded"
         ? "degraded"
@@ -162,7 +158,6 @@ export default async function handler(request: VercelRequest, response: VercelRe
         action: "health.ready.unavailable",
         criticalIssues,
         baserowFailures,
-        mpCheck,
       });
     }
 
@@ -177,7 +172,6 @@ export default async function handler(request: VercelRequest, response: VercelRe
         baserow: toCheck(baserowCheck.status, {
           failures: baserowCheck.failures,
         }),
-        mp: toCheck(mpCheck.status, mpCheck.status === "fail" ? { reason: mpCheck.reason } : {}),
         rateLimit: toCheck(rateLimitCheck.status, {
           backend: rateLimitCheck.backend,
           reason: rateLimitCheck.reason,
@@ -185,6 +179,14 @@ export default async function handler(request: VercelRequest, response: VercelRe
         email: toCheck(emailCheck.status, {
           reason: emailCheck.reason,
         }),
+        sessions: toCheck(
+          optionalEnv.missing.includes("BASEROW_TABLE_SESSIONS") ? "degraded" : "ok",
+          optionalEnv.missing.includes("BASEROW_TABLE_SESSIONS") ? { reason: "sessions_table_not_configured" } : {},
+        ),
+        paymentOrders: toCheck(
+          optionalEnv.missing.includes("BASEROW_TABLE_PAYMENT_ORDERS") ? "degraded" : "ok",
+          optionalEnv.missing.includes("BASEROW_TABLE_PAYMENT_ORDERS") ? { reason: "payment_orders_table_not_configured" } : {},
+        ),
       },
       timestamp: new Date().toISOString(),
       requestId,
