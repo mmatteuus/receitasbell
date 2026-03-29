@@ -107,8 +107,16 @@ function resolveAccessTokenField(row: MercadoPagoConnectionRow): string {
 
 function resolveConnectionStatus(row: MercadoPagoConnectionRow): ConnectionStatus {
   if (row.status) return normalizeStatus(row.status);
+
   const hasToken = Boolean(row.access_token_encrypted || row.access_token);
-  return hasToken ? "connected" : "disconnected";
+  const expiresAt = toIsoOrNull(row.expires_at);
+  const hasRefresh = Boolean(row.refresh_token_encrypted || row.refresh_token);
+
+  if (!hasToken) return "disconnected";
+  if (expiresAt && new Date(expiresAt).getTime() <= Date.now() && !hasRefresh) {
+    return "reconnect_required";
+  }
+  return "connected";
 }
 
 function mapConnectionRow(row: MercadoPagoConnectionRow): TenantMercadoPagoConnection {
@@ -185,6 +193,15 @@ async function clearLegacySettingsSecrets(tenantId: string | number) {
   });
 }
 
+async function fetchConnectionRowsSafe(tableId: number, tenantValue: string) {
+  try {
+    return await fetchConnectionRows(tableId, "tenant_id", tenantValue);
+  } catch (error) {
+    if (!(error instanceof BaserowError) || error.status !== 400) throw error;
+    return await fetchConnectionRows(tableId, "tenantId", tenantValue);
+  }
+}
+
 async function queryTenantConnections(tenantId: string | number) {
   const tableId = requireConnectionsTableId();
   const tenantRecord = await getTenantById(tenantId).catch(() => null);
@@ -197,12 +214,10 @@ async function queryTenantConnections(tenantId: string | number) {
 
   try {
     for (const tenantKey of tenantKeys) {
-      for (const tenantField of ["tenant_id", "tenantId"] as const) {
-        const rows = await fetchConnectionRows(tableId, tenantField, tenantKey);
-        for (const row of rows.results) {
-          if (row.id == null) continue;
-          rowsById.set(String(row.id), row);
-        }
+      const rows = await fetchConnectionRowsSafe(tableId, tenantKey);
+      for (const row of rows.results) {
+        if (row.id == null) continue;
+        rowsById.set(String(row.id), row);
       }
     }
   } catch (error) {

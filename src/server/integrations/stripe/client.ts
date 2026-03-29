@@ -15,6 +15,19 @@ export class StripeApiError extends Error {
   }
 }
 
+export function normalizeStripeError(error: unknown) {
+  if (!error || typeof error !== "object") {
+    return { statusCode: 502, message: "Falha no Stripe.", code: undefined };
+  }
+
+  const record = error as Record<string, unknown>;
+  return {
+    statusCode: typeof record.statusCode === "number" ? record.statusCode : 502,
+    message: typeof record.message === "string" ? record.message : "Falha no Stripe.",
+    code: typeof record.code === "string" ? record.code : undefined,
+  };
+}
+
 export function getStripeClient(): Stripe {
   const secretKey = env.STRIPE_SECRET_KEY;
   if (!secretKey) throw new StripeApiError(500, "STRIPE_SECRET_KEY nao configurada.");
@@ -37,8 +50,8 @@ export async function exchangeStripeOAuthCode(code: string): Promise<{
   try {
     response = await stripe.oauth.token({ grant_type: "authorization_code", code });
   } catch (error: unknown) {
-    const e = error as Stripe.StripeError;
-    throw new StripeApiError(e.statusCode ?? 502, e.message ?? "Falha ao trocar codigo OAuth com o Stripe.", e.code);
+    const e = normalizeStripeError(error);
+    throw new StripeApiError(e.statusCode, e.message, e.code);
   }
   if (!response.access_token || !response.stripe_user_id) {
     throw new StripeApiError(502, "Stripe OAuth nao retornou access_token ou stripe_user_id.");
@@ -91,8 +104,8 @@ export async function createStripeCheckoutSession(input: {
   try {
     session = await stripe.checkout.sessions.create(params, { stripeAccount: input.stripeAccountId });
   } catch (error: unknown) {
-    const e = error as Stripe.StripeError;
-    throw new StripeApiError(e.statusCode ?? 502, e.message ?? "Falha ao criar Checkout Session.", e.code);
+    const e = normalizeStripeError(error);
+    throw new StripeApiError(e.statusCode, e.message, e.code);
   }
   if (!session.url) throw new StripeApiError(502, "Stripe nao retornou URL do checkout.");
   return { sessionId: session.id, url: session.url };
@@ -106,8 +119,8 @@ export async function getStripeCheckoutSession(
   try {
     return await stripe.checkout.sessions.retrieve(sessionId, { stripeAccount: stripeAccountId });
   } catch (error: unknown) {
-    const e = error as Stripe.StripeError;
-    throw new StripeApiError(e.statusCode ?? 502, e.message ?? "Falha ao consultar sessao no Stripe.", e.code);
+    const e = normalizeStripeError(error);
+    throw new StripeApiError(e.statusCode, e.message, e.code);
   }
 }
 
