@@ -180,7 +180,6 @@ export default function RecipePage() {
       recipe,
       ingredients: ingredients.map((ingredient) => scaleIngredient(ingredient, baseServings, currentServings)),
       instructions,
-      isTeaserOnly: showPaywall,
     });
 
     if (!opened) {

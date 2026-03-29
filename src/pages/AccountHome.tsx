@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Heart, ListChecks, LockOpen, ShoppingCart, UserRound, WalletCards } from "lucide-react";
+import { Heart, ListChecks, LockOpen, ShoppingCart, Smartphone, UserRound, WalletCards } from "lucide-react";
 import { useAppContext } from "@/contexts/app-context";
+import { useInstallPrompt } from "@/pwa/hooks/useInstallPrompt";
+import { InstallAppButton } from "@/pwa/components/InstallAppButton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -24,6 +26,9 @@ function resolveTab(value: string | null): AccountTab {
 
 export default function AccountHome() {
   const { favorites, favoriteRecords, identityEmail, requireIdentity, clearIdentity } = useAppContext();
+  const { isInstalled, deferredPrompt, isIOS } = useInstallPrompt();
+  const showAppCard = !isInstalled && (!!deferredPrompt || isIOS);
+  
   const [params, setParams] = useSearchParams();
   const [currentTab, setCurrentTab] = useState<AccountTab>(() => resolveTab(params.get("tab")));
   const [shoppingCount, setShoppingCount] = useState(0);
@@ -201,16 +206,33 @@ export default function AccountHome() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Atalhos</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Link to="/minha-conta/favoritos"><Button variant="outline" className="w-full justify-start">Ver favoritos</Button></Link>
-                <Link to="/minha-conta/lista-de-compras"><Button variant="outline" className="w-full justify-start">Abrir lista de compras</Button></Link>
-                <Link to="/buscar"><Button className="w-full justify-start">Descobrir novas receitas</Button></Link>
-              </CardContent>
-            </Card>
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Atalhos</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Link to="/minha-conta/favoritos"><Button variant="outline" className="w-full justify-start">Ver favoritos</Button></Link>
+                  <Link to="/minha-conta/lista-de-compras"><Button variant="outline" className="w-full justify-start">Abrir lista de compras</Button></Link>
+                  <Link to="/buscar"><Button className="w-full justify-start">Descobrir novas receitas</Button></Link>
+                </CardContent>
+              </Card>
+
+              {showAppCard && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Smartphone className="h-5 w-5 text-primary" />
+                      Aplicativo
+                    </CardTitle>
+                    <CardDescription>Acesso rápido na tela inicial.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <InstallAppButton context="user" className="w-full" />
+                  </CardContent>
+                </Card>
+              )}
+            </div>
           </div>
         </TabsContent>
 

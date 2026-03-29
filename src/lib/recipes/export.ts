@@ -1,11 +1,9 @@
-import { formatBRL } from "@/lib/helpers";
 import type { Recipe } from "@/types/recipe";
 
 type ExportRecipeToPdfInput = {
-  recipe: Pick<Recipe, "title" | "description" | "accessTier" | "priceBRL" | "slug">;
+  recipe: Pick<Recipe, "title" | "description">;
   ingredients: string[];
   instructions: string[];
-  isTeaserOnly?: boolean;
 };
 
 function escapeHtml(value: string) {
@@ -23,10 +21,6 @@ export function exportRecipeToPDF(input: ExportRecipeToPdfInput) {
     return false;
   }
 
-  const teaserMessage = input.isTeaserOnly
-    ? "<p class=\"notice\">Este PDF contém apenas o teaser liberado antes da compra.</p>"
-    : "";
-
   const ingredients = input.ingredients
     .map((ingredient) => `<li>${escapeHtml(ingredient)}</li>`)
     .join("");
@@ -40,32 +34,33 @@ export function exportRecipeToPDF(input: ExportRecipeToPdfInput) {
     <meta charset="utf-8" />
     <title>${escapeHtml(input.recipe.title)} - PDF</title>
     <style>
-      @page { size: A4; margin: 16mm; }
-      body { font-family: "Georgia", serif; color: #1f2937; margin: 0; }
-      main { max-width: 760px; margin: 0 auto; }
-      h1 { font-size: 28px; margin-bottom: 8px; }
-      h2 { font-size: 18px; margin: 28px 0 12px; }
-      p { line-height: 1.7; }
-      ul, ol { padding-left: 20px; }
-      ul li { margin-bottom: 8px; }
-      ol li { display: flex; gap: 10px; margin-bottom: 14px; }
-      ol li span { font-weight: 700; min-width: 24px; }
-      .meta { color: #6b7280; font-size: 12px; margin-bottom: 20px; }
-      .notice { padding: 12px 14px; border: 1px dashed #d97706; background: #fff7ed; color: #9a3412; border-radius: 10px; }
-      .price { display: inline-block; margin-top: 8px; padding: 6px 10px; border-radius: 999px; background: #111827; color: white; font-size: 12px; }
+      @page { size: A4; margin: 20mm; }
+      body { 
+        font-family: "Georgia", serif; 
+        color: #1f2937; 
+        margin: 0; 
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+      main { flex: 1; max-width: 760px; margin: 0 auto; width: 100%; }
+      .brand { font-size: 14px; font-weight: bold; color: #d97706; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 24px; border-bottom: 2px solid #fef3c7; padding-bottom: 8px; }
+      h1 { font-size: 32px; margin: 0 0 12px; color: #111827; }
+      .description { font-size: 16px; color: #4b5563; line-height: 1.6; margin-bottom: 32px; font-style: italic; }
+      h2 { font-size: 20px; color: #1f2937; margin: 32px 0 16px; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px; }
+      p { line-height: 1.7; margin: 0; }
+      ul, ol { padding-left: 20px; margin: 0; }
+      ul li { margin-bottom: 10px; line-height: 1.6; }
+      ol li { display: flex; gap: 12px; margin-bottom: 16px; line-height: 1.6; }
+      ol li span { font-weight: 700; color: #d97706; min-width: 24px; }
+      footer { margin-top: 48px; border-top: 1px solid #e5e7eb; padding-top: 16px; text-align: center; color: #9ca3af; font-size: 12px; font-family: sans-serif; }
     </style>
   </head>
   <body>
     <main>
-      <div class="meta">Receitas do Bell • /receitas/${escapeHtml(input.recipe.slug)}</div>
+      <div class="brand">Receitas Bell</div>
       <h1>${escapeHtml(input.recipe.title)}</h1>
-      ${input.recipe.description ? `<p>${escapeHtml(input.recipe.description)}</p>` : ""}
-      ${
-        input.recipe.accessTier === "paid" && input.recipe.priceBRL
-          ? `<div class="price">${escapeHtml(formatBRL(input.recipe.priceBRL))}</div>`
-          : ""
-      }
-      ${teaserMessage}
+      ${input.recipe.description ? `<div class="description">${escapeHtml(input.recipe.description)}</div>` : ""}
 
       <h2>Ingredientes</h2>
       <ul>${ingredients}</ul>
@@ -73,6 +68,9 @@ export function exportRecipeToPDF(input: ExportRecipeToPdfInput) {
       <h2>Modo de preparo</h2>
       <ol>${instructions}</ol>
     </main>
+    <footer>
+      Desenvolvido por MTSFerreira
+    </footer>
   </body>
 </html>`;
 

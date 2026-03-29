@@ -35,7 +35,7 @@ export function InstallAppButton({ context, className, variant = "default" }: In
       variant={variant}
     >
       <Smartphone className="mr-2 h-4 w-4" />
-      Instalar app
+      Instalar App
     </Button>
   );
 }

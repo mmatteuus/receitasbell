@@ -26,15 +26,15 @@ function TenantAdminNavigate({ to = "" }: { to?: string }) {
 
 function buildAdminChildren() {
   return [
-    { index: true, lazy: lazyRoute(() => import("@/pages/admin/Dashboard")) },
-    { path: "dashboard", element: <TenantAdminNavigate to="" /> },
-    { path: "home", element: <TenantAdminNavigate to="" /> },
+    { index: true, element: <TenantAdminNavigate to="dashboard" /> },
+    { path: "dashboard", lazy: lazyRoute(() => import("@/pages/admin/Dashboard")) },
+    { path: "home", element: <TenantAdminNavigate to="dashboard" /> },
     { path: "receitas", lazy: lazyRoute(() => import("@/pages/admin/RecipeListPage")) },
     { path: "receitas/nova", lazy: lazyRoute(() => import("@/pages/admin/RecipeEditor")) },
     { path: "receitas/:id/editar", lazy: lazyRoute(() => import("@/pages/admin/RecipeEditor")) },
     { path: "categorias", lazy: lazyRoute(() => import("@/pages/admin/categories/CategoriesPage")) },
     {
-      path: "pagamentos",
+      path: "financeiro",
       children: [
         { index: true, lazy: lazyRoute(() => import("@/pages/admin/payments/DashboardPage")) },
         { path: "transacoes", lazy: lazyRoute(() => import("@/pages/admin/payments/TransactionsPage")) },
@@ -45,9 +45,10 @@ function buildAdminChildren() {
         { path: "configuracoes", lazy: lazyRoute(() => import("@/pages/admin/payments/SettingsPage")) },
       ],
     },
+    { path: "pagamentos", element: <TenantAdminNavigate to="financeiro" /> },
     { path: "configuracoes", lazy: lazyRoute(() => import("@/pages/admin/SettingsPage")) },
     { path: "configuracoes/pagina-inicial", lazy: lazyRoute(() => import("@/pages/admin/HomePageSettings")) },
-    { path: "*", element: <TenantAdminNavigate to="" /> },
+    { path: "*", element: <TenantAdminNavigate to="dashboard" /> },
   ];
 }
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, X, Search, Heart, ChefHat, Settings, UserCircle2 } from "lucide-react";
+import { Menu, X, Search, Heart, ChefHat, Settings, UserCircle2, ListChecks, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAppContext } from "@/contexts/app-context";
 import ThemeModeToggle from "@/components/layout/ThemeModeToggle";
@@ -145,48 +145,64 @@ export default function Header() {
 
       {open && (
         <div className="border-t bg-card lg:hidden">
-          <nav className="container flex flex-col gap-1 px-4 py-4">
-            {navLinks.map((link) => (
-              <Link
-                key={link.to}
-                to={link.to}
-                onClick={() => setOpen(false)}
-                className={`flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium ${
-                  isActive(link.to) ? "bg-primary/10 text-primary" : "text-muted-foreground"
-                }`}
-              >
-                {link.icon && <link.icon aria-hidden="true" className="h-4 w-4" />}
-                {link.label}
+          <nav className="container flex flex-col gap-4 px-4 py-4 overflow-y-auto">
+            <div className="space-y-1">
+              <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Principal</p>
+              <Link to="/" onClick={() => setOpen(false)} className={`flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium ${isActive("/") ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
+                Home
               </Link>
-            ))}
-            <Link to="/minha-conta" onClick={() => setOpen(false)} className="flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground">
-              <UserCircle2 aria-hidden="true" className="h-4 w-4" /> Minha Conta
-            </Link>
-            <CartButton onClick={() => setOpen(false)} />
-            <div className="my-2 border-t" />
-            <p className="px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Categorias</p>
-            {categories.map((cat) => (
-              <Link
-                key={cat.slug}
-                to={`/categorias/${cat.slug}`}
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:text-foreground"
-              >
-                <span>{cat.name}</span>
+              <Link to="/buscar" onClick={() => setOpen(false)} className={`flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium ${isActive("/buscar") ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
+                <Search aria-hidden="true" className="h-4 w-4" /> Buscar
               </Link>
-            ))}
-            <div className="my-2 border-t" />
-            <ThemeModeToggle className="w-full justify-start" onClick={() => setOpen(false)} />
-            <div className="mt-3">
-              <InstallAppButton context="user" className="w-full justify-center" variant="outline" />
+              <p className="px-3 pt-2 text-sm font-medium text-foreground">Categorias</p>
+              {categories.map((cat) => (
+                <Link
+                  key={cat.slug}
+                  to={`/categorias/${cat.slug}`}
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-2 rounded-md px-3 pl-6 py-2 text-sm text-muted-foreground hover:text-foreground"
+                >
+                  <span>{cat.name}</span>
+                </Link>
+              ))}
             </div>
-            <div className="my-2 border-t" />
-            <Link to={adminPath} onClick={() => setOpen(false)}>
-              <Button variant="outline" size="sm" className="w-full gap-1.5">
-                <Settings aria-hidden="true" className="h-3.5 w-3.5" />
-                Admin
-              </Button>
-            </Link>
+
+            <div className="border-t" />
+
+            <div className="space-y-1">
+              <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Pessoal</p>
+              <Link to="/minha-conta" onClick={() => setOpen(false)} className={`flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium ${isActive("/minha-conta") ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
+                <UserCircle2 aria-hidden="true" className="h-4 w-4" /> Minha Conta
+              </Link>
+              <Link to="/minha-conta/favoritos" onClick={() => setOpen(false)} className={`flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium ${isActive("/minha-conta/favoritos") ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
+                <Heart aria-hidden="true" className="h-4 w-4" /> Favoritos
+              </Link>
+              <Link to="/minha-conta/lista-de-compras" onClick={() => setOpen(false)} className={`flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium ${isActive("/minha-conta/lista-de-compras") ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
+                <ListChecks aria-hidden="true" className="h-4 w-4" /> Lista de Compras
+              </Link>
+              <Link to="/minha-conta/compras" onClick={() => setOpen(false)} className={`flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium ${isActive("/minha-conta/compras") ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
+                <ShoppingBag aria-hidden="true" className="h-4 w-4" /> Histórico de Compras
+              </Link>
+              <div className="pt-2">
+                <CartButton onClick={() => setOpen(false)} />
+              </div>
+            </div>
+
+            <div className="border-t" />
+
+            <div className="space-y-1">
+              <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Sistema</p>
+              <ThemeModeToggle className="w-full justify-start" onClick={() => setOpen(false)} />
+              <div className="mt-2">
+                <InstallAppButton context="user" className="w-full justify-center" variant="outline" />
+              </div>
+              <Link to={adminPath} onClick={() => setOpen(false)}>
+                <Button variant="outline" size="sm" className="w-full mt-2 gap-1.5">
+                  <Settings aria-hidden="true" className="h-3.5 w-3.5" />
+                  Admin
+                </Button>
+              </Link>
+            </div>
           </nav>
         </div>
       )}

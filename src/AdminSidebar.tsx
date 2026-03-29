@@ -38,10 +38,10 @@ export function AdminSidebarProvider({ children }: { children: ReactNode }) {
 
 /* ── Sidebar items ── */
 const sidebarItems = [
-  { title: "Dashboard", path: "", icon: LayoutDashboard, exact: true },
+  { title: "Dashboard", path: "dashboard", icon: LayoutDashboard },
   { title: "Receitas", path: "receitas", icon: Utensils },
   { title: "Categorias", path: "categorias", icon: FolderTree },
-  { title: "Pagamentos", path: "pagamentos", icon: CreditCard },
+  { title: "Financeiro", path: "financeiro", icon: CreditCard },
   { title: "Configurações", path: "configuracoes", icon: Settings },
   { title: "Página Inicial", path: "configuracoes/pagina-inicial", icon: Home },
 ];
@@ -70,9 +70,7 @@ function SidebarNav({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?
       <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
         {sidebarItems.map((item) => {
           const href = buildTenantAdminPath(item.path, tenantSlug);
-          const isActive = item.exact
-            ? location.pathname === href
-            : location.pathname.startsWith(href);
+          const isActive = location.pathname.startsWith(href);
 
           return (
             <Link

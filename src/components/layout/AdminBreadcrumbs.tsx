@@ -4,12 +4,13 @@ import { ChevronRight, Home } from "lucide-react";
 import { buildTenantAdminPath, extractTenantSlugFromPath } from "@/lib/tenant";
 
 const breadcrumbMap: Record<string, string> = {
-  "/admin": "Dashboard",
+  "/admin/dashboard": "Dashboard",
   "/admin/receitas": "Receitas",
   "/admin/receitas/nova": "Nova Receita",
-  "/admin/pagamentos": "Pagamentos",
-  "/admin/pagamentos/configuracoes": "Config. Pagamentos",
-  "/admin/pagamentos/transacoes": "Transações",
+  "/admin/categorias": "Categorias",
+  "/admin/financeiro": "Financeiro",
+  "/admin/financeiro/configuracoes": "Config. Financeiro",
+  "/admin/financeiro/transacoes": "Transações",
   "/admin/configuracoes": "Configurações",
   "/admin/configuracoes/pagina-inicial": "Página Inicial",
 };
@@ -26,7 +27,9 @@ export function AdminBreadcrumbs() {
   let accumulated = "";
   for (const seg of segments) {
     accumulated += `/${seg}`;
-    const label = breadcrumbMap[accumulated];
+    if (accumulated === "/admin" || accumulated === "/pwa/admin") continue;
+    
+    const label = breadcrumbMap[accumulated.replace("/pwa/admin", "/admin")];
     if (label) {
       crumbs.push({ label, href: accumulated });
     } else if (seg !== "admin") {
