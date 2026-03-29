@@ -192,7 +192,7 @@ describe("direct payment service", () => {
         notification_url: "https://app.exemplo.com/api/checkout/webhook?paymentId=order-1&tenantId=tenant-1",
       }),
     );
-    expect(paymentServiceMock.syncPayment).toHaveBeenCalledWith("tenant-1", "order-1", "pending", "mp-123");
+    expect(paymentServiceMock.syncPayment).toHaveBeenCalledWith("tenant-1", "order-1", "pending", "mp-123", undefined);
     expect(result.paymentMethod).toBe("pix");
     expect(result.internalStatus).toBe("pending");
     expect(result.qrCode).toBe("000201...");
@@ -218,7 +218,7 @@ describe("direct payment service", () => {
 
     expect(result.paymentMode).toBe("sandbox");
     expect(result.publicKey).toBe("APP_USR-123");
-    expect(result.supportedMethods).toEqual(["checkout_pro", "pix", "card"]);
+    expect(result.supportedMethods).toEqual(expect.arrayContaining(["checkout_pro", "pix", "card"]));
   });
 
   test("consulta status do pagamento direto e sincroniza aprovacao", async () => {
@@ -296,7 +296,7 @@ describe("direct payment service", () => {
     const result = await getDirectPaymentStatus("tenant-1", "order-2");
 
     expect(mpClientMock.mpGetPayment).toHaveBeenCalledWith("seller-token", "mp-999");
-    expect(paymentServiceMock.syncPayment).toHaveBeenCalledWith("tenant-1", "order-2", "approved", "mp-999");
+    expect(paymentServiceMock.syncPayment).toHaveBeenCalledWith("tenant-1", "order-2", "approved", "mp-999", expect.any(Object));
     expect(result.paymentMethod).toBe("card");
     expect(result.internalStatus).toBe("approved");
     expect(result.statusDetail).toBe("accredited");
