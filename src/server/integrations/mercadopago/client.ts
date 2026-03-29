@@ -23,6 +23,20 @@ export type MercadoPagoPreference = {
   [key: string]: unknown;
 };
 
+/** Represents a single payment method entry from /v1/payment_methods. */
+export type MercadoPagoPaymentMethod = {
+  id?: string;
+  name?: string;
+  payment_type_id?: string;
+  status?: string;
+  secure_thumbnail?: string;
+  thumbnail?: string;
+  deferred_capture?: string;
+  min_allowed_amount?: number;
+  max_allowed_amount?: number;
+  [key: string]: unknown;
+};
+
 export class MercadoPagoApiError extends Error {
   status: number;
   payload: MercadoPagoErrorPayload;
@@ -185,4 +199,35 @@ export async function cancelMercadoPagoPayment(
     throw new MercadoPagoApiError(response.status, `MP payment cancel failed ${response.status}`, body);
   }
   return (body ?? {}) as MercadoPagoPayment;
+}
+
+/**
+ * Fetches the list of available payment methods for the given seller account.
+ * Used by methods.ts to build a SellerPaymentMethodSnapshot.
+ * Endpoint: GET /v1/payment_methods
+ */
+export async function mpFetchPaymentMethods(
+  accessToken: string,
+): Promise<MercadoPagoPaymentMethod[]> {
+  const response = await mpFetch(
+    "https://api.mercadopago.com/v1/payment_methods",
+    { headers: authHeaders(accessToken) },
+    1, // single retry for this auxiliary call
+  );
+  if (!response.ok) {
+    const payload = await parseJsonSafe(response);
+    throw new MercadoPagoApiError(
+      response.status,
+      `MP payment_methods failed ${response.status}`,
+      payload,
+    );
+  }
+  // The endpoint returns a plain array, not an object with results
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data = await (response.json() as Promise<any>);
+    return Array.isArray(data) ? (data as MercadoPagoPaymentMethod[]) : [];
+  } catch {
+    return [];
+  }
 }
