@@ -55,6 +55,14 @@ const schema = z.object({
   BASEROW_TABLE_OAUTH_STATES: z.string().optional(),
   BASEROW_TABLE_MP_CONNECTIONS: z.string().optional(),
 
+  // Stripe Connect
+  STRIPE_SECRET_KEY: z.string().optional(),
+  STRIPE_CLIENT_ID: z.string().optional(),
+  STRIPE_REDIRECT_URI: z.string().optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  BASEROW_TABLE_STRIPE_CONNECTIONS: z.string().optional(),
+  BASEROW_TABLE_STRIPE_OAUTH_STATES: z.string().optional(),
+
   // Mercado Pago OAuth config (optional fallback envs)
   MERCADO_PAGO_CLIENT_ID: z.string().optional(),
   MERCADO_PAGO_CLIENT_SECRET: z.string().optional(),
@@ -108,6 +116,13 @@ export const env = schema.parse({
   BASEROW_TABLE_NEWSLETTER: readEnv("BASEROW_TABLE_NEWSLETTER"),
   BASEROW_TABLE_OAUTH_STATES: readEnv("BASEROW_TABLE_OAUTH_STATES"),
   BASEROW_TABLE_MP_CONNECTIONS: readEnv("BASEROW_TABLE_MP_CONNECTIONS"),
+
+  STRIPE_SECRET_KEY: readEnv("STRIPE_SECRET_KEY"),
+  STRIPE_CLIENT_ID: readEnv("STRIPE_CLIENT_ID"),
+  STRIPE_REDIRECT_URI: readEnv("STRIPE_REDIRECT_URI"),
+  STRIPE_WEBHOOK_SECRET: readEnv("STRIPE_WEBHOOK_SECRET"),
+  BASEROW_TABLE_STRIPE_CONNECTIONS: readEnv("BASEROW_TABLE_STRIPE_CONNECTIONS"),
+  BASEROW_TABLE_STRIPE_OAUTH_STATES: readEnv("BASEROW_TABLE_STRIPE_OAUTH_STATES"),
 
   MERCADO_PAGO_CLIENT_ID: readEnv("MERCADO_PAGO_CLIENT_ID", ["MP_CLIENT_ID"]),
   MERCADO_PAGO_CLIENT_SECRET: readEnv("MERCADO_PAGO_CLIENT_SECRET", ["MP_CLIENT_SECRET"]),
@@ -174,6 +189,21 @@ export async function getMercadoPagoAppEnvAsync(_tenantId: string) {
   }
 
   return { clientId, clientSecret, redirectUri };
+}
+
+export async function getStripeAppEnvAsync(_tenantId: string) {
+  const secretKey =
+    getOptionalEnv("STRIPE_SECRET_KEY") || env.STRIPE_SECRET_KEY || "";
+  const clientId =
+    getOptionalEnv("STRIPE_CLIENT_ID") || env.STRIPE_CLIENT_ID || "";
+  const redirectUri =
+    getOptionalEnv("STRIPE_REDIRECT_URI") || env.STRIPE_REDIRECT_URI ||
+    `${(env.APP_BASE_URL || "").replace(/\/+$/, "")}/api/stripe/callback`;
+
+  if (!secretKey || !clientId) {
+    throw new Error("Stripe env vars ausentes (STRIPE_SECRET_KEY / STRIPE_CLIENT_ID).");
+  }
+  return { secretKey, clientId, redirectUri };
 }
 
 export async function hasMercadoPagoAppConfigAsync(tenantId: string) {

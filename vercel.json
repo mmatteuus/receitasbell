@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "vite",
-  "installCommand": "npm ci",
+  "installCommand": "npm install",
   "buildCommand": "npm run gate",
   "headers": [
     {
@@ -19,76 +19,31 @@
         { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(), payment=(self)" }
       ]
     },
-    {
-      "source": "/api/admin/(.*)",
-      "headers": [
-        { "key": "Cache-Control", "value": "no-store" }
-      ]
-    },
-    {
-      "source": "/api/auth/(.*)",
-      "headers": [
-        { "key": "Cache-Control", "value": "no-store" }
-      ]
-    },
-    {
-      "source": "/api/me/(.*)",
-      "headers": [
-        { "key": "Cache-Control", "value": "no-store" }
-      ]
-    },
-    {
-      "source": "/api/checkout/(.*)",
-      "headers": [
-        { "key": "Cache-Control", "value": "no-store" }
-      ]
-    },
-    {
-      "source": "/api/payments/(.*)",
-      "headers": [
-        { "key": "Cache-Control", "value": "no-store" }
-      ]
-    },
-    {
-      "source": "/api/jobs/(.*)",
-      "headers": [
-        { "key": "Cache-Control", "value": "no-store" }
-      ]
-    },
-    {
-      "source": "/api/security/(.*)",
-      "headers": [
-        { "key": "Cache-Control", "value": "no-store" }
-      ]
-    },
-    {
-      "source": "/api/health(.*)",
-      "headers": [
-        { "key": "Cache-Control", "value": "no-store" }
-      ]
-    }
+    { "source": "/api/admin/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-store" }] },
+    { "source": "/api/auth/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-store" }] },
+    { "source": "/api/me/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-store" }] },
+    { "source": "/api/checkout/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-store" }] },
+    { "source": "/api/payments/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-store" }] },
+    { "source": "/api/stripe/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-store" }] },
+    { "source": "/api/jobs/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-store" }] },
+    { "source": "/api/security/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-store" }] },
+    { "source": "/api/health(.*)", "headers": [{ "key": "Cache-Control", "value": "no-store" }] }
   ],
   "rewrites": [
     { "source": "/api/health", "destination": "/api/health/live" },
     { "source": "/api/checkout", "destination": "/api/checkout/create" },
-    {
-      "source": "/api/admin/payments/settings",
-      "destination": "/api/admin/payments?path=payments/settings"
-    },
-    {
-      "source": "/api/admin/payments/:id/note",
-      "destination": "/api/admin/payments?path=payments/:id/note"
-    },
-    {
-      "source": "/api/admin/payments/:id",
-      "destination": "/api/admin/payments?path=payments/:id"
-    },
-    {
-      "source": "/api/admin/mercadopago/:action",
-      "destination": "/api/admin/payments?path=mercadopago/:action"
-    },
-
-    { "source": "/(@vite|src|node_modules)/:path*", "destination": "/$1/:path*" },
+    { "source": "/api/admin/payments/settings", "destination": "/api/admin/payments?path=payments/settings" },
+    { "source": "/api/admin/payments/:id/note", "destination": "/api/admin/payments?path=payments/:id/note" },
+    { "source": "/api/admin/payments/:id", "destination": "/api/admin/payments?path=payments/:id" },
+    { "source": "/api/admin/mercadopago/:action", "destination": "/api/admin/payments?path=mercadopago/:action" },
+    { "source": "/api/admin/stripe/connect", "destination": "/api/admin/stripe/connect" },
+    { "source": "/api/admin/stripe/disconnect", "destination": "/api/admin/stripe/disconnect" },
+    { "source": "/api/stripe/callback", "destination": "/api/stripe/callback" },
+    { "source": "/api/stripe/webhook", "destination": "/api/stripe/webhook" },
+    { "source": "/api/stripe/status", "destination": "/api/stripe/status" },
+    { "source": "/@vite/:path*", "destination": "/@vite/:path*" },
+    { "source": "/src/:path*", "destination": "/src/:path*" },
+    { "source": "/node_modules/:path*", "destination": "/node_modules/:path*" },
     {
       "source": "/((?!api/|assets/|images/|favicon|manifest\\.webmanifest|registerSW\\.js|sw\\.js|workbox-|robots\\.txt).*)",
       "destination": "/index.html"
