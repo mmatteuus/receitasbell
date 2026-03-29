@@ -74,6 +74,12 @@ export const baserowTables = {
   get mpConnections() {
     return optionalId("BASEROW_TABLE_MP_CONNECTIONS", env.BASEROW_TABLE_MP_CONNECTIONS);
   },
+  get stripeConnections() {
+    return optionalId("BASEROW_TABLE_STRIPE_CONNECTIONS", env.BASEROW_TABLE_STRIPE_CONNECTIONS);
+  },
+  get stripeOauthStates() {
+    return optionalId("BASEROW_TABLE_STRIPE_OAUTH_STATES", env.BASEROW_TABLE_STRIPE_OAUTH_STATES);
+  },
 } as const;
 
 // Alias legado em UPPERCASE para compatibilidade
@@ -134,5 +140,11 @@ export const BASEROW_TABLES = {
   },
   get MP_CONNECTIONS() {
     return baserowTables.mpConnections;
+  },
+  get STRIPE_CONNECTIONS() {
+    return baserowTables.stripeConnections;
+  },
+  get STRIPE_OAUTH_STATES() {
+    return baserowTables.stripeOauthStates;
   },
 } as const;
