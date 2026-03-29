@@ -40,7 +40,16 @@ function authHeaders(accessToken: string) {
 }
 
 async function parseJsonSafe(response: Response): Promise<MercadoPagoErrorPayload> {
-  return response.json().catch(() => null);
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data = await (response.json() as Promise<any>);
+    if (data !== null && typeof data === "object" && !Array.isArray(data)) {
+      return data as Record<string, unknown>;
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 async function mpFetch(
@@ -94,7 +103,7 @@ export async function mpGetPayment(accessToken: string, paymentId: string): Prom
   if (!response.ok) {
     throw new MercadoPagoApiError(response.status, `MP get payment failed ${response.status}`, payload);
   }
-  return payload as MercadoPagoPayment;
+  return (payload ?? {}) as MercadoPagoPayment;
 }
 
 export async function mpSearchPaymentsByExternalReference(
@@ -107,7 +116,7 @@ export async function mpSearchPaymentsByExternalReference(
   if (!response.ok) {
     throw new MercadoPagoApiError(response.status, `MP search payments failed ${response.status}`, payload);
   }
-  return payload as MercadoPagoSearchResponse;
+  return (payload ?? {}) as MercadoPagoSearchResponse;
 }
 
 export async function createMercadoPagoPreference(
@@ -131,7 +140,7 @@ export async function createMercadoPagoPreference(
   if (!response.ok) {
     throw new MercadoPagoApiError(response.status, `MP preference failed ${response.status}`, body);
   }
-  return body as MercadoPagoPreference;
+  return (body ?? {}) as MercadoPagoPreference;
 }
 
 export async function createMercadoPagoPayment(
@@ -155,7 +164,7 @@ export async function createMercadoPagoPayment(
   if (!response.ok) {
     throw new MercadoPagoApiError(response.status, `MP payment create failed ${response.status}`, body);
   }
-  return body as MercadoPagoPayment;
+  return (body ?? {}) as MercadoPagoPayment;
 }
 
 export async function cancelMercadoPagoPayment(
@@ -175,5 +184,5 @@ export async function cancelMercadoPagoPayment(
   if (!response.ok) {
     throw new MercadoPagoApiError(response.status, `MP payment cancel failed ${response.status}`, body);
   }
-  return body as MercadoPagoPayment;
+  return (body ?? {}) as MercadoPagoPayment;
 }

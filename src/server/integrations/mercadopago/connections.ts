@@ -43,7 +43,9 @@ type MercadoPagoConnectionRow = {
   tenantId?: string | number;
   mercado_pago_user_id?: string | number;
   access_token_encrypted?: string;
+  access_token?: string;
   refresh_token_encrypted?: string;
+  refresh_token?: string | boolean;
   public_key?: string;
   status?: string;
   connected_at?: string;
@@ -53,6 +55,8 @@ type MercadoPagoConnectionRow = {
   last_error?: string;
   created_by_user_id?: string | number;
   updated_at?: string;
+  created_at?: string;
+  user_id?: string | number;
 };
 
 function normalizeStatus(value: unknown): ConnectionStatus {
@@ -80,16 +84,44 @@ function isExpiringSoon(expiresAt: string | null, thresholdMs = REFRESH_BEFORE_E
   return expiresAtMs <= Date.now() + thresholdMs;
 }
 
+function isEncryptedFormat(value: string): boolean {
+  const parts = value.split(".");
+  return parts.length === 3 && parts.every((p) => p.length > 0);
+}
+
+function safeReadToken(value: string | null | undefined): string {
+  if (!value) return "";
+  if (isEncryptedFormat(value)) {
+    try {
+      return decryptSecret(value);
+    } catch {
+      return value;
+    }
+  }
+  return value;
+}
+
+function resolveAccessTokenField(row: MercadoPagoConnectionRow): string {
+  return row.access_token_encrypted || row.access_token || "";
+}
+
+function resolveConnectionStatus(row: MercadoPagoConnectionRow): ConnectionStatus {
+  if (row.status) return normalizeStatus(row.status);
+  const hasToken = Boolean(row.access_token_encrypted || row.access_token);
+  return hasToken ? "connected" : "disconnected";
+}
+
 function mapConnectionRow(row: MercadoPagoConnectionRow): TenantMercadoPagoConnection {
   return {
     id: String(row.id),
     tenantId: String(row.tenant_id ?? row.tenantId ?? ""),
-    mercadoPagoUserId: row.mercado_pago_user_id ? String(row.mercado_pago_user_id) : null,
-    accessTokenEncrypted: String(row.access_token_encrypted || ""),
+    mercadoPagoUserId: (row.mercado_pago_user_id ?? row.user_id)
+      ? String(row.mercado_pago_user_id ?? row.user_id) : null,
+    accessTokenEncrypted: resolveAccessTokenField(row),
     refreshTokenEncrypted: row.refresh_token_encrypted ? String(row.refresh_token_encrypted) : null,
     publicKey: row.public_key ? String(row.public_key) : null,
-    status: normalizeStatus(row.status),
-    connectedAt: toIsoOrNull(row.connected_at),
+    status: resolveConnectionStatus(row),
+    connectedAt: toIsoOrNull(row.connected_at ?? row.created_at),
     expiresAt: toIsoOrNull(row.expires_at),
     disconnectedAt: toIsoOrNull(row.disconnected_at),
     lastRefreshAt: toIsoOrNull(row.last_refresh_at),
@@ -289,8 +321,8 @@ export async function requireTenantMercadoPagoConnection(tenantId: string | numb
 
 export function readConnectionSecrets(connection: TenantMercadoPagoConnection) {
   return {
-    accessToken: decryptSecret(connection.accessTokenEncrypted),
-    refreshToken: connection.refreshTokenEncrypted ? decryptSecret(connection.refreshTokenEncrypted) : null,
+    accessToken: safeReadToken(connection.accessTokenEncrypted),
+    refreshToken: connection.refreshTokenEncrypted ? safeReadToken(connection.refreshTokenEncrypted) : null,
   };
 }
 
@@ -517,18 +549,15 @@ export async function getUsableMercadoPagoAccessToken(tenantId: string) {
     connection = await refreshMercadoPagoConnection(connection.id);
   }
 
-  try {
-    return {
-      connection,
-      accessToken: decryptSecret(connection.accessTokenEncrypted),
-    };
-  } catch {
+  const accessToken = safeReadToken(connection.accessTokenEncrypted);
+  if (!accessToken) {
     await markConnectionReconnectRequired({
       tenantId,
-      reason: "access_token_decrypt_failed",
+      reason: "access_token_empty",
     });
     throw new ApiError(409, "A conexão com o Mercado Pago está inválida. Reconecte a conta.");
   }
+  return { connection, accessToken };
 }
 
 function toSortableConnectionTimestamp(row: MercadoPagoConnectionRow) {
