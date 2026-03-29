@@ -298,10 +298,15 @@ export async function listPayments(
   tenantId: string | number,
   filters: PaymentListFilters = {},
 ): Promise<AdminPayment[]> {
-  const rows = await listRowsByTable<PaymentOrderRow>(baserowTables.paymentOrders, [
-    `filter__tenant_id__equal=${encodeURIComponent(String(tenantId))}`,
-    "order_by=-created_at,-id",
-  ]);
+  let rows: PaymentOrderRow[] = [];
+  try {
+    rows = await listRowsByTable<PaymentOrderRow>(baserowTables.paymentOrders, [
+      `filter__tenant_id__equal=${encodeURIComponent(String(tenantId))}`,
+      "order_by=-created_at,-id",
+    ]);
+  } catch (error) {
+    normalizePaymentOrdersError(error);
+  }
   const orders = rows.map(mapRowToPayment);
   const recipeIndex = await buildRecipeIndex(tenantId, orders);
 
