@@ -21,6 +21,7 @@ import {
 } from "../integrations/mercadopago/connections.js";
 import { buildPaymentExternalReference } from "./externalReference.js";
 import { syncPayment } from "./service.js";
+import { getTenantSellerPaymentMethods } from "../integrations/mercadopago/methods.js";
 import { getSettingsMap, mapTypedSettings } from "../settings/repo.js";
 import { ApiError } from "../shared/http.js";
 import { Logger } from "../shared/logger.js";
@@ -336,8 +337,9 @@ async function syncAndReloadOrder(
   paymentOrderId: string | number,
   providerStatus: string,
   providerPaymentId?: string,
+  mpDetails?: { methodId?: string; typeId?: string },
 ) {
-  await syncPayment(String(tenantId), paymentOrderId, providerStatus, providerPaymentId);
+  await syncPayment(String(tenantId), paymentOrderId, providerStatus, providerPaymentId, mpDetails);
   const updated = await getPaymentOrderById(tenantId, paymentOrderId);
   if (!updated) {
     throw new ApiError(404, `Order ${paymentOrderId} not found`);
@@ -400,7 +402,16 @@ async function getCurrentProviderPayment(tenantId: string | number, order: Payme
   );
 
   if (payment.status) {
-    await syncAndReloadOrder(tenantId, order.id, String(payment.status), payment.id != null ? String(payment.id) : undefined);
+    await syncAndReloadOrder(
+      tenantId,
+      order.id,
+      String(payment.status),
+      payment.id != null ? String(payment.id) : undefined,
+      {
+        methodId: String(payment.payment_method_id || ""),
+        typeId: String(payment.payment_type_id || ""),
+      }
+    );
   }
 
   return payment;
@@ -412,9 +423,25 @@ export async function getCheckoutPaymentConfig(tenantId: string | number): Promi
     getTenantMercadoPagoConnection(tenantId),
   ]);
 
-  const supportedMethods: CheckoutPaymentConfig["supportedMethods"] = ["checkout_pro", "pix"];
-  if (connection?.status === "connected" && connection.publicKey) {
-    supportedMethods.push("card");
+  const isProd = settings.payment_mode === "production";
+  const supportedMethods: CheckoutPaymentConfig["supportedMethods"] = [];
+
+  // P0-03/TASK-003: Dynamic Seller Catalog
+  if (connection?.status === "connected") {
+    try {
+      const sellerCatalog = await getTenantSellerPaymentMethods(tenantId);
+      if (sellerCatalog.pixEnabled) supportedMethods.push("pix");
+      if (sellerCatalog.cardEnabled && connection.publicKey) supportedMethods.push("card");
+    } catch (e) {
+      logger.error("Failed to fetch seller payment methods, using safe defaults", e);
+      supportedMethods.push("pix");
+      if (connection.publicKey) supportedMethods.push("card");
+    }
+  }
+
+  // P0-03/TASK-004: Remove checkout_pro in production to force direct payment UX
+  if (!isProd) {
+    supportedMethods.push("checkout_pro");
   }
 
   return {

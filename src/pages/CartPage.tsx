@@ -1,5 +1,6 @@
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { ShoppingCart } from 'lucide-react';
+import { useAppContext } from '@/contexts/app-context';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { CartItemsList } from '@/components/cart/CartItemsList';
@@ -9,6 +10,12 @@ import { useCart } from '@/hooks/use-cart';
 export default function CartPage() {
   const { items, remove, clear, getTotal, updateQuantity } = useCart();
   const total = getTotal();
+
+  const { identityEmail } = useAppContext();
+
+  if (!identityEmail) {
+    return <Navigate to="/minha-conta?redirect=/carrinho" replace />;
+  }
 
   if (items.length === 0) {
     return (

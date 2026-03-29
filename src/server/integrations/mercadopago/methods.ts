@@ -1,90 +1,41 @@
-/**
- * TASK-003 — Catálogo dinâmico de meios de pagamento do seller conectado.
- *
- * Consulta /v1/payment_methods da conta MP conectada e retorna um snapshot
- * normalizado, contendo apenas os métodos permitidos pelo produto (PIX, cartão de
- * crédito e cartão de débito). Ticket, boleto, bank_transfer e account_money são
- * explicitamente excluídos para cumprir a regra de produto definida na auditoria.
- */
+import { mpGetPaymentMethods } from "./client.js";
+import { getUsableMercadoPagoAccessToken } from "./connections.js";
 
-import { mpFetchPaymentMethods, type MercadoPagoPaymentMethod } from "./client.js";
-
-/** Tipos de pagamento aceitos pelo produto. */
-const ALLOWED_PAYMENT_TYPES = new Set(["pix", "credit_card", "debit_card"]);
-
-/** Tipos de pagamento explicitamente proibidos (independente da conta). */
-const BLOCKED_PAYMENT_TYPES = new Set([
-  "ticket",
-  "atm",
-  "bank_transfer",
-  "account_money",
-  "consumer_credits",
-]);
-
-export type SellerPaymentMethodSnapshot = {
-  /** O seller aceita PIX. */
+export type SellerPaymentMethods = {
   pixEnabled: boolean;
-  /** O seller aceita cartão (crédito ou débito). */
   cardEnabled: boolean;
-  /** O seller aceita cartão de crédito especificamente. */
   creditEnabled: boolean;
-  /** O seller aceita cartão de débito especificamente. */
   debitEnabled: boolean;
+  rawMethods: string[];
 };
 
-function isMethodAllowed(method: MercadoPagoPaymentMethod): boolean {
-  const paymentType = String(method.payment_type_id || "").toLowerCase();
-  if (BLOCKED_PAYMENT_TYPES.has(paymentType)) return false;
-  return ALLOWED_PAYMENT_TYPES.has(paymentType);
-}
-
 /**
- * Obtém o catálogo de meios de pagamento suportados pelo seller conectado.
- * Usa o accessToken já resolvido (não chama getUsableMercadoPagoAccessToken
- * para evitar dependência circular).
+ * Consulta o catálogo de meios de pagamento real da conta conectada no Mercado Pago.
+ * Isso permite que o frontend saiba se deve oferecer PIX ou Cartão (crédito/débito)
+ * com base no que o seller realmente configurou na conta dele.
  */
-export async function getSellerPaymentMethodSnapshot(
-  accessToken: string,
-): Promise<SellerPaymentMethodSnapshot> {
-  let methods: MercadoPagoPaymentMethod[] = [];
+export async function getTenantSellerPaymentMethods(tenantId: string | number): Promise<SellerPaymentMethods> {
+  const { accessToken } = await getUsableMercadoPagoAccessToken(String(tenantId));
+  const methods = await mpGetPaymentMethods(accessToken);
 
-  try {
-    methods = await mpFetchPaymentMethods(accessToken);
-  } catch {
-    // Se falhar, assume suporte mínimo (PIX apenas) para não bloquear o checkout.
-    return { pixEnabled: true, cardEnabled: false, creditEnabled: false, debitEnabled: false };
-  }
-
-  const allowed = methods.filter(isMethodAllowed);
-  const normalized = allowed.map((m) => ({
+  // Filtramos apenas os métodos que o produto aceita (PIX e Cartão)
+  const activeMethods = methods.filter((m) => m.status === "active");
+  
+  const normalized = activeMethods.map((m) => ({
     id: String(m.id || "").toLowerCase(),
     paymentTypeId: String(m.payment_type_id || "").toLowerCase(),
   }));
 
+  const pixEnabled = normalized.some((m) => m.id === "pix");
+  const creditEnabled = normalized.some((m) => m.paymentTypeId === "credit_card");
+  const debitEnabled = normalized.some((m) => m.paymentTypeId === "debit_card");
+  const cardEnabled = creditEnabled || debitEnabled;
+
   return {
-    pixEnabled: normalized.some((m) => m.id === "pix" || m.paymentTypeId === "pix"),
-    cardEnabled: normalized.some(
-      (m) => m.paymentTypeId === "credit_card" || m.paymentTypeId === "debit_card",
-    ),
-    creditEnabled: normalized.some((m) => m.paymentTypeId === "credit_card"),
-    debitEnabled: normalized.some((m) => m.paymentTypeId === "debit_card"),
+    pixEnabled,
+    cardEnabled,
+    creditEnabled,
+    debitEnabled,
+    rawMethods: normalized.map((m) => m.id),
   };
-}
-
-/**
- * Snapshot seguro (sem lançar exceção) para uso em rotas críticas.
- * Em caso de falha de conexão com o MP, assume apenas PIX disponível.
- */
-export async function getSellerPaymentMethodSnapshotSafe(
-  accessToken: string | null | undefined,
-): Promise<SellerPaymentMethodSnapshot> {
-  if (!accessToken) {
-    return { pixEnabled: true, cardEnabled: false, creditEnabled: false, debitEnabled: false };
-  }
-
-  try {
-    return await getSellerPaymentMethodSnapshot(accessToken);
-  } catch {
-    return { pixEnabled: true, cardEnabled: false, creditEnabled: false, debitEnabled: false };
-  }
 }

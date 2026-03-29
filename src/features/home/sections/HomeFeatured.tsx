@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Reveal } from "@/components/motion/Reveal";
-import RecipeCard from "@/components/RecipeCard";
 import SmartImage from "@/components/SmartImage";
 import { getRecipeImage } from "@/lib/recipes/presentation";
 import type { RecipeRecord } from "@/lib/recipes/types";
@@ -19,6 +18,7 @@ type HomeFeaturedProps = {
   featuredMainPresentation: RecipePresentation | null;
   featuredCategoryLabel?: string | null;
   onFeaturedClick: (recipe: RecipeRecord) => void;
+  onViewRelated?: () => void;
 };
 
 export function HomeFeatured({
@@ -29,6 +29,7 @@ export function HomeFeatured({
   featuredMainPresentation,
   featuredCategoryLabel,
   onFeaturedClick,
+  onViewRelated,
 }: HomeFeaturedProps) {
   return (
     <section className="container px-4 py-12">
@@ -48,47 +49,48 @@ export function HomeFeatured({
           ))}
         </div>
       ) : featuredRecipes.length > 0 && featuredMainRecipe ? (
-        <div className="grid gap-6 lg:grid-cols-12">
-          <Reveal className="lg:col-span-7">
+        <div className="mx-auto max-w-4xl">
+          <Reveal>
             <article className="overflow-hidden rounded-3xl border bg-card shadow-sm">
               <Link to={`/receitas/${featuredMainRecipe.slug}`} className="block">
                 <SmartImage
                   src={getRecipeImage(featuredMainRecipe)}
                   alt={featuredMainRecipe.title}
-                  sizes="(min-width: 1024px) 60vw, 100vw"
-                  className="h-[320px] w-full object-cover"
+                  sizes="(min-width: 1024px) 100vw, 100vw"
+                  className="h-[400px] w-full object-cover lg:h-[500px]"
                 />
               </Link>
-              <div className="space-y-3 p-6">
-                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <div className="flex flex-col items-center space-y-4 p-8 text-center sm:p-12">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Badge variant="outline" className="capitalize">
                     {featuredCategoryLabel || featuredMainRecipe.categorySlug}
                   </Badge>
                   <span>{featuredMainRecipe.totalTime} min</span>
                 </div>
-                <h3 className="text-3xl leading-tight">
+                <h3 className="text-3xl font-bold leading-tight md:text-4xl">
                   {featuredMainPresentation?.cardTitle || featuredMainRecipe.title}
                 </h3>
-                <p className="text-muted-foreground">
+                <p className="max-w-2xl text-base text-muted-foreground md:text-lg">
                   {featuredMainPresentation?.marketingHeadline || featuredMainRecipe.description}
                 </p>
-                <Button
-                  onClick={() => onFeaturedClick(featuredMainRecipe)}
-                  className="gap-2"
-                >
-                  Ver receita
-                  <ArrowRight aria-hidden="true" className="h-4 w-4" />
-                </Button>
+                <div className="pt-4 flex flex-col sm:flex-row items-center gap-4">
+                  <Button
+                    onClick={() => onFeaturedClick(featuredMainRecipe)}
+                    className="gap-2"
+                    size="lg"
+                  >
+                    Ver receita
+                    <ArrowRight aria-hidden="true" className="h-4 w-4" />
+                  </Button>
+                  {onViewRelated && (
+                    <Button variant="outline" size="lg" onClick={onViewRelated}>
+                      Explorar outras receitas
+                    </Button>
+                  )}
+                </div>
               </div>
             </article>
           </Reveal>
-          <div className="grid gap-5 sm:grid-cols-2 lg:col-span-5 lg:grid-cols-1">
-            {featuredRecipes.slice(1, 5).map((recipe, index) => (
-              <Reveal key={recipe.id} delayMs={index * 60}>
-                <RecipeCard recipe={recipe} />
-              </Reveal>
-            ))}
-          </div>
         </div>
       ) : (
         <div className="rounded-2xl border border-dashed px-6 py-14 text-center text-muted-foreground">

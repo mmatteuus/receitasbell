@@ -13,7 +13,7 @@ export const DEFAULT_CATEGORIES: Category[] = [
 ];
 
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
-  siteName: "Receitas do Bell",
+  siteName: "Receitas Bell",
   siteDescription: "Receitas testadas e aprovadas para tornar seus momentos na cozinha inesquecíveis.",
   logoUrl: "",
   primaryColor: "#e8590c",

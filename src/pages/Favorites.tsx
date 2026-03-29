@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { Heart } from "lucide-react";
 import { listPublicRecipes } from "@/lib/repos/recipeRepo";
 import { useAppContext } from "@/contexts/app-context";
@@ -10,12 +10,8 @@ import type { RecipeRecord } from "@/lib/recipes/types";
 
 export default function Favorites() {
   const { favorites } = useFavorites();
-  const { requireIdentity } = useAppContext();
+  const { identityEmail } = useAppContext();
   const [recipes, setRecipes] = useState<RecipeRecord[]>([]);
-
-  useEffect(() => {
-    void requireIdentity("Digite seu e-mail para acessar seus favoritos.");
-  }, [requireIdentity]);
 
   useEffect(() => {
     async function loadFavoriteRecipes() {
@@ -33,6 +29,10 @@ export default function Favorites() {
 
     void loadFavoriteRecipes();
   }, [favorites]);
+
+  if (!identityEmail) {
+    return <Navigate to="/minha-conta?redirect=/minha-conta/favoritos" replace />;
+  }
 
   return (
     <div className="container py-10">

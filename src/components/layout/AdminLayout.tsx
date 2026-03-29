@@ -35,7 +35,7 @@ export default function AdminLayout() {
               rel="noopener noreferrer"
               className="font-medium text-primary hover:underline"
             >
-              MtsFerreira
+              MTSFerreira
             </a>
           </footer>
           <BackToTop />

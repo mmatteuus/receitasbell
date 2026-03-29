@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { Heart, ListChecks, LockOpen, ShoppingCart, Smartphone, UserRound, WalletCards } from "lucide-react";
 import { useAppContext } from "@/contexts/app-context";
 import { useInstallPrompt } from "@/pwa/hooks/useInstallPrompt";
@@ -25,11 +25,12 @@ function resolveTab(value: string | null): AccountTab {
 }
 
 export default function AccountHome() {
-  const { favorites, favoriteRecords, identityEmail, requireIdentity, clearIdentity } = useAppContext();
+  const { favorites, favoriteRecords, identityEmail, requireIdentity, clearIdentity, updateIdentity } = useAppContext();
   const { isInstalled, deferredPrompt, isIOS } = useInstallPrompt();
   const showAppCard = !isInstalled && (!!deferredPrompt || isIOS);
   
   const [params, setParams] = useSearchParams();
+  const navigate = useNavigate();
   const [currentTab, setCurrentTab] = useState<AccountTab>(() => resolveTab(params.get("tab")));
   const [shoppingCount, setShoppingCount] = useState(0);
   const [shoppingPreview, setShoppingPreview] = useState<string[]>([]);
@@ -37,6 +38,9 @@ export default function AccountHome() {
   const [paidOwned, setPaidOwned] = useState<RecipeRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
+
+  const [emailInput, setEmailInput] = useState("");
+  const [authorizing, setAuthorizing] = useState(false);
 
   useEffect(() => {
     setCurrentTab(resolveTab(params.get("tab")));
@@ -96,19 +100,55 @@ export default function AccountHome() {
     toast.success("Sessão de identidade removida neste dispositivo.");
   }
 
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!emailInput.trim() || !emailInput.includes("@")) return;
+    setAuthorizing(true);
+    try {
+      await updateIdentity(emailInput.trim());
+      toast.success("Logado com sucesso!");
+      const redirectTo = params.get("redirect");
+      if (redirectTo) {
+        navigate(redirectTo);
+      }
+    } catch {
+      toast.error("Erro ao realizar login");
+    } finally {
+      setAuthorizing(false);
+    }
+  };
+
   if (!identityEmail) {
     return (
-      <div className="container flex flex-col items-center justify-center space-y-6 px-4 py-10 text-center">
-        <div className="space-y-3">
-          <p className="text-xs uppercase tracking-[0.3em] text-muted-foreground">Minha Conta</p>
-          <h1 className="text-3xl font-semibold">Para acessar sua conta é preciso estar logado</h1>
-          <p className="text-muted-foreground">
-            Faça seu cadastro com e-mail para salvar favoritos, comprar receitas e acessar coleções exclusivas.
-          </p>
+      <div className="container flex min-h-[70vh] items-center justify-center px-4 py-10">
+        <div className="w-full max-w-sm space-y-6">
+          <div className="space-y-2 text-center">
+            <h1 className="text-2xl font-semibold tracking-tight">Entrar ou criar conta</h1>
+            <p className="text-sm text-muted-foreground">
+              Digite seu e-mail para acompanhar favoritos, compras e acesso premium.
+            </p>
+          </div>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="space-y-2 text-left">
+              <input
+                id="email"
+                type="email"
+                placeholder="nome@exemplo.com"
+                value={emailInput}
+                onChange={(e) => setEmailInput(e.target.value)}
+                required
+                autoFocus
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </div>
+            <Button type="submit" className="w-full" disabled={authorizing}>
+              {authorizing ? "Entrando..." : "Continuar com e-mail"}
+            </Button>
+          </form>
+          <div className="text-center text-xs text-muted-foreground">
+            Sua identidade será salva localmente até a conexão final com o provedor.
+          </div>
         </div>
-        <Button onClick={() => void requireIdentity("Informe seu e-mail para liberar o acesso à Minha Conta")}>
-          Cadastrar / Entrar
-        </Button>
       </div>
     );
   }

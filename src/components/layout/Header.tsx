@@ -8,6 +8,8 @@ import { CartButton } from "@/components/cart/CartButton";
 import { buildTenantAdminPath, extractTenantSlugFromPath } from "@/lib/tenant";
 import { InstallAppButton } from "@/pwa/components/InstallAppButton";
 
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
@@ -15,9 +17,8 @@ type BeforeInstallPromptEvent = Event & {
 
 const navLinks = [
   { to: "/", label: "Home" },
-  { to: "/buscar", label: "Buscar", icon: Search },
+  { to: "/buscar", label: "Buscar receitas", icon: Search },
   { to: "/minha-conta", label: "Minha Conta", icon: UserCircle2 },
-  { to: "/minha-conta/favoritos", label: "Favoritos", icon: Heart },
 ];
 
 export default function Header() {
@@ -103,12 +104,12 @@ export default function Header() {
 
           <CartButton />
 
-          <div className="group relative" role="navigation" aria-label="Categorias">
+          <div className="group relative" role="navigation" aria-label="Receitas">
             <button
               className="flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
               aria-haspopup="true"
             >
-              Categorias
+              Receitas
             </button>
             <div className="invisible absolute left-0 top-full pt-1 opacity-0 transition-all group-hover:visible group-hover:opacity-100">
               <div className="w-48 rounded-lg border bg-card p-2 shadow-lg">
@@ -137,75 +138,89 @@ export default function Header() {
         <div className="flex items-center gap-2 lg:hidden">
           <CartButton mobile />
           <ThemeModeToggle compact />
-          <button onClick={() => setOpen(!open)} aria-label="Menu de navegação" aria-expanded={open}>
-            {open ? <X aria-hidden="true" className="h-6 w-6" /> : <Menu aria-hidden="true" className="h-6 w-6" />}
+          <button 
+            onClick={() => setOpen(true)} 
+            aria-label="Abrir menu de navegação" 
+            aria-expanded={open}
+            className="p-1"
+          >
+            <Menu aria-hidden="true" className="h-6 w-6" />
           </button>
         </div>
       </div>
 
-      {open && (
-        <div className="border-t bg-card lg:hidden">
-          <nav className="container flex flex-col gap-4 px-4 py-4 overflow-y-auto">
-            <div className="space-y-1">
-              <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Principal</p>
-              <Link to="/" onClick={() => setOpen(false)} className={`flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium ${isActive("/") ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
-                Home
-              </Link>
-              <Link to="/buscar" onClick={() => setOpen(false)} className={`flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium ${isActive("/buscar") ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
-                <Search aria-hidden="true" className="h-4 w-4" /> Buscar
-              </Link>
-              <p className="px-3 pt-2 text-sm font-medium text-foreground">Categorias</p>
-              {categories.map((cat) => (
-                <Link
-                  key={cat.slug}
-                  to={`/categorias/${cat.slug}`}
-                  onClick={() => setOpen(false)}
-                  className="flex items-center gap-2 rounded-md px-3 pl-6 py-2 text-sm text-muted-foreground hover:text-foreground"
-                >
-                  <span>{cat.name}</span>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="flex h-full max-h-screen w-full flex-col border-none p-0 sm:max-w-full">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Menu de Navegação</DialogTitle>
+            <DialogDescription>Acesse as principais áreas do site e sua conta.</DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex h-14 items-center justify-between border-b px-4">
+            <div className="flex items-center gap-2">
+              <ChefHat className="h-6 w-6 text-primary" />
+              <span className="font-heading text-lg font-bold">{settings.siteName}</span>
+            </div>
+            <button 
+              onClick={() => setOpen(false)}
+              className="rounded-full p-2 hover:bg-muted"
+              aria-label="Fechar menu"
+            >
+              <X className="h-6 w-6" />
+            </button>
+          </div>
+
+          <nav className="flex-1 overflow-y-auto px-4 py-6">
+            <div className="space-y-6">
+              <div className="space-y-1">
+                <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Principal</p>
+                <Link to="/" onClick={() => setOpen(false)} className={`flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium ${isActive("/") ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
+                  Home
                 </Link>
-              ))}
-            </div>
-
-            <div className="border-t" />
-
-            <div className="space-y-1">
-              <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Pessoal</p>
-              <Link to="/minha-conta" onClick={() => setOpen(false)} className={`flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium ${isActive("/minha-conta") ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
-                <UserCircle2 aria-hidden="true" className="h-4 w-4" /> Minha Conta
-              </Link>
-              <Link to="/minha-conta/favoritos" onClick={() => setOpen(false)} className={`flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium ${isActive("/minha-conta/favoritos") ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
-                <Heart aria-hidden="true" className="h-4 w-4" /> Favoritos
-              </Link>
-              <Link to="/minha-conta/lista-de-compras" onClick={() => setOpen(false)} className={`flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium ${isActive("/minha-conta/lista-de-compras") ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
-                <ListChecks aria-hidden="true" className="h-4 w-4" /> Lista de Compras
-              </Link>
-              <Link to="/minha-conta/compras" onClick={() => setOpen(false)} className={`flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium ${isActive("/minha-conta/compras") ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
-                <ShoppingBag aria-hidden="true" className="h-4 w-4" /> Histórico de Compras
-              </Link>
-              <div className="pt-2">
-                <CartButton onClick={() => setOpen(false)} />
+                <Link to="/buscar" onClick={() => setOpen(false)} className={`flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium ${isActive("/buscar") ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
+                  <Search aria-hidden="true" className="h-4 w-4" /> Buscar receitas
+                </Link>
+                <Link to="/buscar" onClick={() => setOpen(false)} className={`flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground`}>
+                  <ChefHat aria-hidden="true" className="h-4 w-4" /> Receitas
+                </Link>
               </div>
-            </div>
 
-            <div className="border-t" />
-
-            <div className="space-y-1">
-              <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Sistema</p>
-              <ThemeModeToggle className="w-full justify-start" onClick={() => setOpen(false)} />
-              <div className="mt-2">
-                <InstallAppButton context="user" className="w-full justify-center" variant="outline" />
+              <div className="space-y-1">
+                <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Pessoal</p>
+                <Link to="/minha-conta" onClick={() => setOpen(false)} className={`flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium ${isActive("/minha-conta") ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
+                  <UserCircle2 aria-hidden="true" className="h-4 w-4" /> Minha Conta
+                </Link>
+                <Link to="/minha-conta/favoritos" onClick={() => setOpen(false)} className={`flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium ${isActive("/minha-conta/favoritos") ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
+                  <Heart aria-hidden="true" className="h-4 w-4" /> Favoritos
+                </Link>
+                <Link to="/minha-conta/lista-de-compras" onClick={() => setOpen(false)} className={`flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium ${isActive("/minha-conta/lista-de-compras") ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
+                  <ListChecks aria-hidden="true" className="h-4 w-4" /> Lista
+                </Link>
+                <Link to="/minha-conta/compras" onClick={() => setOpen(false)} className={`flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium ${isActive("/minha-conta/compras") ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
+                  <ShoppingBag aria-hidden="true" className="h-4 w-4" /> Meus Pedidos
+                </Link>
               </div>
-              <Link to={adminPath} onClick={() => setOpen(false)}>
-                <Button variant="outline" size="sm" className="w-full mt-2 gap-1.5">
-                  <Settings aria-hidden="true" className="h-3.5 w-3.5" />
-                  Admin
-                </Button>
-              </Link>
+
+              <div className="space-y-1">
+                <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Sistema</p>
+                <div className="flex items-center gap-2 px-3 py-2">
+                  <span className="text-sm font-medium text-muted-foreground">Tema:</span>
+                  <ThemeModeToggle compact />
+                </div>
+                <div className="mt-4 px-3">
+                  <InstallAppButton context="user" className="w-full justify-center" variant="outline" />
+                </div>
+                <Link to={adminPath} onClick={() => setOpen(false)} className="block mt-4 px-3">
+                  <Button variant="outline" size="sm" className="w-full gap-1.5">
+                    <Settings aria-hidden="true" className="h-3.5 w-3.5" />
+                    Painel Admin
+                  </Button>
+                </Link>
+              </div>
             </div>
           </nav>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </header>
   );
 }

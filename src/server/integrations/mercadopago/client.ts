@@ -186,3 +186,24 @@ export async function cancelMercadoPagoPayment(
   }
   return (body ?? {}) as MercadoPagoPayment;
 }
+
+export type MercadoPagoPaymentMethod = {
+  id: string;
+  name: string;
+  payment_type_id: string;
+  status: string;
+  thumbnail: string;
+  secure_thumbnail: string;
+  [key: string]: unknown;
+};
+
+export async function mpGetPaymentMethods(accessToken: string): Promise<MercadoPagoPaymentMethod[]> {
+  const response = await mpFetch("https://api.mercadopago.com/v1/payment_methods", {
+    headers: authHeaders(accessToken),
+  });
+  const data = await (response.json() as Promise<any>);
+  if (!response.ok) {
+    throw new MercadoPagoApiError(response.status, `MP get payment methods failed ${response.status}`, data);
+  }
+  return (Array.isArray(data) ? data : []) as MercadoPagoPaymentMethod[];
+}

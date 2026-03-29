@@ -59,6 +59,8 @@ type PaymentOrderRow = {
   payer_email?: string;
   payment_method?: string;
   provider?: string;
+  provider_payment_method_id?: string;
+  provider_payment_type_id?: string;
   recipe_ids_json?: string;
   items_json?: string;
   created_at?: string;
@@ -102,6 +104,8 @@ export interface PaymentRecord {
   payerEmail: string;
   paymentMethod: string;
   provider: string;
+  providerPaymentMethodId?: string | null;
+  providerPaymentTypeId?: string | null;
   recipeIds: string[];
   items: PaymentItem[];
   createdAt: string;
@@ -253,12 +257,15 @@ export async function updatePaymentOrderStatus(
   id: string | number,
   status: string,
   mpPaymentId?: string,
+  mpDetails?: { methodId?: string; typeId?: string },
 ): Promise<void> {
   const payload: Record<string, unknown> = {
     status,
     updated_at: new Date().toISOString(),
   };
   if (mpPaymentId) payload.mp_payment_id = mpPaymentId;
+  if (mpDetails?.methodId) payload.provider_payment_method_id = mpDetails.methodId;
+  if (mpDetails?.typeId) payload.provider_payment_type_id = mpDetails.typeId;
 
   await paymentOrdersFetch(`/api/database/rows/table/${baserowTables.paymentOrders}/${id}/?user_field_names=true`, {
     method: "PATCH",
@@ -456,6 +463,8 @@ function mapRowToPayment(row: PaymentOrderRow): PaymentRecord {
     payerEmail: (row.payer_email || "").trim().toLowerCase(),
     paymentMethod: row.payment_method || "",
     provider: row.provider || "mercadopago",
+    providerPaymentMethodId: row.provider_payment_method_id || null,
+    providerPaymentTypeId: row.provider_payment_type_id || null,
     recipeIds: parseJsonArray(row.recipe_ids_json).map((value) => String(value)),
     items: parseJsonArray(row.items_json) as PaymentItem[],
     createdAt: row.created_at || "",

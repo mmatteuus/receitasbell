@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { Trash2, ShoppingCart, CheckCircle2, Circle, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,26 +20,29 @@ export default function ShoppingListPage() {
   const { requireIdentity, identityEmail } = useAppContext();
 
   useEffect(() => {
+    let isMounted = true;
     async function loadItems() {
-      const email = await requireIdentity("Digite seu e-mail para acessar sua lista de compras.");
-      if (!email) {
-        setItems([]);
-        setLoading(false);
-        return;
-      }
+      if (!identityEmail) return;
 
+      setLoading(true);
       try {
-        setItems(await listShoppingList());
+        const result = await listShoppingList();
+        if (isMounted) setItems(result);
       } catch (error) {
         console.error("Failed to load shopping list", error);
-        toast.error("Nao foi possivel carregar a lista de compras.");
+        toast.error("Não foi possível carregar a lista de compras.");
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     }
 
     void loadItems();
-  }, [requireIdentity]);
+    return () => { isMounted = false; };
+  }, [identityEmail]);
+
+  if (!identityEmail) {
+    return <Navigate to="/minha-conta?redirect=/minha-conta/lista-de-compras" replace />;
+  }
 
   const toggleItem = async (item: ShoppingListItem) => {
     try {

@@ -86,7 +86,7 @@ export function Footer() {
                 rel="noopener noreferrer"
                 className="font-medium text-primary hover:underline"
               >
-                MtsFerreira
+                MTSFerreira
               </a>
             </span>
           </p>

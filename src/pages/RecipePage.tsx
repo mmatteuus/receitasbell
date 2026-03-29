@@ -150,6 +150,7 @@ export default function RecipePage() {
   const instructions = recipe.fullInstructions;
 
   async function handleFavorite() {
+    if (!recipe) return;
     await toggleFavorite(recipe.id);
   }
 
@@ -159,6 +160,8 @@ export default function RecipePage() {
   async function handleRate(value: number) {
     const email = await requireIdentity("Digite seu e-mail para avaliar esta receita.");
     if (!email) return;
+
+    if (!recipe) return;
 
     try {
       const summary = await submitRating({ recipeId: recipe.id, value });
@@ -175,10 +178,16 @@ export default function RecipePage() {
   }
 
   async function handleExportPdf() {
+    if (!recipe) return;
+
     const { exportRecipeToPDF } = await import("@/lib/recipes/export");
     const opened = exportRecipeToPDF({
-      recipe,
-      ingredients: ingredients.map((ingredient) => scaleIngredient(ingredient, baseServings, currentServings)),
+      recipe: {
+        ...recipe,
+        totalTime: recipe.totalTime ?? undefined,
+        servings: currentServings ?? undefined,
+      },
+      ingredients: ingredients.map((ingredient) => scaleIngredient(ingredient, baseServings, currentServings ?? undefined)),
       instructions,
     });
 
@@ -266,7 +275,7 @@ export default function RecipePage() {
       )}
 
       <div className="mt-4 flex flex-wrap gap-2 sm:mt-6 sm:gap-3 print:mt-4">
-        {recipe.totalTime > 0 && (
+        {(recipe?.totalTime ?? 0) > 0 && (
           <div className="flex items-center gap-1.5 rounded-lg border bg-card px-2.5 py-1.5 text-sm">
             <Clock aria-hidden="true" className="h-4 w-4 text-primary" />
             <span className="font-medium text-muted-foreground">{recipe.totalTime}m</span>

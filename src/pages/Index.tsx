@@ -100,6 +100,7 @@ export default function HomePage() {
           });
           navigate(`/receitas/${recipe.slug}`);
         }}
+        onViewRelated={() => navigate("/buscar")}
       />
     ),
     premium: settings.showPremiumSection && premiumRecipes.length > 0 && (

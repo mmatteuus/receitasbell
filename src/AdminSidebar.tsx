@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { logoutAdmin } from "@/lib/api/adminSession";
 import { buildTenantAdminPath, extractTenantSlugFromPath } from "@/lib/tenant";
 import { trackEvent } from "@/lib/telemetry";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SidebarContext, useAdminSidebar } from "@/hooks/use-admin-sidebar";
 
 export function AdminSidebarProvider({ children }: { children: ReactNode }) {
@@ -70,7 +71,15 @@ function SidebarNav({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?
       <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
         {sidebarItems.map((item) => {
           const href = buildTenantAdminPath(item.path, tenantSlug);
-          const isActive = location.pathname.startsWith(href);
+          
+          // Lógica de ativação:
+          // 1. Dashboard deve ser exata se for o index técnico da rdb_admin
+          // 2. Outras rotas verificam se começam com o href, mas se houver uma rota mais profunda, a mais profunda ganha?
+          // Simplificação: se for Dashboard ou Configurações base, exata. Se for subcaminhos de configuração etc.
+          // Para esta task: Financeiro, Dashboard e Configurações são irmãos.
+          const isActive = item.path === "dashboard" 
+            ? location.pathname.endsWith("/dashboard") || location.pathname.endsWith("/admin") || location.pathname.endsWith("/admin/")
+            : location.pathname.includes(href);
 
           return (
             <Link
@@ -169,22 +178,15 @@ export function AdminMobileSidebar() {
   const { mobileOpen, setMobileOpen } = useAdminSidebar();
 
   return (
-    <>
-      {/* Backdrop */}
-      {mobileOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 md:hidden"
-          onClick={() => setMobileOpen(false)}
-        />
-      )}
-
-      {/* Drawer */}
-      <aside
-        className={cn(
-          "fixed inset-y-0 left-0 z-50 w-64 flex flex-col bg-card border-r transition-transform duration-300 md:hidden",
-          mobileOpen ? "translate-x-0" : "-translate-x-full invisible pointer-events-none"
-        )}
+    <Dialog open={mobileOpen} onOpenChange={setMobileOpen}>
+      <DialogContent 
+        className="fixed inset-y-0 left-0 z-50 flex h-full w-64 translate-x-0 flex-col border-r bg-card p-0 transition-transform duration-300 data-[state=closed]:-translate-x-full data-[state=open]:translate-x-0 sm:max-w-none"
       >
+        <DialogHeader className="sr-only">
+          <DialogTitle>Menu Administrativo</DialogTitle>
+          <DialogDescription>Acesse as ferramentas de gestão do site.</DialogDescription>
+        </DialogHeader>
+
         <div className="flex items-center gap-2 border-b p-4">
           <span className="bg-primary text-primary-foreground rounded-md p-1 text-xs font-bold">RB</span>
           <h2 className="text-xl font-bold text-primary">Admin</h2>
@@ -198,8 +200,8 @@ export function AdminMobileSidebar() {
         </div>
 
         <SidebarNav collapsed={false} onNavigate={() => setMobileOpen(false)} />
-      </aside>
-    </>
+      </DialogContent>
+    </Dialog>
   );
 }
 

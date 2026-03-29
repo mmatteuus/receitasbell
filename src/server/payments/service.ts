@@ -261,6 +261,16 @@ export async function createCheckout(tenantId: string | number, input: {
     notification_url: (input.enableNotifications ?? true)
       ? `${input.baseUrl}/api/checkout/webhook?paymentId=${payment.id}`
       : undefined,
+    payment_methods: {
+      excluded_payment_methods: [
+        { id: "bolbradesco" },
+        { id: "pec" }
+      ],
+      excluded_payment_types: [
+        { id: "ticket" }
+      ],
+      installments: 12
+    },
     idempotencyKey: input.checkoutReference,
   };
 
@@ -560,8 +570,14 @@ export async function createMockCheckout(tenantId: string | number, input: {
   };
 }
 
-export async function syncPayment(tenantId: string | number, paymentId: string | number, status: string, providerPaymentId?: string) {
-    logger.info("Syncing payment status", { tenantId, paymentId, nextStatus: status, providerPaymentId });
+export async function syncPayment(
+  tenantId: string | number,
+  paymentId: string | number,
+  status: string,
+  providerPaymentId?: string,
+  mpDetails?: { methodId?: string; typeId?: string }
+) {
+    logger.info("Syncing payment status", { tenantId, paymentId, nextStatus: status, providerPaymentId, mpDetails });
     const payment = await getPaymentOrderById(tenantId, paymentId);
     if (!payment) throw new ApiError(404, `Order ${paymentId} not found`);
 
@@ -573,7 +589,7 @@ export async function syncPayment(tenantId: string | number, paymentId: string |
         return;
     }
 
-    await updatePaymentOrderStatus(String(tenantId), paymentId, nextStatus, providerPaymentId);
+    await updatePaymentOrderStatus(String(tenantId), paymentId, nextStatus, providerPaymentId, mpDetails);
     
     // T7: Entitlement Grant
     if (nextStatus === 'approved') {
