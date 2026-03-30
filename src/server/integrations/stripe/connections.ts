@@ -78,7 +78,7 @@ function isMissingTableError(error: unknown) {
   return (body as { error?: unknown }).error === "ERROR_TABLE_DOES_NOT_EXIST";
 }
 
-async function queryConnections(tenantId: string | number): Promise<StripeConnectionRow[]> {
+async function queryConnections(tenantId: string): Promise<StripeConnectionRow[]> {
   const tableId = requireTableId();
   const tenantRecord = await getTenantById(tenantId).catch(() => null);
   const keys = new Set([String(tenantId)]);
@@ -109,7 +109,7 @@ function getActiveRow(rows: StripeConnectionRow[]): StripeConnectionRow | null {
   );
 }
 
-async function markExistingAsDisconnected(tenantId: string | number): Promise<string[]> {
+async function markExistingAsDisconnected(tenantId: string): Promise<string[]> {
   const tableId = requireTableId();
   const rows = await queryConnections(tenantId);
   const active = rows.filter((r) => { const s = normalizeStatus(r.status); return s === "connected" || s === "reconnect_required"; });
@@ -124,7 +124,7 @@ async function markExistingAsDisconnected(tenantId: string | number): Promise<st
   return active.map((r) => String(r.id));
 }
 
-export async function getTenantStripeConnection(tenantId: string | number): Promise<TenantStripeConnection | null> {
+export async function getTenantStripeConnection(tenantId: string): Promise<TenantStripeConnection | null> {
   const rows = await queryConnections(tenantId);
   const active = getActiveRow(rows);
   if (active) return mapRow(active);
@@ -132,7 +132,7 @@ export async function getTenantStripeConnection(tenantId: string | number): Prom
   return latest ? mapRow(latest) : null;
 }
 
-export async function requireTenantStripeConnection(tenantId: string | number) {
+export async function requireTenantStripeConnection(tenantId: string) {
   const c = await getTenantStripeConnection(tenantId);
   if (!c) throw new ApiError(409, "Conecte uma conta Stripe antes de ativar pagamentos.");
   return c;
@@ -143,7 +143,7 @@ export function readStripeConnectionSecrets(connection: TenantStripeConnection) 
 }
 
 export async function upsertTenantStripeConnection(input: {
-  tenantId: string | number;
+  tenantId: string;
   stripeAccountId: string;
   accessToken: string;
   scope?: string | null;
@@ -185,7 +185,7 @@ export async function upsertTenantStripeConnection(input: {
 }
 
 export async function disconnectTenantStripeConnection(input: {
-  tenantId: string | number;
+  tenantId: string;
   actorUserId?: string | null;
 }): Promise<boolean> {
   const tableId = requireTableId();
@@ -211,7 +211,7 @@ export async function disconnectTenantStripeConnection(input: {
 }
 
 export async function markStripeConnectionReconnectRequired(input: {
-  tenantId: string | number;
+  tenantId: string;
   reason?: string | null;
 }): Promise<boolean> {
   const tableId = requireTableId();

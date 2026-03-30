@@ -8,6 +8,8 @@ export interface UserRecord {
   role: string;
   status: "active" | "inactive";
   tenantId: string;
+  passwordHash?: string;
+  legacyPassword?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -21,9 +23,36 @@ function mapProfileToRecord(row: any): UserRecord {
     role: row.role || "member",
     status: row.is_active ? "active" : "inactive",
     tenantId: row.organization_id || "",
+    passwordHash: row.password_hash || "",
+    legacyPassword: row.legacy_password || "",
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+}
+
+export async function createUser(input: {
+  tenantId: string;
+  email: string;
+  displayName?: string;
+  role?: string;
+  status?: "active" | "inactive";
+  passwordHash?: string; // Nota: Para Supabase Auth, isso seria tratado via API de Admin
+}): Promise<UserRecord> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .insert({
+      email: input.email.toLowerCase(),
+      organization_id: input.tenantId,
+      display_name: input.displayName || input.email.split('@')[0],
+      username: input.email.split('@')[0],
+      role: input.role || 'member',
+      is_active: input.status !== 'inactive',
+    })
+    .select()
+    .single();
+
+  if (error || !data) throw error;
+  return mapProfileToRecord(data);
 }
 
 export async function findUserByEmailForTenant(
@@ -78,6 +107,26 @@ export async function updateUserProfile(userId: string, updates: Partial<UserRec
       updated_at: new Date().toISOString(),
     })
     .eq('id', userId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return mapProfileToRecord(data);
+}
+
+export async function updateUserPasswordCredentials(input: {
+  userId: string;
+  passwordHash: string;
+  legacyPassword?: string;
+}) {
+  const { data, error } = await supabase
+    .from('profiles')
+    .update({
+      password_hash: input.passwordHash,
+      legacy_password: input.legacyPassword || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', input.userId)
     .select()
     .single();
 

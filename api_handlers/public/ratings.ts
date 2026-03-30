@@ -24,11 +24,13 @@ export default async function handler(request: VercelRequest, response: VercelRe
     const body = ratingSchema.parse(request.body);
     const identity = await resolveOptionalIdentityUser(request);
     
-    const summary = await upsertRating(tenant.id, {
+    const userId = String(identity.user?.id || '');
+    if (!userId) throw new ApiError(401, "Authentication required to rate recipes");
+
+    const summary = await upsertRating(String(tenant.id), {
       recipeId: body.recipeId,
       value: body.value,
-      userId: identity.user?.id ? String(identity.user.id) : undefined,
-      authorEmail: identity.email || '',
+      userId,
     });
     
     return json(response, 200, { ...summary, requestId });

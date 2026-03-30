@@ -142,7 +142,7 @@ export async function loginAdmin(
   }
 
   const user = await findUserByEmailForTenant(
-    { id: tenant.id, slug: tenant.slug, name: tenant.name },
+    { id: String(tenant.id), slug: tenant.slug, name: tenant.name },
     email,
   );
   if (!user || !hasAdminRole(user.role)) {

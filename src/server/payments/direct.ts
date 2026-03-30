@@ -157,7 +157,7 @@ function buildDirectPaymentDescription(items: ResolvedOrderDraft["items"]) {
   return `${items[0].title} e mais ${items.length - 1} receita${items.length > 2 ? "s" : ""}`;
 }
 
-function buildNotificationUrl(baseUrl: string, tenantId: string | number, paymentOrderId: string | number) {
+function buildNotificationUrl(baseUrl: string, tenantId: string, paymentOrderId: string) {
   const url = new URL("/api/checkout/webhook", baseUrl);
   url.searchParams.set("paymentId", String(paymentOrderId));
   url.searchParams.set("tenantId", String(tenantId));
@@ -188,7 +188,7 @@ function readPixTransactionData(payment: MercadoPagoPayment | null | undefined):
 }
 
 async function withMercadoPagoAccess<T>(
-  tenantId: string | number,
+  tenantId: string,
   operation: (input: { accessToken: string; connectionId: string }) => Promise<T>,
 ): Promise<T> {
   const firstAttempt = await getUsableMercadoPagoAccessToken(String(tenantId));
@@ -246,7 +246,7 @@ async function withMercadoPagoAccess<T>(
 }
 
 async function resolveOrderDraft(
-  tenantId: string | number,
+  tenantId: string,
   recipeIds: string[],
 ): Promise<ResolvedOrderDraft> {
   const items: ResolvedOrderDraft["items"] = [];
@@ -279,7 +279,7 @@ async function resolveOrderDraft(
 }
 
 async function ensureDirectPaymentOrder(input: {
-  tenantId: string | number;
+  tenantId: string;
   method: StoredDirectPaymentMethod;
   recipeIds: string[];
   buyerEmail: string;
@@ -333,8 +333,8 @@ async function ensureDirectPaymentOrder(input: {
 }
 
 async function syncAndReloadOrder(
-  tenantId: string | number,
-  paymentOrderId: string | number,
+  tenantId: string,
+  paymentOrderId: string,
   providerStatus: string,
   providerPaymentId?: string,
   mpDetails?: { methodId?: string; typeId?: string },
@@ -392,7 +392,7 @@ function buildPayer(input: {
   };
 }
 
-async function getCurrentProviderPayment(tenantId: string | number, order: PaymentRecord) {
+async function getCurrentProviderPayment(tenantId: string, order: PaymentRecord) {
   if (!order.mpPaymentId) {
     return null;
   }
@@ -417,7 +417,7 @@ async function getCurrentProviderPayment(tenantId: string | number, order: Payme
   return payment;
 }
 
-export async function getCheckoutPaymentConfig(tenantId: string | number): Promise<CheckoutPaymentConfig> {
+export async function getCheckoutPaymentConfig(tenantId: string): Promise<CheckoutPaymentConfig> {
   const [settings, connection] = await Promise.all([
     getSettingsMap(tenantId).then(mapTypedSettings),
     getTenantMercadoPagoConnection(tenantId),
@@ -453,7 +453,7 @@ export async function getCheckoutPaymentConfig(tenantId: string | number): Promi
 }
 
 export async function createPixPayment(
-  tenantId: string | number,
+  tenantId: string,
   input: CreatePixPaymentInput & { baseUrl: string },
 ): Promise<DirectPaymentResult> {
   const { order, draft } = await ensureDirectPaymentOrder({
@@ -511,7 +511,7 @@ export async function createPixPayment(
 }
 
 export async function createCardPayment(
-  tenantId: string | number,
+  tenantId: string,
   input: CreateCardPaymentInput & { baseUrl: string },
 ): Promise<DirectPaymentResult> {
   const { order, draft } = await ensureDirectPaymentOrder({
@@ -572,8 +572,8 @@ export async function createCardPayment(
 }
 
 export async function getDirectPaymentStatus(
-  tenantId: string | number,
-  paymentOrderId: string | number,
+  tenantId: string,
+  paymentOrderId: string,
 ): Promise<DirectPaymentResult> {
   const order = await getPaymentOrderById(tenantId, paymentOrderId);
   if (!order) {
@@ -592,8 +592,8 @@ export async function getDirectPaymentStatus(
 }
 
 export async function cancelDirectPayment(
-  tenantId: string | number,
-  paymentOrderId: string | number,
+  tenantId: string,
+  paymentOrderId: string,
 ): Promise<DirectPaymentResult> {
   const order = await getPaymentOrderById(tenantId, paymentOrderId);
   if (!order) {

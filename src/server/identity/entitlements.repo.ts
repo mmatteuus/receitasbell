@@ -12,9 +12,9 @@ type EntitlementRow = {
 };
 
 export interface Entitlement {
-  id: string | number;
-  tenantId: string | number;
-  paymentId: string | number;
+  id: string;
+  tenantId: string;
+  paymentId: string;
   payerEmail: string;
   recipeSlug: string;
   accessStatus: string;
@@ -22,7 +22,7 @@ export interface Entitlement {
   updatedAt: string;
 }
 
-export async function listEntitlementsByEmail(tenantId: string | number, email: string): Promise<Entitlement[]> {
+export async function listEntitlementsByEmail(tenantId: string, email: string): Promise<Entitlement[]> {
   const { data, error } = await supabaseAdmin
     .from("recipe_purchases")
     .select("*")
@@ -33,8 +33,8 @@ export async function listEntitlementsByEmail(tenantId: string | number, email: 
   return (data || []).map(mapRowToEntitlement);
 }
 
-export async function createEntitlement(tenantId: string | number, input: {
-  paymentId: string | number;
+export async function createEntitlement(tenantId: string, input: {
+  paymentId: string;
   payerEmail: string;
   recipeSlug: string;
   accessStatus?: string;
@@ -55,7 +55,7 @@ export async function createEntitlement(tenantId: string | number, input: {
   return mapRowToEntitlement(data);
 }
 
-export async function revokeEntitlement(tenantId: string | number, paymentId: string | number, recipeSlug?: string): Promise<void> {
+export async function revokeEntitlement(tenantId: string, paymentId: string, recipeSlug?: string): Promise<void> {
   let query = supabaseAdmin
     .from("recipe_purchases")
     .delete()

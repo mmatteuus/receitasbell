@@ -74,8 +74,8 @@ function resolveCheckoutUrl(input: {
 }
 
 async function logCheckoutAuditEvent(input: {
-  tenantId: string | number;
-  paymentOrderId: string | number;
+  tenantId: string;
+  paymentOrderId: string;
   action: "checkout.preference_created" | "checkout.preference_failed";
   connectionId: string | null;
   payload?: Record<string, unknown>;
@@ -146,12 +146,12 @@ function isTerminalPaymentStatus(status: string) {
   return TERMINAL_PAYMENT_STATUSES.has(String(status).toLowerCase());
 }
 
-export async function createCheckout(tenantId: string | number, input: {
+export async function createCheckout(tenantId: string, input: {
   recipeIds: string[];
   buyerEmail: string;
   checkoutReference: string;
   baseUrl: string;
-  userId?: string | number | null;
+  userId?: string | null;
   enableNotifications?: boolean;
 }) {
   const buyerEmail = input.buyerEmail.trim().toLowerCase();
@@ -162,8 +162,7 @@ export async function createCheckout(tenantId: string | number, input: {
     const recipe = await getRecipeById(tenantId, recipeId);
     if (!recipe) throw new ApiError(404, `Recipe ${recipeId} not found`);
     items.push({
-      recipeId: recipe.id,
-      recipeSlug: recipe.slug,
+      recipeId: String(recipe.id),
       slug: recipe.slug,
       title: recipe.title,
       imageUrl: recipe.imageUrl || null,
@@ -202,7 +201,6 @@ export async function createCheckout(tenantId: string | number, input: {
     });
   }
 
-  // T2/T3: Create Internal Order FIRST
   const payment = existingOrder || await createPaymentOrder(String(tenantId), {
     amount: totalAmount,
     status: 'created',
@@ -228,9 +226,9 @@ export async function createCheckout(tenantId: string | number, input: {
     });
 
     return {
-      paymentOrderId: existingOrder.id,
-      paymentId: String(existingOrder.id),
-      paymentIds: [String(existingOrder.id)],
+      paymentOrderId: payment.id,
+      paymentId: String(payment.id),
+      paymentIds: [String(payment.id)],
       checkoutUrl: null,
       checkoutUrlKind: null,
       paymentMode,
@@ -245,7 +243,7 @@ export async function createCheckout(tenantId: string | number, input: {
   await setPaymentOrderExternalReference(String(tenantId), payment.id, sellerExternalReference);
   const preferencePayload = {
     items: items.map((it) => ({
-      id: it.recipeId,
+      id: String(it.recipeId),
       title: it.title,
       unit_price: it.priceBRL,
       quantity: 1,
@@ -470,8 +468,7 @@ export async function createCheckout(tenantId: string | number, input: {
     await setPaymentOrderPreferenceId(String(tenantId), payment.id, String(mpPref.id));
   }
 
-  // Only mark the order as pending once the active runtime mode has a usable launch URL.
-  await updatePaymentOrderStatus(String(tenantId), payment.id, 'pending', undefined);
+  await updatePaymentOrderStatus(String(tenantId), String(payment.id), 'pending', undefined);
   await logCheckoutAuditEvent({
     tenantId,
     paymentOrderId: payment.id,
@@ -511,7 +508,7 @@ export async function createCheckout(tenantId: string | number, input: {
   };
 }
 
-export async function createMockCheckout(tenantId: string | number, input: {
+export async function createMockCheckout(tenantId: string, input: {
   recipeIds: string[];
   buyerEmail: string;
   checkoutReference: string;
@@ -524,8 +521,7 @@ export async function createMockCheckout(tenantId: string | number, input: {
     const recipe = await getRecipeById(tenantId, recipeId);
     if (!recipe) throw new ApiError(404, `Recipe ${recipeId} not found`);
     items.push({
-      recipeId: recipe.id,
-      recipeSlug: recipe.slug,
+      recipeId: String(recipe.id),
       slug: recipe.slug,
       title: recipe.title,
       imageUrl: recipe.imageUrl || null,
@@ -548,7 +544,7 @@ export async function createMockCheckout(tenantId: string | number, input: {
 
   // Grant access immediately for mock
   for (const rid of input.recipeIds) {
-    await createEntitlement(tenantId, {
+    await createEntitlement(String(tenantId), {
       paymentId: String(payment.id),
       payerEmail: buyerEmail,
       recipeSlug: rid,
@@ -571,8 +567,8 @@ export async function createMockCheckout(tenantId: string | number, input: {
 }
 
 export async function syncPayment(
-  tenantId: string | number,
-  paymentId: string | number,
+  tenantId: string,
+  paymentId: string,
   status: string,
   providerPaymentId?: string,
   mpDetails?: { methodId?: string; typeId?: string }
@@ -596,7 +592,7 @@ export async function syncPayment(
         const current = await getPaymentOrderById(tenantId, paymentId);
         if (current && Array.isArray(current.items)) {
             for (const item of current.items) {
-                const slug = item.recipeSlug || item.recipeId; // Fallback to ID if slug missing
+                const slug = item.slug || item.recipeId; // Fallback to ID if slug missing
                 if (slug) {
                     await createEntitlement(tenantId, {
                         paymentId: String(paymentId),

@@ -17,7 +17,7 @@ export default async function handler(request: VercelRequest, response: VercelRe
     if (method === 'GET') {
       const recipeId = url.searchParams.get('recipeId');
       if (!recipeId) throw new ApiError(400, 'Missing recipeId');
-      const items = await listCommentsByRecipeId(tenant.id, recipeId);
+      const items = await listCommentsByRecipeId(String(tenant.id), recipeId);
       return json(response, 200, { items, requestId });
     }
 
@@ -27,12 +27,10 @@ export default async function handler(request: VercelRequest, response: VercelRe
     if (method === 'POST') {
       const body = commentSchema.parse(request.body);
       const identity = await requireIdentityUser(request);
-      const comment = await createComment(tenant.id, {
+      const comment = await createComment(String(tenant.id), {
         recipeId: String(body.recipeId),
-        authorName: identity.user?.email || 'Anonymous', // Use session email
-        authorEmail: identity.email,
         userId: String(identity.user?.id || ''),
-        text: body.text,
+        content: body.text,
       });
       return json(response, 201, { item: comment, requestId });
     }

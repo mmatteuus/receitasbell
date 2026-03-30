@@ -73,7 +73,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     for (const order of allOrders) {
       const extRef = String(order.external_reference || "");
       const tenantId = String(order.tenant_id);
-      const fallbackExtRef = buildPaymentExternalReference(tenantId, order.id);
+      const fallbackExtRef = buildPaymentExternalReference(tenantId, String(order.id));
       const referencesToTry = extRef && extRef !== fallbackExtRef
         ? [extRef, fallbackExtRef]
         : [fallbackExtRef];
@@ -167,11 +167,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
 
         if (matchedReference && matchedReference !== extRef) {
-          await setPaymentOrderExternalReference(tenantId, order.id, matchedReference);
+          await setPaymentOrderExternalReference(tenantId, String(order.id), matchedReference);
         }
 
         if (latest && latest.status !== order.status) {
-          await syncPayment(tenantId, order.id, String(latest.status), String(latest.id));
+          await syncPayment(tenantId, String(order.id), String(latest.status), String(latest.id));
           await logReconcileAuditEvent({
             tenantId,
             action: "webhook.payment_synced",

@@ -11,7 +11,7 @@ export async function findTenantBySlug(slug: string) {
   return getTenantBySlug(slug);
 }
 
-export async function findTenantById(id: string | number) {
+export async function findTenantById(id: string) {
   return getTenantById(id);
 }
 

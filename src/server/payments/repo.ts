@@ -34,7 +34,7 @@ export type PaymentListFilters = {
 };
 
 export interface PaymentRecord {
-  id: string | number;
+  id: string;
   tenantId: string;
   userId?: string | null;
   amount: number;
@@ -103,8 +103,8 @@ export async function createPaymentOrder(
 }
 
 export async function getPaymentOrderById(
-  tenantId: string | number,
-  id: string | number,
+  tenantId: string,
+  id: string,
 ): Promise<PaymentRecord | null> {
   const { data, error } = await supabaseAdmin
     .from("payment_orders")
@@ -149,7 +149,7 @@ export async function findPaymentOrderByIdempotencyKey(
 
 export async function updatePaymentOrderStatus(
   tenantId: string,
-  id: string | number,
+  id: string,
   status: string,
   mpPaymentId?: string,
   mpDetails?: { methodId?: string; typeId?: string },
@@ -196,7 +196,7 @@ export async function setPaymentOrderPreferenceId(
 }
 
 export async function listPayments(
-  tenantId: string | number,
+  tenantId: string,
   filters: PaymentListFilters = {},
 ): Promise<AdminPayment[]> {
   let query = supabaseAdmin
@@ -225,8 +225,8 @@ export async function listPayments(
 }
 
 export async function getPaymentById(
-  tenantId: string | number,
-  id: string | number,
+  tenantId: string,
+  id: string,
 ): Promise<AdminPayment | null> {
   const order = await getPaymentOrderById(tenantId, id);
   if (!order) return null;
@@ -235,8 +235,8 @@ export async function getPaymentById(
 }
 
 export async function getPaymentDetailById(
-  tenantId: string | number,
-  id: string | number,
+  tenantId: string,
+  id: string,
 ): Promise<PaymentDetailRecord | null> {
   const order = await getPaymentOrderById(tenantId, id);
   if (!order) return null;
@@ -264,8 +264,8 @@ export async function getPaymentDetailById(
 }
 
 async function listPaymentNotes(
-  tenantId: string | number,
-  paymentId: string | number,
+  tenantId: string,
+  paymentId: string,
 ): Promise<PaymentNote[]> {
   const { data, error } = await supabaseAdmin
     .from("audit_logs")
@@ -287,8 +287,42 @@ async function listPaymentNotes(
   }));
 }
 
+export async function createPaymentNote(input: {
+  tenantId: string;
+  paymentId: string;
+  note: string;
+  actorType: string;
+  actorId: string;
+  ip?: string;
+  userAgent?: string;
+}): Promise<PaymentNote> {
+  const { data, error } = await supabaseAdmin
+    .from("audit_logs")
+    .insert({
+      tenant_id: input.tenantId,
+      actor_type: input.actorType,
+      actor_id: input.actorId,
+      action: "payment.note_added",
+      resource_type: "payment_order",
+      resource_id: String(input.paymentId),
+      payload: { note: input.note, ip: input.ip, user_agent: input.userAgent },
+    })
+    .select()
+    .single();
+
+  if (error || !data) throw error;
+  return {
+    id: String(data.id),
+    payment_id: String(input.paymentId),
+    note: (data.payload as any)?.note || "",
+    created_by_user_id: String(data.actor_id),
+    created_at: data.created_at,
+    updated_at: data.created_at,
+  };
+}
+
 async function buildRecipeIndex(
-  tenantId: string | number,
+  tenantId: string,
   payments: PaymentRecord[],
 ): Promise<Map<string, RecipeRecord>> {
   const uniqueRecipeIds = new Set<string>();
