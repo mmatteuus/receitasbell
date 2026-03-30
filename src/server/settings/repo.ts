@@ -4,14 +4,7 @@ import {
   DEFAULT_SITE_SETTINGS,
 } from "../../lib/defaults.js";
 import type { FeaturedMode, HomeSectionId, SettingsMap } from "../../types/settings.js";
-import { fetchBaserow, BASEROW_TABLES } from "../integrations/baserow/client.js";
-
-type SettingsRow = {
-  id?: string | number;
-  key?: string;
-  value?: string;
-  tenantId?: string | number;
-};
+import { supabase, supabaseAdmin } from "../integrations/supabase/client.js";
 
 const HOME_SECTION_IDS: HomeSectionId[] = [
   "hero",
@@ -45,17 +38,18 @@ function defaultSettingsMap(): Record<string, string> {
 }
 
 export async function getSettingsMap(tenantId: string | number) {
-  const data = await fetchBaserow<{ results: SettingsRow[] }>(
-    `/api/database/rows/table/${BASEROW_TABLES.SETTINGS}/?user_field_names=true&filter__tenantId__equal=${tenantId}`
-  );
+  const { data, error } = await supabaseAdmin
+    .from("settings")
+    .select("key, value")
+    .eq("tenant_id", tenantId);
   
   const defaults = defaultSettingsMap();
   
-  if (!data.results.length) {
+  if (error || !data || data.length === 0) {
     return defaults;
   }
 
-  return data.results.reduce<Record<string, string>>((acc, row) => {
+  return data.reduce<Record<string, string>>((acc, row) => {
     if (!row.key) return acc;
     acc[row.key] = row.value ?? "";
     return acc;
@@ -63,29 +57,17 @@ export async function getSettingsMap(tenantId: string | number) {
 }
 
 export async function updateSettings(tenantId: string | number, settings: Record<string, unknown>) {
-  const currentRows = await fetchBaserow<{ results: SettingsRow[] }>(
-    `/api/database/rows/table/${BASEROW_TABLES.SETTINGS}/?user_field_names=true&filter__tenantId__equal=${tenantId}`
-  );
-  
-  const currentMap = currentRows.results.reduce<Record<string, SettingsRow>>((acc, row) => {
-    if (!row.key) return acc;
-    acc[row.key] = row;
-    return acc;
-  }, {});
-
   for (const [key, value] of Object.entries(settings)) {
-    const existingRow = currentMap[key];
-    if (existingRow) {
-      await fetchBaserow(`/api/database/rows/table/${BASEROW_TABLES.SETTINGS}/${existingRow.id}/?user_field_names=true`, {
-        method: "PATCH",
-        body: JSON.stringify({ value: String(value) }),
-      });
-    } else {
-      await fetchBaserow(`/api/database/rows/table/${BASEROW_TABLES.SETTINGS}/?user_field_names=true`, {
-        method: "POST",
-        body: JSON.stringify({ key, value: String(value), tenantId: String(tenantId) }),
-      });
-    }
+    const { error } = await supabaseAdmin
+      .from("settings")
+      .upsert({
+          tenant_id: tenantId,
+          key,
+          value: String(value),
+          updated_at: new Date().toISOString()
+      }, { onConflict: "tenant_id, key" });
+    
+    if (error) throw error;
   }
 
   return getSettingsMap(tenantId);
@@ -114,7 +96,7 @@ function parseStringArraySetting(value: string | undefined, fallback: string[]) 
         .filter(Boolean);
     }
   } catch {
-    // Legacy rows may still use comma-separated strings.
+    // Legacy comma-separated fallback
   }
 
   return value

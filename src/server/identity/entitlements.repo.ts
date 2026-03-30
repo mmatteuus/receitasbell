@@ -1,15 +1,14 @@
-import { fetchBaserow } from "../integrations/baserow/client.js";
-import { BASEROW_TABLES } from "../integrations/baserow/tables.js";
+import { supabase, supabaseAdmin } from "../integrations/supabase/client.js";
 
 type EntitlementRow = {
-  id?: string | number;
-  tenantId?: string | number;
-  paymentId?: string | number;
-  payerEmail?: string;
-  recipeSlug?: string;
-  accessStatus?: string;
-  created_at?: string;
-  updated_at?: string;
+  id: string;
+  tenant_id: string;
+  payment_id: string;
+  payer_email: string;
+  recipe_slug: string;
+  access_status: string;
+  created_at: string;
+  updated_at: string;
 };
 
 export interface Entitlement {
@@ -24,10 +23,14 @@ export interface Entitlement {
 }
 
 export async function listEntitlementsByEmail(tenantId: string | number, email: string): Promise<Entitlement[]> {
-  const data = await fetchBaserow<{ results: EntitlementRow[] }>(
-    `/api/database/rows/table/${BASEROW_TABLES.ENTITLEMENTS}/?user_field_names=true&filter__payerEmail__equal=${encodeURIComponent(email)}&filter__tenantId__equal=${tenantId}`
-  );
-  return data.results.map(row => mapRowToEntitlement(row));
+  const { data, error } = await supabaseAdmin
+    .from("recipe_purchases")
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .eq("payer_email", email.toLowerCase().trim());
+
+  if (error) return [];
+  return (data || []).map(mapRowToEntitlement);
 }
 
 export async function createEntitlement(tenantId: string | number, input: {
@@ -36,41 +39,46 @@ export async function createEntitlement(tenantId: string | number, input: {
   recipeSlug: string;
   accessStatus?: string;
 }): Promise<Entitlement> {
-  const now = new Date().toISOString();
-  const row = await fetchBaserow<EntitlementRow>(`/api/database/rows/table/${BASEROW_TABLES.ENTITLEMENTS}/?user_field_names=true`, {
-      method: "POST",
-      body: JSON.stringify({
-        tenantId: String(tenantId),
-        paymentId: String(input.paymentId),
-        payerEmail: input.payerEmail,
-        recipeSlug: input.recipeSlug,
-        accessStatus: input.accessStatus || "active",
-        created_at: now,
-        updated_at: now,
-      }),
-  });
-  return mapRowToEntitlement(row);
+  const { data, error } = await supabaseAdmin
+    .from("recipe_purchases")
+    .insert({
+      tenant_id: tenantId,
+      payment_id: String(input.paymentId),
+      payer_email: input.payerEmail.toLowerCase().trim(),
+      recipe_slug: input.recipeSlug,
+      access_status: input.accessStatus || "active",
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return mapRowToEntitlement(data);
 }
 
 export async function revokeEntitlement(tenantId: string | number, paymentId: string | number, recipeSlug?: string): Promise<void> {
-  let url = `/api/database/rows/table/${BASEROW_TABLES.ENTITLEMENTS}/?user_field_names=true&filter__tenantId__equal=${tenantId}&filter__paymentId__equal=${paymentId}`;
-  if (recipeSlug) url += `&filter__recipeSlug__equal=${recipeSlug}`;
+  let query = supabaseAdmin
+    .from("recipe_purchases")
+    .delete()
+    .eq("tenant_id", tenantId)
+    .eq("payment_id", String(paymentId));
   
-  const data = await fetchBaserow<{ results: EntitlementRow[] }>(url);
-  for (const row of data.results) {
-    await fetchBaserow(`/api/database/rows/table/${BASEROW_TABLES.ENTITLEMENTS}/${row.id}/`, { method: "DELETE" });
+  if (recipeSlug) {
+    query = query.eq("recipe_slug", recipeSlug);
   }
+  
+  const { error } = await query;
+  if (error) throw error;
 }
 
-function mapRowToEntitlement(row: EntitlementRow): Entitlement {
+function mapRowToEntitlement(row: any): Entitlement {
   return {
-    id: row.id ?? "",
-    tenantId: row.tenantId ?? "",
-    paymentId: row.paymentId ?? "",
-    payerEmail: row.payerEmail ?? "",
-    recipeSlug: row.recipeSlug ?? "",
-    accessStatus: row.accessStatus || "active",
-    createdAt: row.created_at ?? "",
-    updatedAt: row.updated_at ?? "",
+    id: row.id,
+    tenantId: String(row.tenant_id),
+    paymentId: String(row.payment_id),
+    payerEmail: row.payer_email,
+    recipeSlug: row.recipe_slug,
+    accessStatus: row.access_status || "active",
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   };
 }

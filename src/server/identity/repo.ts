@@ -1,161 +1,86 @@
-import { fetchBaserow } from "../integrations/baserow/client.js";
-import { BASEROW_TABLES } from "../integrations/baserow/tables.js";
-
-type UserRow = {
-  id?: string | number;
-  email?: string;
-  username?: string;
-  display_name?: string;
-  role?: string;
-  password_hash?: string;
-  password?: string;
-  status?: string;
-  tenantId?: string | number;
-  tenant_id?: string | number;
-  created_at?: string;
-  updated_at?: string;
-};
+import { supabase } from "../integrations/supabase/client.js";
 
 export interface UserRecord {
-  id: string | number;
+  id: string;
   email: string;
   username: string;
   displayName: string;
   role: string;
-  passwordHash: string;
-  legacyPassword: string;
   status: "active" | "inactive";
-  tenantId: string | number;
+  tenantId: string;
   createdAt: string;
   updatedAt: string;
 }
 
-function normalize(value: unknown) {
-  return String(value ?? "").trim().toLowerCase();
-}
-
-function mapUserRowToRecord(row: UserRow): UserRecord {
-  let role = row.role || "viewer";
-  if (role === "administrador") role = "admin";
-
+function mapProfileToRecord(row: any): UserRecord {
   return {
-    id: row.id ?? "",
-    email: row.email ?? "",
-    username: row.username ?? "",
-    displayName: row.display_name ?? "",
-    role,
-    passwordHash: row.password_hash || "",
-    legacyPassword: row.password || "",
-    status: row.status === "inactive" ? "inactive" : "active",
-    tenantId: row.tenantId ?? row.tenant_id ?? "",
-    createdAt: row.created_at ?? "",
-    updatedAt: row.updated_at ?? "",
+    id: row.id,
+    email: row.email,
+    username: row.username || "",
+    displayName: row.display_name || "",
+    role: row.role || "member",
+    status: row.is_active ? "active" : "inactive",
+    tenantId: row.organization_id || "",
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   };
 }
 
-async function findUserByEmailByTenantId(tenantId: string | number, email: string): Promise<UserRecord | null> {
-  const normalizedEmail = email.trim().toLowerCase();
-  const data = await fetchBaserow<{ results: UserRow[] }>(
-    `/api/database/rows/table/${BASEROW_TABLES.USERS}/?user_field_names=true&filter__tenantId__equal=${encodeURIComponent(String(tenantId))}&filter__email__equal=${encodeURIComponent(normalizedEmail)}`
-  );
-
-  const record = data.results[0];
-  if (!record) return null;
-
-  return mapUserRowToRecord(record);
-}
-
 export async function findUserByEmailForTenant(
-  tenant: { id: string | number; slug: string; name: string },
+  tenant: { id: string; slug: string; name: string },
   email: string,
 ): Promise<UserRecord | null> {
-  const normalizedEmail = email.trim().toLowerCase();
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('email', email.toLowerCase())
+    .eq('organization_id', tenant.id)
+    .single();
 
-  const data = await fetchBaserow<{ results: UserRow[] }>(
-    `/api/database/rows/table/${BASEROW_TABLES.USERS}/?user_field_names=true&filter__email__equal=${encodeURIComponent(normalizedEmail)}`
-  );
-
-  const acceptedTenantKeys = new Set([
-    normalize(tenant.id),
-    normalize(tenant.slug),
-    normalize(tenant.name),
-  ]);
-
-  const matched = data.results.find((row) => {
-    const candidateKeys = [
-      normalize(row.tenantId),
-      normalize(row.tenant_id),
-    ].filter(Boolean);
-
-    return candidateKeys.some((candidate) => acceptedTenantKeys.has(candidate));
-  });
-
-  if (!matched) return null;
-  return mapUserRowToRecord(matched);
+  if (error || !data) return null;
+  return mapProfileToRecord(data);
 }
 
-export async function createUser(input: {
-  tenantId: string | number;
-  email: string;
-  displayName?: string;
-  role?: "viewer" | "admin" | "owner";
-  status?: "active" | "inactive";
-  passwordHash?: string;
-  legacyPassword?: string;
-}) {
-  const now = new Date().toISOString();
-  const normalized = input.email.trim().toLowerCase();
+export async function findOrCreateUserByEmail(organizationId: string, email: string, displayName?: string): Promise<UserRecord> {
+  const { data: existing } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('email', email.toLowerCase())
+    .eq('organization_id', organizationId)
+    .single();
 
-  const record = await fetchBaserow<UserRow>(
-    `/api/database/rows/table/${BASEROW_TABLES.USERS}/?user_field_names=true`,
-    {
-      method: "POST",
-      body: JSON.stringify({
-        email: normalized,
-        username: normalized.split("@")[0],
-        display_name: input.displayName || normalized.split("@")[0],
-        role: input.role || "viewer",
-        status: input.status || "active",
-        tenantId: String(input.tenantId),
-        password_hash: input.passwordHash || "",
-        password: input.legacyPassword || "",
-        created_at: now,
-        updated_at: now,
-      }),
-    }
-  );
+  if (existing) return mapProfileToRecord(existing);
 
-  return mapUserRowToRecord(record);
+  // Nota: Perfis são geralmente criados via trigger no Supabase Auth.
+  // Aqui fazemos um upsert preventivo ou manual se necessário.
+  const { data: created, error } = await supabase
+    .from('profiles')
+    .upsert({
+      email: email.toLowerCase(),
+      organization_id: organizationId,
+      display_name: displayName || email.split('@')[0],
+      username: email.split('@')[0],
+    }, { onConflict: 'email' })
+    .select()
+    .single();
+
+  if (error || !created) throw new Error(`Erro ao criar perfil: ${error?.message}`);
+  return mapProfileToRecord(created);
 }
 
-export async function findOrCreateUserByEmail(tenantId: string | number, email: string, displayName?: string): Promise<UserRecord> {
-  const existing = await findUserByEmailByTenantId(tenantId, email);
-  if (existing) return existing;
+export async function updateUserProfile(userId: string, updates: Partial<UserRecord>) {
+  const { data, error } = await supabase
+    .from('profiles')
+    .update({
+      display_name: updates.displayName,
+      role: updates.role,
+      is_active: updates.status === 'active',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', userId)
+    .select()
+    .single();
 
-  return createUser({
-    tenantId,
-    email,
-    displayName,
-  });
-}
-
-export async function updateUserPasswordCredentials(input: {
-  userId: string | number;
-  passwordHash?: string;
-  legacyPassword?: string;
-}) {
-  const now = new Date().toISOString();
-  const record = await fetchBaserow<UserRow>(
-    `/api/database/rows/table/${BASEROW_TABLES.USERS}/${input.userId}/?user_field_names=true`,
-    {
-      method: "PATCH",
-      body: JSON.stringify({
-        password_hash: input.passwordHash ?? "",
-        password: input.legacyPassword ?? "",
-        updated_at: now,
-      }),
-    },
-  );
-
-  return mapUserRowToRecord(record);
+  if (error) throw error;
+  return mapProfileToRecord(data);
 }

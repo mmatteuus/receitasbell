@@ -1,5 +1,4 @@
-import { fetchBaserow } from "../integrations/baserow/client.js";
-import { BASEROW_TABLES } from "../integrations/baserow/tables.js";
+import { supabaseAdmin } from "../integrations/supabase/client.js";
 import { Logger } from "../shared/logger.js";
 
 const logger = new Logger({ domain: "audit" });
@@ -18,24 +17,21 @@ export type AuditEvent = {
 
 export async function logAuditEvent(event: AuditEvent) {
   try {
-    const now = new Date().toISOString();
-    await fetchBaserow(`/api/database/rows/table/${BASEROW_TABLES.AUDIT_LOGS}/?user_field_names=true`, {
-      method: "POST",
-      body: JSON.stringify({
+    const { error } = await supabaseAdmin.from("audit_logs").insert({
         actor_type: event.actorType,
         actor_id: String(event.actorId),
-        tenant_id: event.tenantId ? String(event.tenantId) : "",
+        tenant_id: event.tenantId || null,
         action: event.action,
         resource_type: event.resourceType || "",
         resource_id: event.resourceId ? String(event.resourceId) : "",
-        payload: JSON.stringify(event.payload || {}),
+        payload: event.payload || {},
         ip: event.ip || "",
         user_agent: event.userAgent || "",
-        created_at: now,
-      }),
     });
+
+    if (error) throw error;
   } catch (err) {
     // We don't want audit failures to break the main flow, but we MUST log them
-    logger.error("Failed to persist audit log", err);
+    logger.error("Failed to persist audit log into Supabase", err);
   }
 }

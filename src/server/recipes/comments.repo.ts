@@ -1,56 +1,61 @@
-import { fetchBaserow, BASEROW_TABLES } from "../integrations/baserow/client.js";
-
-type CommentRow = {
-  id?: string | number;
-  recipeId?: string;
-  authorName?: string;
-  authorEmail?: string;
-  userId?: string;
-  text?: string;
-  created_at?: string;
-  tenantId?: string | number;
-};
+import { supabase } from "../integrations/supabase/client.js";
 
 export interface Comment {
-  id: string | number;
+  id: string;
   recipeId: string;
-  authorName: string;
-  authorEmail: string;
   userId: string;
-  text: string;
+  content: string;
   createdAt: string;
-  tenantId: string | number;
+  tenantId: string;
 }
 
-export async function listCommentsByRecipeId(tenantId: string | number, recipeId: string): Promise<Comment[]> {
-  const data = await fetchBaserow<{ results: CommentRow[] }>(
-    `/api/database/rows/table/${BASEROW_TABLES.COMMENTS}/?user_field_names=true&filter__tenantId__equal=${tenantId}&filter__recipeId__equal=${recipeId}`
-  );
-  return data.results.map(row => ({
-    id: row.id ?? "",
-    recipeId: row.recipeId ?? "",
-    authorName: row.authorName ?? "",
-    authorEmail: row.authorEmail ?? "",
-    userId: row.userId ?? "",
-    text: row.text ?? "",
-    createdAt: row.created_at ?? "",
-    tenantId: row.tenantId ?? "",
+export async function listCommentsByRecipeId(tenantId: string, recipeId: string): Promise<Comment[]> {
+  const { data, error } = await supabase
+    .from('recipe_comments')
+    .select(`
+      id,
+      recipe_id,
+      user_id,
+      content,
+      created_at,
+      tenant_id
+    `)
+    .eq('tenant_id', tenantId)
+    .eq('recipe_id', recipeId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+
+  return data.map(row => ({
+    id: row.id,
+    recipeId: row.recipe_id,
+    userId: row.user_id,
+    content: row.content,
+    createdAt: row.created_at,
+    tenantId: row.tenant_id,
   }));
 }
 
-export async function createComment(tenantId: string | number, input: Omit<Comment, "id" | "createdAt" | "tenantId">): Promise<Comment> {
-  const record = await fetchBaserow<CommentRow>(`/api/database/rows/table/${BASEROW_TABLES.COMMENTS}/?user_field_names=true`, {
-      method: "POST",
-      body: JSON.stringify({ ...input, tenantId: String(tenantId), created_at: new Date().toISOString() }),
-  });
+export async function createComment(tenantId: string, input: { recipeId: string, userId: string, content: string }): Promise<Comment> {
+  const { data, error } = await supabase
+    .from('recipe_comments')
+    .insert({
+      tenant_id: tenantId,
+      recipe_id: input.recipeId,
+      user_id: input.userId,
+      content: input.content,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+
   return {
-    id: record.id ?? "",
-    recipeId: record.recipeId ?? "",
-    authorName: record.authorName ?? "",
-    authorEmail: record.authorEmail ?? "",
-    userId: record.userId ?? "",
-    text: record.text ?? "",
-    createdAt: record.created_at ?? "",
-    tenantId: record.tenantId ?? "",
+    id: data.id,
+    recipeId: data.recipe_id,
+    userId: data.user_id,
+    content: data.content,
+    createdAt: data.created_at,
+    tenantId: data.tenant_id,
   };
 }

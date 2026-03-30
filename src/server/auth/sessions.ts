@@ -1,35 +1,13 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import crypto from "node:crypto";
-import { BaserowError, baserowFetch } from "../integrations/baserow/client.js";
-import { baserowTables } from "../integrations/baserow/tables.js";
 import { isProd, env } from "../shared/env.js";
 import { ApiError } from "../shared/http.js";
 import { decryptSecret, encryptSecret, sha256Hex } from "../shared/crypto.js";
+import { supabase, supabaseAdmin } from "../integrations/supabase/client.js";
 
 const COOKIE_NAME = isProd ? "__Host-rb_session" : "rb_session";
 const TTL_DAYS = 14;
 const STATELESS_COOKIE_PREFIX = "rb1.";
-
-type SessionRow = {
-  id?: string | number;
-  token_hash?: string;
-  tenant_id?: string | number;
-  user_id?: string | number;
-  email?: string;
-  role?: string;
-  revoked_at?: string;
-  expires_at?: string;
-};
-
-function parseCookies(header?: string) {
-  const out: Record<string, string> = {};
-  if (!header) return out;
-  for (const part of header.split(";")) {
-    const [k, ...rest] = part.trim().split("=");
-    out[k] = decodeURIComponent(rest.join("=") || "");
-  }
-  return out;
-}
 
 export type Session = {
   userId: string;
@@ -41,6 +19,16 @@ export type Session = {
 type StatelessSessionPayload = Session & {
   exp: number;
 };
+
+function parseCookies(header?: string) {
+  const out: Record<string, string> = {};
+  if (!header) return out;
+  for (const part of header.split(";")) {
+    const [k, ...rest] = part.trim().split("=");
+    out[k] = decodeURIComponent(rest.join("=") || "");
+  }
+  return out;
+}
 
 function setCookie(res: VercelResponse, token: string) {
   const maxAge = TTL_DAYS * 86400;
@@ -89,32 +77,24 @@ export async function createSession(req: VercelRequest, res: VercelResponse, inp
   const now = new Date();
   const expiresAt = new Date(now.getTime() + TTL_DAYS * 86400_000);
 
-  try {
-    await baserowFetch(`/api/database/rows/table/${baserowTables.sessions}/?user_field_names=true`, {
-      method: "POST",
-      body: JSON.stringify({
-        token_hash: tokenHash,
-        tenant_id: input.tenantId,
-        user_id: input.userId,
-        email: input.email,
-        role: input.role,
-        created_at: now.toISOString(),
-        expires_at: expiresAt.toISOString(),
-        revoked_at: "",
-        ip: String(req.headers["x-forwarded-for"] ?? ""),
-        user_agent: String(req.headers["user-agent"] ?? ""),
-      }),
-    });
+  const { error } = await supabaseAdmin.from("auth_sessions").insert({
+    token_hash: tokenHash,
+    tenant_id: input.tenantId,
+    user_id: input.userId,
+    email: input.email.toLowerCase().trim(),
+    role: input.role,
+    expires_at: expiresAt.toISOString(),
+    ip: String(req.headers["x-forwarded-for"] ?? ""),
+    user_agent: String(req.headers["user-agent"] ?? ""),
+  });
 
-    setCookie(res, token);
+  if (error) {
+    // Se o banco falhar, usamos stateless como fallback seguro
+    setCookie(res, signSession({ ...input, expiresAt: expiresAt.getTime() }));
     return;
-  } catch (error) {
-    if (!(error instanceof BaserowError) || error.status !== 404) {
-      throw error;
-    }
   }
 
-  setCookie(res, signSession({ ...input, expiresAt: expiresAt.getTime() }));
+  setCookie(res, token);
 }
 
 export function setUserSessionCookie(res: VercelResponse, token: string) {
@@ -129,31 +109,26 @@ export async function getSession(req: VercelRequest): Promise<Session | null> {
   const cookies = parseCookies(req.headers.cookie);
   const token = cookies[COOKIE_NAME];
   if (!token) return null;
+
   const signedSession = readSignedSession(token);
   if (signedSession) return signedSession;
 
   const tokenHash = sha256Hex(token);
-  let rows: { results: SessionRow[] };
-  try {
-    rows = await baserowFetch<{ results: SessionRow[] }>(
-      `/api/database/rows/table/${baserowTables.sessions}/?user_field_names=true&filter__token_hash__equal=${tokenHash}`
-    );
-  } catch (error) {
-    if (error instanceof BaserowError && error.status === 404) {
-      return null;
-    }
-    throw error;
-  }
-  const row = rows.results[0];
-  if (!row) return null;
-  if (row.revoked_at) return null;
-  if (!row.expires_at || new Date(row.expires_at).getTime() <= Date.now()) return null;
+  const { data, error } = await supabaseAdmin
+    .from("auth_sessions")
+    .select("*")
+    .eq("token_hash", tokenHash)
+    .single();
 
-  const role = row.role === "admin" || row.role === "owner" ? row.role : "user";
+  if (error || !data) return null;
+  if (data.revoked_at) return null;
+  if (!data.expires_at || new Date(data.expires_at).getTime() <= Date.now()) return null;
+
+  const role = data.role === "admin" || data.role === "owner" ? data.role : "user";
   return {
-    tenantId: String(row.tenant_id),
-    userId: String(row.user_id),
-    email: String(row.email),
+    tenantId: String(data.tenant_id),
+    userId: String(data.user_id),
+    email: String(data.email),
     role,
   };
 }
@@ -187,22 +162,8 @@ export async function revokeSession(req: VercelRequest, res: VercelResponse) {
   if (readSignedSession(token)) return;
 
   const tokenHash = sha256Hex(token);
-  let rows: { results: SessionRow[] };
-  try {
-    rows = await baserowFetch<{ results: SessionRow[] }>(
-      `/api/database/rows/table/${baserowTables.sessions}/?user_field_names=true&filter__token_hash__equal=${tokenHash}`
-    );
-  } catch (error) {
-    if (error instanceof BaserowError && error.status === 404) {
-      return;
-    }
-    throw error;
-  }
-  const row = rows.results[0];
-  if (!row) return;
-
-  await baserowFetch(`/api/database/rows/table/${baserowTables.sessions}/${row.id}/?user_field_names=true`, {
-    method: "PATCH",
-    body: JSON.stringify({ revoked_at: new Date().toISOString() }),
-  });
+  await supabaseAdmin
+    .from("auth_sessions")
+    .update({ revoked_at: new Date().toISOString() })
+    .eq("token_hash", tokenHash);
 }

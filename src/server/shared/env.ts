@@ -19,6 +19,10 @@ const schema = z.object({
   BASEROW_API_URL: z.string().optional(),
   BASEROW_API_TOKEN: z.string().min(10).optional(),
   BASEROW_TIMEOUT_MS: z.string().optional(),
+  
+  SUPABASE_URL: z.string().url().optional(),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().min(10).optional(),
+  SUPABASE_ANON_KEY: z.string().min(10).optional(),
 
   RESEND_API_KEY: z.string().min(10).optional(),
   EMAIL_FROM: z.string().optional(),
@@ -130,7 +134,12 @@ export const env = schema.parse({
   MERCADO_PAGO_WEBHOOK_SECRET: readEnv("MERCADO_PAGO_WEBHOOK_SECRET", ["MP_WEBHOOK_SECRET"]),
   MP_CLIENT_ID: readEnv("MP_CLIENT_ID", ["MERCADO_PAGO_CLIENT_ID"]),
   MP_CLIENT_SECRET: readEnv("MP_CLIENT_SECRET", ["MERCADO_PAGO_CLIENT_SECRET"]),
+  MP_CLIENT_SECRET: readEnv("MP_CLIENT_SECRET", ["MERCADO_PAGO_CLIENT_SECRET"]),
   MP_REDIRECT_URI: readEnv("MP_REDIRECT_URI", ["MERCADO_PAGO_REDIRECT_URI"]),
+
+  SUPABASE_URL: readEnv("SUPABASE_URL"),
+  SUPABASE_SERVICE_ROLE_KEY: readEnv("SUPABASE_SERVICE_ROLE_KEY"),
+  SUPABASE_ANON_KEY: readEnv("SUPABASE_ANON_KEY"),
 });
 
 export const isProd = (env.NODE_ENV ?? "development") === "production";

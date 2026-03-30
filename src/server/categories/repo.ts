@@ -1,16 +1,4 @@
-import { fetchBaserow } from "../integrations/baserow/client.js";
-import { BASEROW_TABLES } from "../integrations/baserow/tables.js";
-import { DEFAULT_CATEGORIES } from "../../lib/defaults.js";
-
-type CategoryRow = {
-  id?: string | number;
-  slug?: string;
-  name?: string;
-  description?: string | null;
-  created_at?: string;
-  tenantId?: string | number;
-  tenant_id?: string | number;
-};
+import { supabase, supabaseAdmin } from "../integrations/supabase/client.js";
 
 export interface Category {
   id: string | number;
@@ -21,84 +9,78 @@ export interface Category {
   tenantId: string | number;
 }
 
-async function fetchCategoryRowsByTenant(
-  tenantId: string | number,
-  tenantField: "tenantId" | "tenant_id",
-) {
-  return fetchBaserow<{ results: CategoryRow[] }>(
-    `/api/database/rows/table/${BASEROW_TABLES.CATEGORIES}/?user_field_names=true&filter__${tenantField}__equal=${encodeURIComponent(String(tenantId))}`
-  );
-}
-
 export async function listCategories(tenantId: string | number): Promise<Category[]> {
-  const primary = await fetchCategoryRowsByTenant(tenantId, "tenantId");
-  const data =
-    primary.results.length === 0
-      ? await fetchCategoryRowsByTenant(tenantId, "tenant_id")
-      : primary;
-  
-  if (data.results.length === 0 && tenantId === "system") {
-      return DEFAULT_CATEGORIES.map(c => ({ ...c, tenantId: "system" })) as Category[];
-  }
+  const { data, error } = await supabaseAdmin
+    .from("categories")
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .order("name");
 
-  return data.results.map(record => mapCategoryRowToRecord(record));
+  if (error) return [];
+  return (data || []).map(mapCategoryRowToRecord);
 }
 
 export async function getCategoryBySlug(tenantId: string | number, slug: string): Promise<Category | null> {
-  const primary = await fetchBaserow<{ results: CategoryRow[] }>(
-    `/api/database/rows/table/${BASEROW_TABLES.CATEGORIES}/?user_field_names=true&filter__tenantId__equal=${encodeURIComponent(String(tenantId))}&filter__slug__equal=${encodeURIComponent(slug)}`
-  );
-  const data =
-    primary.results.length === 0
-      ? await fetchBaserow<{ results: CategoryRow[] }>(
-          `/api/database/rows/table/${BASEROW_TABLES.CATEGORIES}/?user_field_names=true&filter__tenant_id__equal=${encodeURIComponent(String(tenantId))}&filter__slug__equal=${encodeURIComponent(slug)}`
-        )
-      : primary;
-  if (!data.results[0]) return null;
-  return mapCategoryRowToRecord(data.results[0]);
+  const { data, error } = await supabaseAdmin
+    .from("categories")
+    .select("*")
+    .eq("tenant_id", tenantId)
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return mapCategoryRowToRecord(data);
 }
 
 export async function createCategory(tenantId: string | number, input: { name: string; slug: string; description?: string }): Promise<Category> {
-  const record = await fetchBaserow<CategoryRow>(`/api/database/rows/table/${BASEROW_TABLES.CATEGORIES}/?user_field_names=true`, {
-      method: "POST",
-      body: JSON.stringify({ ...input, tenantId: String(tenantId), created_at: new Date().toISOString() }),
-  });
-  return mapCategoryRowToRecord(record);
+  const { data, error } = await supabaseAdmin
+    .from("categories")
+    .insert({
+      tenant_id: tenantId,
+      name: input.name,
+      slug: input.slug,
+      description: input.description || "",
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return mapCategoryRowToRecord(data);
 }
 
 export async function updateCategory(tenantId: string | number, id: string | number, input: Partial<{ name: string; slug: string; description: string }>): Promise<Category> {
-    // Security check: verify ownership
-    const existing = await fetchBaserow<CategoryRow>(`/api/database/rows/table/${BASEROW_TABLES.CATEGORIES}/${id}/?user_field_names=true`);
-    const rowTenantId = existing.tenantId ?? existing.tenant_id;
-    if (rowTenantId != null && String(rowTenantId) !== String(tenantId)) {
-        throw new Error("Category not found or does not belong to this tenant");
-    }
+  const { data, error } = await supabaseAdmin
+    .from("categories")
+    .update({
+        ...input,
+        updated_at: new Date().toISOString()
+    })
+    .eq("id", id)
+    .eq("tenant_id", tenantId)
+    .select()
+    .single();
 
-    const record = await fetchBaserow<CategoryRow>(`/api/database/rows/table/${BASEROW_TABLES.CATEGORIES}/${id}/?user_field_names=true`, {
-        method: "PATCH",
-        body: JSON.stringify(input),
-    });
-    return mapCategoryRowToRecord(record);
+  if (error) throw error;
+  return mapCategoryRowToRecord(data);
 }
 
 export async function deleteCategory(tenantId: string | number, id: string | number): Promise<void> {
-    // Security check: verify ownership
-    const existing = await fetchBaserow<CategoryRow>(`/api/database/rows/table/${BASEROW_TABLES.CATEGORIES}/${id}/?user_field_names=true`);
-    const rowTenantId = existing.tenantId ?? existing.tenant_id;
-    if (rowTenantId != null && String(rowTenantId) !== String(tenantId)) {
-        throw new Error("Category not found or does not belong to this tenant");
-    }
+  const { error } = await supabaseAdmin
+    .from("categories")
+    .delete()
+    .eq("id", id)
+    .eq("tenant_id", tenantId);
 
-    await fetchBaserow(`/api/database/rows/table/${BASEROW_TABLES.CATEGORIES}/${id}/`, { method: "DELETE" });
+  if (error) throw error;
 }
 
-function mapCategoryRowToRecord(record: CategoryRow): Category {
+function mapCategoryRowToRecord(record: any): Category {
     return {
-        id: record.id ?? "",
-        slug: record.slug ?? "",
-        name: record.name ?? "",
-        description: record.description ?? "",
-        createdAt: record.created_at ?? "",
-        tenantId: record.tenantId ?? record.tenant_id ?? "",
+        id: record.id,
+        slug: record.slug,
+        name: record.name,
+        description: record.description || "",
+        createdAt: record.created_at,
+        tenantId: String(record.tenant_id),
     };
 }

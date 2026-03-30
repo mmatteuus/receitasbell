@@ -1,19 +1,7 @@
-import { fetchBaserow } from "../integrations/baserow/client.js";
-import { BASEROW_TABLES } from "../integrations/baserow/tables.js";
-
-type TenantRow = {
-  id?: string | number;
-  slug?: string;
-  name?: string;
-  host?: string | null;
-  domain?: string | null;
-  Active?: boolean;
-  status?: string;
-  created_at?: string;
-};
+import { supabaseAdmin } from "../integrations/supabase/client.js";
 
 export interface TenantRecord {
-  id: string | number;
+  id: string; // Migrado para UUID
   slug: string;
   name: string;
   host?: string;
@@ -22,41 +10,55 @@ export interface TenantRecord {
 }
 
 export async function getTenantBySlug(slug: string): Promise<TenantRecord | null> {
-  const data = await fetchBaserow<{ results: TenantRow[] }>(
-    `/api/database/rows/table/${BASEROW_TABLES.TENANTS}/?user_field_names=true&filter__slug__equal=${slug}`
-  );
-  const record = data.results[0];
-  if (!record) return null;
-  return mapTenantRowToRecord(record);
+  const { data, error } = await supabaseAdmin
+    .from('organizations')
+    .select('*')
+    .eq('slug', slug)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return mapOrganizationToRecord(data);
 }
 
-export async function getTenantById(id: string | number): Promise<TenantRecord | null> {
-  try {
-    const record = await fetchBaserow<TenantRow>(`/api/database/rows/table/${BASEROW_TABLES.TENANTS}/${id}/?user_field_names=true`);
-    return mapTenantRowToRecord(record);
-  } catch { return null; }
+export async function getTenantById(id: string): Promise<TenantRecord | null> {
+  const { data, error } = await supabaseAdmin
+    .from('organizations')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return mapOrganizationToRecord(data);
 }
 
 export async function getTenantByHost(host: string): Promise<TenantRecord | null> {
   const normalized = host.trim().toLowerCase().replace(/:\d+$/, "");
-  const data = await fetchBaserow<{ results: TenantRow[] }>(
-    `/api/database/rows/table/${BASEROW_TABLES.TENANTS}/?user_field_names=true&filter__host__equal=${encodeURIComponent(normalized)}`
-  );
-  const record = data.results[0];
-  if (!record) return null;
-  return mapTenantRowToRecord(record);
+  const { data, error } = await supabaseAdmin
+    .from('organizations')
+    .select('*')
+    .eq('host', normalized)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return mapOrganizationToRecord(data);
 }
 
 export async function listActiveTenants(): Promise<TenantRecord[]> {
-  const data = await fetchBaserow<{ results: TenantRow[] }>(
-    `/api/database/rows/table/${BASEROW_TABLES.TENANTS}/?user_field_names=true&size=200`
-  );
-  return data.results.map(mapTenantRowToRecord).filter((tenant) => tenant.status === "active");
+  const { data, error } = await supabaseAdmin
+    .from('organizations')
+    .select('*')
+    .eq('is_active', true);
+
+  if (error || !data) return [];
+  return data.map(mapOrganizationToRecord);
 }
 
 export async function countTenants(): Promise<number> {
-  const data = await fetchBaserow<{ count: number }>(`/api/database/rows/table/${BASEROW_TABLES.TENANTS}/?user_field_names=true&size=1`);
-  return data.count;
+  const { count, error } = await supabaseAdmin
+    .from('organizations')
+    .select('*', { count: 'exact', head: true });
+
+  return count ?? 0;
 }
 
 export async function createTenant(input: {
@@ -64,30 +66,28 @@ export async function createTenant(input: {
   name: string;
   host?: string | null;
 }) {
-  const record = await fetchBaserow<TenantRow>(
-    `/api/database/rows/table/${BASEROW_TABLES.TENANTS}/?user_field_names=true`,
-    {
-      method: "POST",
-      body: JSON.stringify({
-        slug: input.slug,
-        name: input.name,
-        host: input.host || "",
-        Active: true,
-        created_at: new Date().toISOString(),
-      }),
-    },
-  );
+  const { data, error } = await supabaseAdmin
+    .from('organizations')
+    .insert({
+      slug: input.slug,
+      name: input.name,
+      host: input.host || "",
+      is_active: true,
+    })
+    .select()
+    .single();
 
-  return mapTenantRowToRecord(record);
+  if (error) throw error;
+  return mapOrganizationToRecord(data);
 }
 
-function mapTenantRowToRecord(row: TenantRow): TenantRecord {
+function mapOrganizationToRecord(row: any): TenantRecord {
   return {
-    id: row.id ?? "",
-    slug: row.slug ?? "",
-    name: row.name ?? "",
-    host: row.host || row.domain || "",
-    status: row.Active === false || row.status === "inactive" ? "inactive" : "active",
-    createdAt: row.created_at ?? "",
+    id: String(row.id),
+    slug: row.slug,
+    name: row.name,
+    host: row.host || "",
+    status: row.is_active ? "active" : "inactive",
+    createdAt: row.created_at || "",
   };
 }
