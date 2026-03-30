@@ -7,7 +7,7 @@ export type PaymentStatus =
   | "refunded"
   | "charged_back";
 
-export type PaymentGateway = "mercado_pago" | "mock";
+export type PaymentGateway = "mercado_pago" | "mock" | "stripe";
 export type CheckoutPaymentMethod = "checkout_pro" | "pix" | "card";
 export type DirectPaymentMethod = Exclude<CheckoutPaymentMethod, "checkout_pro">;
 

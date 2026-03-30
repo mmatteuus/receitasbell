@@ -41,6 +41,7 @@ export interface PaymentRecord {
   currency: string;
   status: PaymentStatus;
   externalReference: string;
+  providerPaymentId: string;
   mpPaymentId: string;
   preferenceId: string;
   idempotencyKey: string;
@@ -54,6 +55,29 @@ export interface PaymentRecord {
   createdAt: string;
   updatedAt: string;
 }
+
+type PaymentOrderRow = {
+  id: string;
+  tenant_id: string | number;
+  user_id?: string | null;
+  amount: number | string;
+  currency: string;
+  status: string;
+  external_reference?: string;
+  provider_payment_id?: string | null;
+  mp_payment_id?: string | null;
+  preference_id?: string | null;
+  idempotency_key?: string | null;
+  payer_email: string;
+  payment_method?: string | null;
+  provider?: string | null;
+  provider_payment_method_id?: string | null;
+  provider_payment_type_id?: string | null;
+  recipe_ids?: string[];
+  items?: CartItem[];
+  created_at: string;
+  updated_at: string;
+};
 
 export interface PaymentDetailRecord {
   payment: AdminPayment;
@@ -76,7 +100,7 @@ export async function createPaymentOrder(
     paymentMethod: string;
     provider?: string;
     recipeIds: string[];
-    items: any[];
+    items: CartItem[];
   },
 ): Promise<PaymentRecord> {
   const { data, error } = await supabaseAdmin
@@ -154,11 +178,21 @@ export async function updatePaymentOrderStatus(
   mpPaymentId?: string,
   mpDetails?: { methodId?: string; typeId?: string },
 ): Promise<void> {
-  const updates: any = {
+  const updates: {
+    status: string;
+    updated_at: string;
+    provider_payment_id?: string;
+    mp_payment_id?: string;
+    provider_payment_method_id?: string;
+    provider_payment_type_id?: string;
+  } = {
     status,
     updated_at: new Date().toISOString(),
   };
-  if (mpPaymentId) updates.mp_payment_id = mpPaymentId;
+  if (mpPaymentId) {
+    updates.provider_payment_id = mpPaymentId;
+    updates.mp_payment_id = mpPaymentId;
+  }
   if (mpDetails?.methodId) updates.provider_payment_method_id = mpDetails.methodId;
   if (mpDetails?.typeId) updates.provider_payment_type_id = mpDetails.typeId;
 
@@ -263,6 +297,13 @@ export async function getPaymentDetailById(
   };
 }
 
+type AuditLogRow = {
+  id: string;
+  actor_id: string | null;
+  payload?: Record<string, unknown> | null;
+  created_at: string;
+};
+
 async function listPaymentNotes(
   tenantId: string,
   paymentId: string,
@@ -277,11 +318,11 @@ async function listPaymentNotes(
     .order("created_at", { ascending: false });
 
   if (error) return [];
-  return (data || []).map((row) => ({
+  return (data || []).map((row: AuditLogRow) => ({
     id: String(row.id),
     payment_id: String(paymentId),
-    note: (row.payload as any)?.note || "",
-    created_by_user_id: String(row.actor_id),
+    note: String((row.payload?.note ?? "") as string),
+    created_by_user_id: String(row.actor_id ?? ""),
     created_at: row.created_at,
     updated_at: row.created_at,
   }));
@@ -311,11 +352,12 @@ export async function createPaymentNote(input: {
     .single();
 
   if (error || !data) throw error;
+  const payloadNote = data.payload && typeof data.payload === "object" ? String((data.payload as Record<string, unknown>).note ?? "") : "";
   return {
     id: String(data.id),
     payment_id: String(input.paymentId),
-    note: (data.payload as any)?.note || "",
-    created_by_user_id: String(data.actor_id),
+    note: payloadNote,
+    created_by_user_id: String(data.actor_id || ""),
     created_at: data.created_at,
     updated_at: data.created_at,
   };
@@ -339,7 +381,7 @@ async function buildRecipeIndex(
   return new Map(recipes.map((recipe) => [String(recipe.id), recipe]));
 }
 
-function mapRowToPayment(row: any): PaymentRecord {
+function mapRowToPayment(row: PaymentOrderRow): PaymentRecord {
   return {
     id: row.id,
     tenantId: String(row.tenant_id),
@@ -348,12 +390,13 @@ function mapRowToPayment(row: any): PaymentRecord {
     currency: row.currency,
     status: row.status as PaymentStatus,
     externalReference: row.external_reference || "",
+    providerPaymentId: row.provider_payment_id || row.mp_payment_id || "",
     mpPaymentId: row.mp_payment_id || "",
     preferenceId: row.preference_id || "",
     idempotencyKey: row.idempotency_key || "",
     payerEmail: row.payer_email,
     paymentMethod: row.payment_method || "",
-    provider: row.provider,
+    provider: row.provider || "mercadopago",
     providerPaymentMethodId: row.provider_payment_method_id,
     providerPaymentTypeId: row.provider_payment_type_id,
     recipeIds: row.recipe_ids || [],
@@ -370,8 +413,8 @@ function mapPaymentRecordToAdminPayment(
   const status = normalizeAppPaymentStatus(payment.status);
   return {
     id: String(payment.id),
-    paymentIdGateway: payment.mpPaymentId || "",
-    gateway: payment.provider === "mock" ? "mock" : "mercado_pago",
+    paymentIdGateway: payment.providerPaymentId || payment.mpPaymentId || "",
+    gateway: payment.provider === "mock" ? "mock" : (payment.provider === "stripe" ? "stripe" : "mercado_pago"),
     recipeIds: payment.recipeIds.map(String),
     totalBRL: payment.amount,
     payerName: payment.payerEmail.split("@")[0],

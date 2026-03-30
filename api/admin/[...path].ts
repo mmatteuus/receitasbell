@@ -8,8 +8,6 @@ import adminPayments from "../../api_handlers/admin/payments.js";
 import adminPaymentById from "../../api_handlers/admin/payments/[id].js";
 import adminPaymentNote from "../../api_handlers/admin/payments/[id]/note.js";
 import adminPaymentSettings from "../../api_handlers/admin/payments/settings.js";
-import adminMpConnect from "../../api_handlers/admin/mercadopago/connect.js";
-import adminMpDisconnect from "../../api_handlers/admin/mercadopago/disconnect.js";
 import adminAuthBootstrap from "../../api_handlers/admin/auth/bootstrap.js";
 import adminAuthSession from "../../api_handlers/admin/auth/session.js";
 
@@ -58,10 +56,6 @@ export default async function handler(request: VercelRequest, response: VercelRe
     target = adminCategories;
   } else if (parts.length === 1 && parts[0] === "entitlements") {
     target = adminEntitlements;
-  } else if (parts.length === 2 && parts[0] === "mercadopago" && parts[1] === "connect") {
-    target = adminMpConnect;
-  } else if (parts.length === 2 && parts[0] === "mercadopago" && parts[1] === "disconnect") {
-    target = adminMpDisconnect;
   } else if (parts.length === 1 && parts[0] === "payments") {
     target = adminPayments;
   } else if (parts.length === 2 && parts[0] === "payments" && parts[1] === "settings") {

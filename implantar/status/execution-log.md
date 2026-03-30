@@ -62,3 +62,11 @@ Este arquivo registra o progresso das tarefas de implantação e manutenção do
   - Registro ID 67 corrigido e com token criptografado.
   - Registro ID 34 marcado como `disconnected`.
 - **Observações:** O script foi ajustado para lidar com o formato de data `YYYY-MM-DD` exigido pela API do Baserow para este schema.
+
+## [TASK-008] Provisionar tabelas e variáveis para OAuth social (progresso inicial)
+- **Data:** 2026-03-30
+- **Status:** 🟡 Em curso (flags reforçadas)
+- **Inputs:** `.env.example`, `src/server/shared/env.ts`
+- **Descrição:** Atualização do bloco de social auth para incluir as credenciais e flags do Stripe/Google, além das IDs das tabelas `auth_oauth_states` e `user_identities_social`. O parser `env.ts` agora interpreta `AUTH_SOCIAL_ENABLED` como booleano (sem torná-lo obrigatório) e mantém leitura das tabelas e das credenciais de OAuth.
+- **Outputs:** `.env.example` reflete todas as variáveis esperadas pelo rollout social e `env.ts` expõe `env.AUTH_SOCIAL_ENABLED`, `env.AUTH_SOCIAL_ALLOWED_TENANTS` e os identificadores das tabelas sem exigir estes valores.
+- **Observações:** Falta preencher os `TABLE_ID` concretos no log assim que as tabelas forem criadas no Baserow (Status/TASK-008 deve registrar a ID daquele momento). O próximo passo é iniciar a camada `src/server/auth/social` e assegurar as tabelas físicas existam.

@@ -1,6 +1,36 @@
 import { supabaseAdmin } from "../integrations/supabase/client.js";
 import type { RecipeRecord } from "../../lib/recipes/types.js";
-import type { AccessTier, Recipe } from "../../types/recipe.js";
+import type { AccessTier, Recipe, RecipeStatus } from "../../types/recipe.js";
+import { syncStripeProduct } from "../payments/providers/stripe/productSync.js";
+
+type RecipeRow = {
+  id: string | number;
+  slug: string;
+  title: string;
+  description: string | null;
+  image_url: string | null;
+  category_id: string | null;
+  tags_json: string[] | null;
+  status: RecipeStatus | null;
+  prep_time_min: number | null;
+  cook_time_min: number | null;
+  total_time_min: number | null;
+  servings: number | null;
+  kcal: number | null;
+  video_id: string | null;
+  access_tier: AccessTier | null;
+  price_brl: number | null;
+  ingredients_json: unknown[] | null;
+  instructions_text: string | null;
+  excerpt: string | null;
+  seo_title: string | null;
+  seo_description: string | null;
+  is_featured: boolean | null;
+  created_at: string;
+  updated_at: string;
+  published_at: string | null;
+  author_id: string | null;
+};
 
 export type RecipeListTier = "all" | "free" | "paid";
 export type RecipeListTempo = "all" | "quick" | "medium" | "long";
@@ -92,7 +122,7 @@ export async function getRecipeById(tenantId: string, id: string): Promise<Recip
   return mapRecipeRowToRecord(data);
 }
 
-function mapRecipeRowToRecord(row: any): RecipeRecord {
+function mapRecipeRowToRecord(row: RecipeRow): RecipeRecord {
   return {
     id: String(row.id),
     slug: row.slug,
@@ -102,7 +132,7 @@ function mapRecipeRowToRecord(row: any): RecipeRecord {
     imageFileMeta: null,
     categorySlug: row.category_id || "",
     tags: row.tags_json || [],
-    status: row.status as any,
+    status: row.status || "draft",
     prepTime: row.prep_time_min || 0,
     cookTime: row.cook_time_min || 0,
     totalTime: row.total_time_min || 0,
@@ -110,13 +140,13 @@ function mapRecipeRowToRecord(row: any): RecipeRecord {
     difficulty: null,
     calories: row.kcal,
     videoUrl: row.video_id,
-    accessTier: row.access_tier,
+    accessTier: row.access_tier || "free",
     priceBRL: row.price_brl ? Number(row.price_brl) : null,
-    fullIngredients: row.ingredients_json || [],
+    fullIngredients: (row.ingredients_json as string[]) || [],
     fullInstructions: row.instructions_text ? [row.instructions_text] : [],
-    excerpt: row.excerpt,
-    seoTitle: row.seo_title,
-    seoDescription: row.seo_description,
+    excerpt: row.excerpt || undefined,
+    seoTitle: row.seo_title || undefined,
+    seoDescription: row.seo_description || undefined,
     isFeatured: !!row.is_featured,
     ratingAvg: 0,
     ratingCount: 0,
@@ -161,11 +191,17 @@ export async function createRecipe(tenantId: string, recipe: Partial<RecipeRecor
     .single();
 
   if (error) throw error;
-  return mapRecipeRowToRecord(data);
+  const createdRecord = mapRecipeRowToRecord(data);
+  
+  if (createdRecord.accessTier === "paid" && createdRecord.priceBRL) {
+      await syncStripeProduct(tenantId, "", createdRecord).catch(e => console.error("Stripe sync error", e));
+  }
+
+  return createdRecord;
 }
 
 export async function updateRecipe(tenantId: string, recipeId: string, recipe: Partial<RecipeRecord>): Promise<RecipeRecord> {
-  const payload: any = { updated_at: new Date().toISOString() };
+  const payload: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (recipe.title !== undefined) payload.title = recipe.title;
   if (recipe.slug !== undefined) payload.slug = recipe.slug;
   if (recipe.description !== undefined) payload.description = recipe.description;
@@ -184,7 +220,13 @@ export async function updateRecipe(tenantId: string, recipeId: string, recipe: P
     .single();
 
   if (error) throw error;
-  return mapRecipeRowToRecord(data);
+  const updatedRecord = mapRecipeRowToRecord(data);
+  
+  if (updatedRecord.accessTier === "paid" && updatedRecord.priceBRL) {
+      await syncStripeProduct(tenantId, "", updatedRecord).catch(e => console.error("Stripe sync error", e));
+  }
+
+  return updatedRecord;
 }
 
 export async function deleteRecipe(tenantId: string, recipeId: string): Promise<void> {

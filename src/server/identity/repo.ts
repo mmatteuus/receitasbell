@@ -1,5 +1,19 @@
 import { supabase } from "../integrations/supabase/client.js";
 
+type ProfileRow = {
+  id: string;
+  email: string;
+  username: string | null;
+  display_name: string | null;
+  role: string | null;
+  is_active: boolean | number;
+  organization_id: string | null;
+  password_hash?: string | null;
+  legacy_password?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export interface UserRecord {
   id: string;
   email: string;
@@ -14,7 +28,7 @@ export interface UserRecord {
   updatedAt: string;
 }
 
-function mapProfileToRecord(row: any): UserRecord {
+function mapProfileToRecord(row: ProfileRow): UserRecord {
   return {
     id: row.id,
     email: row.email,

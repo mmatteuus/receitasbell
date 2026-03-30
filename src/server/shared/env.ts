@@ -9,6 +9,12 @@ function readEnv(name: string, aliases: string[] = []): string | undefined {
   return undefined;
 }
 
+function readBooleanEnv(name: string, aliases: string[] = []): boolean | undefined {
+  const value = readEnv(name, aliases);
+  if (value === undefined) return undefined;
+  return ["1", "true", "yes", "on"].includes(value.toLowerCase());
+}
+
 const schema = z.object({
   NODE_ENV: z.string().optional(),
 
@@ -49,6 +55,14 @@ const schema = z.object({
 
   BASEROW_TABLE_SESSIONS: z.string().min(1).optional(),
   BASEROW_TABLE_MAGIC_LINKS: z.string().min(1).optional(),
+
+  AUTH_SOCIAL_ENABLED: z.boolean().optional(),
+  AUTH_SOCIAL_ALLOWED_TENANTS: z.string().optional(),
+  GOOGLE_OAUTH_CLIENT_ID: z.string().optional(),
+  GOOGLE_OAUTH_CLIENT_SECRET: z.string().optional(),
+  GOOGLE_OAUTH_REDIRECT_URI: z.string().optional(),
+  BASEROW_TABLE_AUTH_OAUTH_STATES: z.string().min(1).optional(),
+  BASEROW_TABLE_USER_IDENTITIES: z.string().min(1).optional(),
 
   // Recursos opcionais
   BASEROW_TABLE_FAVORITES: z.string().optional(),
@@ -112,6 +126,14 @@ export const env = schema.parse({
 
   BASEROW_TABLE_SESSIONS: readEnv("BASEROW_TABLE_SESSIONS"),
   BASEROW_TABLE_MAGIC_LINKS: readEnv("BASEROW_TABLE_MAGIC_LINKS"),
+
+  AUTH_SOCIAL_ENABLED: readBooleanEnv("AUTH_SOCIAL_ENABLED"),
+  AUTH_SOCIAL_ALLOWED_TENANTS: readEnv("AUTH_SOCIAL_ALLOWED_TENANTS"),
+  GOOGLE_OAUTH_CLIENT_ID: readEnv("GOOGLE_OAUTH_CLIENT_ID"),
+  GOOGLE_OAUTH_CLIENT_SECRET: readEnv("GOOGLE_OAUTH_CLIENT_SECRET"),
+  GOOGLE_OAUTH_REDIRECT_URI: readEnv("GOOGLE_OAUTH_REDIRECT_URI"),
+  BASEROW_TABLE_AUTH_OAUTH_STATES: readEnv("BASEROW_TABLE_AUTH_OAUTH_STATES"),
+  BASEROW_TABLE_USER_IDENTITIES: readEnv("BASEROW_TABLE_USER_IDENTITIES"),
 
   BASEROW_TABLE_FAVORITES: readEnv("BASEROW_TABLE_FAVORITES"),
   BASEROW_TABLE_COMMENTS: readEnv("BASEROW_TABLE_COMMENTS"),

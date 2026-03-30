@@ -1,5 +1,14 @@
 import { supabaseAdmin } from "../integrations/supabase/client.js";
 
+type OrganizationRow = {
+  id: string;
+  slug: string;
+  name: string;
+  host?: string | null;
+  is_active?: boolean | null;
+  created_at?: string | null;
+};
+
 export interface TenantRecord {
   id: string; // Migrado para UUID
   slug: string;
@@ -81,7 +90,7 @@ export async function createTenant(input: {
   return mapOrganizationToRecord(data);
 }
 
-function mapOrganizationToRecord(row: any): TenantRecord {
+function mapOrganizationToRecord(row: OrganizationRow): TenantRecord {
   return {
     id: String(row.id),
     slug: row.slug,

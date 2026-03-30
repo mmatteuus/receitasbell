@@ -70,7 +70,7 @@ export async function revokeEntitlement(tenantId: string, paymentId: string, rec
   if (error) throw error;
 }
 
-function mapRowToEntitlement(row: any): Entitlement {
+function mapRowToEntitlement(row: EntitlementRow): Entitlement {
   return {
     id: row.id,
     tenantId: String(row.tenant_id),

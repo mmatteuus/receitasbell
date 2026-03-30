@@ -13,7 +13,7 @@
         { "key": "Reporting-Endpoints", "value": "csp-endpoint=\"/api/security/csp-report\"" },
         {
           "key": "Content-Security-Policy-Report-Only",
-          "value": "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self' https://www.mercadopago.com https://www.mercadopago.com.br; img-src 'self' data: https:; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; connect-src 'self' https:; frame-src https://www.mercadopago.com https://www.mercadopago.com.br; font-src 'self' data: https:; report-uri /api/security/csp-report; report-to csp-endpoint"
+          "value": "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: https:; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; connect-src 'self' https:; frame-src https://js.stripe.com; font-src 'self' data: https:; report-uri /api/security/csp-report; report-to csp-endpoint"
         },
         { "key": "X-Frame-Options", "value": "DENY" },
         { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(), payment=(self)" }
@@ -48,8 +48,5 @@
       "source": "/((?!api/|assets/|images/|favicon|manifest\\.webmanifest|registerSW\\.js|sw\\.js|workbox-|robots\\.txt).*)",
       "destination": "/index.html"
     }
-  ],
-  "crons": [
-    { "path": "/api/jobs/reconcile", "schedule": "0 6 * * *" }
   ]
 }

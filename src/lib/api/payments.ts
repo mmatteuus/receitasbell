@@ -1,4 +1,4 @@
-import type { AdminPaymentsFilters, CreatePaymentPreferenceResult, Payment, PaymentNote } from "@/lib/payments/types";
+import type { AdminPaymentsFilters, Payment, PaymentNote } from "@/lib/payments/types";
 import type { AdminPaymentSettingsResponse } from "@/types/payment";
 import type {
   CheckoutPaymentConfig,
@@ -9,6 +9,7 @@ import type {
 import type { RecipeRecord } from "@/lib/recipes/types";
 import type { Entitlement } from "@/types/entitlement";
 import { buildQuery, jsonFetch } from "./client";
+
 
 export interface PaymentDetailResponse {
   payment: Payment;
@@ -71,21 +72,28 @@ export async function getAdminPaymentSettings() {
   return result.settings;
 }
 
-export async function startMercadoPagoConnection(returnTo?: string) {
-  const result = await jsonFetch<{ authorizationUrl: string }>(
-    "/api/admin/mercadopago/connect",
+export async function startStripeConnect(returnTo?: string) {
+  const result = await jsonFetch<{ onboardingUrl: string }>(
+    "/api/payments/connect/onboarding-link",
     {
       method: "POST",
       admin: true,
       body: { returnTo },
     },
   );
-  return result.authorizationUrl;
+  return result.onboardingUrl;
 }
 
-export async function disconnectMercadoPagoConnection() {
-  return jsonFetch<{ disconnected: boolean; connectionStatus: string }>(
-    "/api/admin/mercadopago/disconnect",
+export async function getStripeConnectStatus() {
+  return jsonFetch<{ connected: boolean; details_submitted: boolean; charges_enabled: boolean; accountId?: string }>(
+    "/api/payments/connect/status",
+    { admin: true },
+  );
+}
+
+export async function createStripeConnectAccount() {
+  return jsonFetch<{ accountId: string; onboardingUrl: string }>(
+    "/api/payments/connect/account",
     {
       method: "POST",
       admin: true,
@@ -93,27 +101,18 @@ export async function disconnectMercadoPagoConnection() {
   );
 }
 
-export async function createMercadoPagoPreference(input: {
-  recipeIds: string[];
-  items?: Array<{
-    recipeId: string;
-    title: string;
-    slug: string;
-    priceBRL: number;
-    imageUrl: string;
-  }>;
-  payerName?: string;
-  payerEmail: string;
-  checkoutReference: string;
+export async function createStripeCheckoutSession(input: {
+  priceId: string;
+  recipeId?: string;
+  customerEmail?: string;
+  successUrl?: string;
+  cancelUrl?: string;
 }) {
-  return jsonFetch<CreatePaymentPreferenceResult>(
-    "/api/checkout",
+  return jsonFetch<{ sessionId: string; url: string }>(
+    "/api/payments/checkout/session",
     {
       method: "POST",
-      body: {
-        ...input,
-        buyerEmail: input.payerEmail,
-      },
+      body: input,
     },
   );
 }
@@ -126,14 +125,14 @@ export async function getCheckoutPaymentConfig() {
 export async function createPixPayment(input: CreatePixPaymentInput) {
   return jsonFetch<DirectPaymentResult>("/api/payments/pix", {
     method: "POST",
-    body: input,
+    body: input as unknown as Record<string, unknown>,
   });
 }
 
 export async function createCardPayment(input: CreateCardPaymentInput) {
   return jsonFetch<DirectPaymentResult>("/api/payments/card", {
     method: "POST",
-    body: input,
+    body: input as unknown as Record<string, unknown>,
   });
 }
 

@@ -184,7 +184,7 @@ export default function DashboardPage() {
       .sort((a, b) => a.month.localeCompare(b.month));
   }, [payments]);
 
-  const mercadoPagoSummary = useMemo<FinancialDashboardStats>(() => {
+  const stripeSummary = useMemo<FinancialDashboardStats>(() => {
     const approvedPayments = payments.filter((payment) => payment.status === "approved");
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
@@ -282,7 +282,7 @@ export default function DashboardPage() {
           <TabsTrigger value="success">Taxa de Sucesso</TabsTrigger>
           <TabsTrigger value="methods">Por Método</TabsTrigger>
           <TabsTrigger value="monthly">Mês a Mês</TabsTrigger>
-          <TabsTrigger value="mercadopago" className="text-[#009EE3] font-semibold">Resumo MP</TabsTrigger>
+          <TabsTrigger value="stripe" className="text-[#635BFF] font-semibold">Resumo Stripe</TabsTrigger>
         </TabsList>
 
         <TabsContent value="trends" className="animate-fade-in">
@@ -314,9 +314,9 @@ export default function DashboardPage() {
           </Suspense>
         </TabsContent>
 
-        <TabsContent value="mercadopago" className="animate-fade-in">
-          <Suspense fallback={<AnalyticsPanelFallback label="resumo do Mercado Pago" />}>
-            <FinancialDashboard stats={mercadoPagoSummary} loading={loadingPayments} />
+        <TabsContent value="stripe" className="animate-fade-in">
+          <Suspense fallback={<AnalyticsPanelFallback label="resumo do Stripe" />}>
+            <FinancialDashboard stats={stripeSummary} loading={loadingPayments} />
           </Suspense>
         </TabsContent>
       </Tabs>

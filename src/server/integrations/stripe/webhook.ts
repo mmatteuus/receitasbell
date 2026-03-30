@@ -3,8 +3,8 @@ import { env } from "../../shared/env.js";
 import { verifyStripeWebhookSignature } from "./client.js";
 import { getTenantStripeConnection } from "./connections.js";
 import { logAuditEvent } from "../../audit/repo.js";
-import { syncPayment } from "../../payments/service.js";
 import { parsePaymentExternalReference } from "../../payments/externalReference.js";
+import { supabaseAdmin } from "../supabase/client.js";
 import type Stripe from "stripe";
 
 export function mapStripePaymentStatus(session: Stripe.Checkout.Session): string {
@@ -56,7 +56,34 @@ export async function processStripeWebhookEvent(event: Stripe.Event): Promise<{
 
   const internalStatus = mapStripePaymentStatus(session);
   const providerPaymentId = (session.payment_intent as string | null) ?? session.id;
-  await syncPayment(tenantId, paymentOrderId, internalStatus, providerPaymentId);
+  // Atualizar status diretamente na tabela de pedidos
+  await supabaseAdmin
+    .from("payment_orders")
+    .update({
+      status: internalStatus,
+      provider_payment_id: providerPaymentId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", paymentOrderId);
+  if (internalStatus === "approved") {
+    const { data: order } = await supabaseAdmin
+      .from("payment_orders")
+      .select("*")
+      .eq("id", paymentOrderId)
+      .single();
+    if (order?.user_id && order?.recipe_id) {
+      await supabaseAdmin
+        .from("recipe_purchases")
+        .upsert({
+          tenant_id: order.tenant_id,
+          user_id: order.user_id,
+          recipe_id: order.recipe_id,
+          amount_paid: order.amount_brl,
+          provider: "stripe",
+          provider_payment_id: providerPaymentId,
+        });
+    }
+  }
   await logAuditEvent({
     tenantId,
     actorType: "system",

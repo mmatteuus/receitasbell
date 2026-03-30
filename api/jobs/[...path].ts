@@ -2,8 +2,6 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 
 import jobCleanup from "../../api_handlers/jobs/cleanup.js";
 import jobConsistency from "../../api_handlers/jobs/consistency.js";
-import jobReconcile from "../../api_handlers/jobs/reconcile.js";
-import jobRepairConnections from "../../api_handlers/jobs/payments/repair-connections.js";
 
 type RouteHandler = (request: VercelRequest, response: VercelResponse) => Promise<unknown> | unknown;
 
@@ -34,8 +32,6 @@ function readPath(request: VercelRequest, prefix: string): string[] {
 const routes: Record<string, RouteHandler> = {
   "cleanup": jobCleanup,
   "consistency": jobConsistency,
-  "reconcile": jobReconcile,
-  "payments/repair-connections": jobRepairConnections,
 };
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {

@@ -1,5 +1,14 @@
 import { supabase, supabaseAdmin } from "../integrations/supabase/client.js";
 
+type CategoryRow = {
+  id: string | number;
+  slug: string;
+  name: string;
+  description: string | null;
+  created_at: string;
+  tenant_id: string | number;
+};
+
 export interface Category {
   id: string | number;
   slug: string;
@@ -74,13 +83,13 @@ export async function deleteCategory(tenantId: string | number, id: string | num
   if (error) throw error;
 }
 
-function mapCategoryRowToRecord(record: any): Category {
-    return {
-        id: record.id,
-        slug: record.slug,
-        name: record.name,
-        description: record.description || "",
-        createdAt: record.created_at,
-        tenantId: String(record.tenant_id),
-    };
+function mapCategoryRowToRecord(record: CategoryRow): Category {
+  return {
+    id: record.id,
+    slug: record.slug,
+    name: record.name,
+    description: record.description || "",
+    createdAt: record.created_at,
+    tenantId: String(record.tenant_id),
+  };
 }

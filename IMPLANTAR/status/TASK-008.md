@@ -18,4 +18,5 @@
   - Atualização no `.env.example` e no parser `env.ts`.
   - Documento com IDs das tabelas e explicação da feature flag.
   - Log com confirmação que as tabelas existem e estão acessíveis pelo token.
+  - **Status parcial:** flags e parser atualizados; falta registrar IDs e confirmar tabelas.
 - **Após concluir:** delete este arquivo e toque TASK-009.

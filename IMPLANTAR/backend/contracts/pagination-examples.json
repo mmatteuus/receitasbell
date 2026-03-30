@@ -1,0 +1,10 @@
+{
+  "cursor_response": {
+    "data": [],
+    "pagination": {
+      "cursor": "eyJpZCI6MTAwfQ==",
+      "has_more": false,
+      "limit": 25
+    }
+  }
+}
