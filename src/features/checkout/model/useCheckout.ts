@@ -312,18 +312,11 @@ export function useCheckout({
         return;
       }
 
-      const result = await paymentRepo.createCheckout({
-        recipeIds: items.map((item) => item.recipeId),
-        items,
-        payerName: payerName.trim() || buyerEmail.split("@")[0],
-        payerEmail: buyerEmail,
-        checkoutReference: checkoutReferenceRef.current,
-      });
-
-      if (result.checkoutUrl || (result as any).url) {
+      const checkoutUrl = result.checkoutUrl;
+      if (checkoutUrl) {
         setStatus("redirecting");
         toast.success("Redirecionando para o checkout seguro do Stripe...");
-        window.location.assign(result.checkoutUrl || (result as any).url);
+        window.location.assign(checkoutUrl);
         return;
       }
 
