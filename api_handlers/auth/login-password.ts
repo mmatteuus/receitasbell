@@ -36,7 +36,7 @@ export default withApiHandler(async (req, res, { requestId, logger }) => {
       tenantId: profile.organization_id,
       userId: data.user.id,
       email: data.user.email!,
-      role: (profile.role as any) || "member",
+      role: (profile.role as string) || "member",
     });
 
     return json(res, 200, {

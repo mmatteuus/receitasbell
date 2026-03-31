@@ -56,9 +56,10 @@ export default function UserLoginPage() {
       await requestMagicLink({ email: normalized, redirectTo: redirectTarget });
       setState("sent");
       toast.success("Link enviado!");
-    } catch (err: any) {
+    } catch (err: unknown) {
       setState("idle");
-      toast.error(err.message || "Erro ao enviar link.");
+      const message = err instanceof Error ? err.message : "Erro ao enviar link.";
+      toast.error(message);
     }
   }
 
@@ -73,9 +74,10 @@ export default function UserLoginPage() {
       await loginWithPassword({ email, password });
       toast.success("Bem-vindo(a)!");
       navigate(redirectTarget);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setState("idle");
-      toast.error(err.message || "Erro ao entrar. Verifique seus dados.");
+      const message = err instanceof Error ? err.message : "Erro ao entrar. Verifique seus dados.";
+      toast.error(message);
     }
   }
 
@@ -90,9 +92,10 @@ export default function UserLoginPage() {
       await signupWithPassword({ email, password, fullName });
       toast.success("Conta criada com sucesso!");
       navigate(redirectTarget);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setState("idle");
-      toast.error(err.message || "Erro ao criar conta.");
+      const message = err instanceof Error ? err.message : "Erro ao criar conta.";
+      toast.error(message);
     }
   }
 
@@ -108,9 +111,10 @@ export default function UserLoginPage() {
       setState("sent");
       setFeedback("Instruções de recuperação enviadas.");
       toast.success("E-mail enviado!");
-    } catch (err: any) {
+    } catch (err: unknown) {
       setState("idle");
-      toast.error(err.message || "Erro ao solicitar recuperação.");
+      const message = err instanceof Error ? err.message : "Erro ao solicitar recuperação.";
+      toast.error(message);
     }
   }
 
