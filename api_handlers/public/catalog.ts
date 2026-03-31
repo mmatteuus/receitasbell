@@ -24,7 +24,7 @@ function normalizeOrder(value: string | null): RecipeListOrder {
   return "latest";
 }
 
-export default withApiHandler(async (request, response, { requestId }) => {
+export default withApiHandler(async (request: VercelRequest, response: VercelResponse, { requestId }: { requestId: string }) => {
   assertMethod(request, ["GET"]);
   const { tenant } = await requireTenantFromRequest(request);
 

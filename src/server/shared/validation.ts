@@ -14,7 +14,8 @@ const SENSITIVE_KEYS = [
   'password', 'secret', 'token', 'key', 'cookie', 
   'cvv', 'card_number', 'access_token', 'refresh_token',
   'mp_access_token', 'mp_public_key', 'mp_webhook_secret',
-  'api_key', 'authorization', 'client_secret'
+  'api_key', 'authorization', 'client_secret',
+  'stripe', 'supabase'
 ];
 
 export function sanitize<T>(obj: T): T {

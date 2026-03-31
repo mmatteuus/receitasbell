@@ -6,7 +6,7 @@ import { newsletterSchema } from '../../src/server/shared/validators.js';
 import { requireSameOriginIfPresent } from '../../src/server/security/csrf.js';
 import { rateLimit } from '../../src/server/shared/rateLimit.js';
 
-export default withApiHandler(async (request, response, { requestId }) => {
+export default withApiHandler(async (request: VercelRequest, response: VercelResponse, { requestId }: { requestId: string }) => {
   assertMethod(request, ['POST']);
   requireSameOriginIfPresent(request);
   const limiter = await rateLimit(`newsletter:${getClientAddress(request)}`, {

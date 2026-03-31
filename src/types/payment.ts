@@ -31,6 +31,7 @@ export interface AdminPaymentsFilters {
 
 export interface CreatePaymentPreferenceInput {
   recipeIds: string[];
+  recipeSlug?: string;
   items?: Array<{
     recipeId: string;
     title: string;

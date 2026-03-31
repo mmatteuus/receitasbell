@@ -6,12 +6,7 @@ import { getStripeAppEnvAsync, env } from "../../../../shared/env.js";
 import { getRecipeBySlug } from "../../../../recipes/repo.js";
 import { createPaymentOrder, updatePaymentOrderInternal } from "../../../repo.js";
 import type { CartItem } from "../../../../../types/cart.js";
-
-interface CheckoutSessionRequest {
-  tenantId: string;
-  recipeSlug: string;
-  userId: string;
-}
+import { requireTenantFromRequest } from "../../../../tenancy/resolver.js";
 
 export default withApiHandler(async (req: VercelRequest, res: VercelResponse, { logger }) => {
   if (req.method !== "POST") {
@@ -19,16 +14,17 @@ export default withApiHandler(async (req: VercelRequest, res: VercelResponse, { 
     return;
   }
 
-  const { tenantId, recipeSlug, userId } = req.body as CheckoutSessionRequest;
+  const { tenant } = await requireTenantFromRequest(req);
+  const { recipeSlug, userId } = req.body as { recipeSlug: string; userId: string };
 
-  if (!tenantId || !recipeSlug || !userId) {
-    res.status(400).json({ error: "Missing required parameters (tenantId, recipeSlug, userId)" });
+  if (!recipeSlug || !userId) {
+    res.status(400).json({ error: "Missing required parameters (recipeSlug, userId)" });
     return;
   }
 
-  await getStripeAppEnvAsync(tenantId);
+  await getStripeAppEnvAsync(tenant.id);
 
-  const recipe = await getRecipeBySlug(tenantId, recipeSlug);
+  const recipe = await getRecipeBySlug(tenant.id, recipeSlug);
   if (!recipe || recipe.accessTier !== "paid" || !recipe.priceBRL) {
     res.status(400).json({ error: "Recipe invalid or free tier." });
     return;
@@ -37,7 +33,7 @@ export default withApiHandler(async (req: VercelRequest, res: VercelResponse, { 
   const { data: storedAccount } = await supabaseAdmin
     .from("stripe_connect_accounts")
     .select("stripe_account_id")
-    .eq("tenant_id", tenantId)
+    .eq("tenant_id", tenant.id)
     .maybeSingle();
 
   if (!storedAccount?.stripe_account_id) {
@@ -48,7 +44,7 @@ export default withApiHandler(async (req: VercelRequest, res: VercelResponse, { 
   const orderId = crypto.randomUUID();
   const amountCents = Math.round(recipe.priceBRL * 100);
   
-  const order = await createPaymentOrder(tenantId, {
+  const order = await createPaymentOrder(tenant.id, {
     userId,
     recipeIds: [recipe.id],
     amount: amountCents,
@@ -72,7 +68,7 @@ export default withApiHandler(async (req: VercelRequest, res: VercelResponse, { 
   const applicationFeeAmount = Math.round(amountCents * 0.1);
 
   const session = await stripeClient.checkout.sessions.create({
-    payment_method_types: ["card", "boleto", "pix"],
+    payment_method_types: ["card", "pix"],
     line_items: [
       {
         price_data: {
@@ -98,14 +94,14 @@ export default withApiHandler(async (req: VercelRequest, res: VercelResponse, { 
       },
     },
     metadata: {
-      tenantId,
+      tenantId: tenant.id,
       userId,
       recipeId: recipe.id,
       orderId: order.id,
     }
   });
 
-  await updatePaymentOrderInternal(tenantId, order.id, {
+  await updatePaymentOrderInternal(tenant.id, order.id, {
     providerPaymentId: session.id
   });
 

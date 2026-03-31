@@ -37,9 +37,10 @@ export async function createCheckoutPreference(
 
   return createCheckout({
     recipeIds: input.recipeIds?.length ? input.recipeIds : input.items?.map((item) => item.recipeId) || [],
+    recipeSlug: input.recipeSlug,
     items: checkoutItems,
     payerName: input.payerName,
-    buyerEmail: input.payerEmail,
+    userId: input.payerEmail,
     checkoutReference: input.checkoutReference,
   });
 }

@@ -120,9 +120,10 @@ export async function subscribeToNewsletter(input: {
 
 export async function createCheckout(input: {
   recipeIds: string[];
+  recipeSlug?: string;
   items?: CartItem[];
   payerName?: string;
-  buyerEmail: string;
+  userId: string;
   checkoutReference: string;
 }) {
   return jsonFetch<CreatePaymentPreferenceResult>('/api/payments/checkout/session', {

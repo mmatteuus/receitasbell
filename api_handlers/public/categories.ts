@@ -3,7 +3,7 @@ import { withApiHandler, json, assertMethod, setPublicCache } from '../../src/se
 import { requireTenantFromRequest } from '../../src/server/tenancy/resolver.js';
 import { listCategories } from '../../src/server/categories/repo.js';
 
-export default withApiHandler(async (request, response, { requestId }) => {
+export default withApiHandler(async (request: VercelRequest, response: VercelResponse, { requestId }: { requestId: string }) => {
   assertMethod(request, ['GET']);
   const { tenant } = await requireTenantFromRequest(request);
 
