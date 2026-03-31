@@ -68,6 +68,36 @@ export async function requestMagicLink(input: { email: string; redirectTo?: stri
   });
 }
 
+export async function loginWithPassword(input: { email: string; password: string }) {
+  return jsonFetch<AuthMeResponse>("/api/auth/login-password", {
+    method: "POST",
+    body: {
+      email: input.email.trim().toLowerCase(),
+      password: input.password,
+    },
+  });
+}
+
+export async function signupWithPassword(input: { email: string; password: string; fullName: string }) {
+  return jsonFetch<AuthMeResponse>("/api/auth/signup-password", {
+    method: "POST",
+    body: {
+      email: input.email.trim().toLowerCase(),
+      password: input.password,
+      fullName: input.fullName,
+    },
+  });
+}
+
+export async function requestPasswordReset(input: { email: string }) {
+  return jsonFetch<{ success: boolean }>("/api/auth/reset-password", {
+    method: "POST",
+    body: {
+      email: input.email.trim().toLowerCase(),
+    },
+  });
+}
+
 export async function verifyMagicLink(input: { token: string }) {
   return jsonFetch<MagicLinkResponse>("/api/auth/verify-magic-link", {
     method: "POST",

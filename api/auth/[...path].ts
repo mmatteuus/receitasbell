@@ -6,6 +6,10 @@ import authRequestMagicLink from "../../api_handlers/auth/request-magic-link.js"
 import authVerifyMagicLink from "../../api_handlers/auth/verify-magic-link.js";
 import authOAuthStart from "../../api_handlers/auth/oauth-start.js";
 import authOAuthCallback from "../../api_handlers/auth/oauth-callback.js";
+import authLoginPassword from "../../api_handlers/auth/login-password.js";
+import authSignupPassword from "../../api_handlers/auth/signup-password.js";
+import authResetPassword from "../../api_handlers/auth/reset-password.js";
+
 
 type RouteHandler = (request: VercelRequest, response: VercelResponse) => Promise<unknown> | unknown;
 
@@ -42,6 +46,9 @@ const routes: Record<string, RouteHandler> = {
   "verify-magic-link": authVerifyMagicLink,
   "oauth/start": authOAuthStart,
   "oauth/callback": authOAuthCallback,
+  "login-password": authLoginPassword,
+  "signup-password": authSignupPassword,
+  "reset-password": authResetPassword,
 };
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
