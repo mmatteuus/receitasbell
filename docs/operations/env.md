@@ -1,19 +1,21 @@
 # Environment Variables Documentation
 
 ## Core
-- `NODE_ENV`: `production` or `development`.
-- `APP_BASE_URL`: Public base URL of the app (for callbacks and links).
-- `ADMIN_API_SECRET`: Bootstrap secret for first-run admin setup. In production it is not a global admin bypass.
-- `CRON_SECRET`: Secret used by `/api/jobs/*`.
-- `APP_COOKIE_SECRET`: Cookie signing secret.
-- `ENCRYPTION_KEY`: Base64 value for a 32-byte key (AES-256-GCM for encrypted fields at rest).
 
-## Storage (Baserow)
+- `NODE_ENV`: `production` or `development`.
+- `APP_BASE_URL`: public base URL used in callbacks and links.
+- `ADMIN_API_SECRET`: bootstrap secret for the first admin session.
+- `CRON_SECRET`: secret accepted by `/api/jobs/*`.
+- `APP_COOKIE_SECRET`: cookie signing/encryption secret.
+- `ENCRYPTION_KEY`: base64 value for a 32-byte key.
+
+## Baserow
+
+Legacy and operational modules still depend on Baserow.
+
 - `BASEROW_API_URL`
 - `BASEROW_API_TOKEN`
-- `BASEROW_TIMEOUT_MS`: Optional timeout for Baserow requests in milliseconds.
-
-### Required table IDs
+- `BASEROW_TIMEOUT_MS`
 - `BASEROW_TABLE_TENANTS`
 - `BASEROW_TABLE_USERS`
 - `BASEROW_TABLE_TENANT_USERS`
@@ -26,31 +28,48 @@
 - `BASEROW_TABLE_AUDIT_LOGS`
 - `BASEROW_TABLE_SESSIONS`
 - `BASEROW_TABLE_MAGIC_LINKS`
-
-### Optional table IDs
 - `BASEROW_TABLE_OAUTH_STATES`
-- `BASEROW_TABLE_MP_CONNECTIONS` (required to persist Mercado Pago OAuth seller connections safely)
+- `BASEROW_TABLE_STRIPE_CONNECTIONS`
+- `BASEROW_TABLE_STRIPE_OAUTH_STATES`
 - `BASEROW_TABLE_FAVORITES`
 - `BASEROW_TABLE_COMMENTS`
 - `BASEROW_TABLE_RATINGS`
 - `BASEROW_TABLE_SHOPPING_LIST`
 - `BASEROW_TABLE_NEWSLETTER`
 
-## Mercado Pago
-- `MERCADO_PAGO_CLIENT_ID`: OAuth app Client ID (platform-level).
-- `MERCADO_PAGO_CLIENT_SECRET`: OAuth app Client Secret (platform-level).
-- `MERCADO_PAGO_REDIRECT_URI`: Optional explicit OAuth callback URL.
-- `MERCADO_PAGO_WEBHOOK_SECRET`: Preferred webhook secret env.
-- `MP_WEBHOOK_SECRET`: Legacy alias for webhook secret.
+## Supabase
 
-O fluxo operacional de checkout seller-aware usa exclusivamente conexões OAuth por tenant persistidas em `MP_CONNECTIONS`.
+Auth and profile persistence already run on Supabase.
 
-## Rate limit / readiness
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `SUPABASE_ANON_KEY`
+
+## Stripe Connect
+
+- `STRIPE_CLIENT_ID`
+- `STRIPE_SECRET_KEY`
+- `STRIPE_REDIRECT_URI`
+- `STRIPE_WEBHOOK_SECRET`
+
+## Social Auth
+
+- `AUTH_SOCIAL_ENABLED`
+- `AUTH_SOCIAL_ALLOWED_TENANTS`
+- `GOOGLE_OAUTH_CLIENT_ID`
+- `GOOGLE_OAUTH_CLIENT_SECRET`
+- `GOOGLE_OAUTH_REDIRECT_URI`
+- `BASEROW_TABLE_AUTH_OAUTH_STATES`
+- `BASEROW_TABLE_USER_IDENTITIES`
+
+## Email
+
+- `RESEND_API_KEY`
+- `EMAIL_FROM`
+
+## Rate Limit / Readiness
+
 - `UPSTASH_REDIS_REST_URL`
 - `UPSTASH_REDIS_REST_TOKEN`
 
-If Upstash is missing, readiness can report `degraded` and rate limiting can fall back to in-memory only for non-critical environments.
-
-## Email
-- `RESEND_API_KEY`
-- `EMAIL_FROM`
+If Upstash is missing, readiness can report `degraded` and rate limiting falls back to in-memory mode outside critical production paths.

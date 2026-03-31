@@ -1,38 +1,40 @@
-import type { VercelRequest, VercelResponse } from "@vercel/node";
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { sendNotFound } from '../../src/server/shared/http.js';
 
-import adminCategories from "../../api_handlers/admin/categories.js";
-import adminEntitlements from "../../api_handlers/admin/entitlements.js";
-import adminRecipes from "../../api_handlers/admin/recipes.js";
-import adminSettings from "../../api_handlers/admin/settings.js";
-import adminPayments from "../../api_handlers/admin/payments.js";
-import adminPaymentById from "../../api_handlers/admin/payments/[id].js";
-import adminPaymentNote from "../../api_handlers/admin/payments/[id]/note.js";
-import adminPaymentSettings from "../../api_handlers/admin/payments/settings.js";
-import adminAuthBootstrap from "../../api_handlers/admin/auth/bootstrap.js";
-import adminAuthSession from "../../api_handlers/admin/auth/session.js";
+import adminCategories from '../../api_handlers/admin/categories.js';
+import adminEntitlements from '../../api_handlers/admin/entitlements.js';
+import adminRecipes from '../../api_handlers/admin/recipes.js';
+import adminSettings from '../../api_handlers/admin/settings.js';
+import adminPayments from '../../api_handlers/admin/payments.js';
+import adminPaymentById from '../../api_handlers/admin/payments/[id].js';
+import adminPaymentNote from '../../api_handlers/admin/payments/[id]/note.js';
+import adminPaymentSettings from '../../api_handlers/admin/payments/settings.js';
+import adminAuthBootstrap from '../../api_handlers/admin/auth/bootstrap.js';
+import adminAuthSession from '../../api_handlers/admin/auth/session.js';
 
-type RouteHandler = (request: VercelRequest, response: VercelResponse) => Promise<unknown> | unknown;
+type RouteHandler = (
+  request: VercelRequest,
+  response: VercelResponse
+) => Promise<unknown> | unknown;
 
 function readPath(request: VercelRequest, prefix: string): string[] {
   const value = request.query.path;
   if (Array.isArray(value) && value.length > 0) {
-    return value
-      .map((part) => String(part).trim())
-      .filter(Boolean);
+    return value.map((part) => String(part).trim()).filter(Boolean);
   }
-  if (typeof value === "string" && value.length > 0) {
+  if (typeof value === 'string' && value.length > 0) {
     return value
-      .split("/")
+      .split('/')
       .map((part) => part.trim())
       .filter(Boolean);
   }
 
-  const pathname = (request.url || "").split("?")[0] || "";
+  const pathname = (request.url || '').split('?')[0] || '';
   if (!pathname.startsWith(prefix)) return [];
 
   return pathname
     .slice(prefix.length)
-    .split("/")
+    .split('/')
     .map((part) => part.trim())
     .filter(Boolean);
 }
@@ -44,37 +46,36 @@ function setQueryParam(request: VercelRequest, key: string, value: string) {
 }
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
-  const parts = readPath(request, "/api/admin/");
+  const parts = readPath(request, '/api/admin/');
 
   let target: RouteHandler | null = null;
 
-  if (parts.length === 2 && parts[0] === "auth" && parts[1] === "bootstrap") {
+  if (parts.length === 2 && parts[0] === 'auth' && parts[1] === 'bootstrap') {
     target = adminAuthBootstrap;
-  } else if (parts.length === 2 && parts[0] === "auth" && parts[1] === "session") {
+  } else if (parts.length === 2 && parts[0] === 'auth' && parts[1] === 'session') {
     target = adminAuthSession;
-  } else if (parts.length === 1 && parts[0] === "categories") {
+  } else if (parts.length === 1 && parts[0] === 'categories') {
     target = adminCategories;
-  } else if (parts.length === 1 && parts[0] === "entitlements") {
+  } else if (parts.length === 1 && parts[0] === 'entitlements') {
     target = adminEntitlements;
-  } else if (parts.length === 1 && parts[0] === "payments") {
+  } else if (parts.length === 1 && parts[0] === 'payments') {
     target = adminPayments;
-  } else if (parts.length === 2 && parts[0] === "payments" && parts[1] === "settings") {
+  } else if (parts.length === 2 && parts[0] === 'payments' && parts[1] === 'settings') {
     target = adminPaymentSettings;
-  } else if (parts.length === 2 && parts[0] === "payments") {
-    setQueryParam(request, "id", parts[1]);
+  } else if (parts.length === 2 && parts[0] === 'payments') {
+    setQueryParam(request, 'id', parts[1]);
     target = adminPaymentById;
-  } else if (parts.length === 3 && parts[0] === "payments" && parts[2] === "note") {
-    setQueryParam(request, "id", parts[1]);
+  } else if (parts.length === 3 && parts[0] === 'payments' && parts[2] === 'note') {
+    setQueryParam(request, 'id', parts[1]);
     target = adminPaymentNote;
-  } else if (parts.length === 1 && parts[0] === "recipes") {
+  } else if (parts.length === 1 && parts[0] === 'recipes') {
     target = adminRecipes;
-  } else if (parts.length === 1 && parts[0] === "settings") {
+  } else if (parts.length === 1 && parts[0] === 'settings') {
     target = adminSettings;
   }
 
   if (!target) {
-    response.status(404).json({ error: "Not found" });
-    return;
+    return sendNotFound(request, response);
   }
 
   await target(request, response);

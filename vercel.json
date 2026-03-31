@@ -8,30 +8,49 @@
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "Strict-Transport-Security", "value": "max-age=31536000; includeSubDomains; preload" },
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=31536000; includeSubDomains; preload"
+        },
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
         { "key": "Reporting-Endpoints", "value": "csp-endpoint=\"/api/security/csp-report\"" },
         {
-          "key": "Content-Security-Policy-Report-Only",
-          "value": "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: https:; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:; connect-src 'self' https:; frame-src https://js.stripe.com; font-src 'self' data: https:; report-uri /api/security/csp-report; report-to csp-endpoint"
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: https:; script-src 'self' https:; style-src 'self' 'unsafe-inline' https:; connect-src 'self' https:; frame-src https://js.stripe.com; font-src 'self' data: https:; report-uri /api/security/csp-report; report-to csp-endpoint"
         },
         { "key": "X-Frame-Options", "value": "DENY" },
-        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(), payment=(self)" }
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=(), payment=(self)"
+        }
       ]
     },
     { "source": "/api/admin/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-store" }] },
     { "source": "/api/auth/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-store" }] },
     { "source": "/api/me/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-store" }] },
-    { "source": "/api/payments/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-store" }] },
+    {
+      "source": "/api/payments/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "no-store" }]
+    },
     { "source": "/api/jobs/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-store" }] },
-    { "source": "/api/security/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-store" }] },
+    {
+      "source": "/api/security/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "no-store" }]
+    },
     { "source": "/api/health(.*)", "headers": [{ "key": "Cache-Control", "value": "no-store" }] }
   ],
+  "crons": [{ "path": "/api/jobs/cleanup", "schedule": "0 3 * * *" }],
   "rewrites": [
     { "source": "/api/health", "destination": "/api/health/live" },
-    { "source": "/api/admin/payments/settings", "destination": "/api/admin/payments?path=payments/settings" },
-    { "source": "/api/admin/payments/:id/note", "destination": "/api/admin/payments?path=payments/:id/note" },
+    {
+      "source": "/api/admin/payments/settings",
+      "destination": "/api/admin/payments?path=payments/settings"
+    },
+    {
+      "source": "/api/admin/payments/:id/note",
+      "destination": "/api/admin/payments?path=payments/:id/note"
+    },
     { "source": "/api/admin/payments/:id", "destination": "/api/admin/payments?path=payments/:id" },
     { "source": "/@vite/:path*", "destination": "/@vite/:path*" },
     { "source": "/src/:path*", "destination": "/src/:path*" },

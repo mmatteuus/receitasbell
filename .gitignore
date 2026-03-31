@@ -31,3 +31,7 @@ test-results
 .vercel
 .env
 .env*.local
+
+# Debug outputs
+lint_output*.txt
+ts_errors*.txt

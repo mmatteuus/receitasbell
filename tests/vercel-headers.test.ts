@@ -1,9 +1,9 @@
-import { readFileSync } from "node:fs";
-import { describe, expect, test } from "vitest";
+import { readFileSync } from 'node:fs';
+import { describe, expect, test } from 'vitest';
 
-describe("vercel.json hardening headers", () => {
-  test("contains required security headers rollout", () => {
-    const raw = readFileSync("vercel.json", "utf8");
+describe('vercel.json hardening headers', () => {
+  test('contains required security headers rollout', () => {
+    const raw = readFileSync('vercel.json', 'utf8');
     const parsed = JSON.parse(raw) as {
       headers?: Array<{ source: string; headers: Array<{ key: string; value: string }> }>;
     };
@@ -11,35 +11,47 @@ describe("vercel.json hardening headers", () => {
     const allHeaders = (parsed.headers || []).flatMap((entry) => entry.headers || []);
     const keys = new Set(allHeaders.map((entry) => entry.key));
 
-    expect(keys.has("Strict-Transport-Security")).toBe(true);
-    expect(keys.has("Content-Security-Policy-Report-Only")).toBe(true);
-    expect(keys.has("X-Frame-Options")).toBe(true);
-    expect(keys.has("Permissions-Policy")).toBe(true);
+    expect(keys.has('Strict-Transport-Security')).toBe(true);
+    expect(keys.has('Content-Security-Policy')).toBe(true);
+    expect(keys.has('X-Frame-Options')).toBe(true);
+    expect(keys.has('Permissions-Policy')).toBe(true);
   });
 
-  test("enforces the production build command and single checkout route", () => {
-    const raw = readFileSync("vercel.json", "utf8");
+  test('enforces the production build command and single checkout route', () => {
+    const raw = readFileSync('vercel.json', 'utf8');
     const parsed = JSON.parse(raw) as {
       buildCommand?: string;
       rewrites?: Array<{ source: string; destination: string }>;
     };
 
-    expect(parsed.buildCommand).toBe("npm run gate");
+    expect(parsed.buildCommand).toBe('npm run gate');
 
     const rewriteSources = new Set((parsed.rewrites || []).map((entry) => entry.source));
-    expect(rewriteSources.has("/api/checkout")).toBe(true);
-    expect(rewriteSources.has("/api/payments/mercadopago/create-preference")).toBe(false);
-    expect(rewriteSources.has("/api/payments/mercadopago/webhook")).toBe(false);
+    expect(rewriteSources.has('/api/health')).toBe(true);
+    expect(rewriteSources.has('/api/payments/mercadopago/create-preference')).toBe(false);
+    expect(rewriteSources.has('/api/payments/mercadopago/webhook')).toBe(false);
 
-    const fallback = (parsed.rewrites || []).find((entry) => entry.destination === "/index.html");
+    const fallback = (parsed.rewrites || []).find((entry) => entry.destination === '/index.html');
     expect(fallback).toBeTruthy();
-    expect(fallback?.source).toContain("assets/");
-    expect(fallback?.source).toContain("images/");
-    expect(fallback?.source).toContain("favicon");
-    expect(fallback?.source).toContain("manifest\\.webmanifest");
-    expect(fallback?.source).toContain("registerSW\\.js");
-    expect(fallback?.source).toContain("sw\\.js");
-    expect(fallback?.source).toContain("workbox-");
-    expect(fallback?.source).toContain("robots\\.txt");
+    expect(fallback?.source).toContain('assets/');
+    expect(fallback?.source).toContain('images/');
+    expect(fallback?.source).toContain('favicon');
+    expect(fallback?.source).toContain('manifest\\.webmanifest');
+    expect(fallback?.source).toContain('registerSW\\.js');
+    expect(fallback?.source).toContain('sw\\.js');
+    expect(fallback?.source).toContain('workbox-');
+    expect(fallback?.source).toContain('robots\\.txt');
+  });
+
+  test('schedules cleanup cron', () => {
+    const raw = readFileSync('vercel.json', 'utf8');
+    const parsed = JSON.parse(raw) as {
+      crons?: Array<{ path: string; schedule: string }>;
+    };
+
+    expect(parsed.crons).toContainEqual({
+      path: '/api/jobs/cleanup',
+      schedule: '0 3 * * *',
+    });
   });
 });
