@@ -25,7 +25,7 @@ export async function getConnectAccountByTenantId(tenantId: string): Promise<Str
     .maybeSingle();
 
   if (error || !data) return null;
-  return mapRowToAccount(data);
+  return mapRowToAccount(data as StripeConnectRow);
 }
 
 export async function upsertConnectAccount(account: Partial<StripeConnectAccount> & { tenantId: string }): Promise<StripeConnectAccount> {
@@ -37,14 +37,14 @@ export async function upsertConnectAccount(account: Partial<StripeConnectAccount
     .single();
 
   if (error) throw new ApiError(500, "Erro ao persistir conta Stripe Connect", { original: error });
-  return mapRowToAccount(data);
+  return mapRowToAccount(data as StripeConnectRow);
 }
 
 function mapRowToAccount(row: StripeConnectRow): StripeConnectAccount {
   return {
     tenantId: row.tenant_id,
     stripeAccountId: row.stripe_account_id,
-    status: row.status as any,
+    status: row.status as StripeConnectAccount["status"],
     detailsSubmitted: row.details_submitted,
     chargesEnabled: row.charges_enabled,
     payoutsEnabled: row.payouts_enabled,

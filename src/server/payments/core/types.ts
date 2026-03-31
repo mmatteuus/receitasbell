@@ -38,8 +38,8 @@ export interface PaymentOrder {
   preferenceId?: string | null;
   
   recipeIds: string[];
-  items: any[];
-  metadata?: Record<string, any> | null;
+  items: unknown[];
+  metadata?: Record<string, unknown> | null;
   
   createdAt: string;
   updatedAt: string;

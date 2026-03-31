@@ -1,8 +1,10 @@
 import { withApiHandler } from "../../../../shared/http.js";
+import type { NextApiRequest, NextApiResponse } from "next";
 import { stripeClient } from "../../../providers/stripe/client.js";
+import type Stripe from "stripe";
 import { env } from "../../../../shared/env.js";
 import { supabaseAdmin } from "../../../../integrations/supabase/client.js";
-import { updatePaymentOrderInternal, getPaymentOrderById } from "../../../repo.js";
+import { updatePaymentOrderStatus, getPaymentOrderById } from "../../../repo.js";
 
 async function buffer(readable: NodeJS.ReadableStream): Promise<Buffer> {
   const chunks: Buffer[] = [];
@@ -18,7 +20,7 @@ export const config = {
   },
 };
 
-export default withApiHandler<void>(async (req, res) => {
+export default withApiHandler(async (req: NextApiRequest, res: NextApiResponse) => {
   if (req.method !== "POST") {
     res.status(405).json({ error: "Method not allowed" });
     return;
@@ -34,14 +36,15 @@ export default withApiHandler<void>(async (req, res) => {
       signature,
       env.STRIPE_WEBHOOK_SECRET!
     );
-  } catch (err: any) {
-    console.error(`Webhook Signature Error: ${err.message}`);
+  } catch (err: unknown) {
+    const error = err as Error;
+    console.error(`Webhook Signature Error: ${error.message}`);
     res.status(400).send(`Webhook Error: ${err.message}`);
     return;
   }
 
   if (event.type === 'checkout.session.completed') {
-    const session = event.data.object as any;
+    const session = event.data.object as Stripe.Checkout.Session;
     const orderId = session.client_reference_id;
     const tenantId = session.metadata?.tenantId;
 
@@ -64,10 +67,7 @@ export default withApiHandler<void>(async (req, res) => {
       return;
     }
 
-    await updatePaymentOrderInternal(tenantId, orderId, {
-      status: 'approved',
-      provider_payment_id: session.payment_intent || session.id
-    });
+    await updatePaymentOrderStatus(tenantId, orderId, 'approved', (session.payment_intent as string) || session.id);
 
     if (order.recipeIds && order.recipeIds.length > 0) {
       const entitlements = order.recipeIds.map(recipeId => ({
@@ -76,7 +76,7 @@ export default withApiHandler<void>(async (req, res) => {
         recipe_id: recipeId,
         amount_paid: Number((order.amount / 100).toFixed(2)),
         provider: 'stripe',
-        provider_payment_id: session.payment_intent || session.id,
+        provider_payment_id: (session.payment_intent as string) || session.id,
         payment_order_id: order.id
       }));
 
