@@ -3,23 +3,21 @@ import { withApiHandler, json, assertMethod, setPublicCache } from '../../src/se
 import { requireTenantFromRequest } from '../../src/server/tenancy/resolver.js';
 import { listCategories } from '../../src/server/categories/repo.js';
 
-export default async function handler(request: VercelRequest, response: VercelResponse) {
-  return withApiHandler(request, response, async ({ requestId }) => {
-    assertMethod(request, ['GET']);
-    const { tenant } = await requireTenantFromRequest(request);
+export default withApiHandler(async (request, response, { requestId }) => {
+  assertMethod(request, ['GET']);
+  const { tenant } = await requireTenantFromRequest(request);
 
-    setPublicCache(response, 3600); // 1 hour
+  setPublicCache(response, 3600); // 1 hour
 
-    const categories = await listCategories(tenant.id);
+  const categories = await listCategories(tenant.id);
 
-    return json(response, 200, {
-      categories,
-      items: categories,
-      meta: {
-        total: categories.length,
-        tenantId: tenant.id
-      },
-      requestId
-    });
+  return json(response, 200, {
+    categories,
+    items: categories,
+    meta: {
+      total: categories.length,
+      tenantId: tenant.id
+    },
+    requestId
   });
-}
+});

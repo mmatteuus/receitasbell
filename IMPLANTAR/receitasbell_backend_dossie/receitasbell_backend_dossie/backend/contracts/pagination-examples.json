@@ -1,0 +1,10 @@
+{
+  "catalog_page": {
+    "items": [],
+    "meta": {
+      "nextCursor": "opaque_cursor",
+      "limit": 25
+    },
+    "requestId": "req_example"
+  }
+}
