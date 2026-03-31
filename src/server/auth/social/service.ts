@@ -9,7 +9,7 @@ import {
   createSocialIdentity, 
   updateSocialIdentityLastLogin 
 } from "./repo.js";
-import { createSession } from "../sessions.js";
+import { createSession, type Session } from "../sessions.js";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { supabaseAdmin } from "../../integrations/supabase/client.js";
 import { logger } from "../../shared/logger.js";
@@ -155,7 +155,7 @@ async function resolveOrCreateTenantUser(input: {
           userId: profile.id,
           email: profile.email,
           tenantId: input.tenantId,
-          role: (profile.role as any) || "user",
+          role: (profile.role as Session["role"]) || "user",
         };
       }
     }
@@ -170,11 +170,11 @@ async function resolveOrCreateTenantUser(input: {
     .maybeSingle();
 
   let targetUserId: string;
-  let targetRole: "user" | "admin" = "user";
+  let targetRole: Session["role"] = "user";
 
   if (existingProfile) {
     targetUserId = existingProfile.id;
-    targetRole = (existingProfile.role as any) || "user";
+    targetRole = (existingProfile.role as Session["role"]) || "user";
     logger.info("Found existing profile for social login", { email: normalizedEmail, tenantId: input.tenantId });
   } else {
     // 3. Cria novo perfil no Supabase

@@ -20,6 +20,7 @@ export interface SocialIdentityRow {
   id: number;
   provider: SocialProviderId;
   tenantId: string;
+  userId: string | null;
   providerSubject: string;
   email: string;
   emailVerified: boolean;

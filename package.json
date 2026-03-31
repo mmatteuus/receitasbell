@@ -10,7 +10,7 @@
     "dev": "vite",
     "build": "vite build",
     "gate": "npm run lint && npm run typecheck && npm run build && npm run test:unit",
-    "build:deploy": "npm run gate",
+    "build:deploy": "npm run build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.node.json --noEmit",

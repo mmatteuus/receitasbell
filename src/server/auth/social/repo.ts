@@ -1,5 +1,6 @@
 import { ApiError } from "../../shared/http.js";
 import { supabaseAdmin } from "../../integrations/supabase/client.js";
+import { SocialProviderId } from "./providers.js";
 import { SocialIdentityRow, SocialOAuthStateRow, SaveSocialIdentityInput } from "./types.js";
 
 /**
@@ -107,14 +108,14 @@ export async function findSocialIdentity(
     id: Number(data.id),
     tenantId: data.tenant_id,
     userId: data.user_id,
-    provider: data.provider as any,
+    provider: data.provider as SocialProviderId,
     providerSubject: data.provider_subject,
     email: data.email,
     emailVerified: data.email_verified,
     pictureUrl: data.picture_url,
     linkedAt: data.linked_at,
     lastLoginAt: data.last_login_at,
-    status: data.status as any,
+    status: data.status as SocialIdentityRow["status"],
     createdAt: data.created_at,
     updatedAt: data.updated_at,
   };
