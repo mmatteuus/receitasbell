@@ -125,9 +125,10 @@ export default function AccountHome() {
       const { authorizationUrl } = await startSocialLogin("google");
       // O redirect para o Google remove o estado react, então não precisamos de finally aqui
       window.location.assign(authorizationUrl);
-    } catch (error: any) {
-      logger.error("auth.social.google", error);
-      toast.error(error.message || "Erro ao iniciar login com Google");
+    } catch (error: unknown) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error("auth.social.google", err);
+      toast.error(err.message || "Erro ao iniciar login com Google");
       setAuthorizing(false);
     }
   };

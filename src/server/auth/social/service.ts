@@ -137,7 +137,7 @@ async function resolveOrCreateTenantUser(input: {
   const normalizedEmail = input.email.toLowerCase();
 
   // 1. Tenta achar vínculo social existente no Supabase
-  let identity = await findSocialIdentity(input.tenantId, input.provider, input.providerSubject);
+  const identity = await findSocialIdentity(input.tenantId, input.provider, input.providerSubject);
   
   if (identity) {
     await updateSocialIdentityLastLogin(identity.id);
