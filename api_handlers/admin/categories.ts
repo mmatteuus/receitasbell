@@ -23,92 +23,90 @@ function slugify(value: string) {
     .trim();
 }
 
-export default async function handler(request: VercelRequest, response: VercelResponse) {
-  return withApiHandler(request, response, async ({ requestId }) => {
-    const { tenant } = await requireTenantFromRequest(request);
-    const access = await requireAdminAccess(request);
-    const actorType = access.type === "session" ? "admin" : "system";
-    const actorId = access.type === "session" ? access.userId : "admin-api";
+export default withApiHandler(async (request: VercelRequest, response: VercelResponse, { requestId }) => {
+  const { tenant } = await requireTenantFromRequest(request);
+  const access = await requireAdminAccess(request);
+  const actorType = access.type === "session" ? "admin" : "system";
+  const actorId = access.type === "session" ? access.userId : "admin-api";
 
-    const method = (request.method || 'GET').toUpperCase();
-    const url = new URL(request.url || '', 'http://localhost');
-    const id = url.searchParams.get('id');
+  const method = (request.method || 'GET').toUpperCase();
+  const url = new URL(request.url || '', 'http://localhost');
+  const id = url.searchParams.get('id');
 
-      if (method === 'GET') {
-      if (id) {
-        const items = await listCategories(tenant.id);
-        const category = items.find((item) => String(item.id) === String(id));
-        if (!category) throw new ApiError(404, "Category not found");
-        return json(response, 200, { category, item: category, requestId });
-      }
-
+    if (method === 'GET') {
+    if (id) {
       const items = await listCategories(tenant.id);
-      return json(response, 200, { categories: items, items, meta: { total: items.length }, requestId });
+      const category = items.find((item) => String(item.id) === String(id));
+      if (!category) throw new ApiError(404, "Category not found");
+      return json(response, 200, { category, item: category, requestId });
     }
 
-    // CSRF required for mutations
-    if (access.type === "session") {
-      requireCsrf(request);
-    }
+    const items = await listCategories(tenant.id);
+    return json(response, 200, { categories: items, items, meta: { total: items.length }, requestId });
+  }
 
-    if (method === 'POST') {
-      const body = categorySchema.parse(request.body);
-      const result = await createCategory(tenant.id, {
-        ...body,
-        slug: body.slug || slugify(body.name),
-        description: body.description || "",
-      });
-      
-      await logAuditEvent({
-        tenantId: tenant.id,
-        actorType,
-        actorId,
-        action: "create_category",
-        resourceType: "category",
-        resourceId: String(result.id),
-        payload: body
-      });
+  // CSRF required for mutations
+  if (access.type === "session") {
+    requireCsrf(request);
+  }
 
-      return json(response, 201, { category: result, item: result, requestId });
-    }
+  if (method === 'POST') {
+    const body = categorySchema.parse(request.body);
+    const result = await createCategory(tenant.id, {
+      ...body,
+      slug: body.slug || slugify(body.name),
+      description: body.description || "",
+    });
+    
+    await logAuditEvent({
+      tenantId: tenant.id,
+      actorType,
+      actorId,
+      action: "create_category",
+      resourceType: "category",
+      resourceId: String(result.id),
+      payload: body
+    });
 
-    if (method === 'PATCH' || method === 'PUT') {
-      if (!id) throw new ApiError(400, 'Missing category ID');
-      const body = categorySchema.partial().parse(request.body);
-      const result = await updateCategory(tenant.id, id, {
-        ...body,
-        slug: body.slug || (body.name ? slugify(body.name) : undefined),
-      });
+    return json(response, 201, { category: result, item: result, requestId });
+  }
 
-      await logAuditEvent({
-        tenantId: tenant.id,
-        actorType,
-        actorId,
-        action: "update_category",
-        resourceType: "category",
-        resourceId: String(id),
-        payload: body
-      });
+  if (method === 'PATCH' || method === 'PUT') {
+    if (!id) throw new ApiError(400, 'Missing category ID');
+    const body = categorySchema.partial().parse(request.body);
+    const result = await updateCategory(tenant.id, id, {
+      ...body,
+      slug: body.slug || (body.name ? slugify(body.name) : undefined),
+    });
 
-      return json(response, 200, { category: result, item: result, requestId });
-    }
+    await logAuditEvent({
+      tenantId: tenant.id,
+      actorType,
+      actorId,
+      action: "update_category",
+      resourceType: "category",
+      resourceId: String(id),
+      payload: body
+    });
 
-    if (method === 'DELETE') {
-      if (!id) throw new ApiError(400, 'Missing category ID');
-      await deleteCategory(tenant.id, id);
+    return json(response, 200, { category: result, item: result, requestId });
+  }
 
-      await logAuditEvent({
-        tenantId: tenant.id,
-        actorType,
-        actorId,
-        action: "delete_category",
-        resourceType: "category",
-        resourceId: String(id)
-      });
+  if (method === 'DELETE') {
+    if (!id) throw new ApiError(400, 'Missing category ID');
+    await deleteCategory(tenant.id, id);
 
-      return json(response, 200, { success: true, requestId });
-    }
+    await logAuditEvent({
+      tenantId: tenant.id,
+      actorType,
+      actorId,
+      action: "delete_category",
+      resourceType: "category",
+      resourceId: String(id)
+    });
 
-    throw new ApiError(405, `Method ${method} not allowed`);
-  });
-}
+    return json(response, 200, { success: true, requestId });
+  }
+
+  throw new ApiError(405, `Method ${method} not allowed`);
+});

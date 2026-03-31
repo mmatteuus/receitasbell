@@ -125,7 +125,7 @@ export async function createCheckout(input: {
   buyerEmail: string;
   checkoutReference: string;
 }) {
-  return jsonFetch<CreatePaymentPreferenceResult>('/api/checkout', {
+  return jsonFetch<CreatePaymentPreferenceResult>('/api/payments/checkout/session', {
     method: 'POST',
     body: input,
   });

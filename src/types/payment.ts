@@ -8,7 +8,7 @@ export type PaymentStatus =
   | "charged_back";
 
 export type PaymentGateway = "mercado_pago" | "mock" | "stripe";
-export type CheckoutPaymentMethod = "checkout_pro" | "pix" | "card";
+export type CheckoutPaymentMethod = "stripe" | "pix" | "card";
 export type DirectPaymentMethod = Exclude<CheckoutPaymentMethod, "checkout_pro">;
 
 export interface PaymentIdentification {

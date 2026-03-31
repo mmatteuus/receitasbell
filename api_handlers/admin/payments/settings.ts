@@ -4,13 +4,11 @@ import { requireAdminAccess } from "../../../src/server/admin/guards.js";
 import { requireTenantFromRequest } from "../../../src/server/tenancy/resolver.js";
 import { getTenantAdminPaymentSettings } from "../../../src/server/admin/payments.js";
 
-export default async function handler(request: VercelRequest, response: VercelResponse) {
-  return withApiHandler(request, response, async ({ requestId }) => {
-    assertMethod(request, ["GET"]);
-    const { tenant } = await requireTenantFromRequest(request);
-    await requireAdminAccess(request);
+export default withApiHandler(async (request: VercelRequest, response: VercelResponse, { requestId }) => {
+  assertMethod(request, ["GET"]);
+  const { tenant } = await requireTenantFromRequest(request);
+  await requireAdminAccess(request);
 
-    const settings = await getTenantAdminPaymentSettings(request, String(tenant.id));
-    return json(response, 200, { settings, requestId });
-  });
-}
+  const settings = await getTenantAdminPaymentSettings(request, String(tenant.id));
+  return json(response, 200, { settings, requestId });
+});

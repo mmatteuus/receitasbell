@@ -22,113 +22,111 @@ const recipeSchema = z.object({
   difficulty: z.enum(["Fácil", "Médio", "Difícil"]).optional(),
 });
 
-export default async function handler(request: VercelRequest, response: VercelResponse) {
-  return withApiHandler(request, response, async ({ requestId }) => {
-    const { tenant } = await requireTenantFromRequest(request);
-    const access = await requireAdminAccess(request);
-    const actorType = access.type === "session" ? "admin" : "system";
-    const actorId = access.type === "session" ? access.userId : "admin-api";
+export default withApiHandler(async (request: VercelRequest, response: VercelResponse, { requestId }) => {
+  const { tenant } = await requireTenantFromRequest(request);
+  const access = await requireAdminAccess(request);
+  const actorType = access.type === "session" ? "admin" : "system";
+  const actorId = access.type === "session" ? access.userId : "admin-api";
 
-    const method = (request.method || 'GET').toUpperCase();
-    const url = new URL(request.url || '', 'http://localhost');
-    const id = url.searchParams.get('id');
-    const slug = url.searchParams.get('slug');
-    const q = url.searchParams.get('q') || undefined;
-    const categorySlug = url.searchParams.get('categorySlug') || undefined;
-    const idsParam = url.searchParams.get("ids");
-    const ids = idsParam
-      ? idsParam
-          .split(",")
-          .map((value) => value.trim())
-          .filter(Boolean)
-      : undefined;
+  const method = (request.method || 'GET').toUpperCase();
+  const url = new URL(request.url || '', 'http://localhost');
+  const id = url.searchParams.get('id');
+  const slug = url.searchParams.get('slug');
+  const q = url.searchParams.get('q') || undefined;
+  const categorySlug = url.searchParams.get('categorySlug') || undefined;
+  const idsParam = url.searchParams.get("ids");
+  const ids = idsParam
+    ? idsParam
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean)
+    : undefined;
 
-    if (method === 'GET') {
-      if (id) {
-        const recipe = await getRecipeById(tenant.id, id);
-        if (!recipe) throw new ApiError(404, "Recipe not found");
-        return json(response, 200, { recipe, item: recipe, requestId });
-      }
-
-      if (slug) {
-        const recipe = await getRecipeBySlug(tenant.id, slug);
-        if (!recipe) throw new ApiError(404, "Recipe not found");
-        return json(response, 200, { recipe, item: recipe, requestId });
-      }
-
-      const items = await listRecipes(tenant.id, { includeDrafts: true, q, categorySlug, ids });
-      return json(response, 200, { recipes: items, items, meta: { total: items.length }, requestId });
+  if (method === 'GET') {
+    if (id) {
+      const recipe = await getRecipeById(tenant.id, id);
+      if (!recipe) throw new ApiError(404, "Recipe not found");
+      return json(response, 200, { recipe, item: recipe, requestId });
     }
 
-    // CSRF required for mutations
-    if (access.type === "session") {
-      requireCsrf(request);
+    if (slug) {
+      const recipe = await getRecipeBySlug(tenant.id, slug);
+      if (!recipe) throw new ApiError(404, "Recipe not found");
+      return json(response, 200, { recipe, item: recipe, requestId });
     }
 
-    if (method === 'POST') {
-      const body = recipeSchema.parse(request.body);
-      const result = await createRecipe(tenant.id, {
-        ...body,
-        categorySlug: body.categorySlug ?? (body.categoryId ? String(body.categoryId) : undefined),
-      });
-      
-      await logAuditEvent({
-        tenantId: tenant.id,
-        actorType,
-        actorId,
-        action: "create_recipe",
-        resourceType: "recipe",
-        resourceId: String(result.id),
-        payload: body
-      });
+    const items = await listRecipes(tenant.id, { includeDrafts: true, q, categorySlug, ids });
+    return json(response, 200, { recipes: items, items, meta: { total: items.length }, requestId });
+  }
 
-      return json(response, 201, { recipe: result, item: result, requestId });
+  // CSRF required for mutations
+  if (access.type === "session") {
+    requireCsrf(request);
+  }
+
+  if (method === 'POST') {
+    const body = recipeSchema.parse(request.body);
+    const result = await createRecipe(tenant.id, {
+      ...body,
+      categorySlug: body.categorySlug ?? (body.categoryId ? String(body.categoryId) : undefined),
+    });
+    
+    await logAuditEvent({
+      tenantId: tenant.id,
+      actorType,
+      actorId,
+      action: "create_recipe",
+      resourceType: "recipe",
+      resourceId: String(result.id),
+      payload: body
+    });
+
+    return json(response, 201, { recipe: result, item: result, requestId });
+  }
+
+  if (method === 'PATCH' || method === 'PUT') {
+    if (!id) throw new ApiError(400, 'Missing recipe ID');
+    const body = recipeSchema.partial().parse(request.body);
+    const existing = await getRecipeById(tenant.id, id);
+    if (!existing) throw new ApiError(404, "Recipe not found");
+    if (body.baseServerUpdatedAt && existing.updatedAt !== body.baseServerUpdatedAt) {
+      throw new ApiError(409, "Recipe conflict detected", {
+        server: existing,
+      });
     }
+    const result = await updateRecipe(tenant.id, id, {
+      ...body,
+      categorySlug: body.categorySlug ?? (body.categoryId ? String(body.categoryId) : undefined),
+    });
 
-    if (method === 'PATCH' || method === 'PUT') {
-      if (!id) throw new ApiError(400, 'Missing recipe ID');
-      const body = recipeSchema.partial().parse(request.body);
-      const existing = await getRecipeById(tenant.id, id);
-      if (!existing) throw new ApiError(404, "Recipe not found");
-      if (body.baseServerUpdatedAt && existing.updatedAt !== body.baseServerUpdatedAt) {
-        throw new ApiError(409, "Recipe conflict detected", {
-          server: existing,
-        });
-      }
-      const result = await updateRecipe(tenant.id, id, {
-        ...body,
-        categorySlug: body.categorySlug ?? (body.categoryId ? String(body.categoryId) : undefined),
-      });
+    await logAuditEvent({
+      tenantId: tenant.id,
+      actorType,
+      actorId,
+      action: "update_recipe",
+      resourceType: "recipe",
+      resourceId: String(id),
+      payload: body
+    });
 
-      await logAuditEvent({
-        tenantId: tenant.id,
-        actorType,
-        actorId,
-        action: "update_recipe",
-        resourceType: "recipe",
-        resourceId: String(id),
-        payload: body
-      });
+    return json(response, 200, { recipe: result, item: result, requestId });
+  }
 
-      return json(response, 200, { recipe: result, item: result, requestId });
-    }
+  if (method === 'DELETE') {
+    if (!id) throw new ApiError(400, 'Missing recipe ID');
+    await deleteRecipe(tenant.id, id);
 
-    if (method === 'DELETE') {
-      if (!id) throw new ApiError(400, 'Missing recipe ID');
-      await deleteRecipe(tenant.id, id);
+    await logAuditEvent({
+      tenantId: tenant.id,
+      actorType,
+      actorId,
+      action: "delete_recipe",
+      resourceType: "recipe",
+      resourceId: String(id)
+    });
 
-      await logAuditEvent({
-        tenantId: tenant.id,
-        actorType,
-        actorId,
-        action: "delete_recipe",
-        resourceType: "recipe",
-        resourceId: String(id)
-      });
+    return json(response, 200, { success: true, requestId });
+  }
 
-      return json(response, 200, { success: true, requestId });
-    }
-
-    throw new ApiError(405, `Method ${method} not allowed`);
-  });
-}
+  throw new ApiError(405, `Method ${method} not allowed`);
+});

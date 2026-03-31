@@ -59,7 +59,7 @@ export function useCheckout({
   const [payerName, setPayerName] = useState("");
   const [payerNameError, setPayerNameError] = useState("");
   const [status, setStatus] = useState<CheckoutStatus>("idle");
-  const [paymentMethod, setPaymentMethod] = useState<CheckoutPaymentMethod>("checkout_pro");
+  const [paymentMethod, setPaymentMethod] = useState<CheckoutPaymentMethod>("stripe");
   const [paymentConfig, setPaymentConfig] = useState<Awaited<ReturnType<typeof paymentRepo.getCheckoutConfig>> | null>(null);
   const [paymentConfigLoading, setPaymentConfigLoading] = useState(false);
   const [payerDocumentType, setPayerDocumentType] = useState<PaymentIdentification["type"]>("CPF");
@@ -139,7 +139,7 @@ export function useCheckout({
     setPixDialogOpen(false);
     setPayerDocumentNumber("");
     setPayerDocumentType("CPF");
-    setPaymentMethod("checkout_pro");
+    setPaymentMethod("stripe");
     setStatus("idle");
   }, [itemsSignature]);
 
@@ -320,19 +320,15 @@ export function useCheckout({
         checkoutReference: checkoutReferenceRef.current,
       });
 
-      if (result.checkoutUrl) {
+      if (result.checkoutUrl || (result as any).url) {
         setStatus("redirecting");
-        toast.success("Redirecionando para o checkout seguro do Mercado Pago...");
-        window.location.assign(result.checkoutUrl);
+        toast.success("Redirecionando para o checkout seguro do Stripe...");
+        window.location.assign(result.checkoutUrl || (result as any).url);
         return;
       }
 
-      if (isCartCheckout && result.status === "approved") {
-        clearCart();
-      }
-
       setStatus("success");
-      toast.info("Criamos seu pedido. A confirmação final depende do Mercado Pago.");
+      toast.info("Criamos seu pedido. A confirmação final depende do Stripe.");
       navigateToResult(result.status, result.paymentId);
     } catch (error) {
       setStatus("error");
@@ -431,6 +427,7 @@ export function useCheckout({
     let timerId: number | null = null;
 
     async function pollStatus() {
+      if (!pixPayment) return;
       setPixChecking(true);
       try {
         const latest = await paymentRepo.getStatus(String(pixPayment.paymentOrderId));
