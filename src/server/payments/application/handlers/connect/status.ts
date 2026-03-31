@@ -1,55 +1,58 @@
-import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { stripeClient } from "../../../providers/stripe/client.js";
-import { supabaseAdmin } from "../../../../integrations/supabase/client.js";
+import { getConnectAccountByTenantId, upsertConnectAccount } from "../../../repo/accounts.js";
+import { withApiHandler } from "../../../../shared/http.js";
+import { requireTenantAdminSessionContext } from "../../../../auth/sessions.js";
 
-function getTenantId(req: VercelRequest): string {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith("Bearer ")) return "";
-    return "extract-from-token"; // Assuming this is extracted normally via middleware or inside handler.
-}
+/**
+ * GET /api/payments/connect/status
+ * Recupera e sincroniza o status da conta conectada do Stripe para o tenant atual.
+ */
+export default withApiHandler<void>(async (req, res, { logger }) => {
+  // 1. Contexto de Sessão de Admin do Tenant
+  const { tenant } = await requireTenantAdminSessionContext(req);
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
+  logger.info("Verificando status de Stripe Connect", { tenantId: tenant.id });
+
+  // 2. Busca no banco local
+  const stored = await getConnectAccountByTenantId(tenant.id);
+
+  if (!stored?.stripeAccountId) {
+    logger.info("Tenant não possui conta conectada no momento.");
+    res.status(200).json({ connected: false });
+    return;
   }
 
-  try {
-    const tenantId = req.query.tenantId as string || getTenantId(req);
-    if (!tenantId) {
-      return res.status(400).json({ error: "Missing tenantId" });
+  // 3. Sincroniza com o Stripe em tempo real (para admin)
+  const stripeAccount = await stripeClient.accounts.retrieve(stored.stripeAccountId);
+
+  // 4. Salva o status mais recente no banco
+  const updated = await upsertConnectAccount({
+    tenantId: tenant.id,
+    stripeAccountId: stripeAccount.id,
+    status: stripeAccount.details_submitted ? "ready" : "pending",
+    detailsSubmitted: stripeAccount.details_submitted,
+    chargesEnabled: stripeAccount.charges_enabled,
+    payoutsEnabled: stripeAccount.payouts_enabled,
+    defaultCurrency: stripeAccount.default_currency || "BRL",
+    requirements: {
+        currentlyDue: stripeAccount.requirements?.currently_due || [],
+        eventuallyDue: stripeAccount.requirements?.eventually_due || [],
     }
+  });
 
-    const { data: storedAccount } = await supabaseAdmin
-      .from("stripe_connect_accounts")
-      .select("*")
-      .eq("tenant_id", tenantId)
-      .maybeSingle();
+  logger.info("Conta sincronizada com sucesso.", { 
+      stripeAccountId: updated.stripeAccountId,
+      chargesEnabled: updated.chargesEnabled
+  });
 
-    if (!storedAccount?.stripe_account_id) {
-      return res.status(200).json({ connected: false });
-    }
-
-    const account = await stripeClient.accounts.retrieve(storedAccount.stripe_account_id);
-
-    // Sync database with current status from Stripe
-    await supabaseAdmin
-      .from("stripe_connect_accounts")
-      .update({
-        charges_enabled: account.charges_enabled,
-        payouts_enabled: account.payouts_enabled,
-        details_submitted: account.details_submitted,
-      })
-      .eq("tenant_id", tenantId);
-
-    return res.status(200).json({
-      connected: true,
-      chargesEnabled: account.charges_enabled,
-      payoutsEnabled: account.payouts_enabled,
-      detailsSubmitted: account.details_submitted,
-      accountId: account.id,
-    });
-  } catch (error: any) {
-    console.error("Error retrieving connect status:", error);
-    return res.status(500).json({ error: error.message });
-  }
-}
+  res.status(200).json({
+    connected: true,
+    stripeAccountId: updated.stripeAccountId,
+    status: updated.status,
+    chargesEnabled: updated.chargesEnabled,
+    payoutsEnabled: updated.payoutsEnabled,
+    detailsSubmitted: updated.detailsSubmitted,
+    requirements: updated.requirements,
+    payoutsEnabledDetail: stripeAccount.payouts_enabled,
+  });
+});

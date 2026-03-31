@@ -2,6 +2,7 @@ import { supabaseAdmin } from "../integrations/supabase/client.js";
 import type { RecipeRecord } from "../../lib/recipes/types.js";
 import type { AccessTier, Recipe, RecipeStatus } from "../../types/recipe.js";
 import { syncStripeProduct } from "../payments/providers/stripe/productSync.js";
+import { getConnectAccountByTenantId } from "../payments/repo/accounts.js";
 
 type RecipeRow = {
   id: string | number;
@@ -55,7 +56,7 @@ export async function listRecipes(tenantId: string, options: {
   }
 
   if (options.categorySlug && options.categorySlug !== 'all') {
-    query = query.eq('category_id', options.categorySlug); // No Supabase usamos ID ou vinculação
+    query = query.eq('category_id', options.categorySlug); 
   }
 
   if (options.q) {
@@ -70,7 +71,6 @@ export async function listRecipes(tenantId: string, options: {
     query = query.in('id', options.ids);
   }
 
-  // Ordenação
   if (options.ordem === 'timeAsc') {
     query = query.order('total_time_min', { ascending: true });
   } else if (options.ordem === 'timeDesc') {
@@ -84,7 +84,6 @@ export async function listRecipes(tenantId: string, options: {
 
   let results = data.map(mapRecipeRowToRecord);
 
-  // Filtro de tempo (Postgres poderia fazer, mas mantemos lógica local para precisão se necessário)
   if (options.tempo && options.tempo !== 'all') {
       results = results.filter(r => {
           const t = r.totalTime ?? 0;
@@ -194,7 +193,11 @@ export async function createRecipe(tenantId: string, recipe: Partial<RecipeRecor
   const createdRecord = mapRecipeRowToRecord(data);
   
   if (createdRecord.accessTier === "paid" && createdRecord.priceBRL) {
-      await syncStripeProduct(tenantId, "", createdRecord).catch(e => console.error("Stripe sync error", e));
+      const connectAccount = await getConnectAccountByTenantId(tenantId);
+      if (connectAccount?.stripeAccountId) {
+          await syncStripeProduct(tenantId, connectAccount.stripeAccountId, createdRecord)
+              .catch(e => console.error("[Stripe Sync] Error syncing recipe:", e));
+      }
   }
 
   return createdRecord;
@@ -223,7 +226,11 @@ export async function updateRecipe(tenantId: string, recipeId: string, recipe: P
   const updatedRecord = mapRecipeRowToRecord(data);
   
   if (updatedRecord.accessTier === "paid" && updatedRecord.priceBRL) {
-      await syncStripeProduct(tenantId, "", updatedRecord).catch(e => console.error("Stripe sync error", e));
+      const connectAccount = await getConnectAccountByTenantId(tenantId);
+      if (connectAccount?.stripeAccountId) {
+          await syncStripeProduct(tenantId, connectAccount.stripeAccountId, updatedRecord)
+              .catch(e => console.error("[Stripe Sync] Error syncing recipe update:", e));
+      }
   }
 
   return updatedRecord;

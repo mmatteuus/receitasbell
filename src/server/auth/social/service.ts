@@ -2,11 +2,17 @@ import { ApiError } from "../../shared/http.js";
 import { SOCIAL_PROVIDERS, SocialProviderId } from "./providers.js";
 import { env } from "../../shared/env.js";
 import { createOpaqueState, hashOpaqueState, SOCIAL_STATE_TTL_MS } from "./state.js";
-import { saveAuthOAuthState, consumeAuthOAuthState, findSocialIdentity, createSocialIdentity, updateSocialIdentityLastLogin } from "./repo.js";
+import { 
+  saveAuthOAuthState, 
+  consumeAuthOAuthState, 
+  findSocialIdentity, 
+  createSocialIdentity, 
+  updateSocialIdentityLastLogin 
+} from "./repo.js";
 import { createSession } from "../sessions.js";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { fetchBaserow } from "../../integrations/baserow/client.js";
-import { baserowTables } from "../../integrations/baserow/tables.js";
+import { supabaseAdmin } from "../../integrations/supabase/client.js";
+import { logger } from "../../shared/logger.js";
 
 export interface GoogleTokenResponse {
   access_token: string;
@@ -25,7 +31,7 @@ export interface GoogleProfile {
 }
 
 /**
- * Inicia o fluxo OAuth Social
+ * Inicia o fluxo OAuth Social enviando o state para o Supabase
  */
 export async function startSocialOAuth(input: {
   provider: SocialProviderId;
@@ -118,8 +124,7 @@ async function fetchGoogleProfile(accessToken: string): Promise<GoogleProfile> {
 }
 
 /**
- * Resolve ou cria um usuário no tenant a partir dos dados do provedor social
- * Segue a lógica de: Subject (Sub) -> Email -> Novo Usuário
+ * Resolve ou cria um usuário no tenant a partir dos dados do provedor social usando Supabase.
  */
 async function resolveOrCreateTenantUser(input: {
   tenantId: string;
@@ -129,65 +134,94 @@ async function resolveOrCreateTenantUser(input: {
   pictureUrl?: string | null;
   emailVerified: boolean;
 }) {
-  // 1. Tenta achar pelo provider_subject (vínculo canônico)
+  const normalizedEmail = input.email.toLowerCase();
+
+  // 1. Tenta achar vínculo social existente no Supabase
   let identity = await findSocialIdentity(input.tenantId, input.provider, input.providerSubject);
   
   if (identity) {
-    // Atualiza last login
     await updateSocialIdentityLastLogin(identity.id);
     
-    // Busca o usuário do Baserow correspondente a este identity (precisamos do userId na sessão)
-    // No Baserow, a tabela user_identities_social deve ter um link para a tabela users ou guardamos o userId direto.
-    // Pela TASK-009, o identity deve estar vinculado a um user_id.
-    
-    // Vamos assumir que buscamos o user pelo email se for o mesmo tenant,
-    // ou se o identity tiver uma coluna userId.
-    
-    // TODO: No futuro, o repo.ts/identityRow deve conter o userId. No momento, buscamos pelo e-mail do tenant.
+    if (identity.userId) {
+      // Já temos um vínculo direto com um profile UUID
+      const { data: profile } = await supabaseAdmin
+        .from("profiles")
+        .select("id, email, role")
+        .eq("id", identity.userId)
+        .single();
+      
+      if (profile) {
+        return {
+          userId: profile.id,
+          email: profile.email,
+          tenantId: input.tenantId,
+          role: (profile.role as any) || "user",
+        };
+      }
+    }
   }
 
-  // 2. Busca ou cria o usuário na tabela USERS do Baserow (central de usuários do tenant)
-  const usersPath = `/api/database/rows/table/${baserowTables.users}/?user_field_names=true&filter__tenant_id__equal=${input.tenantId}&filter__email__equal=${encodeURIComponent(input.email.toLowerCase())}`;
-  const userData = await fetchBaserow<{ results: any[] }>(usersPath);
-  
-  let userId: string;
-  let userEmail: string;
+  // 2. Busca perfil por email no tenant (tabela profiles do Supabase)
+  const { data: existingProfile, error: profileError } = await supabaseAdmin
+    .from("profiles")
+    .select("id, email, role")
+    .eq("tenant_id", input.tenantId)
+    .eq("email", normalizedEmail)
+    .maybeSingle();
 
-  if (userData.results.length > 0) {
-    userId = String(userData.results[0].id);
-    userEmail = String(userData.results[0].email);
+  let targetUserId: string;
+  let targetRole: "user" | "admin" = "user";
+
+  if (existingProfile) {
+    targetUserId = existingProfile.id;
+    targetRole = (existingProfile.role as any) || "user";
+    logger.info("Found existing profile for social login", { email: normalizedEmail, tenantId: input.tenantId });
   } else {
-    // Cria novo usuário
-    const newUser = await fetchBaserow<{ id: number; email: string }>(`/api/database/rows/table/${baserowTables.users}/?user_field_names=true`, {
-      method: "POST",
-      body: JSON.stringify({
-        email: input.email.toLowerCase(),
+    // 3. Cria novo perfil no Supabase
+    const { data: newProfile, error: createError } = await supabaseAdmin
+      .from("profiles")
+      .insert({
+        email: normalizedEmail,
         tenant_id: input.tenantId,
         role: "user",
-        created_at: new Date().toISOString(),
-      }),
-    });
-    userId = String(newUser.id);
-    userEmail = newUser.email;
+        full_name: normalizedEmail.split("@")[0],
+        avatar_url: input.pictureUrl || null,
+      })
+      .select()
+      .single();
+
+    if (createError || !newProfile) {
+      throw new ApiError(500, "Erro ao criar perfil de usuário no Supabase", { original: createError });
+    }
+    
+    targetUserId = newProfile.id;
+    logger.info("Created new profile via social login", { email: normalizedEmail, tenantId: input.tenantId });
   }
 
-  // 3. Se não existia identity, cria o vínculo
+  // 4. Cria ou atualiza o vínculo de identidade social
   if (!identity) {
     await createSocialIdentity({
       tenantId: input.tenantId,
+      userId: targetUserId,
       provider: input.provider,
       providerSubject: input.providerSubject,
-      email: input.email,
+      email: normalizedEmail,
       emailVerified: input.emailVerified,
       pictureUrl: input.pictureUrl,
     });
+  } else if (!identity.userId) {
+    // Vincula identidade órfã ao novo perfil
+    await supabaseAdmin
+      .from("user_identities_social")
+      .update({ user_id: targetUserId })
+      .eq("id", identity.id);
   }
 
   return {
-    userId,
-    email: userEmail,
+    userId: targetUserId,
+    email: normalizedEmail,
     tenantId: input.tenantId,
-    role: "user" as const,
+    role: targetRole,
   };
 }
 
@@ -199,24 +233,24 @@ export async function finishGoogleOAuth(
   res: VercelResponse,
   params: { code: string; state: string; tenantId: string }
 ) {
-  // 1. Valida e consome o state
+  // 1. Valida e consome o state no Supabase
   const stateRow = await consumeAuthOAuthState({
     stateHash: hashOpaqueState(params.state),
     provider: "google",
     tenantId: params.tenantId,
   });
 
-  // 2. Troca code por tokens
+  // 2. Troca code por tokens via API do Google
   const tokenRes = await exchangeGoogleCode(params.code);
 
-  // 3. Busca perfil
+  // 3. Busca perfil via API do Google
   const profile = await fetchGoogleProfile(tokenRes.access_token);
 
   if (!profile.email_verified) {
     throw new ApiError(403, "O e-mail do Google precisa estar verificado.");
   }
 
-  // 4. Resolve usuário no tenant
+  // 4. Resolve usuário no tenant via Supabase
   const sessionData = await resolveOrCreateTenantUser({
     tenantId: params.tenantId,
     provider: "google",
@@ -226,7 +260,7 @@ export async function finishGoogleOAuth(
     emailVerified: profile.email_verified,
   });
 
-  // 5. Cria sessão server-side
+  // 5. Cria sessão server-side (Cookie Seguro)
   await createSession(req, res, sessionData);
 
   return {

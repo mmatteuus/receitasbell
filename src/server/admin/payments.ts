@@ -1,5 +1,6 @@
 import type { VercelRequest } from "@vercel/node";
 import { getSettingsMap, mapTypedSettings } from "../settings/repo.js";
+import { getConnectAccountByTenantId } from "../payments/repo/accounts.js";
 
 export async function assertPaymentSettingsPatchAllowed(
   tenantId: string | number,
@@ -25,25 +26,29 @@ export async function assertPaymentSettingsPatchAllowed(
 
 export async function getTenantAdminPaymentSettings(request: VercelRequest, tenantId: string) {
   const settings = await getSettingsMap(tenantId).then(mapTypedSettings);
+  const connectAccount = await getConnectAccountByTenantId(tenantId);
+
+  const isConnected = !!connectAccount?.stripeAccountId;
+  const isReady = connectAccount?.status === "ready";
 
   return {
     payment_mode: settings.payment_mode,
     webhooks_enabled: settings.webhooks_enabled,
     payment_topic_enabled: settings.payment_topic_enabled,
-    accessTokenConfigured: true,
+    accessTokenConfigured: isConnected,
     oauthConfigured: true,
     webhookSecretConfigured: true,
-    missingConfig: [],
-    userId: "stripe_connect_id",
-    publicKey: "stripe_pk",
-    webhookUrl: `/api/payments/webhooks/stripe`,
-    connectionStatus: "connected",
-    connectedAt: new Date().toISOString(),
+    missingConfig: !isReady ? ["onboarding_incomplete"] : [],
+    userId: connectAccount?.stripeAccountId || null,
+    publicKey: null,
+    webhookUrl: "/api/payments/webhooks/stripe",
+    connectionStatus: isConnected ? (isReady ? "connected" : "reconnect_required") : "disconnected",
+    connectedAt: connectAccount?.createdAt || null,
     connectionExpiresAt: null,
     disconnectedAt: null,
     lastError: null,
-    productionReady: true,
-    blockingReasons: [],
+    productionReady: isReady,
+    blockingReasons: isReady ? [] : ["Onboarding do Stripe incompleto."],
     effectiveCheckoutUrlKind: "init_point",
     tenantId,
   };

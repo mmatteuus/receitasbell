@@ -1,73 +1,46 @@
-import { z } from "zod";
-import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { stripeClient } from "../../../providers/stripe/client.js";
-import { supabaseAdmin } from "../../../../integrations/supabase/client.js";
-import { getStripeAppEnvAsync } from "../../../../shared/env.js";
+import { getConnectAccountByTenantId, upsertConnectAccount } from "../../../repo/accounts.js";
+import { withApiHandler } from "../../../../shared/http.js";
+import { requireTenantAdminSessionContext } from "../../../../auth/sessions.js";
 
-function getTenantId(req: VercelRequest): string {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return "";
-    }
-    // Simplification for the example, extract properly if needed.
-    return "extract-from-token";
-}
+/**
+ * POST /api/payments/connect/account
+ * Cria ou retorna uma conta Stripe Connect para o tenant atual.
+ */
+export default withApiHandler<void>(async (req, res, { logger }) => {
+  // 1. Autenticação e Contexto de Tenant Admin
+  const { tenant } = await requireTenantAdminSessionContext(req);
+  
+  logger.info("Solicitando conta Stripe Connect", { tenantId: tenant.id });
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+  // 2. Verifica se já existe uma conta
+  const existing = await getConnectAccountByTenantId(tenant.id);
+  if (existing?.stripeAccountId) {
+    logger.info("Conta Stripe Connect já existe", { stripeAccountId: existing.stripeAccountId });
+    res.status(200).json(existing);
+    return;
   }
 
-  try {
-    const tenantId = req.body?.tenantId || getTenantId(req);
-    if (!tenantId) {
-      return res.status(400).json({ error: "Missing tenantId" });
-    }
+  // 3. Cria nova conta no Stripe
+  const account = await stripeClient.accounts.create({
+    type: "standard",
+    metadata: {
+      tenantId: tenant.id,
+    },
+  });
 
-    // verify env configs
-    await getStripeAppEnvAsync(tenantId);
+  // 4. Persiste no banco de dados Supabase
+  const newAccount = await upsertConnectAccount({
+    tenantId: tenant.id,
+    stripeAccountId: account.id,
+    status: "pending",
+    detailsSubmitted: account.details_submitted,
+    chargesEnabled: account.charges_enabled,
+    payoutsEnabled: account.payouts_enabled,
+    defaultCurrency: "BRL",
+  });
 
-    // Checks if there's already an account for this tenant
-    const { data: existingAccount } = await supabaseAdmin
-      .from("stripe_connect_accounts")
-      .select("*")
-      .eq("tenant_id", tenantId)
-      .maybeSingle();
-
-    if (existingAccount?.stripe_account_id) {
-      return res.status(200).json({
-        account: existingAccount.stripe_account_id,
-        chargesEnabled: existingAccount.charges_enabled,
-        payoutsEnabled: existingAccount.payouts_enabled,
-      });
-    }
-
-    // Create a new connected account
-    const account = await stripeClient.accounts.create({
-      type: "standard", 
-      // Em TASK-004 do PROD diz Custom / Express dependent, mas standard foi o default assumido
-      // Note: Requisitos do context pedem 'Custom + hosted/embedded onboarding + destination charges'
-      // type: 'custom' if going full custom, standard se mais simples
-    });
-
-    // Save in DB
-    const { data, error } = await supabaseAdmin
-      .from("stripe_connect_accounts")
-      .insert({
-        tenant_id: tenantId,
-        stripe_account_id: account.id,
-        charges_enabled: account.charges_enabled,
-        payouts_enabled: account.payouts_enabled,
-        details_submitted: account.details_submitted,
-      })
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    return res.status(200).json(data);
-  } catch (error: any) {
-    console.error("Erro criando connect account:", error);
-    return res.status(500).json({ error: error.message });
-  }
-}
+  logger.info("Conta Stripe Connect criada com sucesso", { stripeAccountId: account.id });
+  
+  res.status(201).json(newAccount);
+});

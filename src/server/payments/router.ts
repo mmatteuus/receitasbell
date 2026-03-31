@@ -1,10 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
-import cardHandler from "./application/handlers/card.js";
-import configHandler from "./application/handlers/config.js";
-import paymentByIdHandler from "./application/handlers/[id].js";
-import paymentCancelHandler from "./application/handlers/[id]/cancel.js";
-import pixHandler from "./application/handlers/pix.js";
 import connectAccountHandler from "./application/handlers/connect/account.js";
 import connectLinkHandler from "./application/handlers/connect/onboarding-link.js";
 import connectStatusHandler from "./application/handlers/connect/status.js";
@@ -42,29 +37,11 @@ function readPath(request: VercelRequest, prefix: string): string[] {
     .filter(Boolean);
 }
 
-function setQueryParam(request: VercelRequest, key: string, value: string) {
-  const query = (request.query || {}) as Record<string, string | string[]>;
-  query[key] = value;
-  request.query = query;
-}
-
 export async function paymentsRouter(request: VercelRequest, response: VercelResponse) {
   const parts = readPath(request, "/api/payments/");
   let target: PaymentsRouteHandler | null = null;
 
-  if (parts.length === 1 && parts[0] === "config") {
-    target = configHandler;
-  } else if (parts.length === 1 && parts[0] === "pix") {
-    target = pixHandler;
-  } else if (parts.length === 1 && parts[0] === "card") {
-    target = cardHandler;
-  } else if (parts.length === 1) {
-    setQueryParam(request, "id", parts[0]);
-    target = paymentByIdHandler;
-  } else if (parts.length === 2 && parts[1] === "cancel") {
-    setQueryParam(request, "id", parts[0]);
-    target = paymentCancelHandler;
-  } else if (parts.length === 2 && parts[0] === "connect" && parts[1] === "account") {
+  if (parts.length === 2 && parts[0] === "connect" && parts[1] === "account") {
     target = connectAccountHandler;
   } else if (parts.length === 2 && parts[0] === "connect" && parts[1] === "onboarding-link") {
     target = connectLinkHandler;
