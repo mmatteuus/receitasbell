@@ -41,7 +41,7 @@ export function PwaUpdateBanner() {
     <div className="fixed top-4 inset-x-4 z-[100] animate-in fade-in slide-in-from-top-4 duration-500 md:hidden">
       <div className="mx-auto max-w-sm rounded-xl bg-primary text-primary-foreground p-4 shadow-2xl flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/20">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-foreground/20">
             <RefreshCw className="h-5 w-5 animate-spin-slow" />
           </div>
           <div>

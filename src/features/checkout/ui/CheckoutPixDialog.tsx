@@ -74,7 +74,7 @@ export function CheckoutPixDialog({
             </div>
           ) : null}
 
-          <div className="flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+          <div className="flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-400">
             <RefreshCcw className={`h-4 w-4 ${checking ? "animate-spin" : ""}`} />
             {checking ? "Verificando pagamento..." : "Aguardando a confirmação do PIX."}
           </div>

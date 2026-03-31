@@ -61,7 +61,7 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
           <Button
             variant="secondary"
             size="icon"
-            className="h-8 w-8 rounded-full bg-white/90 shadow-md backdrop-blur-sm transition-all hover:scale-110 hover:bg-white hover:text-red-500 dark:bg-black/60 dark:hover:bg-black/80"
+            className="h-8 w-8 rounded-full bg-background/90 shadow-md backdrop-blur-sm transition-all hover:scale-110 hover:bg-background hover:text-red-500 dark:bg-card/70 dark:hover:bg-card"
             onClick={(e) => {
               e.preventDefault();
               void toggleFavorite(recipe.id);
