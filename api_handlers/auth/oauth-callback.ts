@@ -9,38 +9,36 @@ import { ApiError } from "../../src/server/shared/http.js";
  * Recebe o retorno do provedor OAuth, valida state, troca code por token, 
  * resolve/cria usuário e estabelece a sessão do usuário.
  */
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  return withApiHandler(req, res, async ({ logger }) => {
-    const provider = getQueryValue(req, "provider") || "google";
-    const code = getQueryValue(req, "code");
-    const state = getQueryValue(req, "state");
-    const tenantId = getQueryValue(req, "tenantId");
+export default withApiHandler(async (req, res, { logger }) => {
+  const provider = getQueryValue(req, "provider") || "google";
+  const code = getQueryValue(req, "code");
+  const state = getQueryValue(req, "state");
+  const tenantId = getQueryValue(req, "tenantId");
 
-    if (!code || !state || !tenantId) {
-      throw new ApiError(400, "Parâmetros OAuth inválidos ou ausentes (code, state, tenantId).");
-    }
+  if (!code || !state || !tenantId) {
+    throw new ApiError(400, "Parâmetros OAuth inválidos ou ausentes (code, state, tenantId).");
+  }
 
-    // 1. Rate limit distribuído (Upstash em prod)
-    const ip = getClientAddress(req);
-    const rl = await AuthRateLimit.check(ip);
-    if (!rl.success) {
-      throw new ApiError(429, "Too many authentication attempts", { retryAfter: rl.resetAfter });
-    }
+  // 1. Rate limit distribuído (Upstash em prod)
+  const ip = getClientAddress(req);
+  const rl = await AuthRateLimit.check(ip);
+  if (!rl.success) {
+    throw new ApiError(429, "Too many authentication attempts", { retryAfter: rl.resetAfter });
+  }
 
-    logger.info("OAuth callback received", { provider, tenantId });
+  logger.info("OAuth callback received", { provider, tenantId });
 
-    // 2. Finaliza o fluxo com o service
-    if (provider !== "google") {
-      throw new ApiError(400, `Provedor social ${provider} não suportado ainda.`);
-    }
+  // 2. Finaliza o fluxo com o service
+  if (provider !== "google") {
+    throw new ApiError(400, `Provedor social ${provider} não suportado ainda.`);
+  }
 
-    const { redirectTo } = await finishGoogleOAuth(req, res, {
-      code,
-      state,
-      tenantId,
-    });
-
-    // 3. Redireciona o usuário para a URL de destino original (guardada no state)
-    res.redirect(302, redirectTo);
+  const { redirectTo } = await finishGoogleOAuth(req, res, {
+    code,
+    state,
+    tenantId,
   });
-}
+
+  // 3. Redireciona o usuário para a URL de destino original (guardada no state)
+  res.redirect(302, redirectTo);
+});
