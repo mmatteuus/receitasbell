@@ -147,7 +147,11 @@ export default function HomePage() {
         description={settings.siteDescription || settings.heroSubtitle}
         canonicalPath="/"
       />
-      {order.map((sectionId) => sections[sectionId]).filter(Boolean)}
+      {order
+        .filter((id) => Boolean(sections[id]))
+        .map((id) => (
+          <div key={id}>{sections[id]}</div>
+        ))}
       {isError && (
         <section className="container px-4 py-14">
           <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed px-6 py-12 text-center">
