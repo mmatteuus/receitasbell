@@ -10,6 +10,9 @@ import { InstallAppButton } from "../components/InstallAppButton";
 import { persistPwaAdminLoginEmail, readPwaAdminLoginEmail } from "@/pwa/app/auth/pwa-auth-storage";
 import { buildPwaAdminPath } from "@/pwa/app/navigation/pwa-paths";
 import { resolvePwaTenantSlug } from "@/pwa/app/tenant/pwa-tenant-path";
+import { toast } from "sonner";
+import { requestPasswordReset } from "@/lib/api/identity";
+
 
 type AdminLoginState =
   | "idle"
@@ -130,6 +133,25 @@ export default function PwaAdminLoginPage() {
                       <Eye className="h-5 w-5 text-muted-foreground" />
                     )}
                   </Button>
+                </div>
+                <div className="flex justify-end pt-1">
+                  <button 
+                    type="button" 
+                    onClick={() => {
+                        if (!email) {
+                            toast.error("Informe seu e-mail de admin primeiro.");
+                            return;
+                        }
+                        toast.promise(requestPasswordReset({ email: email.trim() }), {
+                            loading: 'Enviando instruções...',
+                            success: 'E-mail enviado! Confira sua caixa de entrada.',
+                            error: 'Erro ao processar sua solicitação.'
+                        });
+                    }}
+                    className="text-xs text-primary hover:underline hover:text-primary/90"
+                  >
+                    Esqueci minha senha
+                  </button>
                 </div>
               </div>
             </div>

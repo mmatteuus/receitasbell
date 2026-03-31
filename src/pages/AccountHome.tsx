@@ -285,7 +285,7 @@ export default function AccountHome() {
                   <p className="text-xs text-muted-foreground">
                     Atualização de e-mail será reabilitada quando o endpoint de persistência estiver disponível.
                   </p>
-                  <Button variant="ghost" className="px-0 text-muted-foreground" onClick={handleClearIdentity}>
+                  <Button variant="link" className="h-auto p-0 text-destructive hover:text-destructive/80 transition-colors" onClick={handleClearIdentity}>
                     Limpar identidade deste dispositivo
                   </Button>
                 </div>

@@ -28,6 +28,9 @@ export function HomeHero({
     <section
       className="relative overflow-hidden border-b bg-gradient-to-b from-orange-50 via-amber-50/70 to-background dark:from-slate-950 dark:via-slate-900/40 py-10 sm:py-14 lg:py-20"
     >
+      {/* Overlay para contraste no dark mode */}
+      <div className="absolute inset-0 z-0 hidden bg-black/20 dark:block" />
+
       <div className="pointer-events-none absolute -top-24 right-[-140px] h-72 w-72 rounded-full bg-primary/15 blur-3xl" />
       <div className="container relative grid items-center gap-10 px-4 lg:grid-cols-[1.05fr_0.95fr]">
         <Reveal>
@@ -42,11 +45,11 @@ export function HomeHero({
             )}
             <h1
               data-testid="home-hero-heading"
-              className="max-w-[18ch] text-4xl leading-tight text-foreground dark:text-gray-100 sm:text-5xl lg:text-6xl"
+              className="max-w-[18ch] text-4xl leading-tight text-foreground dark:text-slate-50 sm:text-5xl lg:text-6xl font-bold"
             >
               {settings.heroTitle}
             </h1>
-            <p className="max-w-[58ch] text-base text-muted-foreground sm:text-lg">
+            <p className="max-w-[58ch] text-base text-muted-foreground dark:text-slate-300 sm:text-lg">
               {settings.heroSubtitle}
             </p>
             <div className="flex flex-wrap gap-3">
