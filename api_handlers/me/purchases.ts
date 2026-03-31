@@ -14,8 +14,8 @@ type PaymentOrderRow = {
   items_json?: string | null;
 };
 
-export default async function handler(request: VercelRequest, response: VercelResponse) {
-  return withApiHandler(request, response, async ({ requestId }) => {
+export default withApiHandler(
+  async (request: VercelRequest, response: VercelResponse, { requestId }) => {
     const { tenant } = await requireTenantFromRequest(request);
     const user = await requireIdentityUser(request);
 
@@ -25,19 +25,18 @@ export default async function handler(request: VercelRequest, response: VercelRe
     );
 
     return json(response, 200, {
-      items: data.results.map(row => ({
-        id: String(row.id ?? ""),
+      items: data.results.map((row) => ({
+        id: String(row.id ?? ''),
         amount: Number(row.amount ?? 0),
-        status: row.status ?? "",
-        createdAt: row.created_at ?? "",
-        recipeIds: JSON.parse(row.recipe_ids_json || "[]"),
-        items: JSON.parse(row.items_json || "[]")
+        status: row.status ?? '',
+        createdAt: row.created_at ?? '',
+        recipeIds: JSON.parse(row.recipe_ids_json || '[]'),
+        items: JSON.parse(row.items_json || '[]'),
       })),
       meta: {
-        total: data.results.length
+        total: data.results.length,
       },
-      requestId
+      requestId,
     });
-  });
-}
-
+  }
+);

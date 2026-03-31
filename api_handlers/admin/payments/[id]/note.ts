@@ -1,5 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { withApiHandler, json, assertMethod, ApiError, getClientAddress } from '../../../../src/server/shared/http.js';
+import {
+  withApiHandler,
+  json,
+  assertMethod,
+  ApiError,
+  getClientAddress,
+} from '../../../../src/server/shared/http.js';
 import { requireAdminAccess } from '../../../../src/server/admin/guards.js';
 import { requireTenantFromRequest } from '../../../../src/server/tenancy/resolver.js';
 import { requireCsrf } from '../../../../src/server/security/csrf.js';
@@ -19,13 +25,13 @@ function getUserAgent(request: VercelRequest) {
   return '';
 }
 
-export default async function handler(request: VercelRequest, response: VercelResponse) {
-  return withApiHandler(request, response, async ({ requestId }) => {
+export default withApiHandler(
+  async (request: VercelRequest, response: VercelResponse, { requestId }) => {
     assertMethod(request, ['POST']);
 
     const { tenant } = await requireTenantFromRequest(request);
     const access = await requireAdminAccess(request);
-    if (access.type === "session") {
+    if (access.type === 'session') {
       requireCsrf(request);
     }
 
@@ -50,5 +56,5 @@ export default async function handler(request: VercelRequest, response: VercelRe
       note,
       requestId,
     });
-  });
-}
+  }
+);

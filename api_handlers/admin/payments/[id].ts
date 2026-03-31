@@ -11,8 +11,8 @@ function getRouteId(request: VercelRequest) {
   return '';
 }
 
-export default async function handler(request: VercelRequest, response: VercelResponse) {
-  return withApiHandler(request, response, async ({ requestId }) => {
+export default withApiHandler(
+  async (request: VercelRequest, response: VercelResponse, { requestId }) => {
     assertMethod(request, ['GET']);
 
     const { tenant } = await requireTenantFromRequest(request);
@@ -28,5 +28,5 @@ export default async function handler(request: VercelRequest, response: VercelRe
       ...details,
       requestId,
     });
-  });
-}
+  }
+);

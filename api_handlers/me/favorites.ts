@@ -2,12 +2,16 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { withApiHandler, json, ApiError } from '../../src/server/shared/http.js';
 import { requireIdentityUser } from '../../src/server/auth/guards.js';
 import { requireTenantFromRequest } from '../../src/server/tenancy/resolver.js';
-import { createFavorite, deleteFavorite, listFavoritesByUserId } from '../../src/server/identity/favorites.repo.js';
+import {
+  createFavorite,
+  deleteFavorite,
+  listFavoritesByUserId,
+} from '../../src/server/identity/favorites.repo.js';
 import { favoriteSchema } from '../../src/server/shared/validators.js';
 import { requireCsrf } from '../../src/server/security/csrf.js';
 
-export default async function handler(request: VercelRequest, response: VercelResponse) {
-  return withApiHandler(request, response, async ({ requestId }) => {
+export default withApiHandler(
+  async (request: VercelRequest, response: VercelResponse, { requestId }) => {
     const { tenant } = await requireTenantFromRequest(request);
     const identity = await requireIdentityUser(request);
     const userId = String(identity.user!.id);
@@ -32,11 +36,11 @@ export default async function handler(request: VercelRequest, response: VercelRe
     if (method === 'DELETE') {
       const recipeId = url.searchParams.get('recipeId');
       if (!recipeId) throw new ApiError(400, 'Missing recipeId');
-      
+
       await deleteFavorite(tenant.id, userId, recipeId);
       return json(response, 200, { success: true, requestId });
     }
 
     throw new ApiError(405, `Method ${method} not allowed`);
-  });
-}
+  }
+);

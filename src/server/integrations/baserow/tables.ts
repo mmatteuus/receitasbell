@@ -1,84 +1,86 @@
 // src/server/integrations/baserow/tables.ts
-import { env } from "../../shared/env.js";
+import { env } from '../../shared/env.js';
 
 function reqId(name: string, value: string | undefined): number {
   const n = Number(value);
   if (!Number.isFinite(n)) {
-    throw new Error(`Invalid table ID for ${name}: ${value}. Certifique-se de configurar as variáveis de ambiente.`);
+    throw new Error(
+      `Invalid table ID for ${name}: ${value}. Certifique-se de configurar as variáveis de ambiente.`
+    );
   }
   return n;
 }
 
 function optionalId(name: string, value: string | undefined): number | undefined {
-  if (typeof value !== "string" || !value.trim()) return undefined;
+  if (typeof value !== 'string' || !value.trim()) return undefined;
   return reqId(name, value);
 }
 
 export const baserowTables = {
   get tenants() {
-    return reqId("BASEROW_TABLE_TENANTS", env.BASEROW_TABLE_TENANTS);
+    return reqId('BASEROW_TABLE_TENANTS', env.BASEROW_TABLE_TENANTS);
   },
   get users() {
-    return reqId("BASEROW_TABLE_USERS", env.BASEROW_TABLE_USERS);
+    return reqId('BASEROW_TABLE_USERS', env.BASEROW_TABLE_USERS);
   },
   get tenantUsers() {
-    return optionalId("BASEROW_TABLE_TENANT_USERS", env.BASEROW_TABLE_TENANT_USERS);
+    return optionalId('BASEROW_TABLE_TENANT_USERS', env.BASEROW_TABLE_TENANT_USERS);
   },
   get recipes() {
-    return reqId("BASEROW_TABLE_RECIPES", env.BASEROW_TABLE_RECIPES);
+    return reqId('BASEROW_TABLE_RECIPES', env.BASEROW_TABLE_RECIPES);
   },
   get categories() {
-    return reqId("BASEROW_TABLE_CATEGORIES", env.BASEROW_TABLE_CATEGORIES);
+    return reqId('BASEROW_TABLE_CATEGORIES', env.BASEROW_TABLE_CATEGORIES);
   },
   get settings() {
-    return reqId("BASEROW_TABLE_SETTINGS", env.BASEROW_TABLE_SETTINGS);
+    return reqId('BASEROW_TABLE_SETTINGS', env.BASEROW_TABLE_SETTINGS);
   },
   get paymentOrders() {
-    return reqId("BASEROW_TABLE_PAYMENT_ORDERS", env.BASEROW_TABLE_PAYMENT_ORDERS);
+    return reqId('BASEROW_TABLE_PAYMENT_ORDERS', env.BASEROW_TABLE_PAYMENT_ORDERS);
   },
   get paymentEvents() {
-    return reqId("BASEROW_TABLE_PAYMENT_EVENTS", env.BASEROW_TABLE_PAYMENT_EVENTS);
+    return reqId('BASEROW_TABLE_PAYMENT_EVENTS', env.BASEROW_TABLE_PAYMENT_EVENTS);
   },
   get recipePurchases() {
-    return reqId("BASEROW_TABLE_RECIPE_PURCHASES", env.BASEROW_TABLE_RECIPE_PURCHASES);
+    return reqId('BASEROW_TABLE_RECIPE_PURCHASES', env.BASEROW_TABLE_RECIPE_PURCHASES);
   },
   get auditLogs() {
-    return reqId("BASEROW_TABLE_AUDIT_LOGS", env.BASEROW_TABLE_AUDIT_LOGS);
+    return reqId('BASEROW_TABLE_AUDIT_LOGS', env.BASEROW_TABLE_AUDIT_LOGS);
   },
   get sessions() {
-    return reqId("BASEROW_TABLE_SESSIONS", env.BASEROW_TABLE_SESSIONS);
+    return reqId('BASEROW_TABLE_SESSIONS', env.BASEROW_TABLE_SESSIONS);
   },
   get magicLinks() {
-    return reqId("BASEROW_TABLE_MAGIC_LINKS", env.BASEROW_TABLE_MAGIC_LINKS);
+    return reqId('BASEROW_TABLE_MAGIC_LINKS', env.BASEROW_TABLE_MAGIC_LINKS);
   },
 
   // Tabelas opcionais/extras
   get favorites() {
-    return optionalId("BASEROW_TABLE_FAVORITES", env.BASEROW_TABLE_FAVORITES);
+    return optionalId('BASEROW_TABLE_FAVORITES', env.BASEROW_TABLE_FAVORITES);
   },
   get comments() {
-    return optionalId("BASEROW_TABLE_COMMENTS", env.BASEROW_TABLE_COMMENTS);
+    return optionalId('BASEROW_TABLE_COMMENTS', env.BASEROW_TABLE_COMMENTS);
   },
   get ratings() {
-    return optionalId("BASEROW_TABLE_RATINGS", env.BASEROW_TABLE_RATINGS);
+    return optionalId('BASEROW_TABLE_RATINGS', env.BASEROW_TABLE_RATINGS);
   },
   get shoppingList() {
-    return optionalId("BASEROW_TABLE_SHOPPING_LIST", env.BASEROW_TABLE_SHOPPING_LIST);
+    return optionalId('BASEROW_TABLE_SHOPPING_LIST', env.BASEROW_TABLE_SHOPPING_LIST);
   },
   get newsletter() {
-    return optionalId("BASEROW_TABLE_NEWSLETTER", env.BASEROW_TABLE_NEWSLETTER);
+    return optionalId('BASEROW_TABLE_NEWSLETTER', env.BASEROW_TABLE_NEWSLETTER);
   },
   get oauthStates() {
-    return optionalId("BASEROW_TABLE_OAUTH_STATES", env.BASEROW_TABLE_OAUTH_STATES);
+    return optionalId('BASEROW_TABLE_OAUTH_STATES', env.BASEROW_TABLE_OAUTH_STATES);
   },
   get mpConnections() {
-    return optionalId("BASEROW_TABLE_MP_CONNECTIONS", env.BASEROW_TABLE_MP_CONNECTIONS);
+    return optionalId('BASEROW_TABLE_MP_CONNECTIONS', env.BASEROW_TABLE_STRIPE_CONNECTIONS);
   },
   get stripeConnections() {
-    return optionalId("BASEROW_TABLE_STRIPE_CONNECTIONS", env.BASEROW_TABLE_STRIPE_CONNECTIONS);
+    return optionalId('BASEROW_TABLE_STRIPE_CONNECTIONS', env.BASEROW_TABLE_STRIPE_CONNECTIONS);
   },
   get stripeOauthStates() {
-    return optionalId("BASEROW_TABLE_STRIPE_OAUTH_STATES", env.BASEROW_TABLE_STRIPE_OAUTH_STATES);
+    return optionalId('BASEROW_TABLE_STRIPE_OAUTH_STATES', env.BASEROW_TABLE_STRIPE_OAUTH_STATES);
   },
 } as const;
 
