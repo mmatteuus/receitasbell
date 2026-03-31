@@ -29,7 +29,7 @@ export default withApiHandler(async (req: VercelRequest, res: VercelResponse) =>
   const signature = req.headers["stripe-signature"] as string;
   const rawBody = await buffer(req);
 
-  let event;
+  let event: Stripe.Event;
   try {
     event = stripeClient.webhooks.constructEvent(
       rawBody,
@@ -37,9 +37,9 @@ export default withApiHandler(async (req: VercelRequest, res: VercelResponse) =>
       env.STRIPE_WEBHOOK_SECRET!
     );
   } catch (err: unknown) {
-    const error = err as Error;
-    console.error(`Webhook Signature Error: ${error.message}`);
-    res.status(400).send(`Webhook Error: ${err.message}`);
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    console.error(`Webhook Signature Error: ${errorMessage}`);
+    res.status(400).send(`Webhook Error: ${errorMessage}`);
     return;
   }
 
