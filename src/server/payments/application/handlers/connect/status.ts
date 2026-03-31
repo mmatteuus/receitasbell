@@ -3,11 +3,13 @@ import { getConnectAccountByTenantId, upsertConnectAccount } from "../../../repo
 import { withApiHandler } from "../../../../shared/http.js";
 import { requireTenantAdminSessionContext } from "../../../../auth/sessions.js";
 
+import type { VercelRequest, VercelResponse } from "@vercel/node";
+
 /**
  * GET /api/payments/connect/status
  * Recupera e sincroniza o status da conta conectada do Stripe para o tenant atual.
  */
-export default withApiHandler<void>(async (req, res, { logger }) => {
+export default withApiHandler(async (req: VercelRequest, res: VercelResponse, { logger }) => {
   // 1. Contexto de Sessão de Admin do Tenant
   const { tenant } = await requireTenantAdminSessionContext(req);
 

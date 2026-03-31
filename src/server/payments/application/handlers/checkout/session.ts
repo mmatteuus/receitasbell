@@ -1,4 +1,5 @@
 import { withApiHandler } from "../../../../shared/http.js";
+import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { stripeClient } from "../../../providers/stripe/client.js";
 import { supabaseAdmin } from "../../../../integrations/supabase/client.js";
 import { getStripeAppEnvAsync, env } from "../../../../shared/env.js";
@@ -12,7 +13,7 @@ interface CheckoutSessionRequest {
   userId: string;
 }
 
-export default withApiHandler<void>(async (req, res) => {
+export default withApiHandler(async (req: VercelRequest, res: VercelResponse, { logger }) => {
   if (req.method !== "POST") {
     res.status(405).json({ error: "Method not allowed" });
     return;
@@ -105,7 +106,7 @@ export default withApiHandler<void>(async (req, res) => {
   });
 
   await updatePaymentOrderInternal(tenantId, order.id, {
-    provider_payment_id: session.id
+    providerPaymentId: session.id
   });
 
   res.status(200).json({ 

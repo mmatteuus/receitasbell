@@ -1,5 +1,5 @@
 import { withApiHandler } from "../../../../shared/http.js";
-import type { NextApiRequest, NextApiResponse } from "next";
+import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { stripeClient } from "../../../providers/stripe/client.js";
 import type Stripe from "stripe";
 import { env } from "../../../../shared/env.js";
@@ -20,7 +20,7 @@ export const config = {
   },
 };
 
-export default withApiHandler(async (req: NextApiRequest, res: NextApiResponse) => {
+export default withApiHandler(async (req: VercelRequest, res: VercelResponse) => {
   if (req.method !== "POST") {
     res.status(405).json({ error: "Method not allowed" });
     return;

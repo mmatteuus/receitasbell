@@ -108,31 +108,31 @@ export async function readJsonBody<T>(req: VercelRequest): Promise<T> {
   return req.body as T;
 }
 
-export async function withApiHandler(
-  req: VercelRequest,
-  res: VercelResponse,
-  handler: (ctx: { requestId: string; logger: Logger }) => Promise<void>
+export function withApiHandler<T = void>(
+  handler: (req: VercelRequest, res: VercelResponse, ctx: { requestId: string; logger: Logger }) => Promise<T>
 ) {
-  const rid = requestId(req);
-  const logger = Logger.fromRequest(req, { requestId: rid });
-  res.setHeader("x-request-id", rid);
-  try {
-    await handler({ requestId: rid, logger });
-  } catch (error: unknown) {
-    if (error instanceof ApiError) {
-      logger.warn("API error", { status: error.status, message: error.message, details: error.details ?? null });
-      return json(res, error.status, {
+  return async (req: VercelRequest, res: VercelResponse) => {
+    const rid = requestId(req);
+    const logger = Logger.fromRequest(req, { requestId: rid });
+    res.setHeader("x-request-id", rid);
+    try {
+      await handler(req, res, { requestId: rid, logger });
+    } catch (error: unknown) {
+      if (error instanceof ApiError) {
+        logger.warn("API error", { status: error.status, message: error.message, details: error.details ?? null });
+        return json(res, error.status, {
+          success: false,
+          error: { message: error.message, details: error.details ?? null },
+          requestId: rid,
+        });
+      }
+
+      logger.error("Unhandled API error", error);
+      return json(res, 500, {
         success: false,
-        error: { message: error.message, details: error.details ?? null },
+        error: { message: "Internal server error" },
         requestId: rid,
       });
     }
-
-    logger.error("Unhandled API error", error);
-    return json(res, 500, {
-      success: false,
-      error: { message: "Internal server error" },
-      requestId: rid,
-    });
-  }
+  };
 }

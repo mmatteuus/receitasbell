@@ -4,11 +4,13 @@ import { getConnectAccountByTenantId } from "../../../repo/accounts.js";
 import { withApiHandler } from "../../../../shared/http.js";
 import { requireTenantAdminSessionContext } from "../../../../auth/sessions.js";
 
+import type { VercelRequest, VercelResponse } from "@vercel/node";
+
 /**
  * POST /api/payments/connect/onboarding-link
  * Cria um link de onboarding (Stripe Connect) para o tenant logado.
  */
-export default withApiHandler<void>(async (req, res, { logger }) => {
+export default withApiHandler(async (req: VercelRequest, res: VercelResponse, { logger }) => {
   // 1. Extração do contexto de tenant do admin
   const { tenant } = await requireTenantAdminSessionContext(req);
 

@@ -178,31 +178,37 @@ export async function updatePaymentOrderStatus(
   mpPaymentId?: string,
   mpDetails?: { methodId?: string; typeId?: string },
 ): Promise<void> {
-  const updates: {
-    status: string;
-    updated_at: string;
-    provider_payment_id?: string;
-    mp_payment_id?: string;
-    provider_payment_method_id?: string;
-    provider_payment_type_id?: string;
-  } = {
-    status,
+  await updatePaymentOrderInternal(tenantId, id, {
+    status: status as PaymentStatus,
+    providerPaymentId: mpPaymentId,
+    providerPaymentMethodId: mpDetails?.methodId,
+    providerPaymentTypeId: mpDetails?.typeId,
+  });
+}
+
+export async function updatePaymentOrderInternal(
+  tenantId: string,
+  id: string,
+  updates: Partial<PaymentRecord>,
+): Promise<void> {
+  const rowUpdates: Partial<PaymentOrderRow> = {
     updated_at: new Date().toISOString(),
   };
-  if (mpPaymentId) {
-    updates.provider_payment_id = mpPaymentId;
-    updates.mp_payment_id = mpPaymentId;
-  }
-  if (mpDetails?.methodId) updates.provider_payment_method_id = mpDetails.methodId;
-  if (mpDetails?.typeId) updates.provider_payment_type_id = mpDetails.typeId;
+
+  if (updates.status) rowUpdates.status = updates.status;
+  if (updates.providerPaymentId) rowUpdates.provider_payment_id = updates.providerPaymentId;
+  if (updates.mpPaymentId) rowUpdates.mp_payment_id = updates.mpPaymentId;
+  if (updates.preferenceId) rowUpdates.preference_id = updates.preferenceId;
+  if (updates.providerPaymentMethodId) rowUpdates.provider_payment_method_id = updates.providerPaymentMethodId;
+  if (updates.providerPaymentTypeId) rowUpdates.provider_payment_type_id = updates.providerPaymentTypeId;
 
   const { error } = await supabaseAdmin
     .from("payment_orders")
-    .update(updates)
+    .update(rowUpdates)
     .eq("id", id)
     .eq("tenant_id", tenantId);
 
-  if (error) throw new ApiError(500, "Erro ao atualizar status do pagamento", { original: error });
+  if (error) throw new ApiError(500, "Erro ao atualizar pedido de pagamento", { original: error });
 }
 
 export async function setPaymentOrderExternalReference(
