@@ -79,7 +79,7 @@ function MethodButton({
           : "border-border bg-background hover:border-orange-200 hover:bg-orange-50/60",
       ].join(" ")}
     >
-      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-orange-600 shadow-sm">
+      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-orange-600 shadow-sm dark:bg-zinc-950 dark:text-orange-400">
         {icon}
       </span>
       <span className="font-medium">{label}</span>
@@ -184,7 +184,7 @@ export function CheckoutSummary({
           <p className="text-sm font-medium text-emerald-950">Dados do pagador para o PIX</p>
           <div className="grid gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
             <label className="space-y-1 text-sm">
-              <span className="text-muted-foreground">Tipo</span>
+              <span className="text-emerald-900/70 font-medium">Tipo</span>
               <select
                 value={payerDocumentType}
                 onChange={(event) => onPayerDocumentTypeChange(event.target.value === "CNPJ" ? "CNPJ" : "CPF")}
@@ -195,7 +195,7 @@ export function CheckoutSummary({
               </select>
             </label>
             <label className="space-y-1 text-sm">
-              <span className="text-muted-foreground">Número</span>
+              <span className="text-emerald-900/70 font-medium">Número</span>
               <Input
                 value={payerDocumentNumber}
                 onChange={(event) => onPayerDocumentNumberChange(event.target.value)}

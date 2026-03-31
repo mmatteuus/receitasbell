@@ -1,42 +1,33 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { withApiHandler, json } from "../../src/server/shared/http.js";
 import { getSession } from "../../src/server/auth/sessions.js";
-import { requireTenantFromRequest } from "../../src/server/tenancy/resolver.js";
+import { supabaseAdmin } from "../../src/server/integrations/supabase/client.js";
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  return withApiHandler(req, res, async ({ requestId }) => {
-    const s = await getSession(req);
-    if (!s) {
-      return json(res, 200, {
-        success: true,
-        data: {
-          user: null,
-          authenticated: false,
-        },
-        requestId,
-      });
-    }
+export default withApiHandler(async (req, res, { requestId, logger }) => {
+  const session = await getSession(req, res);
+  if (!session) {
+    return json(res, 200, { success: true, data: { user: null }, requestId });
+  }
 
-    let tenantSlug: string | null = null;
-    try {
-      const { tenant } = await requireTenantFromRequest(req);
-      tenantSlug = tenant.slug;
-    } catch {
-      tenantSlug = null;
-    }
+  // Validar se o perfil existe no Supabase e buscar dados extras
+  const { data: profile } = await supabaseAdmin
+    .from("profiles")
+    .select("full_name, avatar_url, role, organization_id")
+    .eq("id", session.userId)
+    .single();
 
-    return json(res, 200, {
-      success: true,
-      data: {
-        user: {
-          userId: s.userId,
-          email: s.email,
-          tenantId: s.tenantId,
-          tenantSlug,
-          role: s.role,
-        },
+  return json(res, 200, {
+    success: true,
+    data: {
+      user: {
+        id: session.userId,
+        email: session.email,
+        fullName: profile?.full_name || null,
+        avatarUrl: profile?.avatar_url || null,
+        role: profile?.role || session.role,
+        tenantId: profile?.organization_id || session.tenantId,
       },
-      requestId,
-    });
+    },
+    requestId,
   });
-}
+});

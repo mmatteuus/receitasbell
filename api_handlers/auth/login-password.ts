@@ -3,11 +3,10 @@ import { withApiHandler, json, assertMethod, ApiError, readJsonBody } from "../.
 import { supabaseAdmin } from "../../src/server/integrations/supabase/client.js";
 import { createSession } from "../../src/server/auth/sessions.js";
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
-  return withApiHandler(req, res, async ({ requestId }) => {
-    assertMethod(req, ["POST"]);
-    const body = await readJsonBody<{ email?: string; password?: string }>(req);
-    const { email, password } = body;
+export default withApiHandler(async (req, res, { requestId, logger }) => {
+  assertMethod(req, ["POST"]);
+  const body = await readJsonBody<{ email?: string; password?: string }>(req);
+  const { email, password } = body;
 
     if (!email || !password) {
       throw new ApiError(400, "E-mail e senha são obrigatórios.");
@@ -51,5 +50,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       },
       requestId,
     });
-  });
-}
+});
