@@ -1,33 +1,41 @@
-import { ReactNode, useEffect, useState } from "react";
-import { Navigate, useLocation } from "react-router-dom";
-import { getAdminSession } from "@/lib/api/adminSession";
-import { buildTenantAdminPath, extractTenantSlugFromPath } from "@/lib/tenant";
+import { ReactNode, useEffect, useState } from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
+import { getAdminSession } from '@/lib/api/adminSession';
+import { buildTenantAdminPath, extractTenantSlugFromPath } from '@/lib/tenant';
 
 export function RequireAdminAuth({ children }: { children: ReactNode }) {
   const location = useLocation();
-  const [status, setStatus] = useState<"checking" | "authenticated" | "unauthenticated">("checking");
+  const [status, setStatus] = useState<'checking' | 'authenticated' | 'unauthenticated'>(
+    'checking'
+  );
 
   useEffect(() => {
     let active = true;
+    const timeout = setTimeout(() => {
+      if (active) setStatus('unauthenticated');
+    }, 8000);
 
     async function checkSession() {
       try {
         const result = await getAdminSession();
         if (!active) return;
-        setStatus(result.authenticated ? "authenticated" : "unauthenticated");
+        setStatus(result.authenticated ? 'authenticated' : 'unauthenticated');
       } catch {
         if (!active) return;
-        setStatus("unauthenticated");
+        setStatus('unauthenticated');
+      } finally {
+        clearTimeout(timeout);
       }
     }
 
     void checkSession();
     return () => {
       active = false;
+      clearTimeout(timeout);
     };
   }, [location.pathname]);
 
-  if (status === "checking") {
+  if (status === 'checking') {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-4">
         <p className="text-sm text-muted-foreground">Verificando acesso do admin...</p>
@@ -35,12 +43,12 @@ export function RequireAdminAuth({ children }: { children: ReactNode }) {
     );
   }
 
-  if (status === "unauthenticated") {
+  if (status === 'unauthenticated') {
     const redirect = `${location.pathname}${location.search}${location.hash}`;
     const tenantSlug = extractTenantSlugFromPath(location.pathname);
     return (
       <Navigate
-        to={`${buildTenantAdminPath("login", tenantSlug)}?redirect=${encodeURIComponent(redirect)}`}
+        to={`${buildTenantAdminPath('login', tenantSlug)}?redirect=${encodeURIComponent(redirect)}`}
         replace
       />
     );

@@ -33,11 +33,28 @@ function buildQueryObject(urlValue: string) {
   return query;
 }
 
-async function readRequestBody(request: IncomingMessage) {
-  const chunks: Buffer[] = [];
+async function readRequestBody(request: IncomingMessage, timeoutMs = 5000) {
+  const method = String(request.method || 'GET').toUpperCase();
+  if (method === 'GET' || method === 'HEAD' || method === 'OPTIONS') return undefined;
 
-  for await (const chunk of request) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  const contentLength = parseInt(String(request.headers['content-length'] || '0'), 10);
+  if (contentLength === 0) return undefined;
+
+  const chunks: Buffer[] = [];
+  const timer = setTimeout(() => {}, timeoutMs);
+  let timerFired = false;
+  timer.unref();
+  timer.ref();
+
+  try {
+    for await (const chunk of request) {
+      if (timerFired) break;
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    }
+  } catch {
+    // stream closed prematurely
+  } finally {
+    clearTimeout(timer);
   }
 
   const rawBody = Buffer.concat(chunks);
@@ -146,10 +163,7 @@ function devApiPlugin() {
           const devRequest = request as DevApiRequest;
           devRequest.query = buildQueryObject(request.url || '/');
 
-          const method = String(request.method || 'GET').toUpperCase();
-          if (method !== 'GET' && method !== 'HEAD' && devRequest.body === undefined) {
-            devRequest.body = await readRequestBody(request);
-          }
+          devRequest.body = await readRequestBody(request, 5000);
 
           const devResponse = patchDevResponse(response);
           const loadedModule = await server.ssrLoadModule(modulePath);
