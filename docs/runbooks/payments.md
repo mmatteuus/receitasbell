@@ -35,7 +35,7 @@ What to check:
 
 - `/api/payments/webhooks/stripe`
 - `src/server/payments/application/handlers/webhooks/stripe.ts`
-- `src/server/integrations/stripe/webhook.ts`
+- `src/server/payments/providers/stripe/client.ts`
 
 Mitigation:
 
@@ -55,7 +55,7 @@ What to check:
 
 - `/api/payments/connect/status`
 - `/api/payments/connect/onboarding-link`
-- `/api/payments/connect/callback`
+- `/api/payments/connect/account`
 
 Mitigation:
 

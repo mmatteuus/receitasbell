@@ -44,8 +44,6 @@ const schema = z.object({
 
   // Stripe (Payments)
   STRIPE_SECRET_KEY: z.string().optional(),
-  STRIPE_CLIENT_ID: z.string().optional(),
-  STRIPE_REDIRECT_URI: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
 
   // Observability
@@ -66,7 +64,7 @@ export const env = schema.parse({
   EMAIL_FROM: readEnv('EMAIL_FROM'),
 
   APP_COOKIE_SECRET: readEnv('APP_COOKIE_SECRET', ['ADMIN_SESSION_SECRET']),
-  ENCRYPTION_KEY: readEnv('ENCRYPTION_KEY', ['APP_COOKIE_SECRET', 'ADMIN_SESSION_SECRET']),
+  ENCRYPTION_KEY: readEnv('ENCRYPTION_KEY'),
 
   AUTH_SOCIAL_ENABLED: readBooleanEnv('AUTH_SOCIAL_ENABLED'),
   AUTH_SOCIAL_ALLOWED_TENANTS: readEnv('AUTH_SOCIAL_ALLOWED_TENANTS'),
@@ -75,8 +73,6 @@ export const env = schema.parse({
   GOOGLE_OAUTH_REDIRECT_URI: readEnv('GOOGLE_OAUTH_REDIRECT_URI'),
 
   STRIPE_SECRET_KEY: readEnv('STRIPE_SECRET_KEY'),
-  STRIPE_CLIENT_ID: readEnv('STRIPE_CLIENT_ID'),
-  STRIPE_REDIRECT_URI: readEnv('STRIPE_REDIRECT_URI'),
   STRIPE_WEBHOOK_SECRET: readEnv('STRIPE_WEBHOOK_SECRET'),
   SENTRY_DSN: readEnv('SENTRY_DSN'),
 
@@ -111,18 +107,4 @@ export function validateCriticalEnv() {
   if (missing.length) {
     throw new Error(`Missing critical env vars: ${missing.join(', ')}`);
   }
-}
-
-export async function getStripeAppEnvAsync(_tenantId: string) {
-  const secretKey = getOptionalEnv('STRIPE_SECRET_KEY') || env.STRIPE_SECRET_KEY || '';
-  const clientId = getOptionalEnv('STRIPE_CLIENT_ID') || env.STRIPE_CLIENT_ID || '';
-  const redirectUri =
-    getOptionalEnv('STRIPE_REDIRECT_URI') ||
-    env.STRIPE_REDIRECT_URI ||
-    `${(env.APP_BASE_URL || '').replace(/\/+$/, '')}/api/payments/connect/callback`;
-
-  if (!secretKey || !clientId) {
-    throw new Error('Stripe env vars ausentes (STRIPE_SECRET_KEY / STRIPE_CLIENT_ID).');
-  }
-  return { secretKey, clientId, redirectUri };
 }

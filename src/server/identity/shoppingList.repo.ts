@@ -123,10 +123,15 @@ async function findRowByClientId(tenantId: string | number, userId: string, clie
     .select('*')
     .eq('tenant_id', tenantId)
     .eq('user_id', userId)
-    .ilike('items_json', `%${clientId}%`)
-    .limit(1);
+    .limit(200);
 
-  return data?.[0] || null;
+  return (
+    data?.find((row) =>
+      parsePayloads(row as unknown as ShoppingListRow).some(
+        (payload) => payload.clientId === clientId
+      )
+    ) || null
+  );
 }
 
 export async function createShoppingListItems(

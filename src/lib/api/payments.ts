@@ -1,15 +1,8 @@
-import type { AdminPaymentsFilters, Payment, PaymentNote } from "@/lib/payments/types";
-import type { AdminPaymentSettingsResponse } from "@/types/payment";
-import type {
-  CheckoutPaymentConfig,
-  CreateCardPaymentInput,
-  CreatePixPaymentInput,
-  DirectPaymentResult,
-} from "@/types/payment";
-import type { RecipeRecord } from "@/lib/recipes/types";
-import type { Entitlement } from "@/types/entitlement";
-import { buildQuery, jsonFetch } from "./client";
-
+import type { AdminPaymentsFilters, Payment, PaymentNote } from '@/lib/payments/types';
+import type { AdminPaymentSettingsResponse } from '@/types/payment';
+import type { RecipeRecord } from '@/lib/recipes/types';
+import type { Entitlement } from '@/types/entitlement';
+import { buildQuery, jsonFetch } from './client';
 
 export interface PaymentDetailResponse {
   payment: Payment;
@@ -54,94 +47,49 @@ export async function addPaymentNote(paymentId: string, note: string) {
   const result = await jsonFetch<{ note: PaymentNote }>(
     `/api/admin/payments/${encodeURIComponent(paymentId)}/note`,
     {
-      method: "POST",
+      method: 'POST',
       admin: true,
       body: { note },
-    },
+    }
   );
   return result.note;
 }
 
 export async function getAdminPaymentSettings() {
   const result = await jsonFetch<{ settings: AdminPaymentSettingsResponse }>(
-    "/api/admin/payments/settings",
+    '/api/admin/payments/settings',
     {
       admin: true,
-    },
+    }
   );
   return result.settings;
 }
 
 export async function startStripeConnect(returnTo?: string) {
   const result = await jsonFetch<{ onboardingUrl: string }>(
-    "/api/payments/connect/onboarding-link",
+    '/api/payments/connect/onboarding-link',
     {
-      method: "POST",
+      method: 'POST',
       admin: true,
       body: { returnTo },
-    },
+    }
   );
   return result.onboardingUrl;
 }
 
 export async function getStripeConnectStatus() {
-  return jsonFetch<{ connected: boolean; details_submitted: boolean; charges_enabled: boolean; accountId?: string }>(
-    "/api/payments/connect/status",
-    { admin: true },
-  );
+  return jsonFetch<{
+    connected: boolean;
+    details_submitted: boolean;
+    charges_enabled: boolean;
+    accountId?: string;
+  }>('/api/payments/connect/status', { admin: true });
 }
 
-export async function createStripeConnectAccount() {
-  return jsonFetch<{ accountId: string; onboardingUrl: string }>(
-    "/api/payments/connect/account",
-    {
-      method: "POST",
-      admin: true,
-    },
-  );
-}
-
-export async function createStripeCheckoutSession(input: {
-  priceId: string;
-  recipeId?: string;
-  customerEmail?: string;
-  successUrl?: string;
-  cancelUrl?: string;
-}) {
-  return jsonFetch<{ sessionId: string; url: string }>(
-    "/api/payments/checkout/session",
-    {
-      method: "POST",
-      body: input,
-    },
-  );
-}
-
-export async function getCheckoutPaymentConfig() {
-  const result = await jsonFetch<{ config: CheckoutPaymentConfig }>("/api/payments/config");
-  return result.config;
-}
-
-export async function createPixPayment(input: CreatePixPaymentInput) {
-  return jsonFetch<DirectPaymentResult>("/api/payments/pix", {
-    method: "POST",
-    body: input as unknown as Record<string, unknown>,
-  });
-}
-
-export async function createCardPayment(input: CreateCardPaymentInput) {
-  return jsonFetch<DirectPaymentResult>("/api/payments/card", {
-    method: "POST",
-    body: input as unknown as Record<string, unknown>,
-  });
-}
-
-export async function getPaymentStatus(id: string) {
-  return jsonFetch<DirectPaymentResult>(`/api/payments/${encodeURIComponent(id)}`);
-}
-
-export async function cancelPayment(id: string) {
-  return jsonFetch<DirectPaymentResult>(`/api/payments/${encodeURIComponent(id)}/cancel`, {
-    method: "POST",
+export async function createStripeConnectAccount(returnTo?: string) {
+  return jsonFetch<{ accountId: string; onboardingUrl: string }>('/api/payments/connect/account', {
+    method: 'POST',
+    admin: true,
+    body: returnTo ? { returnTo } : {},
   });
 }

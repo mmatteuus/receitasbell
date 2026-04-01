@@ -2,7 +2,7 @@ import { withApiHandler } from '../../../../shared/http.js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { stripeClient } from '../../../providers/stripe/client.js';
 import { supabaseAdmin } from '../../../../integrations/supabase/client.js';
-import { getStripeAppEnvAsync, env } from '../../../../shared/env.js';
+import { env } from '../../../../shared/env.js';
 import { getRecipeById, getRecipeBySlug } from '../../../../recipes/repo.js';
 import { createPaymentOrder, updatePaymentOrderInternal } from '../../../repo.js';
 import type { CartItem } from '../../../../../types/cart.js';
@@ -34,8 +34,6 @@ export default withApiHandler(async (req: VercelRequest, res: VercelResponse, { 
     res.status(400).json({ error: 'Missing required parameters (recipeSlug, payerEmail/userId)' });
     return;
   }
-
-  await getStripeAppEnvAsync(tenant.id);
 
   const recipe =
     (await getRecipeBySlug(tenant.id, recipeSlug)) ??

@@ -17,9 +17,7 @@
 
 ## Stripe
 
-- `STRIPE_CLIENT_ID`
 - `STRIPE_SECRET_KEY`
-- `STRIPE_REDIRECT_URI`
 - `STRIPE_WEBHOOK_SECRET`
 
 ## Social Auth

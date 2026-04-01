@@ -11,12 +11,14 @@
 - `env`: critical environment variables.
 - `database`: access to the required Supabase tables.
 - `rateLimit`: Upstash Redis availability and runtime fallback state.
+- `payments`: Stripe environment completeness for checkout/connect flows.
 - `email`: Resend availability.
 
 ## How to read the result
 
 - Missing critical env vars or failed database access -> `unavailable`.
 - Missing Upstash config -> `degraded`.
+- Missing Stripe payment env vars -> `degraded`.
 - Upstash configured but ping fails -> `unavailable`.
 - Email disabled -> `degraded`.
 

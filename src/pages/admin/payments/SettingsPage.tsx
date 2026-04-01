@@ -13,11 +13,7 @@ import {
 import { updateSettings } from '@/lib/api/settings';
 import type { AdminPaymentSettingsResponse } from '@/types/payment';
 import { ApiClientError } from '@/lib/api/client';
-import {
-  Info,
-  ShieldCheck,
-  Activity,
-} from 'lucide-react';
+import { Info, ShieldCheck, Activity } from 'lucide-react';
 import { StripeConnectCard } from '@/components/payments/StripeConnectCard';
 
 type PaymentFlags = {
@@ -50,7 +46,8 @@ export default function SettingsPage() {
 
       if (urlParams.get('stripe') === 'success') {
         toast.success('🎉 Stripe conectado!', {
-          description: 'Sua conta Stripe foi vinculada com sucesso. Você já pode receber pagamentos.',
+          description:
+            'Sua conta Stripe foi vinculada com sucesso. Você já pode receber pagamentos.',
           duration: 6000,
         });
         window.history.replaceState({}, document.title, window.location.pathname);
@@ -85,7 +82,9 @@ export default function SettingsPage() {
     }
 
     void loadAdminSettings();
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [settings.payment_mode, settings.webhooks_enabled, settings.payment_topic_enabled]);
 
   function setField<K extends keyof PaymentFlags>(key: K, value: PaymentFlags[K]) {
@@ -104,7 +103,9 @@ export default function SettingsPage() {
       console.error('Failed to save payment settings', error);
       if (error instanceof ApiClientError && error.status === 409) {
         const details = (error.details ?? {}) as { blockingReasons?: string[] };
-        const blockingReasons = Array.isArray(details.blockingReasons) ? details.blockingReasons : [];
+        const blockingReasons = Array.isArray(details.blockingReasons)
+          ? details.blockingReasons
+          : [];
         toast.error('Não foi possível ativar o modo produção.', {
           description: blockingReasons.length
             ? blockingReasons.join(' ')
@@ -123,11 +124,12 @@ export default function SettingsPage() {
     try {
       // Tenta obter o link de onboarding; se a conta ainda não existir, cria primeiro
       let onboardingUrl: string;
+      const returnTo = `${window.location.pathname}${window.location.search}`;
       try {
-        onboardingUrl = await startStripeConnect(window.location.pathname);
+        onboardingUrl = await startStripeConnect(returnTo);
       } catch {
         // Conta pode não existir ainda — cria e usa URL retornada
-        const created = await createStripeConnectAccount();
+        const created = await createStripeConnectAccount(returnTo);
         onboardingUrl = created.onboardingUrl;
       }
       window.location.assign(onboardingUrl);
@@ -172,9 +174,9 @@ export default function SettingsPage() {
               </CardHeader>
               <CardContent className="text-xs space-y-3 text-muted-foreground leading-relaxed">
                 <p>
-                  Clique em <strong>Conectar com Stripe</strong> acima e siga o onboarding seguro do Stripe.
-                  Após concluir, o dinheiro das suas vendas cairá diretamente na sua conta bancária vinculada,
-                  sem intermediários adicionais do sistema.
+                  Clique em <strong>Conectar com Stripe</strong> acima e siga o onboarding seguro do
+                  Stripe. Após concluir, o dinheiro das suas vendas cairá diretamente na sua conta
+                  bancária vinculada, sem intermediários adicionais do sistema.
                 </p>
                 <ul className="space-y-1 list-disc list-inside">
                   <li>Receba pagamentos em tempo real</li>
@@ -205,15 +207,19 @@ export default function SettingsPage() {
                 </div>
                 <Switch
                   checked={form.payment_mode === 'production'}
-                  onCheckedChange={(checked) => setField('payment_mode', checked ? 'production' : 'sandbox')}
+                  onCheckedChange={(checked) =>
+                    setField('payment_mode', checked ? 'production' : 'sandbox')
+                  }
                 />
               </div>
 
-              <div className={`p-3 rounded-lg text-[10px] leading-relaxed ${
-                form.payment_mode === 'production'
-                ? 'bg-green-500/10 text-green-700 border border-green-500/20'
-                : 'bg-amber-500/10 text-amber-700 border border-amber-500/20'
-              }`}>
+              <div
+                className={`p-3 rounded-lg text-[10px] leading-relaxed ${
+                  form.payment_mode === 'production'
+                    ? 'bg-green-500/10 text-green-700 border border-green-500/20'
+                    : 'bg-amber-500/10 text-amber-700 border border-amber-500/20'
+                }`}
+              >
                 {form.payment_mode === 'production'
                   ? 'O site está em PRODUÇÃO. As vendas são processadas e cobradas de verdade.'
                   : 'O site está em TESTE. Você pode simular compras com cartões de teste do Stripe (ex: 4242 4242 4242 4242).'}
@@ -250,8 +256,9 @@ export default function SettingsPage() {
             </div>
             <h4 className="text-xs font-bold uppercase tracking-wider">Conexão Blindada</h4>
             <p className="text-[10px] text-muted-foreground leading-relaxed">
-              Utilizamos o protocolo OAuth 2.0 oficial do Stripe Connect. Suas credenciais bancárias nunca tocam
-              nossos servidores — tudo é processado diretamente pelo Stripe com criptografia PCI DSS nível 1.
+              Utilizamos o protocolo OAuth 2.0 oficial do Stripe Connect. Suas credenciais bancárias
+              nunca tocam nossos servidores — tudo é processado diretamente pelo Stripe com
+              criptografia PCI DSS nível 1.
             </p>
           </div>
         </div>

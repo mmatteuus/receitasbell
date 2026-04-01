@@ -46,6 +46,11 @@ export default withApiHandler(
       ['UPSTASH_REDIS_REST_TOKEN', process.env.UPSTASH_REDIS_REST_TOKEN],
     ]);
 
+    const paymentsEnv = envStatus([
+      ['STRIPE_SECRET_KEY', env.STRIPE_SECRET_KEY],
+      ['STRIPE_WEBHOOK_SECRET', env.STRIPE_WEBHOOK_SECRET],
+    ]);
+
     const tableChecks = await Promise.allSettled([
       pingSupabaseTable('tenants', 'supabase.tenants'),
       pingSupabaseTable('users', 'supabase.users'),
@@ -128,6 +133,7 @@ export default withApiHandler(
     const degradedIssues = [
       ...(rateLimitCheck.status === 'degraded' ? ['rate_limit_backend_memory'] : []),
       ...(emailCheck.status === 'degraded' ? ['email_disabled'] : []),
+      ...(paymentsEnv.status === 'fail' ? ['payments_env_incomplete'] : []),
     ];
 
     const status: ReadyStatus =
@@ -159,6 +165,9 @@ export default withApiHandler(
         rateLimit: toCheck(rateLimitCheck.status, {
           backend: rateLimitCheck.backend,
           reason: rateLimitCheck.reason,
+        }),
+        payments: toCheck(paymentsEnv.status === 'ok' ? 'ok' : 'degraded', {
+          missing: paymentsEnv.missing,
         }),
         email: toCheck(emailCheck.status, {
           reason: emailCheck.reason,

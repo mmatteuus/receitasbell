@@ -68,10 +68,10 @@ paths:
           $ref: '#/components/responses/Conflict'
         '500':
           $ref: '#/components/responses/ServerError'
-  /api/jobs/reconcile:
+  /api/jobs/cleanup:
     get:
-      summary: Reconcile pending payments
-      operationId: reconcilePayments
+      summary: Cleanup expired operational records
+      operationId: cleanupOperationalData
       tags: [jobs]
       parameters:
         - in: query
@@ -81,7 +81,25 @@ paths:
           required: true
       responses:
         '200':
-          description: Reconcile completed
+          description: Cleanup completed
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /api/jobs/consistency:
+    get:
+      summary: Check data consistency
+      operationId: runConsistencyChecks
+      tags: [jobs]
+      parameters:
+        - in: query
+          name: secret
+          schema:
+            type: string
+          required: true
+      responses:
+        '200':
+          description: Consistency check completed
         '401':
           $ref: '#/components/responses/Unauthorized'
         '500':

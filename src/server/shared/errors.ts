@@ -1,7 +1,8 @@
 import type { SeverityLevel } from '@sentry/node';
+import { env } from './env.js';
 
 const SENTRY_DSN = process.env.SENTRY_DSN;
-const PROBLEM_BASE_URL = 'https://receitasbell.mtsferreira.dev/errors';
+const PROBLEM_BASE_URL = `${(env.APP_BASE_URL || 'https://receitasbell.mtsferreira.dev').replace(/\/+$/, '')}/errors`;
 
 let initialized = false;
 let sentryModulePromise: Promise<typeof import('@sentry/node') | null> | null = null;

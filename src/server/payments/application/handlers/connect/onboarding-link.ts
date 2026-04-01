@@ -1,13 +1,27 @@
 import { stripeClient } from '../../../providers/stripe/client.js';
 import { env } from '../../../../shared/env.js';
 import { getConnectAccountByTenantId } from '../../../repo/accounts.js';
-import { withApiHandler } from '../../../../shared/http.js';
+import { readJsonBody, withApiHandler } from '../../../../shared/http.js';
 import { requireTenantAdminSessionContext } from '../../../../auth/sessions.js';
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-function buildStripeRedirectUrl(result: 'success' | 'refresh') {
-  return `${env.APP_BASE_URL}/admin/pagamentos/configuracoes?stripe=${result}`;
+function appendQuery(path: string, key: string, value: string) {
+  const url = new URL(path, 'http://localhost');
+  url.searchParams.set(key, value);
+  return `${url.pathname}${url.search}`;
+}
+
+function sanitizeReturnTo(value: unknown) {
+  if (typeof value !== 'string') return '/admin/pagamentos/configuracoes';
+  const trimmed = value.trim();
+  if (!trimmed.startsWith('/') || trimmed.startsWith('//'))
+    return '/admin/pagamentos/configuracoes';
+  return trimmed;
+}
+
+function buildStripeRedirectUrl(result: 'success' | 'refresh', returnTo: string) {
+  return `${(env.APP_BASE_URL || '').replace(/\/+$/, '')}${appendQuery(returnTo, 'stripe', result)}`;
 }
 
 /**
@@ -15,8 +29,10 @@ function buildStripeRedirectUrl(result: 'success' | 'refresh') {
  * Cria um link de onboarding (Stripe Connect) para o tenant logado.
  */
 export default withApiHandler(async (req: VercelRequest, res: VercelResponse, { logger }) => {
+  const body = await readJsonBody<{ returnTo?: string }>(req);
   // 1. Extração do contexto de tenant do admin
   const { tenant } = await requireTenantAdminSessionContext(req);
+  const returnTo = sanitizeReturnTo(body.returnTo);
 
   logger.info('Solicitando link de onboarding Stripe', { tenantId: tenant.id });
 
@@ -34,8 +50,8 @@ export default withApiHandler(async (req: VercelRequest, res: VercelResponse, { 
   // 3. Cria o link de onboarding via Stripe
   const accountLinks = await stripeClient.accountLinks.create({
     account: account.stripeAccountId,
-    refresh_url: buildStripeRedirectUrl('refresh'),
-    return_url: buildStripeRedirectUrl('success'),
+    refresh_url: buildStripeRedirectUrl('refresh', returnTo),
+    return_url: buildStripeRedirectUrl('success', returnTo),
     type: 'account_onboarding',
   });
 

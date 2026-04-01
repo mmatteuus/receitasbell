@@ -16,7 +16,7 @@
 3. [ ] Run `npm run build`.
 4. [ ] Run `npm run test:unit`.
 5. [ ] Verify `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` and `SUPABASE_ANON_KEY` in Vercel.
-6. [ ] Verify `STRIPE_SECRET_KEY`, `STRIPE_CLIENT_ID`, `STRIPE_WEBHOOK_SECRET` and `STRIPE_REDIRECT_URI`.
+6. [ ] Verify `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`.
 7. [ ] Ensure `CRON_SECRET` is configured for automated jobs.
 
 ## Rollback

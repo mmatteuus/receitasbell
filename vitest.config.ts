@@ -29,9 +29,7 @@ export default defineConfig({
       ENCRYPTION_KEY: 'MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=',
       ADMIN_API_SECRET: 'mock-admin-secret',
       STRIPE_WEBHOOK_SECRET: 'mock-stripe-webhook-secret',
-      STRIPE_CLIENT_ID: 'ca_mock_client_id',
       STRIPE_SECRET_KEY: 'sk_test_mock',
-      STRIPE_REDIRECT_URI: 'http://localhost:3000/api/payments/connect/callback',
     },
   },
 });
