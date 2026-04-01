@@ -39,6 +39,7 @@
     "@tanstack/react-table": "^8.21.3",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.37.0",
+    "@vercel/node": "file:vendor/vercel-node",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
