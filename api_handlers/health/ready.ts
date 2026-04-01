@@ -52,7 +52,7 @@ export default withApiHandler(
     ]);
 
     const tableChecks = await Promise.allSettled([
-      pingSupabaseTable('tenants', 'supabase.tenants'),
+      pingSupabaseTable('organizations', 'supabase.organizations'),
       pingSupabaseTable('users', 'supabase.users'),
       pingSupabaseTable('recipes', 'supabase.recipes'),
       pingSupabaseTable('categories', 'supabase.categories'),
@@ -60,7 +60,7 @@ export default withApiHandler(
       pingSupabaseTable('audit_logs', 'supabase.audit_logs'),
     ]);
 
-    const tableNames = ['tenants', 'users', 'recipes', 'categories', 'settings', 'auditLogs'];
+    const tableNames = ['organizations', 'users', 'recipes', 'categories', 'settings', 'auditLogs'];
 
     const dbFailures = tableChecks
       .map((result, index) => ({ result, index }))
