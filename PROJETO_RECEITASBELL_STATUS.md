@@ -18,7 +18,7 @@ Este documento reflete o estado auditado do repositório na `main` depois da rev
 - **Supply chain:** workflow de segurança dedicado e Actions fixadas por SHA.
 - **Higiene do repositório:** arquivos de debug removidos e ignorados.
 - **Schema Supabase:** movido da raiz para `docs/architecture/supabase_hardened_schema.sql`.
-- **Legado removido:** integracoes e menções operacionais de Baserow e Mercado Pago foram retiradas do código ativo.
+- **Legado removido:** integracoes e mencoes operacionais antigas foram retiradas do codigo ativo.
 
 ## 🔎 Pendências Reais Após a Auditoria
 
