@@ -7,8 +7,8 @@ Define minimum retention windows for personal and operational data handled by Re
 ## Current Scope
 
 - `auth_sessions` in Supabase: active user and admin sessions.
-- Legacy Baserow tables for sessions and magic links when still configured.
-- OAuth temporary states in Baserow.
+- `magic_links` in Supabase.
+- `oauth_states` in Supabase.
 - Audit and payment operational records.
 
 ## Retention Windows
@@ -21,10 +21,10 @@ Define minimum retention windows for personal and operational data handled by Re
 ## Operational Rule
 
 - `/api/jobs/cleanup` runs daily at `03:00` via Vercel Cron.
-- The cleanup job removes legacy session, magic link and OAuth-state records when their backing tables are configured.
+- The cleanup job removes expired session, magic link and OAuth-state records.
 - Any deletion routine must record an audit event with totals removed.
 
 ## Pending Follow-Up
 
 - Add account deletion/self-service removal flow.
-- Consolidate storage so the same retention policy applies once for all modules.
+- Review retention windows with legal/business owners as payment volume grows.

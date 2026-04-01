@@ -3,7 +3,7 @@
 - `api/`: Vercel Serverless Functions handlers.
   - `admin/`: Admin-protected routes (Auth session + role required).
   - `auth/`: Identity and session management (Magic links, logout, me).
-  - `checkout/`: Payment orchestration and webhooks.
+  - `payments/`: Checkout, Stripe Connect and payment webhooks.
   - `health/`: Liveness and readiness probes.
   - `jobs/`: Scheduled tasks (Cron).
   - `me/`: User-scoped resources (Auth session required).
@@ -15,8 +15,8 @@
   - `hooks/`: Domain-specific React hooks.
   - `lib/`: Shared utilities, API clients and frontend-safe repos.
   - `pages/`: Route-level container components.
-  - `server/`: **STRICT ENCLAVE**. Repository patterns and 3rd-party integrations. 
-    - *Note: Code here MUST NOT be imported by the frontend.*
+  - `server/`: **STRICT ENCLAVE**. Repository patterns and 3rd-party integrations.
+    - _Note: Code here MUST NOT be imported by the frontend._
   - `types/`: Domain models and interface definitions.
 - `docs/`: Audit, Architecture and Operations registries.
 - `tests/`: Integration and unit suites (Vitest).

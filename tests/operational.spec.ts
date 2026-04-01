@@ -21,7 +21,7 @@ test.describe('ReceitasBell Operational & Security', () => {
   });
 
   test('Cron Jobs - Acesso sem Secret deve retornar 401', async ({ request }) => {
-    const jobs = ['reconcile', 'cleanup', 'consistency'];
+    const jobs = ['cleanup', 'consistency'];
 
     for (const job of jobs) {
       const response = await request.get(`/api/jobs/${job}`);
@@ -32,7 +32,7 @@ test.describe('ReceitasBell Operational & Security', () => {
   });
 
   test('Cron Jobs - Acesso com Secret incorreta deve retornar 401', async ({ request }) => {
-    const response = await request.get('/api/jobs/reconcile?secret=wrong-secret');
+    const response = await request.get('/api/jobs/cleanup?secret=wrong-secret');
     expect(response.status()).toBe(401);
   });
 

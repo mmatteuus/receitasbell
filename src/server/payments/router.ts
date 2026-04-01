@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 import connectAccountHandler from './application/handlers/connect/account.js';
+import connectCallbackHandler from './application/handlers/connect/callback.js';
 import connectLinkHandler from './application/handlers/connect/onboarding-link.js';
 import connectStatusHandler from './application/handlers/connect/status.js';
 import checkoutSessionHandler from './application/handlers/checkout/session.js';
@@ -45,6 +46,8 @@ export async function paymentsRouter(request: VercelRequest, response: VercelRes
 
   if (parts.length === 2 && parts[0] === 'connect' && parts[1] === 'account') {
     target = connectAccountHandler;
+  } else if (parts.length === 2 && parts[0] === 'connect' && parts[1] === 'callback') {
+    target = connectCallbackHandler;
   } else if (parts.length === 2 && parts[0] === 'connect' && parts[1] === 'onboarding-link') {
     target = connectLinkHandler;
   } else if (parts.length === 2 && parts[0] === 'connect' && parts[1] === 'status') {

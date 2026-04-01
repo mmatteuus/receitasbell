@@ -1,9 +1,9 @@
-import { stripeClient } from "../../../providers/stripe/client.js";
-import { getConnectAccountByTenantId, upsertConnectAccount } from "../../../repo/accounts.js";
-import { withApiHandler } from "../../../../shared/http.js";
-import { requireTenantAdminSessionContext } from "../../../../auth/sessions.js";
+import { stripeClient } from '../../../providers/stripe/client.js';
+import { getConnectAccountByTenantId, upsertConnectAccount } from '../../../repo/accounts.js';
+import { withApiHandler } from '../../../../shared/http.js';
+import { requireTenantAdminSessionContext } from '../../../../auth/sessions.js';
 
-import type { VercelRequest, VercelResponse } from "@vercel/node";
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 /**
  * GET /api/payments/connect/status
@@ -13,14 +13,20 @@ export default withApiHandler(async (req: VercelRequest, res: VercelResponse, { 
   // 1. Contexto de Sessão de Admin do Tenant
   const { tenant } = await requireTenantAdminSessionContext(req);
 
-  logger.info("Verificando status de Stripe Connect", { tenantId: tenant.id });
+  logger.info('Verificando status de Stripe Connect', { tenantId: tenant.id });
 
   // 2. Busca no banco local
   const stored = await getConnectAccountByTenantId(tenant.id);
 
   if (!stored?.stripeAccountId) {
-    logger.info("Tenant não possui conta conectada no momento.");
-    res.status(200).json({ connected: false });
+    logger.info('Tenant não possui conta conectada no momento.');
+    res.status(200).json({
+      connected: false,
+      accountId: null,
+      details_submitted: false,
+      charges_enabled: false,
+      payouts_enabled: false,
+    });
     return;
   }
 
@@ -31,24 +37,28 @@ export default withApiHandler(async (req: VercelRequest, res: VercelResponse, { 
   const updated = await upsertConnectAccount({
     tenantId: tenant.id,
     stripeAccountId: stripeAccount.id,
-    status: stripeAccount.details_submitted ? "ready" : "pending",
+    status: stripeAccount.details_submitted ? 'ready' : 'pending',
     detailsSubmitted: stripeAccount.details_submitted,
     chargesEnabled: stripeAccount.charges_enabled,
     payoutsEnabled: stripeAccount.payouts_enabled,
-    defaultCurrency: stripeAccount.default_currency || "BRL",
+    defaultCurrency: stripeAccount.default_currency || 'BRL',
     requirements: {
-        currentlyDue: stripeAccount.requirements?.currently_due || [],
-        eventuallyDue: stripeAccount.requirements?.eventually_due || [],
-    }
+      currentlyDue: stripeAccount.requirements?.currently_due || [],
+      eventuallyDue: stripeAccount.requirements?.eventually_due || [],
+    },
   });
 
-  logger.info("Conta sincronizada com sucesso.", { 
-      stripeAccountId: updated.stripeAccountId,
-      chargesEnabled: updated.chargesEnabled
+  logger.info('Conta sincronizada com sucesso.', {
+    stripeAccountId: updated.stripeAccountId,
+    chargesEnabled: updated.chargesEnabled,
   });
 
   res.status(200).json({
     connected: true,
+    accountId: updated.stripeAccountId,
+    details_submitted: updated.detailsSubmitted,
+    charges_enabled: updated.chargesEnabled,
+    payouts_enabled: updated.payoutsEnabled,
     stripeAccountId: updated.stripeAccountId,
     status: updated.status,
     chargesEnabled: updated.chargesEnabled,

@@ -66,6 +66,7 @@ export interface CreateCardPaymentInput {
 
 export interface CreatePaymentPreferenceResult {
   paymentOrderId: string | number;
+  orderId?: string;
   preferenceId: string | null;
   checkoutUrl: string | null;
   checkoutUrlKind: 'init_point' | 'sandbox_init_point' | null;
@@ -75,6 +76,7 @@ export interface CreatePaymentPreferenceResult {
   status: PaymentStatus;
   unlockedCount: number;
   gateway: PaymentGateway;
+  sessionId?: string | null;
   message?: string;
 }
 

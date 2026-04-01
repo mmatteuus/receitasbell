@@ -32,7 +32,7 @@ O sistema segue uma abordagem orientada a domínios limpos em `src/server/`:
 - `api/auth/*`: fluxo de login e verificação de identidade.
 - `api/me/*`: área logada do cliente (favoritos, compras).
 - `api/admin/*`: painel administrativo do lojista.
-- `api/checkout/*`: processamento de pedidos e webhooks de pagamento.
+- `api/payments/*`: checkout, onboarding Stripe Connect e webhooks de pagamento.
 - `api/jobs/*`: tarefas automáticas (reconciliação, limpeza).
 
 ## 🔒 Segurança e Hardening

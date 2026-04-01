@@ -20,11 +20,12 @@ export default function TransactionDetailsPage() {
 
   useEffect(() => {
     if (!id) return;
+    const paymentId = id;
 
     async function loadPayment() {
       setLoading(true);
       try {
-        const details = await paymentRepo.getById(id);
+        const details = await paymentRepo.getById(paymentId);
         setPayment(details.payment);
         setEvents(details.events);
         setNotes(details.notes);

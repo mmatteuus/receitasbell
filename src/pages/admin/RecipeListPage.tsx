@@ -1,6 +1,18 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { PlusCircle, Eye, Pencil, Copy, Trash2, Globe, FileText, Clock, BarChart, Layers, Users } from 'lucide-react';
+import {
+  PlusCircle,
+  Eye,
+  Pencil,
+  Copy,
+  Trash2,
+  Globe,
+  FileText,
+  Clock,
+  BarChart,
+  Layers,
+  Users,
+} from 'lucide-react';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -82,7 +94,7 @@ export default function RecipeListPage() {
   }
 
   async function handleTogglePublish(recipe: RecipeRecord) {
-    if (typeof navigator !== "undefined" && !navigator.onLine) {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
       toast.error('Publicação offline não está disponível.');
       return;
     }
@@ -99,7 +111,7 @@ export default function RecipeListPage() {
   }
 
   async function handleDuplicate(recipe: RecipeRecord) {
-    if (typeof navigator !== "undefined" && !navigator.onLine) {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
       toast.error('Duplicação offline não está disponível.');
       return;
     }
@@ -117,7 +129,7 @@ export default function RecipeListPage() {
   }
 
   async function handleDelete(recipe: RecipeRecord) {
-    if (typeof navigator !== "undefined" && !navigator.onLine) {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
       toast.error('Exclusão offline não está disponível.');
       return;
     }
@@ -148,7 +160,9 @@ export default function RecipeListPage() {
       />
       {snapshotMode && (
         <div className="mt-4 space-y-2 rounded-xl border border-amber-200 bg-amber-50 p-4">
-          <p className="text-sm font-medium text-amber-800">Modo offline — dados podem estar desatualizados.</p>
+          <p className="text-sm font-medium text-amber-800">
+            Modo offline — dados podem estar desatualizados.
+          </p>
           <LastSyncBadge lastSyncedAt={lastSyncedAt} />
         </div>
       )}
@@ -177,13 +191,17 @@ export default function RecipeListPage() {
                   const category = categories.find((item) => item.slug === recipe.categorySlug);
                   const presentation = getRecipePresentation(recipe);
                   const imageUrl = getRecipeImage(recipe);
-                  
+
                   return (
                     <TableRow key={recipe.id} className="group hover:bg-muted/50 transition-colors">
                       <TableCell>
                         <div className="h-12 w-12 overflow-hidden rounded-lg bg-muted shadow-sm ring-1 ring-border">
                           {imageUrl ? (
-                            <img src={imageUrl} alt="" className="h-full w-full object-cover transition-transform group-hover:scale-110" />
+                            <img
+                              src={imageUrl}
+                              alt=""
+                              className="h-full w-full object-cover transition-transform group-hover:scale-110"
+                            />
                           ) : (
                             <div className="flex h-full w-full items-center justify-center text-muted-foreground">
                               <FileText className="h-5 w-5 opacity-40" />
@@ -193,13 +211,18 @@ export default function RecipeListPage() {
                       </TableCell>
                       <TableCell>
                         <div>
-                          <p className="font-semibold text-sm sm:text-base leading-tight">{presentation.cardTitle}</p>
+                          <p className="font-semibold text-sm sm:text-base leading-tight">
+                            {presentation.cardTitle}
+                          </p>
                           <p className="text-xs text-muted-foreground mt-0.5">/{recipe.slug}</p>
                         </div>
                       </TableCell>
                       <TableCell className="hidden md:table-cell">
                         {category ? (
-                          <Badge variant="outline" className="font-normal border-primary/20 bg-primary/5 text-primary">
+                          <Badge
+                            variant="outline"
+                            className="font-normal border-primary/20 bg-primary/5 text-primary"
+                          >
                             {category.name}
                           </Badge>
                         ) : (
@@ -207,12 +230,20 @@ export default function RecipeListPage() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <PriceBadge accessTier={recipe.accessTier} priceBRL={recipe.priceBRL} className="scale-90 origin-left" />
+                        <PriceBadge
+                          accessTier={recipe.accessTier}
+                          priceBRL={recipe.priceBRL}
+                          className="scale-90 origin-left"
+                        />
                       </TableCell>
                       <TableCell>
-                        <Badge 
+                        <Badge
                           variant={recipe.status === 'published' ? 'default' : 'secondary'}
-                          className={recipe.status === 'published' ? 'bg-green-600 hover:bg-green-700' : 'bg-orange-100 text-orange-800 hover:bg-orange-200 border-orange-200'}
+                          className={
+                            recipe.status === 'published'
+                              ? 'bg-green-600 hover:bg-green-700'
+                              : 'bg-orange-100 text-orange-800 hover:bg-orange-200 border-orange-200'
+                          }
                         >
                           {recipe.status === 'published' ? 'Publicada' : 'Rascunho'}
                         </Badge>
@@ -220,7 +251,9 @@ export default function RecipeListPage() {
                       <TableCell className="hidden lg:table-cell">
                         <div className="flex flex-col gap-1 text-[11px] text-muted-foreground">
                           <div className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" /> {recipe.totalTime || recipe.prepTime + recipe.cookTime} min
+                            <Clock className="h-3 w-3" />{' '}
+                            {recipe.totalTime ?? (recipe.prepTime ?? 0) + (recipe.cookTime ?? 0)}{' '}
+                            min
                           </div>
                           {recipe.difficulty && (
                             <div className="flex items-center gap-1 capitalize">
@@ -231,8 +264,15 @@ export default function RecipeListPage() {
                       </TableCell>
                       <TableCell>
                         <div className="flex justify-end gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
-                          <Link to={buildTenantAdminPath(`receitas/${recipe.id}/editar`, tenantSlug)}>
-                            <Button variant="ghost" size="icon" className="h-8 w-8" aria-label={`Editar ${presentation.cardTitle}`}>
+                          <Link
+                            to={buildTenantAdminPath(`receitas/${recipe.id}/editar`, tenantSlug)}
+                          >
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              aria-label={`Editar ${presentation.cardTitle}`}
+                            >
                               <Pencil className="h-4 w-4 text-primary" />
                             </Button>
                           </Link>
@@ -241,7 +281,12 @@ export default function RecipeListPage() {
                             target="_blank"
                             rel="noopener"
                           >
-                            <Button variant="ghost" size="icon" className="h-8 w-8" aria-label={`Ver pré-visualização de ${presentation.cardTitle}`}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              aria-label={`Ver pré-visualização de ${presentation.cardTitle}`}
+                            >
                               <Eye className="h-4 w-4" />
                             </Button>
                           </a>
@@ -249,7 +294,11 @@ export default function RecipeListPage() {
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8"
-                            aria-label={recipe.status === 'published' ? `Despublicar ${presentation.cardTitle}` : `Publicar ${presentation.cardTitle}`}
+                            aria-label={
+                              recipe.status === 'published'
+                                ? `Despublicar ${presentation.cardTitle}`
+                                : `Publicar ${presentation.cardTitle}`
+                            }
                             onClick={() => void handleTogglePublish(recipe)}
                           >
                             {recipe.status === 'published' ? (
@@ -290,9 +339,12 @@ export default function RecipeListPage() {
               const category = categories.find((item) => item.slug === recipe.categorySlug);
               const presentation = getRecipePresentation(recipe);
               const imageUrl = getRecipeImage(recipe);
-              
+
               return (
-                <div key={recipe.id} className="relative overflow-hidden rounded-2xl border bg-card shadow-sm transition-all active:scale-[0.98]">
+                <div
+                  key={recipe.id}
+                  className="relative overflow-hidden rounded-2xl border bg-card shadow-sm transition-all active:scale-[0.98]"
+                >
                   <div className="flex gap-4 p-4">
                     <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-muted ring-1 ring-border">
                       {imageUrl ? (
@@ -305,26 +357,37 @@ export default function RecipeListPage() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between">
-                        <Badge 
+                        <Badge
                           variant={recipe.status === 'published' ? 'default' : 'secondary'}
                           className={`text-[10px] h-5 ${recipe.status === 'published' ? 'bg-green-600' : 'bg-orange-100 text-orange-800 border-orange-200'}`}
                         >
                           {recipe.status === 'published' ? 'Publicada' : 'Rascunho'}
                         </Badge>
-                        <PriceBadge accessTier={recipe.accessTier} priceBRL={recipe.priceBRL} className="scale-75 origin-right" />
+                        <PriceBadge
+                          accessTier={recipe.accessTier}
+                          priceBRL={recipe.priceBRL}
+                          className="scale-75 origin-right"
+                        />
                       </div>
-                      <h3 className="mt-1 font-semibold text-base leading-snug truncate">{presentation.cardTitle}</h3>
+                      <h3 className="mt-1 font-semibold text-base leading-snug truncate">
+                        {presentation.cardTitle}
+                      </h3>
                       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                        {category && <span className="font-medium text-primary">{category.name}</span>}
+                        {category && (
+                          <span className="font-medium text-primary">{category.name}</span>
+                        )}
                         <div className="flex items-center gap-1">
                           <Clock className="h-3 w-3" /> {recipe.totalTime || 30} min
                         </div>
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="flex border-t bg-muted/30 divide-x">
-                    <Link to={buildTenantAdminPath(`receitas/${recipe.id}/editar`, tenantSlug)} className="flex-1">
+                    <Link
+                      to={buildTenantAdminPath(`receitas/${recipe.id}/editar`, tenantSlug)}
+                      className="flex-1"
+                    >
                       <Button variant="ghost" className="w-full h-11 rounded-none gap-2 text-xs">
                         <Pencil className="h-3.5 w-3.5 text-primary" /> Editar
                       </Button>
@@ -335,9 +398,13 @@ export default function RecipeListPage() {
                       onClick={() => void handleTogglePublish(recipe)}
                     >
                       {recipe.status === 'published' ? (
-                        <><FileText className="h-3.5 w-3.5" /> Pausar</>
+                        <>
+                          <FileText className="h-3.5 w-3.5" /> Pausar
+                        </>
                       ) : (
-                        <><Globe className="h-3.5 w-3.5 text-green-600" /> Publicar</>
+                        <>
+                          <Globe className="h-3.5 w-3.5 text-green-600" /> Publicar
+                        </>
                       )}
                     </Button>
                     <Button

@@ -1,66 +1,89 @@
 # Payments Runbook
 
-Use this runbook for checkout, webhook, reconcile, and Mercado Pago connection incidents.
+Use este runbook para incidentes de checkout, Stripe Connect e webhooks Stripe.
 
-## 1. Checkout creates duplicate orders
+## 1. Checkout cria pedidos duplicados
+
 Symptoms:
-- Repeated checkout retries create multiple internal orders.
-- The same checkout reference returns inconsistent results.
+
+- Retries repetidos criam mais de um pedido interno.
+- O mesmo `checkoutReference` retorna resultados inconsistentes.
 
 What to check:
-- `src/server/payments/service.ts`
+
+- `src/server/payments/application/handlers/checkout/session.ts`
 - `src/server/payments/repo.ts`
-- Logs for `checkout.idempotent_reuse` and `checkout.preference_created`
+- logs de checkout e persistencia de `payment_orders`
 
 Expected behavior:
-- Same `(tenant_id, idempotency_key)` reuses the same order.
-- Same key with a different payload fails with `409`.
+
+- o payload valido cria um unico pedido e uma unica Stripe Checkout Session.
 
 Mitigation:
-1. Confirm the incoming payload is identical across retries.
-2. Confirm the payment order stored for that idempotency key is the intended one.
-3. If the payload changed, treat it as a new checkout reference instead of reusing the old key.
 
-## 2. Webhook approved but order stays pending
+1. Confirmar se o payload recebido e o mesmo entre retries.
+2. Verificar a ordem persistida e o `idempotency_key` correspondente.
+3. Se o payload mudou, usar um novo `checkoutReference`.
+
+## 2. Webhook Stripe aprovado mas pedido continua pendente
+
 Symptoms:
-- Mercado Pago says the payment is approved, but the app still shows pending.
+
+- A sessao no Stripe aparece como paga, mas o pedido interno continua `pending`.
 
 What to check:
-- `api_handlers/checkout/webhook.ts`
-- `api_handlers/jobs/reconcile.ts`
-- Logs for `webhook.payment_synced` and `webhook.payment_sync_failed`
+
+- `/api/payments/webhooks/stripe`
+- `src/server/payments/application/handlers/webhooks/stripe.ts`
+- `src/server/integrations/stripe/webhook.ts`
 
 Mitigation:
-1. Verify the webhook signature inputs are present.
-2. Check whether the webhook already created a payment event row.
-3. Run the reconcile job manually with the configured cron secret.
-4. Confirm the tenant connection is still `connected`.
 
-## 3. Mercado Pago connection expired
+1. Verificar se `STRIPE_WEBHOOK_SECRET` esta configurado.
+2. Confirmar se o webhook chegou com `stripe-signature` valido.
+3. Validar se `client_reference_id` e `tenantId` chegaram na sessao.
+4. Reprocessar o evento manualmente no dashboard do Stripe, se necessario.
+
+## 3. Stripe Connect exige reconexao
+
 Symptoms:
-- Checkout fails with a reconnect message.
-- Webhook or reconcile logs show 401 or 403 from Mercado Pago.
 
-Mitigation:
-1. Reconnect the tenant from the admin UI.
-2. Check whether the connection was marked `reconnect_required`.
-3. Retry reconcile after the connection is restored.
-
-## 4. Baserow transient failures
-Symptoms:
-- Read-only flows intermittently fail on Baserow 429/5xx.
+- O painel indica `reconnect_required`.
+- O onboarding falha ou a conta conectada fica indisponivel.
 
 What to check:
-- `src/server/integrations/baserow/client.ts`
-- Logs for `baserow.retry` and `baserow.request_failed`
+
+- `/api/payments/connect/status`
+- `/api/payments/connect/onboarding-link`
+- `/api/payments/connect/callback`
 
 Mitigation:
-1. Confirm whether the failing call is idempotent.
-2. Confirm whether the issue is a transient 429/5xx or a real schema/config problem.
-3. If the issue is only transient on GET/listing, the client should retry automatically.
-4. For POST/PATCH, do not retry blindly if the operation is non-idempotent.
+
+1. Solicitar nova conexao pelo painel admin.
+2. Confirmar se o callback voltou para `/admin/pagamentos/configuracoes`.
+3. Verificar se a conexao do tenant voltou para `connected`.
+
+## 4. Banco ou configuracao impedem pagamentos
+
+Symptoms:
+
+- Readiness volta `unavailable`.
+- Checkout falha antes de criar a sessao do Stripe.
+
+What to check:
+
+- `/api/health/ready`
+- `src/server/integrations/supabase/client.ts`
+- variaveis `SUPABASE_*` e `STRIPE_*`
+
+Mitigation:
+
+1. Confirmar credenciais do Supabase.
+2. Confirmar segredos do Stripe.
+3. Validar se o tenant possui conta conectada ativa.
 
 ## 5. Rollback guidance
-- If the idempotency or auth change causes unexpected behavior, revert only the touched files for that change set.
-- Do not restore a global admin bypass in production.
-- Keep checkout duplicate protection in place; it is safe and should not be rolled back unless it is proven incorrect.
+
+- Reverter apenas o conjunto de arquivos da mudanca problematica.
+- Nao restaurar bypass administrativo em producao.
+- Manter validacao de webhook e protecoes de checkout.

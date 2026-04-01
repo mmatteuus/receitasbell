@@ -1,10 +1,15 @@
-import { DEFAULT_SITE_SETTINGS } from "@/lib/defaults";
-import type { SettingsMap } from "@/types/settings";
+import { DEFAULT_SITE_SETTINGS } from '@/lib/defaults';
+import type { SettingsMap } from '@/types/settings';
 
-type UnknownSettings = Partial<SettingsMap> & Record<string, unknown>;
+type UnknownSettings = Partial<SettingsMap> & {
+  canonicalBaseUrl?: unknown;
+  siteUrl?: unknown;
+  publicBaseUrl?: unknown;
+  appBaseUrl?: unknown;
+};
 
 function normalizeBaseUrl(value: unknown) {
-  if (typeof value !== "string") {
+  if (typeof value !== 'string') {
     return null;
   }
 
@@ -14,7 +19,7 @@ function normalizeBaseUrl(value: unknown) {
   }
 
   try {
-    return new URL(trimmed).toString().replace(/\/$/, "");
+    return new URL(trimmed).toString().replace(/\/$/, '');
   } catch {
     return null;
   }
@@ -22,14 +27,17 @@ function normalizeBaseUrl(value: unknown) {
 
 function readConfiguredBaseUrl(settings?: UnknownSettings | null) {
   const fromSettings = normalizeBaseUrl(
-    settings?.canonicalBaseUrl ?? settings?.siteUrl ?? settings?.publicBaseUrl ?? settings?.appBaseUrl,
+    settings?.canonicalBaseUrl ??
+      settings?.siteUrl ??
+      settings?.publicBaseUrl ??
+      settings?.appBaseUrl
   );
   if (fromSettings) {
     return fromSettings;
   }
 
   const fromEnv = normalizeBaseUrl(
-    import.meta.env.VITE_CANONICAL_BASE_URL ?? import.meta.env.VITE_SITE_URL,
+    import.meta.env.VITE_CANONICAL_BASE_URL ?? import.meta.env.VITE_SITE_URL
   );
   if (fromEnv) {
     return fromEnv;

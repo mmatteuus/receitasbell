@@ -5,9 +5,9 @@ info:
 servers:
   - url: /
 paths:
-  /api/checkout:
+  /api/payments/checkout/session:
     post:
-      summary: Create checkout
+      summary: Create Stripe checkout session
       operationId: createCheckout
       tags: [checkout]
       requestBody:
@@ -17,8 +17,8 @@ paths:
             schema:
               $ref: '#/components/schemas/CheckoutCreateRequest'
       responses:
-        '201':
-          description: Checkout created
+        '200':
+          description: Checkout session created
           content:
             application/json:
               schema:
@@ -33,7 +33,7 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           $ref: '#/components/responses/ServerError'
-  /api/checkout/webhook:
+  /api/payments/webhooks/stripe:
     post:
       summary: Stripe webhook
       operationId: checkoutWebhook
@@ -195,15 +195,19 @@ components:
       additionalProperties: true
     CheckoutCreateRequest:
       type: object
-      required: [recipeIds, buyerEmail]
+      required: [recipeSlug, payerEmail]
       properties:
+        recipeSlug:
+          type: string
         recipeIds:
           type: array
           items:
             type: string
-        buyerEmail:
+        payerEmail:
           type: string
           format: email
+        payerName:
+          type: string
         checkoutReference:
           type: string
     CheckoutCreateResponse:
@@ -213,12 +217,18 @@ components:
           oneOf:
             - type: string
             - type: number
+        orderId:
+          type: string
         paymentId:
           type: string
+          nullable: true
         paymentIds:
           type: array
           items:
             type: string
+        sessionId:
+          type: string
+          nullable: true
         checkoutUrl:
           nullable: true
           type: string

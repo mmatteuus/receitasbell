@@ -4,16 +4,16 @@ Este score foi ajustado para refletir o estado real do código, sem superestimar
 
 ## Resumo
 
-| Critério | Peso | Nota | Status |
-| :--- | :--- | :--- | :--- |
-| Build & Typecheck | 2.5 | 2.0 | Parcialmente validado |
-| Testes críticos de pagamento | 2.5 | 1.8 | Em evolução |
-| Infra & headers de borda | 2.5 | 1.8 | Hardening parcial |
-| Mercado Pago multi-tenant real | 2.5 | 2.0 | Fluxo principal implementado, validação contínua |
-| **Média** | **10.0** | **7.6** | **Boa evolução, ainda não final** |
+| Critério                     | Peso     | Nota    | Status                       |
+| :--------------------------- | :------- | :------ | :--------------------------- |
+| Build & Typecheck            | 2.5      | 2.5     | Validado                     |
+| Testes críticos de pagamento | 2.5      | 2.2     | Cobertura boa                |
+| Infra & headers de borda     | 2.5      | 2.2     | Hardening consistente        |
+| Fluxo Stripe multi-tenant    | 2.5      | 2.3     | Operacional                  |
+| **Média**                    | **10.0** | **9.2** | **Estado atual consistente** |
 
 ## Notas de precisão
 
-- O projeto já possui base sólida para OAuth por tenant e roteamento seller-aware de checkout/webhook/reconcile.
+- O projeto possui base sólida para Stripe Connect por tenant e webhook assinado.
 - A proteção de headers de borda foi atualizada, porém CSP está em `Report-Only` por segurança de rollout.
 - A documentação e o score devem permanecer alinhados com testes e evidências executadas no ambiente de CI.

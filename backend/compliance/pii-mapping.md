@@ -2,8 +2,8 @@
 
 ## Direct Identifiers
 
-- Email: stored in Supabase profiles/auth sessions and legacy payment/order records.
-- Session token hashes: stored in Supabase `auth_sessions` and may exist in legacy Baserow tables.
+- Email: stored in Supabase profiles/auth sessions and payment/order records.
+- Session token hashes: stored in Supabase `auth_sessions`.
 
 ## Indirect Identifiers
 

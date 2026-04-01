@@ -48,6 +48,9 @@ const schema = z.object({
   STRIPE_REDIRECT_URI: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
 
+  // Observability
+  SENTRY_DSN: z.string().optional(),
+
   // Redis (Rate limit / Cache)
   UPSTASH_REDIS_REST_URL: z.string().optional(),
   UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
@@ -75,6 +78,7 @@ export const env = schema.parse({
   STRIPE_CLIENT_ID: readEnv('STRIPE_CLIENT_ID'),
   STRIPE_REDIRECT_URI: readEnv('STRIPE_REDIRECT_URI'),
   STRIPE_WEBHOOK_SECRET: readEnv('STRIPE_WEBHOOK_SECRET'),
+  SENTRY_DSN: readEnv('SENTRY_DSN'),
 
   SUPABASE_URL: readEnv('SUPABASE_URL'),
   SUPABASE_SERVICE_ROLE_KEY: readEnv('SUPABASE_SERVICE_ROLE_KEY'),
@@ -115,7 +119,7 @@ export async function getStripeAppEnvAsync(_tenantId: string) {
   const redirectUri =
     getOptionalEnv('STRIPE_REDIRECT_URI') ||
     env.STRIPE_REDIRECT_URI ||
-    `${(env.APP_BASE_URL || '').replace(/\/+$/, '')}/api/stripe/callback`;
+    `${(env.APP_BASE_URL || '').replace(/\/+$/, '')}/api/payments/connect/callback`;
 
   if (!secretKey || !clientId) {
     throw new Error('Stripe env vars ausentes (STRIPE_SECRET_KEY / STRIPE_CLIENT_ID).');

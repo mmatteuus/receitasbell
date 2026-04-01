@@ -74,7 +74,8 @@ function buildSmartTitle(recipe: PresentableRecipe) {
     }
   }
 
-  if (recipe.totalTime > 0 && recipe.totalTime <= 30) {
+  const totalTime = recipe.totalTime ?? 0;
+  if (totalTime > 0 && totalTime <= 30) {
     return `${themedNameByCategory(recipe)} em versão rápida para a semana`;
   }
 
@@ -86,8 +87,8 @@ function buildSubtitle(recipe: PresentableRecipe) {
   if (source.length >= 45) return source;
 
   const hints: string[] = [];
-  if (recipe.totalTime > 0) hints.push(`${recipe.totalTime} min`);
-  if (recipe.servings > 0) hints.push(`${recipe.servings} porções`);
+  if ((recipe.totalTime ?? 0) > 0) hints.push(`${recipe.totalTime ?? 0} min`);
+  if ((recipe.servings ?? 0) > 0) hints.push(`${recipe.servings ?? 0} porções`);
   if (recipe.tags?.length) hints.push(recipe.tags.slice(0, 2).join(' • '));
 
   const category = toDisplayCategory(recipe.categorySlug);
