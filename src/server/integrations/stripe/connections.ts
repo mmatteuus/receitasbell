@@ -1,11 +1,11 @@
 // src/server/integrations/stripe/connections.ts
-import { logAuditEvent } from "../../audit/repo.js";
-import { decryptSecret, encryptSecret } from "../../shared/crypto.js";
-import { ApiError } from "../../shared/http.js";
-import { BaserowError, fetchBaserow, BASEROW_TABLES } from "../baserow/client.js";
-import { getTenantById } from "../../tenancy/repo.js";
+import { logAuditEvent } from '../../audit/repo.js';
+import { decryptSecret, encryptSecret } from '../../shared/crypto.js';
+import { ApiError } from '../../shared/http.js';
+import { supabaseAdmin } from '../../integrations/supabase/client.js';
+import { getTenantById } from '../../tenancy/repo.js';
 
-type ConnectionStatus = "connected" | "disconnected" | "reconnect_required";
+type ConnectionStatus = 'connected' | 'disconnected' | 'reconnect_required';
 
 export type TenantStripeConnection = {
   id: string;
@@ -22,28 +22,28 @@ export type TenantStripeConnection = {
 };
 
 type StripeConnectionRow = {
-  id?: string | number;
-  tenant_id?: string | number;
-  stripe_account_id?: string;
-  access_token_encrypted?: string;
-  scope?: string;
-  status?: string;
-  connected_at?: string;
-  disconnected_at?: string;
-  last_error?: string;
-  created_by_user_id?: string | number;
-  updated_at?: string;
-  created_at?: string;
+  id: string;
+  tenant_id: string | number;
+  stripe_account_id: string;
+  access_token_encrypted: string;
+  scope: string;
+  status: string;
+  connected_at: string;
+  disconnected_at: string | null;
+  last_error: string | null;
+  created_by_user_id: string | number | null;
+  updated_at: string;
+  created_at: string;
 };
 
 function normalizeStatus(value: unknown): ConnectionStatus {
-  if (value === "connected") return "connected";
-  if (value === "reconnect_required") return "reconnect_required";
-  return "disconnected";
+  if (value === 'connected') return 'connected';
+  if (value === 'reconnect_required') return 'reconnect_required';
+  return 'disconnected';
 }
 
 function toIsoOrNull(value: unknown): string | null {
-  if (typeof value !== "string" || !value.trim()) return null;
+  if (typeof value !== 'string' || !value.trim()) return null;
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return null;
   return parsed.toISOString();
@@ -52,9 +52,9 @@ function toIsoOrNull(value: unknown): string | null {
 function mapRow(row: StripeConnectionRow): TenantStripeConnection {
   return {
     id: String(row.id),
-    tenantId: String(row.tenant_id ?? ""),
-    stripeAccountId: String(row.stripe_account_id ?? ""),
-    accessTokenEncrypted: String(row.access_token_encrypted ?? ""),
+    tenantId: String(row.tenant_id ?? ''),
+    stripeAccountId: String(row.stripe_account_id ?? ''),
+    accessTokenEncrypted: String(row.access_token_encrypted ?? ''),
     scope: row.scope ? String(row.scope) : null,
     status: normalizeStatus(row.status),
     connectedAt: toIsoOrNull(row.connected_at ?? row.created_at),
@@ -65,66 +65,51 @@ function mapRow(row: StripeConnectionRow): TenantStripeConnection {
   };
 }
 
-function requireTableId() {
-  const tableId = BASEROW_TABLES.STRIPE_CONNECTIONS;
-  if (!tableId) throw new ApiError(500, "BASEROW_TABLE_STRIPE_CONNECTIONS nao configurada.");
-  return tableId;
-}
-
-function isMissingTableError(error: unknown) {
-  if (!(error instanceof BaserowError) || error.status !== 404) return false;
-  const body = error.body;
-  if (!body || typeof body !== "object" || Array.isArray(body)) return false;
-  return (body as { error?: unknown }).error === "ERROR_TABLE_DOES_NOT_EXIST";
-}
-
 async function queryConnections(tenantId: string): Promise<StripeConnectionRow[]> {
-  const tableId = requireTableId();
   const tenantRecord = await getTenantById(tenantId).catch(() => null);
   const keys = new Set([String(tenantId)]);
-  if ((tenantRecord as { slug?: string } | null)?.slug) keys.add((tenantRecord as { slug: string }).slug);
+  if ((tenantRecord as { slug?: string } | null)?.slug)
+    keys.add((tenantRecord as { slug: string }).slug);
 
-  const rowsById = new Map<string, StripeConnectionRow>();
-  try {
-    for (const key of keys) {
-      const data = await fetchBaserow<{ results: StripeConnectionRow[] }>(
-        `/api/database/rows/table/${tableId}/?user_field_names=true&filter__tenant_id__equal=${encodeURIComponent(key)}&order_by=-id`,
-      );
-      for (const row of data.results) {
-        if (row.id != null) rowsById.set(String(row.id), row);
-      }
-    }
-  } catch (error) {
-    if (isMissingTableError(error)) return [];
-    throw error;
-  }
-  return Array.from(rowsById.values()).sort((a, b) => Number(b.id || 0) - Number(a.id || 0));
+  const { data, error } = await supabaseAdmin
+    .from('stripe_connections')
+    .select('*')
+    .in('tenant_id', Array.from(keys))
+    .order('id', { ascending: false });
+
+  if (error) return [];
+  return data || [];
 }
 
 function getActiveRow(rows: StripeConnectionRow[]): StripeConnectionRow | null {
   return (
-    rows.find((r) => normalizeStatus(r.status) === "connected") ??
-    rows.find((r) => normalizeStatus(r.status) === "reconnect_required") ??
+    rows.find((r) => normalizeStatus(r.status) === 'connected') ??
+    rows.find((r) => normalizeStatus(r.status) === 'reconnect_required') ??
     null
   );
 }
 
 async function markExistingAsDisconnected(tenantId: string): Promise<string[]> {
-  const tableId = requireTableId();
   const rows = await queryConnections(tenantId);
-  const active = rows.filter((r) => { const s = normalizeStatus(r.status); return s === "connected" || s === "reconnect_required"; });
+  const active = rows.filter((r) => {
+    const s = normalizeStatus(r.status);
+    return s === 'connected' || s === 'reconnect_required';
+  });
   if (!active.length) return [];
   const now = new Date().toISOString();
-  await Promise.all(
-    active.map((r) => fetchBaserow(`/api/database/rows/table/${tableId}/${r.id}/?user_field_names=true`, {
-      method: "PATCH",
-      body: JSON.stringify({ status: "disconnected", disconnected_at: now, updated_at: now }),
-    })),
-  );
+  await supabaseAdmin
+    .from('stripe_connections')
+    .update({ status: 'disconnected', disconnected_at: now, updated_at: now })
+    .in(
+      'id',
+      active.map((r) => r.id)
+    );
   return active.map((r) => String(r.id));
 }
 
-export async function getTenantStripeConnection(tenantId: string): Promise<TenantStripeConnection | null> {
+export async function getTenantStripeConnection(
+  tenantId: string
+): Promise<TenantStripeConnection | null> {
   const rows = await queryConnections(tenantId);
   const active = getActiveRow(rows);
   if (active) return mapRow(active);
@@ -134,7 +119,7 @@ export async function getTenantStripeConnection(tenantId: string): Promise<Tenan
 
 export async function requireTenantStripeConnection(tenantId: string) {
   const c = await getTenantStripeConnection(tenantId);
-  if (!c) throw new ApiError(409, "Conecte uma conta Stripe antes de ativar pagamentos.");
+  if (!c) throw new ApiError(409, 'Conecte uma conta Stripe antes de ativar pagamentos.');
   return c;
 }
 
@@ -149,35 +134,36 @@ export async function upsertTenantStripeConnection(input: {
   scope?: string | null;
   actorUserId?: string | null;
 }): Promise<TenantStripeConnection> {
-  const tableId = requireTableId();
   const existing = await queryConnections(input.tenantId);
   const hadActive = Boolean(getActiveRow(existing));
   const replacedIds = await markExistingAsDisconnected(input.tenantId);
   const now = new Date().toISOString();
-  const created = await fetchBaserow<StripeConnectionRow>(
-    `/api/database/rows/table/${tableId}/?user_field_names=true`,
-    {
-      method: "POST",
-      body: JSON.stringify({
-        tenant_id: String(input.tenantId),
-        stripe_account_id: input.stripeAccountId,
-        access_token_encrypted: encryptSecret(input.accessToken),
-        scope: input.scope || "",
-        status: "connected",
-        connected_at: now,
-        last_error: "",
-        created_by_user_id: input.actorUserId ? String(input.actorUserId) : "",
-        updated_at: now,
-        created_at: now,
-      }),
-    },
-  );
+
+  const { data: created, error } = await supabaseAdmin
+    .from('stripe_connections')
+    .insert({
+      tenant_id: String(input.tenantId),
+      stripe_account_id: input.stripeAccountId,
+      access_token_encrypted: encryptSecret(input.accessToken),
+      scope: input.scope || '',
+      status: 'connected',
+      connected_at: now,
+      last_error: '',
+      created_by_user_id: input.actorUserId ? String(input.actorUserId) : null,
+      updated_at: now,
+      created_at: now,
+    })
+    .select()
+    .single();
+
+  if (error) throw new ApiError(500, 'Erro ao salvar conexao Stripe', { original: error });
+
   await logAuditEvent({
     tenantId: String(input.tenantId),
-    actorType: input.actorUserId ? "admin" : "system",
-    actorId: String(input.actorUserId || "system"),
-    action: hadActive ? "stripe.reconnect" : "stripe.connect",
-    resourceType: "stripe_connection",
+    actorType: input.actorUserId ? 'admin' : 'system',
+    actorId: String(input.actorUserId || 'system'),
+    action: hadActive ? 'stripe.reconnect' : 'stripe.connect',
+    resourceType: 'stripe_connection',
     resourceId: String(created.id),
     payload: { stripeAccountId: input.stripeAccountId, replacedIds },
   });
@@ -188,23 +174,22 @@ export async function disconnectTenantStripeConnection(input: {
   tenantId: string;
   actorUserId?: string | null;
 }): Promise<boolean> {
-  const tableId = requireTableId();
   const rows = await queryConnections(input.tenantId);
   const active = getActiveRow(rows);
   if (active) {
     const now = new Date().toISOString();
-    await fetchBaserow(`/api/database/rows/table/${tableId}/${active.id}/?user_field_names=true`, {
-      method: "PATCH",
-      body: JSON.stringify({ status: "disconnected", disconnected_at: now, updated_at: now }),
-    });
+    await supabaseAdmin
+      .from('stripe_connections')
+      .update({ status: 'disconnected', disconnected_at: now, updated_at: now })
+      .eq('id', active.id);
   }
   await logAuditEvent({
     tenantId: String(input.tenantId),
-    actorType: input.actorUserId ? "admin" : "system",
-    actorId: String(input.actorUserId || "system"),
-    action: "stripe.disconnect",
-    resourceType: "stripe_connection",
-    resourceId: active ? String(active.id) : "none",
+    actorType: input.actorUserId ? 'admin' : 'system',
+    actorId: String(input.actorUserId || 'system'),
+    action: 'stripe.disconnect',
+    resourceType: 'stripe_connection',
+    resourceId: active ? String(active.id) : 'none',
     payload: { hadActive: Boolean(active) },
   });
   return true;
@@ -214,23 +199,26 @@ export async function markStripeConnectionReconnectRequired(input: {
   tenantId: string;
   reason?: string | null;
 }): Promise<boolean> {
-  const tableId = requireTableId();
   const rows = await queryConnections(input.tenantId);
   const active = getActiveRow(rows);
   if (!active) return false;
   const now = new Date().toISOString();
-  await fetchBaserow(`/api/database/rows/table/${tableId}/${active.id}/?user_field_names=true`, {
-    method: "PATCH",
-    body: JSON.stringify({ status: "reconnect_required", last_error: input.reason || "connection_invalid", updated_at: now }),
-  });
+  await supabaseAdmin
+    .from('stripe_connections')
+    .update({
+      status: 'reconnect_required',
+      last_error: input.reason || 'connection_invalid',
+      updated_at: now,
+    })
+    .eq('id', active.id);
   await logAuditEvent({
     tenantId: String(input.tenantId),
-    actorType: "system",
-    actorId: "system",
-    action: "stripe.connection_error",
-    resourceType: "stripe_connection",
+    actorType: 'system',
+    actorId: 'system',
+    action: 'stripe.connection_error',
+    resourceType: 'stripe_connection',
     resourceId: String(active.id),
-    payload: { reason: input.reason || "connection_invalid" },
+    payload: { reason: input.reason || 'connection_invalid' },
   });
   return true;
 }
@@ -241,12 +229,14 @@ export async function getUsableStripeAccountId(tenantId: string): Promise<{
   accessToken: string;
 }> {
   const connection = await requireTenantStripeConnection(tenantId);
-  if (connection.status === "disconnected") throw new ApiError(409, "A conta Stripe esta desconectada.");
-  if (connection.status === "reconnect_required") throw new ApiError(409, "A conexao Stripe precisa ser refeita.");
+  if (connection.status === 'disconnected')
+    throw new ApiError(409, 'A conta Stripe esta desconectada.');
+  if (connection.status === 'reconnect_required')
+    throw new ApiError(409, 'A conexao Stripe precisa ser refeita.');
   const { accessToken } = readStripeConnectionSecrets(connection);
   if (!accessToken) {
-    await markStripeConnectionReconnectRequired({ tenantId, reason: "access_token_empty" });
-    throw new ApiError(409, "A conexao Stripe esta invalida. Reconecte a conta.");
+    await markStripeConnectionReconnectRequired({ tenantId, reason: 'access_token_empty' });
+    throw new ApiError(409, 'A conexao Stripe esta invalida. Reconecte a conta.');
   }
   return { connection, stripeAccountId: connection.stripeAccountId, accessToken };
 }

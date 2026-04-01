@@ -1,6 +1,6 @@
-import { fetchBaserow, BASEROW_TABLES } from '../integrations/baserow/client.js';
 import { logAuditEvent } from '../audit/repo.js';
 import { Logger } from '../shared/logger.js';
+import { supabaseAdmin } from '../integrations/supabase/client.js';
 
 const logger = new Logger({ job: 'maintenance' });
 
@@ -10,42 +10,6 @@ const RETENTION_WINDOWS_MS = {
   sessions: 30 * 24 * 60 * 60 * 1000,
 } as const;
 
-type OAuthStateRow = {
-  id?: string | number;
-  created_at?: string;
-};
-
-type CleanupRow = {
-  id?: string | number;
-};
-
-async function deleteRows(tableId: string | undefined, rows: CleanupRow[]) {
-  if (!tableId) return;
-
-  await Promise.all(
-    rows
-      .filter((row) => row.id != null)
-      .map((row) =>
-        fetchBaserow(`/api/database/rows/table/${tableId}/${row.id}/?user_field_names=true`, {
-          method: 'DELETE',
-        })
-      )
-  );
-}
-
-async function cleanupByCreatedAt(tableId: string | undefined, cutoffIso: string) {
-  if (!tableId) return 0;
-
-  const rows = await fetchBaserow<{ results: CleanupRow[] }>(
-    `/api/database/rows/table/${tableId}/?user_field_names=true&filter__created_at__lt=${encodeURIComponent(cutoffIso)}`,
-    {},
-    { endpoint: `cleanup:${tableId}`, idempotent: true }
-  );
-
-  await deleteRows(tableId, rows.results || []);
-  return rows.results?.length ?? 0;
-}
-
 export async function runCleanupJob() {
   logger.info('Starting retention cleanup job.');
 
@@ -53,20 +17,25 @@ export async function runCleanupJob() {
   const magicLinksCutoff = new Date(Date.now() - RETENTION_WINDOWS_MS.magicLinks).toISOString();
   const sessionsCutoff = new Date(Date.now() - RETENTION_WINDOWS_MS.sessions).toISOString();
 
-  const oauthRows = BASEROW_TABLES.OAUTH_STATES
-    ? await fetchBaserow<{ results: OAuthStateRow[] }>(
-        `/api/database/rows/table/${BASEROW_TABLES.OAUTH_STATES}/?user_field_names=true&filter__created_at__lt=${encodeURIComponent(oauthCutoff)}`,
-        {},
-        { endpoint: 'cleanup:oauth_states', idempotent: true }
-      )
-    : { results: [] };
+  const { count: oauthDeleted } = await supabaseAdmin
+    .from('oauth_states')
+    .delete()
+    .lt('created_at', oauthCutoff);
 
-  await deleteRows(BASEROW_TABLES.OAUTH_STATES, oauthRows.results || []);
+  const { count: magicLinksDeleted } = await supabaseAdmin
+    .from('magic_links')
+    .delete()
+    .lt('created_at', magicLinksCutoff);
+
+  const { count: sessionsDeleted } = await supabaseAdmin
+    .from('sessions')
+    .delete()
+    .lt('created_at', sessionsCutoff);
 
   const stats = {
-    oauthStates: oauthRows.results?.length ?? 0,
-    magicLinks: await cleanupByCreatedAt(BASEROW_TABLES.MAGIC_LINKS, magicLinksCutoff),
-    sessions: await cleanupByCreatedAt(BASEROW_TABLES.SESSIONS, sessionsCutoff),
+    oauthStates: oauthDeleted ?? 0,
+    magicLinks: magicLinksDeleted ?? 0,
+    sessions: sessionsDeleted ?? 0,
   };
 
   const total = stats.oauthStates + stats.magicLinks + stats.sessions;

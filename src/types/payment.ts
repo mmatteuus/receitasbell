@@ -1,18 +1,18 @@
 export type PaymentStatus =
-  | "approved"
-  | "pending"
-  | "in_process"
-  | "rejected"
-  | "cancelled"
-  | "refunded"
-  | "charged_back";
+  | 'approved'
+  | 'pending'
+  | 'in_process'
+  | 'rejected'
+  | 'cancelled'
+  | 'refunded'
+  | 'charged_back';
 
-export type PaymentGateway = "mercado_pago" | "mock" | "stripe";
-export type CheckoutPaymentMethod = "stripe" | "pix" | "card";
-export type DirectPaymentMethod = Exclude<CheckoutPaymentMethod, "checkout_pro">;
+export type PaymentGateway = 'mock' | 'stripe';
+export type CheckoutPaymentMethod = 'stripe' | 'pix' | 'card';
+export type DirectPaymentMethod = Exclude<CheckoutPaymentMethod, 'checkout_pro'>;
 
 export interface PaymentIdentification {
-  type: "CPF" | "CNPJ";
+  type: 'CPF' | 'CNPJ';
   number: string;
 }
 
@@ -68,8 +68,8 @@ export interface CreatePaymentPreferenceResult {
   paymentOrderId: string | number;
   preferenceId: string | null;
   checkoutUrl: string | null;
-  checkoutUrlKind: "init_point" | "sandbox_init_point" | null;
-  paymentMode: "sandbox" | "production";
+  checkoutUrlKind: 'init_point' | 'sandbox_init_point' | null;
+  paymentMode: 'sandbox' | 'production';
   paymentId: string | null;
   paymentIds: string[];
   status: PaymentStatus;
@@ -94,14 +94,14 @@ export interface DirectPaymentResult {
 }
 
 export interface CheckoutPaymentConfig {
-  paymentMode: "sandbox" | "production";
+  paymentMode: 'sandbox' | 'production';
   publicKey: string | null;
   connectionStatus: string;
   supportedMethods: CheckoutPaymentMethod[];
 }
 
 export interface AdminPaymentSettingsResponse {
-  payment_mode: "sandbox" | "production";
+  payment_mode: 'sandbox' | 'production';
   webhooks_enabled: boolean;
   payment_topic_enabled: boolean;
   accessTokenConfigured: boolean;
@@ -115,7 +115,7 @@ export interface AdminPaymentSettingsResponse {
   lastError: string | null;
   productionReady: boolean;
   blockingReasons: string[];
-  effectiveCheckoutUrlKind: "init_point" | "sandbox_init_point";
+  effectiveCheckoutUrlKind: 'init_point' | 'sandbox_init_point';
   tenantId: string;
   userId: string | null;
   publicKey: string | null;

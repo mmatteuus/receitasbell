@@ -1,12 +1,12 @@
 import { z } from 'zod';
 
 const identificationSchema = z.object({
-  type: z.enum(["CPF", "CNPJ"]),
-  number: z.string().trim().min(11).max(14).regex(/^\d+$/, "Documento deve conter apenas números"),
+  type: z.enum(['CPF', 'CNPJ']),
+  number: z.string().trim().min(11).max(14).regex(/^\d+$/, 'Documento deve conter apenas números'),
 });
 
 const imageFileMetaSchema = z.object({
-  storage: z.enum(['baserow', 'external', 'fallback']),
+  storage: z.enum(['supabase', 'external', 'fallback']),
   fileId: z.string().trim().min(1),
   fileName: z.string().trim().min(1),
   mimeType: z.string().trim().min(1),

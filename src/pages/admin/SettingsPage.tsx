@@ -1,32 +1,32 @@
-import { useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { Settings, Palette, Type, Save, RotateCcw, Link2, Smartphone } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { toast } from "sonner";
-import { DEFAULT_SITE_SETTINGS } from "@/lib/defaults";
-import type { SiteSettings } from "@/types/settings";
-import { updateSettings } from "@/lib/api/settings";
-import { useAppContext } from "@/contexts/app-context";
-import { buildTenantAdminPath, extractTenantSlugFromPath } from "@/lib/tenant";
-import { useInstallPrompt } from "@/pwa/hooks/useInstallPrompt";
-import { InstallAppButton } from "@/pwa/components/InstallAppButton";
+import { useEffect, useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { Settings, Palette, Type, Save, RotateCcw, Link2, Smartphone } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { toast } from 'sonner';
+import { DEFAULT_SITE_SETTINGS } from '@/lib/defaults';
+import type { SiteSettings } from '@/types/settings';
+import { updateSettings } from '@/lib/api/settings';
+import { useAppContext } from '@/contexts/app-context';
+import { buildTenantAdminPath, extractTenantSlugFromPath } from '@/lib/tenant';
+import { useInstallPrompt } from '@/pwa/hooks/useInstallPrompt';
+import { InstallAppButton } from '@/pwa/components/InstallAppButton';
 
 const FONT_OPTIONS = [
-  "DM Serif Display",
-  "DM Sans",
-  "Playfair Display",
-  "Inter",
-  "Lora",
-  "Merriweather",
-  "Roboto",
-  "Poppins",
-  "Montserrat",
-  "Source Serif Pro",
+  'DM Serif Display',
+  'DM Sans',
+  'Playfair Display',
+  'Inter',
+  'Lora',
+  'Merriweather',
+  'Roboto',
+  'Poppins',
+  'Montserrat',
+  'Source Serif Pro',
 ];
 
 export default function SettingsPage() {
@@ -35,7 +35,7 @@ export default function SettingsPage() {
   const { settings, refreshSettings } = useAppContext();
   const { isInstalled, deferredPrompt, isIOS } = useInstallPrompt();
   const showAppCard = !isInstalled && (!!deferredPrompt || isIOS);
-  
+
   const [form, setForm] = useState<SiteSettings>(DEFAULT_SITE_SETTINGS);
   const [saving, setSaving] = useState(false);
 
@@ -61,10 +61,10 @@ export default function SettingsPage() {
     try {
       await updateSettings(form);
       await refreshSettings();
-      toast.success("Configurações salvas");
+      toast.success('Configurações salvas');
     } catch (error) {
-      console.error("Failed to save settings", error);
-      toast.error("Nao foi possivel salvar as configurações.");
+      console.error('Failed to save settings', error);
+      toast.error('Nao foi possivel salvar as configurações.');
     } finally {
       setSaving(false);
     }
@@ -75,10 +75,10 @@ export default function SettingsPage() {
     try {
       await updateSettings(DEFAULT_SITE_SETTINGS);
       await refreshSettings();
-      toast.success("Configurações restauradas");
+      toast.success('Configurações restauradas');
     } catch (error) {
-      console.error("Failed to reset settings", error);
-      toast.error("Nao foi possivel restaurar as configurações.");
+      console.error('Failed to reset settings', error);
+      toast.error('Nao foi possivel restaurar as configurações.');
     } finally {
       setSaving(false);
     }
@@ -88,9 +88,11 @@ export default function SettingsPage() {
     <div className="space-y-6 max-w-3xl">
       <div>
         <h1 className="text-3xl font-heading font-bold">Configurações</h1>
-        <p className="text-muted-foreground mt-1">Personalize o nome, logo, cores e fontes do seu site.</p>
+        <p className="text-muted-foreground mt-1">
+          Personalize o nome, logo, cores e fontes do seu site.
+        </p>
         <Link
-          to={buildTenantAdminPath("configuracoes/pagina-inicial", tenantSlug)}
+          to={buildTenantAdminPath('configuracoes/pagina-inicial', tenantSlug)}
           className="mt-3 inline-flex text-sm font-medium text-primary hover:underline"
         >
           Editar conteúdo da Página Inicial
@@ -120,17 +122,28 @@ export default function SettingsPage() {
             <Settings className="h-5 w-5 text-primary" />
             Identidade do Site
           </CardTitle>
-          <CardDescription>Esses dados são lidos do Baserow e aplicados no frontend.</CardDescription>
+          <CardDescription>
+            Esses dados são lidos do banco de dados e aplicados no frontend.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="siteName">Nome do Site</Label>
-            <Input id="siteName" value={form.siteName} onChange={(event) => setField("siteName", event.target.value)} />
+            <Input
+              id="siteName"
+              value={form.siteName}
+              onChange={(event) => setField('siteName', event.target.value)}
+            />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="siteDescription">Descrição</Label>
-            <Textarea id="siteDescription" value={form.siteDescription} onChange={(event) => setField("siteDescription", event.target.value)} rows={3} />
+            <Textarea
+              id="siteDescription"
+              value={form.siteDescription}
+              onChange={(event) => setField('siteDescription', event.target.value)}
+              rows={3}
+            />
           </div>
 
           <div className="space-y-2">
@@ -138,13 +151,24 @@ export default function SettingsPage() {
               <Link2 className="h-4 w-4" />
               URL do Logotipo
             </Label>
-            <Input id="logoUrl" value={form.logoUrl} onChange={(event) => setField("logoUrl", event.target.value)} placeholder="https://..." />
-            <p className="text-xs text-muted-foreground">O banco de dados persiste apenas a URL da imagem.</p>
+            <Input
+              id="logoUrl"
+              value={form.logoUrl}
+              onChange={(event) => setField('logoUrl', event.target.value)}
+              placeholder="https://..."
+            />
+            <p className="text-xs text-muted-foreground">
+              O banco de dados persiste apenas a URL da imagem.
+            </p>
           </div>
 
           {form.logoUrl && (
             <div className="flex items-center gap-4 rounded-lg border p-4">
-              <img src={form.logoUrl} alt={form.siteName} className="h-16 w-16 rounded object-contain" />
+              <img
+                src={form.logoUrl}
+                alt={form.siteName}
+                className="h-16 w-16 rounded object-contain"
+              />
               <div>
                 <p className="font-medium">{form.siteName}</p>
                 <p className="text-sm text-muted-foreground">Prévia do logo remoto</p>
@@ -160,15 +184,19 @@ export default function SettingsPage() {
             <Palette className="h-5 w-5 text-primary" />
             Cores do Tema
           </CardTitle>
-          <CardDescription>As cores salvas aqui alimentam as variáveis CSS globais.</CardDescription>
+          <CardDescription>
+            As cores salvas aqui alimentam as variáveis CSS globais.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {([
-              ["primaryColor", "Cor Primária"],
-              ["secondaryColor", "Cor Secundária"],
-              ["accentColor", "Cor de Destaque"],
-            ] as const).map(([key, label]) => (
+            {(
+              [
+                ['primaryColor', 'Cor Primária'],
+                ['secondaryColor', 'Cor Secundária'],
+                ['accentColor', 'Cor de Destaque'],
+              ] as const
+            ).map(([key, label]) => (
               <div key={key} className="space-y-2">
                 <Label>{label}</Label>
                 <div className="flex items-center gap-2">
@@ -178,7 +206,11 @@ export default function SettingsPage() {
                     onChange={(event) => setField(key, event.target.value)}
                     className="h-10 w-10 rounded-md border cursor-pointer"
                   />
-                  <Input value={form[key]} onChange={(event) => setField(key, event.target.value)} className="flex-1 font-mono text-sm" />
+                  <Input
+                    value={form[key]}
+                    onChange={(event) => setField(key, event.target.value)}
+                    className="flex-1 font-mono text-sm"
+                  />
                 </div>
               </div>
             ))}
@@ -186,13 +218,22 @@ export default function SettingsPage() {
 
           <Separator />
           <div className="flex items-center gap-3 flex-wrap">
-            <div className="h-12 w-24 rounded-md border flex items-center justify-center text-xs font-medium text-white" style={{ backgroundColor: form.primaryColor }}>
+            <div
+              className="h-12 w-24 rounded-md border flex items-center justify-center text-xs font-medium text-white"
+              style={{ backgroundColor: form.primaryColor }}
+            >
               Primária
             </div>
-            <div className="h-12 w-24 rounded-md border flex items-center justify-center text-xs font-medium" style={{ backgroundColor: form.secondaryColor }}>
+            <div
+              className="h-12 w-24 rounded-md border flex items-center justify-center text-xs font-medium"
+              style={{ backgroundColor: form.secondaryColor }}
+            >
               Secundária
             </div>
-            <div className="h-12 w-24 rounded-md border flex items-center justify-center text-xs font-medium" style={{ backgroundColor: form.accentColor }}>
+            <div
+              className="h-12 w-24 rounded-md border flex items-center justify-center text-xs font-medium"
+              style={{ backgroundColor: form.accentColor }}
+            >
               Destaque
             </div>
           </div>
@@ -210,14 +251,26 @@ export default function SettingsPage() {
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <Label>Fonte dos títulos</Label>
-            <select className="flex h-10 w-full rounded-md border bg-background px-3 text-sm" value={form.headingFont} onChange={(event) => setField("headingFont", event.target.value)}>
-              {FONT_OPTIONS.map((font) => <option key={font}>{font}</option>)}
+            <select
+              className="flex h-10 w-full rounded-md border bg-background px-3 text-sm"
+              value={form.headingFont}
+              onChange={(event) => setField('headingFont', event.target.value)}
+            >
+              {FONT_OPTIONS.map((font) => (
+                <option key={font}>{font}</option>
+              ))}
             </select>
           </div>
           <div className="space-y-2">
             <Label>Fonte do corpo</Label>
-            <select className="flex h-10 w-full rounded-md border bg-background px-3 text-sm" value={form.bodyFont} onChange={(event) => setField("bodyFont", event.target.value)}>
-              {FONT_OPTIONS.map((font) => <option key={font}>{font}</option>)}
+            <select
+              className="flex h-10 w-full rounded-md border bg-background px-3 text-sm"
+              value={form.bodyFont}
+              onChange={(event) => setField('bodyFont', event.target.value)}
+            >
+              {FONT_OPTIONS.map((font) => (
+                <option key={font}>{font}</option>
+              ))}
             </select>
           </div>
         </CardContent>

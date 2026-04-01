@@ -3,7 +3,7 @@ import { Redis } from '@upstash/redis';
 import { withApiHandler, sendJson, assertMethod } from '../../src/server/shared/http.js';
 import { env } from '../../src/server/shared/env.js';
 import { getRateLimitBackend } from '../../src/server/shared/rateLimit.js';
-import { baserowFetch } from '../../src/server/integrations/baserow/client.js';
+import { supabaseAdmin } from '../../src/server/integrations/supabase/client.js';
 
 type CheckStatus = 'ok' | 'degraded' | 'fail';
 type ReadyStatus = 'ready' | 'degraded' | 'unavailable';
@@ -18,13 +18,8 @@ function envStatus(names: Array<[string, string | undefined]>) {
   } as const;
 }
 
-async function pingTable(tableId: string | undefined, endpoint: string) {
-  if (!tableId) return;
-  await baserowFetch(
-    `/api/database/rows/table/${tableId}/?user_field_names=true&size=1`,
-    {},
-    { endpoint, idempotent: true }
-  );
+async function pingSupabaseTable(tableName: string, endpoint: string) {
+  await supabaseAdmin.from(tableName).select('id').limit(1);
 }
 
 function toCheck(status: CheckStatus, details: Record<string, unknown>) {
@@ -39,53 +34,30 @@ export default withApiHandler(
       ['APP_BASE_URL', env.APP_BASE_URL],
       ['ADMIN_API_SECRET', env.ADMIN_API_SECRET],
       ['CRON_SECRET', env.CRON_SECRET],
-      ['BASEROW_API_TOKEN', env.BASEROW_API_TOKEN],
       ['APP_COOKIE_SECRET', env.APP_COOKIE_SECRET],
       ['ENCRYPTION_KEY', env.ENCRYPTION_KEY],
-      ['BASEROW_TABLE_TENANTS', env.BASEROW_TABLE_TENANTS],
-      ['BASEROW_TABLE_USERS', env.BASEROW_TABLE_USERS],
-      ['BASEROW_TABLE_RECIPES', env.BASEROW_TABLE_RECIPES],
-      ['BASEROW_TABLE_CATEGORIES', env.BASEROW_TABLE_CATEGORIES],
-      ['BASEROW_TABLE_SETTINGS', env.BASEROW_TABLE_SETTINGS],
-      ['BASEROW_TABLE_PAYMENT_EVENTS', env.BASEROW_TABLE_PAYMENT_EVENTS],
-      ['BASEROW_TABLE_RECIPE_PURCHASES', env.BASEROW_TABLE_RECIPE_PURCHASES],
-      ['BASEROW_TABLE_AUDIT_LOGS', env.BASEROW_TABLE_AUDIT_LOGS],
-      ['BASEROW_TABLE_MAGIC_LINKS', env.BASEROW_TABLE_MAGIC_LINKS],
+      ['SUPABASE_URL', env.SUPABASE_URL],
+      ['SUPABASE_SERVICE_ROLE_KEY', env.SUPABASE_SERVICE_ROLE_KEY],
     ]);
 
     const optionalEnv = envStatus([
       ['RESEND_API_KEY', env.RESEND_API_KEY],
       ['UPSTASH_REDIS_REST_URL', process.env.UPSTASH_REDIS_REST_URL],
       ['UPSTASH_REDIS_REST_TOKEN', process.env.UPSTASH_REDIS_REST_TOKEN],
-      ['BASEROW_TABLE_SESSIONS', env.BASEROW_TABLE_SESSIONS],
-      ['BASEROW_TABLE_PAYMENT_ORDERS', env.BASEROW_TABLE_PAYMENT_ORDERS],
     ]);
 
     const tableChecks = await Promise.allSettled([
-      pingTable(env.BASEROW_TABLE_TENANTS, 'baserow.tenants'),
-      pingTable(env.BASEROW_TABLE_USERS, 'baserow.users'),
-      pingTable(env.BASEROW_TABLE_RECIPES, 'baserow.recipes'),
-      pingTable(env.BASEROW_TABLE_CATEGORIES, 'baserow.categories'),
-      pingTable(env.BASEROW_TABLE_SETTINGS, 'baserow.settings'),
-      pingTable(env.BASEROW_TABLE_PAYMENT_EVENTS, 'baserow.payment_events'),
-      pingTable(env.BASEROW_TABLE_RECIPE_PURCHASES, 'baserow.recipe_purchases'),
-      pingTable(env.BASEROW_TABLE_AUDIT_LOGS, 'baserow.audit_logs'),
-      pingTable(env.BASEROW_TABLE_MAGIC_LINKS, 'baserow.magic_links'),
+      pingSupabaseTable('tenants', 'supabase.tenants'),
+      pingSupabaseTable('users', 'supabase.users'),
+      pingSupabaseTable('recipes', 'supabase.recipes'),
+      pingSupabaseTable('categories', 'supabase.categories'),
+      pingSupabaseTable('settings', 'supabase.settings'),
+      pingSupabaseTable('audit_logs', 'supabase.audit_logs'),
     ]);
 
-    const tableNames = [
-      'tenants',
-      'users',
-      'recipes',
-      'categories',
-      'settings',
-      'paymentEvents',
-      'recipePurchases',
-      'auditLogs',
-      'magicLinks',
-    ];
+    const tableNames = ['tenants', 'users', 'recipes', 'categories', 'settings', 'auditLogs'];
 
-    const baserowFailures = tableChecks
+    const dbFailures = tableChecks
       .map((result, index) => ({ result, index }))
       .filter(({ result }) => result.status === 'rejected')
       .map(({ index, result }) => ({
@@ -137,29 +109,25 @@ export default withApiHandler(
       ? { status: 'degraded', reason: 'email_disabled' }
       : { status: 'ok' };
 
-    const baserowCheck: {
+    const dbCheck: {
       status: CheckStatus;
       reason?: string;
       failures: Array<{ table: string; reason: string | null }>;
     } =
-      baserowFailures.length > 0
-        ? { status: 'fail', reason: 'table_access_failed', failures: baserowFailures }
+      dbFailures.length > 0
+        ? { status: 'fail', reason: 'db_access_failed', failures: dbFailures }
         : { status: 'ok', failures: [] };
 
     const criticalIssues = [
       ...(criticalEnv.status === 'fail'
         ? criticalEnv.missing.map((name) => `missing_env:${name}`)
         : []),
-      ...(baserowCheck.status === 'fail' ? ['baserow_access'] : []),
+      ...(dbCheck.status === 'fail' ? ['db_access'] : []),
     ];
 
     const degradedIssues = [
       ...(rateLimitCheck.status === 'degraded' ? ['rate_limit_backend_memory'] : []),
       ...(emailCheck.status === 'degraded' ? ['email_disabled'] : []),
-      ...(optionalEnv.missing.includes('BASEROW_TABLE_SESSIONS') ? ['sessions_table_missing'] : []),
-      ...(optionalEnv.missing.includes('BASEROW_TABLE_PAYMENT_ORDERS')
-        ? ['payment_orders_table_missing']
-        : []),
     ];
 
     const status: ReadyStatus =
@@ -173,7 +141,7 @@ export default withApiHandler(
       log.error('health.ready.unavailable', {
         action: 'health.ready.unavailable',
         criticalIssues,
-        baserowFailures,
+        dbFailures,
       });
     }
 
@@ -185,8 +153,8 @@ export default withApiHandler(
           critical: criticalEnv.missing.length === 0,
           missing: criticalEnv.missing,
         }),
-        baserow: toCheck(baserowCheck.status, {
-          failures: baserowCheck.failures,
+        database: toCheck(dbCheck.status, {
+          failures: dbCheck.failures,
         }),
         rateLimit: toCheck(rateLimitCheck.status, {
           backend: rateLimitCheck.backend,
@@ -195,18 +163,6 @@ export default withApiHandler(
         email: toCheck(emailCheck.status, {
           reason: emailCheck.reason,
         }),
-        sessions: toCheck(
-          optionalEnv.missing.includes('BASEROW_TABLE_SESSIONS') ? 'degraded' : 'ok',
-          optionalEnv.missing.includes('BASEROW_TABLE_SESSIONS')
-            ? { reason: 'sessions_table_not_configured' }
-            : {}
-        ),
-        paymentOrders: toCheck(
-          optionalEnv.missing.includes('BASEROW_TABLE_PAYMENT_ORDERS') ? 'degraded' : 'ok',
-          optionalEnv.missing.includes('BASEROW_TABLE_PAYMENT_ORDERS')
-            ? { reason: 'payment_orders_table_not_configured' }
-            : {}
-        ),
       },
       timestamp: new Date().toISOString(),
       requestId,

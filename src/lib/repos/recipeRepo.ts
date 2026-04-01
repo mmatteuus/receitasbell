@@ -131,7 +131,7 @@ export async function uploadRecipeImageFile(file: File) {
 }
 
 export async function removeRecipeImageFile(imageFileMeta?: ImageFileMeta | null) {
-  // Baserow handles file cleanup internally when the row is deleted or the field is cleared.
+  // Storage handles file cleanup internally when the row is deleted or the field is cleared.
   // This is a placeholder for external storage providers if added later.
 }
 
@@ -157,7 +157,9 @@ export function uniqueSlug(title: string, recipes: RecipeRecord[] = [], excludeI
   return slug;
 }
 
-export function getRecipeTeaser(recipe: Pick<RecipeRecord, 'fullIngredients' | 'fullInstructions'>) {
+export function getRecipeTeaser(
+  recipe: Pick<RecipeRecord, 'fullIngredients' | 'fullInstructions'>
+) {
   return deriveRecipeTeaser(recipe);
 }
 

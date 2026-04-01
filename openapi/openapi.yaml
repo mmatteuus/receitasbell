@@ -35,7 +35,7 @@ paths:
           $ref: '#/components/responses/ServerError'
   /api/checkout/webhook:
     post:
-      summary: Mercado Pago webhook
+      summary: Stripe webhook
       operationId: checkoutWebhook
       tags: [checkout]
       parameters:

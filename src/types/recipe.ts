@@ -1,9 +1,9 @@
-export type RecipeStatus = "draft" | "published";
-export type AccessTier = "free" | "paid";
-export type StorageProvider = "baserow" | "external" | "fallback";
+export type RecipeStatus = 'draft' | 'published';
+export type AccessTier = 'free' | 'paid';
+export type StorageProvider = 'supabase' | 'external' | 'fallback';
 
-export type { Category } from "./category";
-export type { CartItem } from "./cart";
+export type { Category } from './category';
+export type { CartItem } from './cart';
 
 export interface ImageFileMeta {
   storage: StorageProvider;
@@ -28,7 +28,7 @@ export interface Recipe {
   cookTime: number | null;
   totalTime: number | null;
   servings: number | null;
-  difficulty?: "Fácil" | "Médio" | "Difícil" | null;
+  difficulty?: 'Fácil' | 'Médio' | 'Difícil' | null;
   calories?: number | null;
   videoUrl?: string | null;
   accessTier: AccessTier;

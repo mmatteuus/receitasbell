@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, test } from 'vitest';
 
-describe('vercel.json hardening headers', () => {
+describe('vercel.json hardening Headers', () => {
   test('contains required security headers rollout', () => {
     const raw = readFileSync('vercel.json', 'utf8');
     const parsed = JSON.parse(raw) as {
@@ -28,8 +28,6 @@ describe('vercel.json hardening headers', () => {
 
     const rewriteSources = new Set((parsed.rewrites || []).map((entry) => entry.source));
     expect(rewriteSources.has('/api/health')).toBe(true);
-    expect(rewriteSources.has('/api/payments/mercadopago/create-preference')).toBe(false);
-    expect(rewriteSources.has('/api/payments/mercadopago/webhook')).toBe(false);
 
     const fallback = (parsed.rewrites || []).find((entry) => entry.destination === '/index.html');
     expect(fallback).toBeTruthy();

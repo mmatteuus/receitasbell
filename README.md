@@ -1,12 +1,12 @@
 # Receitas Bell 🦊
 
-Sistema modular de e-commerce e gestão de receitas para múltiplos lojistas (multi-tenant), integrado ao Stripe e atualmente operando em storage híbrido durante a consolidação entre Baserow e Supabase.
+Sistema modular de e-commerce e gestão de receitas para múltiplos lojistas (multi-tenant), integrado ao Stripe e com banco de dados no Supabase.
 
 ## 🚀 Stack Tecnológica
 
 - **Linguagem:** TypeScript / Node.js
 - **Hospedagem:** Vercel (Edge & Cloud Functions)
-- **Storage Operacional:** [Baserow](https://baserow.io) (base de dados operacional)
+- **Banco de Dados:** [Supabase](https://supabase.com) (PostgreSQL)
 - **Pagamentos:** Stripe (Checkout + Connect tenant-aware)
 - **Observabilidade:** Sentry + Logger Estruturado (Vercel JSON Logs)
 
@@ -23,11 +23,8 @@ O sistema segue uma abordagem orientada a domínios limpos em `src/server/`:
 - **Auth:** Gerenciamento de sessões, Magic Links e autenticação administrativa.
 - **Tenancy:** Resolução de lojista via subdomínio ou header `x-tenant-slug`.
 - **Payments:** onboarding por tenant, checkout por seller e reconciliação automática.
-- **Integrations:** clientes otimizados para Baserow com política de retry e timeout.
+- **Integrations:** clientes otimizados para Supabase e Stripe Connect.
 - **Shared:** utilitários globais de segurança, ambiente e tratamento HTTP.
-
-Observação: autenticação e perfis já usam Supabase; catálogo, identidade legada e algumas integrações administrativas ainda dependem de tabelas no Baserow.
-O schema endurecido do Supabase foi movido para `docs/architecture/supabase_hardened_schema.sql`.
 
 ## 📁 Estrutura de Rotas (Invisíveis/API)
 
@@ -38,24 +35,12 @@ O schema endurecido do Supabase foi movido para `docs/architecture/supabase_hard
 - `api/checkout/*`: processamento de pedidos e webhooks de pagamento.
 - `api/jobs/*`: tarefas automáticas (reconciliação, limpeza).
 
-## 📊 Configuração do Baserow
-
-O sistema utiliza o Baserow como storage operacional. Todos os IDs de tabelas devem ser configurados como variáveis de ambiente. Consulte `src/server/integrations/baserow/tables.ts` para a lista completa.
-
-| Variável                           | Descrição                                                  |
-| :--------------------------------- | :--------------------------------------------------------- |
-| `BASEROW_API_TOKEN`                | Token de API do Baserow com permissões de leitura/escrita. |
-| `BASEROW_TABLE_TENANTS`            | ID da tabela de lojistas.                                  |
-| `BASEROW_TABLE_SESSIONS`           | ID da tabela de sessões de usuário.                        |
-| `BASEROW_TABLE_MAGIC_LINKS`        | ID da tabela de tokens magic link.                         |
-| `BASEROW_TABLE_STRIPE_CONNECTIONS` | ID da tabela de conexões Stripe por tenant.                |
-
 ## 🔒 Segurança e Hardening
 
 - **Assinatura de Webhooks:** validação de assinatura para notificações do Stripe.
 - **CSRF Protection:** implementação Double-Submit Cookie para todos os endpoints administrativos.
 - **Session Hardening:** cookies configurados com `__Host-` prefixo em produção, operando em `SameSite=Lax`.
-- **Audit Trails:** todas as mutações administrativas são registradas na tabela de auditoria do Baserow.
+- **Audit Trails:** todas as mutações administrativas são registradas na tabela de auditoria do Supabase.
 
 ## ✅ Qualidade e Build
 
@@ -66,4 +51,3 @@ O sistema utiliza o Baserow como storage operacional. Todos os IDs de tabelas de
 
 - Documentação Operacional: `docs/operations/`
 - Blueprint de Produção: `docs/architecture/`
-- Runbooks e compliance: `backend/`

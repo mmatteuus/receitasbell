@@ -1,16 +1,16 @@
-export type PaymentProvider = "stripe" | "mercadopago" | "mock";
+export type PaymentProvider = 'stripe' | 'mock';
 
 export type PaymentStatus =
-  | "created"
-  | "pending"
-  | "in_process"
-  | "approved"
-  | "rejected"
-  | "cancelled"
-  | "refunded"
-  | "chargeback"
-  | "charged_back"
-  | "failed";
+  | 'created'
+  | 'pending'
+  | 'in_process'
+  | 'approved'
+  | 'rejected'
+  | 'cancelled'
+  | 'refunded'
+  | 'chargeback'
+  | 'charged_back'
+  | 'failed';
 
 export interface PaymentOrder {
   id: string;
@@ -24,7 +24,7 @@ export interface PaymentOrder {
   payerEmail: string;
   paymentMethod: string;
   provider: PaymentProvider;
-  
+
   // Stripe Specifics
   providerPaymentId?: string | null;
   providerCheckoutId?: string | null;
@@ -32,15 +32,11 @@ export interface PaymentOrder {
   providerStatus?: string | null;
   providerEventId?: string | null;
   checkoutUrl?: string | null;
-  
-  // Legacy/MP Compatibility
-  mpPaymentId?: string | null;
-  preferenceId?: string | null;
-  
+
   recipeIds: string[];
   items: unknown[];
   metadata?: Record<string, unknown> | null;
-  
+
   createdAt: string;
   updatedAt: string;
 }
@@ -48,7 +44,7 @@ export interface PaymentOrder {
 export interface StripeConnectAccount {
   tenantId: string;
   stripeAccountId: string;
-  status: "pending" | "ready" | "restricted" | "disabled";
+  status: 'pending' | 'ready' | 'restricted' | 'disabled';
   detailsSubmitted: boolean;
   chargesEnabled: boolean;
   payoutsEnabled: boolean;
