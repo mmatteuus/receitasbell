@@ -1,37 +1,45 @@
-import { VercelRequest, VercelResponse } from "@vercel/node";
-import { withApiHandler, assertMethod, readJsonBody, json, getClientAddress } from "../../src/server/shared/http.js";
-import { AuthRateLimit } from "../../src/server/shared/rateLimit.js";
-import { startSocialOAuth } from "../../src/server/auth/social/service.js";
-import { ApiError } from "../../src/server/shared/http.js";
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+import {
+  withApiHandler,
+  assertMethod,
+  readJsonBody,
+  json,
+  getClientAddress,
+} from '../../src/server/shared/http.js';
+import { AuthRateLimit } from '../../src/server/shared/rateLimit.js';
+import { startSocialOAuth } from '../../src/server/auth/social/service.js';
+import { ApiError } from '../../src/server/shared/http.js';
 
 /**
  * POST /api/auth/oauth/start
  * Inicia o fluxo OAuth Social gravando o state e retornando a URL de autorização.
  */
 export default withApiHandler(async (req, res, { logger }) => {
-  assertMethod(req, ["POST"]);
+  assertMethod(req, ['POST']);
 
-  const body = await readJsonBody<{ provider: "google"; redirectTo?: string; tenantId: string }>(req);
-  
+  const body = await readJsonBody<{ provider: 'google'; redirectTo?: string; tenantId: string }>(
+    req
+  );
+
   if (!body.provider || !body.tenantId) {
-    throw new ApiError(400, "Missing required fields: provider, tenantId");
+    throw new ApiError(400, 'Missing required fields: provider, tenantId');
   }
 
   // 1. Rate limit distribuído (Upstash em prod)
   const ip = getClientAddress(req);
   const rl = await AuthRateLimit.check(ip);
   if (!rl.success) {
-    throw new ApiError(429, "Too many authentication attempts", { retryAfter: rl.resetAfter });
+    throw new ApiError(429, 'Too many authentication attempts', { retryAfter: rl.resetAfter });
   }
 
-  logger.info("OAuth start flow initiated", { provider: body.provider, tenantId: body.tenantId });
+  logger.info('OAuth start flow initiated', { provider: body.provider, tenantId: body.tenantId });
 
   // 2. Inicia o fluxo com o service
   const result = await startSocialOAuth({
     provider: body.provider,
     tenantId: body.tenantId,
-    redirectTo: body.redirectTo || "/minha-conta",
-    userAgent: req.headers["user-agent"],
+    redirectTo: body.redirectTo || '/minha-conta',
+    userAgent: req.headers['user-agent'],
     ip,
   });
 
