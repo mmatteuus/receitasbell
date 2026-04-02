@@ -19,7 +19,7 @@
 **Estado do repositório**: somente `main` deve permanecer ao final.  
 **Estado do objetivo**: admin funcional + dominio correto + deploy de producao `READY`.  
 **Estado do metodo**: execucao em ciclos curtos, com 1 movimento por vez.  
-**Ultima regra valida**: sem avancar sem aprovacao.  
+**Ultima regra valida**: sem avancar sem aprovacao.
 
 ---
 
@@ -39,39 +39,44 @@
 ## FILA DE EXECUCAO AUTORIZADA
 
 ### Passo 1
+
 **Titulo**: Confirmar dominio final e host do tenant principal  
 **Objetivo**: garantir que o tenant principal esteja apontando para o dominio que realmente sera usado em producao  
 **Status**: PENDENTE  
 **Risco**: medio  
-**Rollback**: sem alteracao, apenas leitura/confirmacao  
+**Rollback**: sem alteracao, apenas leitura/confirmacao
 
 ### Passo 2
+
 **Titulo**: Confirmar status do deploy de producao  
 **Objetivo**: validar se o deployment atual esta `READY` ou se ainda ha cancelamento/desalinhamento  
 **Status**: BLOQUEADO ATE PASSO 1  
 **Risco**: medio  
-**Rollback**: sem alteracao, apenas leitura/confirmacao  
+**Rollback**: sem alteracao, apenas leitura/confirmacao
 
 ### Passo 3
+
 **Titulo**: Rodar smoke test do admin no dominio correto  
 **Objetivo**: provar autenticacao real no endpoint certo  
 **Status**: BLOQUEADO ATE PASSO 2  
 **Risco**: medio  
-**Rollback**: sem alteracao de codigo, apenas teste  
+**Rollback**: sem alteracao de codigo, apenas teste
 
 ### Passo 4
+
 **Titulo**: Corrigir o menor delta restante  
 **Objetivo**: ajustar apenas o que ainda estiver quebrado depois das validacoes anteriores  
 **Status**: BLOQUEADO ATE PASSO 3  
 **Risco**: variavel  
-**Rollback**: obrigatorio definir antes da execucao  
+**Rollback**: obrigatorio definir antes da execucao
 
 ### Passo 5
+
 **Titulo**: Validacao final e encerramento  
 **Objetivo**: fechar o projeto sem pendencias P0/P1 abertas  
 **Status**: BLOQUEADO ATE PASSO 4  
 **Risco**: baixo  
-**Rollback**: depende do ultimo passo aprovado  
+**Rollback**: depende do ultimo passo aprovado
 
 ---
 
@@ -79,7 +84,7 @@
 
 Copiar e preencher abaixo, sem alterar a estrutura:
 
-```md
+````md
 ## PASSO N
 
 **Titulo**:  
@@ -87,19 +92,25 @@ Copiar e preencher abaixo, sem alterar a estrutura:
 **Objetivo**:  
 **Arquivos-alvo**:  
 **Comandos executados**:
+
 ```bash
 # colar aqui
 ```
+````
+
 **Evidencias**:
+
 ```text
 # colar aqui
 ```
+
 **Resultado observado**:  
 **Risco**: baixo | medio | alto  
 **Rollback**:  
 **Proximo passo sugerido pelo Executor**:  
 **Aguardando decisao do Pensante**: SIM
-```
+
+````
 
 ---
 
@@ -107,9 +118,9 @@ Copiar e preencher abaixo, sem alterar a estrutura:
 
 ### PASSO 0
 
-**Titulo**: Criar protocolo de orquestracao em `IMPLANTAR/`  
-**Status**: APROVADO  
-**Objetivo**: preparar a conversa entre Executor e Pensante dentro da pasta oficial do projeto  
+**Titulo**: Criar protocolo de orquestracao em `IMPLANTAR/`
+**Status**: APROVADO
+**Objetivo**: preparar a conversa entre Executor e Pensante dentro da pasta oficial do projeto
 **Arquivos-alvo**:
 - `IMPLANTAR/00-ORQUESTRACAO-ENTRE-AGENTES.md`
 - `IMPLANTAR/STATUS-EXECUCAO.md`
@@ -117,9 +128,10 @@ Copiar e preencher abaixo, sem alterar a estrutura:
 **Comandos executados**:
 ```text
 Criacao direta dos arquivos na branch main.
-```
+````
 
 **Evidencias**:
+
 ```text
 Protocolo criado.
 Ledger de status criado.
@@ -131,6 +143,60 @@ Pasta oficial mantida: IMPLANTAR/.
 **Rollback**: remover os arquivos novos da pasta `IMPLANTAR/` se necessario  
 **Proximo passo sugerido pelo Executor**: PASSO 1 — confirmar dominio final e host do tenant principal  
 **Aguardando decisao do Pensante**: NAO
+
+---
+
+### PASSO 1
+
+**Titulo**: Fase 1 — MVP da automacao local por arquivos
+**Status**: AGUARDANDO VALIDACAO
+**Objetivo**: criar o daemon local, arquivos auxiliares e task de startup conforme IMPLANTAR/01-AUTOMACAO-DE-GATILHOS-E-ORQUESTRACAO.md
+**Arquivos-alvo**:
+
+- `tools/agent_orchestrator.py`
+- `IMPLANTAR/LOCK.json`
+- `IMPLANTAR/HEARTBEAT.json`
+- `IMPLANTAR/EVENTOS.log`
+- `IMPLANTAR/CONFIG-AUTOMACAO.yaml`
+- `.vscode/tasks.json`
+- `IMPLANTAR/CAIXA-DE-SAIDA.md`
+- `IMPLANTAR/STATUS-EXECUCAO.md`
+- `IMPLANTAR/ESTADO-ORQUESTRACAO.yaml`
+
+**Comandos executados**:
+
+```bash
+python tools/agent_orchestrator.py --once
+```
+
+**Evidencias**:
+
+```text
+stdout:
+ORCHESTRATOR_START
+ORCHESTRATOR_READY
+
+IMPLANTAR/HEARTBEAT.json:
+{"last_actor":"executor","last_seen_at":"2026-04-02T02:39:19Z","current_trigger":"EXECUTOR_IN_PROGRESS","current_step_id":"PASSO-1"}
+
+IMPLANTAR/EVENTOS.log:
+2026-04-02T02:39:19Z STATE_OBSERVED trigger=EXECUTOR_IN_PROGRESS owner=executor step_id=PASSO-1
+```
+
+**Resultado observado**: daemon iniciou em modo once, leu o estado atual, escreveu heartbeat e registrou evento sem disparo duplicado
+**Risco**: medio
+**Rollback**: remover os arquivos da automacao local e voltar ao fluxo manual
+**Proximo passo sugerido pelo Executor**: validar Fase 1 e decidir abertura da Fase 2
+**Aguardando decisao do Pensante**: SIM
+
+---
+
+### RETORNO CURTO — PASSO 1
+
+Feito: MVP de automacao local criado (daemon, arquivos auxiliares, task de startup) e teste --once registrado.
+Estado: AGUARDANDO REVISAO.
+Proximo passo: o Pensante deve validar a Fase 1 e decidir se abre a Fase 2 ou pede ajustes.
+Responsavel agora: pensante.
 
 ---
 

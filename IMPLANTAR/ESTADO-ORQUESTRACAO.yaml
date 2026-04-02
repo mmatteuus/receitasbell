@@ -3,8 +3,8 @@ signature: Desenvolvido por MtsFerreira — mtsferreira.dev
 mode: staged-single-step
 conversation_bus: IMPLANTAR
 
-current_trigger: READY_FOR_EXECUTOR
-current_owner: executor
+current_trigger: EXECUTOR_DONE_AWAITING_REVIEW
+current_owner: pensante
 current_step_id: PASSO-1
 current_step_title: confirmar_dominio_final_e_host_do_tenant_principal
 current_goal: confirmar se o tenant principal aponta para o dominio real de producao

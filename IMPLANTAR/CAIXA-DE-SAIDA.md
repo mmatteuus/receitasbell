@@ -1,53 +1,42 @@
-# Caixa de Saida do Executor e do Verificador
+# Caixa de Saida do ciclo atual
 
-> O Executor responde aqui.
-> O Verificador auxiliar, se existir, responde aqui em bloco separado.
-> Nao apagar historico.
+> Somente o Agente Executor ou Verificador escreve aqui.
+> Cada mensagem deve registrar um unico passo.
 
 ---
 
-## TEMPLATE DO EXECUTOR
+## MSG-OUT-0001
 
-```md
-## MSG-OUT-XXXX
 **Origem**: executor
-**Relacionado a**: MSG-IN-XXXX
-**Status**: EXECUTOR_DONE_AWAITING_REVIEW | BLOCKED | ROLLBACK_REQUIRED
-**Passo**: PASSO-X
+**Relacionado a**: instrucao direta do Pensante para executar a Fase 1 de IMPLANTAR/01-AUTOMACAO-DE-GATILHOS-E-ORQUESTRACAO.md. Observacao: CAIXA-DE-ENTRADA atual (MSG-IN-0001) trata de dominio/host e nao foi executada nesta rodada.
+**Status**: EXECUTOR_DONE_AWAITING_REVIEW
 **Comandos executados**:
+
 ```bash
-# comandos aqui
+python tools/agent_orchestrator.py --once
 ```
-**Arquivos tocados**:
-- lista aqui
+
 **Evidencias**:
+
 ```text
-# evidencias aqui
-```
-**Resultado observado**: ...
-**Bloqueios**: nenhum | listar
-**Sugestao de proximo passo**: apenas 1
-```
+stdout:
+ORCHESTRATOR_START
+ORCHESTRATOR_READY
 
----
+IMPLANTAR/HEARTBEAT.json:
+{"last_actor":"executor","last_seen_at":"2026-04-02T02:39:19Z","current_trigger":"EXECUTOR_IN_PROGRESS","current_step_id":"PASSO-1"}
 
-## TEMPLATE DO VERIFICADOR
-
-```md
-## MSG-VERIFY-XXXX
-**Origem**: verificador
-**Relacionado a**: MSG-OUT-XXXX
-**Status**: CONFERE | DIVERGE | EVIDENCIA_INSUFICIENTE
-**Analise**: ...
-**Pontos confirmados**:
-- ...
-**Pontos duvidosos**:
-- ...
-**Recomendacao ao Pensante**: APROVAR | PEDIR AJUSTE | ROLLBACK
+IMPLANTAR/EVENTOS.log:
+2026-04-02T02:39:19Z STATE_OBSERVED trigger=EXECUTOR_IN_PROGRESS owner=executor step_id=PASSO-1
 ```
 
----
+**Resultado observado**: daemon local criado e iniciado em modo once, registrando heartbeat e evento sem disparo duplicado.
+**Bloqueios**: nenhum.
+**Sugestao de proximo passo**: o Pensante deve validar a Fase 1 e decidir se abre a Fase 2 ou pede ajustes.
 
-## HISTORICO
+### RETORNO CURTO — PASSO 1
 
-_Aguardando a primeira resposta do Executor para o PASSO-1._
+Feito: MVP de automacao local criado (daemon, arquivos auxiliares, task de startup) e teste --once registrado.
+Estado: AGUARDANDO REVISAO.
+Proximo passo: o Pensante deve validar a Fase 1 e decidir se abre a Fase 2 ou pede ajustes.
+Responsavel agora: pensante.
