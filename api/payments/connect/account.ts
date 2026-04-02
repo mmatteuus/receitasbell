@@ -36,12 +36,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     return res.status(201).json({ ok: true, accountId: account.id, existing: false });
-  } catch (error: any) {
+  } catch (error) {
     console.error('[STRIPE-CONNECT-ACCOUNT]', error);
     return res.status(500).json({ 
       ok: false, 
       error: 'connect_account_creation_failed', 
-      detail: error?.message ?? 'unexpected_error' 
+      detail: error instanceof Error ? error.message : 'unexpected_error' 
     });
   }
 }

@@ -7,7 +7,7 @@ function getEnv(name: string): string {
 }
 
 export const stripe = new Stripe(getEnv('STRIPE_SECRET_KEY'), {
-  apiVersion: '2024-06-20',
+  apiVersion: '2025-02-24.acacia',
   maxNetworkRetries: 2,
   timeout: 10000,
 });

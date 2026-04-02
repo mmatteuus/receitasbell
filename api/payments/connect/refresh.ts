@@ -28,12 +28,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Redireciona o usuário de volta para o fluxo do Stripe
     return res.redirect(303, link.url);
-  } catch (error: any) {
+  } catch (error) {
     console.error('[STRIPE-CONNECT-REFRESH]', error);
     return res.status(500).json({ 
       ok: false, 
       error: 'stripe_refresh_failed', 
-      detail: error?.message ?? 'unexpected_error' 
+      detail: error instanceof Error ? error.message : 'unexpected_error' 
     });
   }
 }

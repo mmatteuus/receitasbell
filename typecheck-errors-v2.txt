@@ -1,0 +1,5 @@
+﻿
+> receitas-bell@0.0.0 typecheck
+> tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.node.json --noEmit
+
+api/payments/_lib/stripe.ts(10,3): error TS2322: Type '"2024-06-20"' is not assignable to type '"2025-02-24.acacia"'.

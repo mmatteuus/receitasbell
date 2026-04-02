@@ -32,12 +32,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     return res.status(200).json({ ok: true, status: updated.status, details: updated });
-  } catch (error: any) {
+  } catch (error) {
     console.error('[STRIPE-CONNECT-STATUS]', error);
     return res.status(500).json({ 
       ok: false, 
       error: 'connect_status_sync_failed', 
-      detail: error?.message ?? 'unexpected_error' 
-    });
+      detail: error instanceof Error ? error.message : 'unexpected_error',    });
   }
 }

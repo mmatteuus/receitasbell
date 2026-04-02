@@ -42,7 +42,7 @@ async function readRequestBody(request: IncomingMessage, timeoutMs = 5000) {
 
   const chunks: Buffer[] = [];
   const timer = setTimeout(() => {}, timeoutMs);
-  let timerFired = false;
+  const timerFired = false;
   timer.unref();
   timer.ref();
 

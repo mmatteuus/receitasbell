@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import type Stripe from 'stripe';
 import { stripe } from './_lib/stripe.js';
 import { upsertConnectAccount } from './_lib/connect-store.js';
 
@@ -41,7 +42,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Processa somente o evento de atualização de conta conectada
     if (event.type === 'account.updated') {
-      const account = event.data.object as any;
+      const account = event.data.object as Stripe.Account;
       
       // O tenant_id deve estar nos metadados da conta para sabermos de quem é
       const tenantId = String(account.metadata?.tenant_id || '');
@@ -62,12 +63,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     return res.status(200).json({ received: true });
-  } catch (error: any) {
+  } catch (error) {
     console.error('[STRIPE-WEBHOOK]', error);
     return res.status(400).json({ 
       ok: false, 
       error: 'invalid_webhook', 
-      detail: error?.message ?? 'unexpected_error' 
+      detail: error instanceof Error ? error.message : 'unexpected_error' 
     });
   }
 }

@@ -34,12 +34,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Redirecionamento final ao painel administrativo
     return res.redirect(303, `${getAppUrl()}/admin/pagamentos/configuracoes?stripe=returned`);
-  } catch (error: any) {
+  } catch (error) {
     console.error('[STRIPE-CONNECT-RETURN]', error);
     return res.status(500).json({ 
       ok: false, 
       error: 'stripe_return_sync_failed', 
-      detail: error?.message ?? 'unexpected_error' 
+      detail: error instanceof Error ? error.message : 'unexpected_error' 
     });
   }
 }

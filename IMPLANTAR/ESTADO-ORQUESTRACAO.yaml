@@ -1,15 +1,15 @@
-# ESTADO-ORQUESTRACAO.yaml [PENDENTE]
-# STATUS: BLOCKED-PENDENTE (Aguardando Planejador)
+# ESTADO-ORQUESTRACAO.yaml [READY]
+# STATUS: EXECUTOR_DONE_AWAITING_REVIEW (Stripe Connect Estabilizado)
 
 project: receitas-bell
 signature: Desenvolvido por MtsFerreira — mtsferreira.dev
 mode: staged-single-step
 conversation_bus: IMPLANTAR
 
-current_trigger: BLOCKED
+current_trigger: EXECUTOR_DONE_AWAITING_REVIEW
 current_owner: pensante
-current_step_id: RELATORIO-DOUBTS-AND-TASKS
-current_step_title: relatorio_de_duvidas_e_bloqueios
+current_step_id: STRIPE-CONNECT-STABILIZED
+current_step_title: stripe_connect_stabilization_done
 current_goal: Responder ao relatório de dúvidas para destravar o fluxo de produção e Stripe.
 
 allowed_writers:
@@ -58,8 +58,8 @@ completion_criteria:
 
 last_decision:
   actor: executor
-  decision: Fase A Concluída (Sincronização de Status)
-  reference: PASSO-4
+  decision: Estabilização de Stripe Connect e Gate aprovado.
+  reference: EXEC-2026-04-02-2255-STRIPE-010
 
 next_expected_actor: pensante
 next_expected_action: Analisar o arquivo RELATORIO-DESSA-VERSAO.md e fornecer os dados faltantes.

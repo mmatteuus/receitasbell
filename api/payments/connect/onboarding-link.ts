@@ -29,12 +29,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     return res.status(200).json({ ok: true, url: link.url });
-  } catch (error: any) {
+  } catch (error) {
     console.error('[STRIPE-CONNECT-ONBOARDING]', error);
     return res.status(500).json({ 
       ok: false, 
       error: 'stripe_onboarding_link_failed', 
-      detail: error?.message ?? 'unexpected_error' 
+      detail: error instanceof Error ? error.message : 'unexpected_error' 
     });
   }
 }
