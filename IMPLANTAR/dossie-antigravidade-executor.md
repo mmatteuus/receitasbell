@@ -6,8 +6,9 @@ Objetivo final: admin funcional em producao, deploy READY, somente main, e check
 ## PRB (Problema)
 
 - Admin nao autentica por falha de bootstrap e ausencia de usuario em auth.users + profiles.
-- Vercel esta com Node 24.x enquanto o repo exige Node 20.x.
-- Branch secundaria ja foi removida, mas o deploy e a recuperacao do admin ainda estao pendentes.
+- Vercel ja esta com Node 20.x, mas o ultimo deploy de producao esta CANCELED.
+- Dominios ativos na Vercel nao incluem receitasbell.vercel.app.
+- Branch secundaria ja foi removida, mas o deploy e o smoke final ainda estao pendentes.
 
 ## DDP (Definicao de Pronto)
 
@@ -18,6 +19,7 @@ Objetivo final: admin funcional em producao, deploy READY, somente main, e check
 - POST /api/admin/auth/session retorna 200
 - Vercel alinhada para Node 20.x
 - deploy de producao READY
+- dominio do tenant principal alinhado com o dominio ativo na Vercel
 - somente main permanece
 
 ## Regras operacionais
@@ -27,6 +29,14 @@ Objetivo final: admin funcional em producao, deploy READY, somente main, e check
 - Nao comite segredos (ex: .env, service role key).
 - Priorize MCPs (Supabase, Vercel, GitHub). Use navegador somente se necessario.
 - Se houver bloqueio por acesso, registre o bloqueio e o que faltou.
+
+## Conexao MCP (OpenCode)
+
+- Pasta/arquivo local de secrets: .vscode/mcp-secrets.env (nao comitar).
+- Configure MCPs de Supabase e GitHub via Open Cloud no Anti Gravity.
+- Supabase: usar SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY do projeto correto; validar acesso a auth.users e public.profiles.
+- GitHub: token com permissoes de leitura e escrita no repo, commit/push, deployments, checks/workflows e analise de status.
+- Se faltar acesso, use o navegador para obter as chaves e preencha no secrets do Anti Gravity e no .vscode/mcp-secrets.env.
 
 ## Contexto do que ja foi feito (nao repetir)
 
@@ -75,22 +85,23 @@ Objetivo: garantir auth.users + profiles corretos para admin@receitasbell.com.
 
 ## Passo 2 - Smoke test do login admin
 
-Execute:
+Execute (apos alinhar dominio/host):
 curl -i ^
 -H "Content-Type: application/json" ^
 -H "X-Tenant-Slug: receitasbell" ^
 -H "X-CSRF-Token: teste" ^
 --cookie "\_\_Host-rb_csrf=teste" ^
 -d "{\"email\":\"admin@receitasbell.com\",\"password\":\"TroqueAgora!123#\"}" ^
-https://receitasbell.vercel.app/api/admin/auth/session
+https://DOMINIO_ESCOLHIDO/api/admin/auth/session
 
 Esperado: HTTP 200 e authenticated: true.
 
 ## Passo 3 - Vercel (MCP)
 
-1. Ajuste Node para 20.x no projeto Vercel.
-2. Dispare deploy de producao.
-3. Aguarde status READY e registre o URL do deploy.
+1. Confirme Node 20.x no projeto Vercel.
+2. Alinhe o dominio principal (ex: reanexar receitasbell.vercel.app ou atualizar host no banco).
+3. Dispare deploy de producao.
+4. Aguarde status READY e registre o URL do deploy.
 
 ## Passo 4 - Commit e push (GitHub MCP)
 

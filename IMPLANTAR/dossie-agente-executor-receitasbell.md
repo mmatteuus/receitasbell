@@ -9,6 +9,14 @@
 
 ## STATUS ATUAL (executado por OpenCode)
 
+### Atualizacao v2 (2026-04-01)
+
+- Fonte: IMPLANTAR/auditoria-receitasbell-v2.md
+- Vercel ja esta em Node 20.x, mas o ultimo deploy de producao esta CANCELED
+- Dominios ativos na Vercel nao incluem receitasbell.vercel.app
+- admin@receitasbell.com existe em auth.users e public.profiles (role owner, password_hash presente)
+- Ha 3 tenants ativos (default e preview ainda ativos)
+
 ### Concluido
 
 - createUser(...) agora persiste id, password_hash, legacy_password e full_name
@@ -26,7 +34,9 @@
 - validar login admin por curl e executar smoke test final (parcialmente validado)
 - commit + push na main
 - deploy de producao e validar status READY
-
+- alinhar host do tenant principal com dominio ativo na Vercel
+- confirmar CI workflow ativo (fora do caminho padrao, se existir)
+- avaliar tenants default/preview e desativar se nao forem necessarios
 
 ---
 
@@ -56,24 +66,27 @@ O agente executor deve:
 ### FATO
 
 - O projeto usa Node `20.x` no repositório.
-- A Vercel do projeto está configurada com Node `24.x`.
+- A Vercel do projeto esta configurada com Node `20.x`.
+- O ultimo deploy de producao na Vercel esta CANCELED.
+- Os dominios ativos na Vercel nao incluem `receitasbell.vercel.app`.
 - O login admin é feito por `POST /api/admin/auth/session`.
 - O login busca usuário em `public.profiles` por `email + organization_id`.
 - O login exige `role` igual a `admin` ou `owner`.
-- O bootstrap atual cria tenant/profile, mas não garante criação de usuário em `auth.users`.
-- O `createUser(...)` atual não persiste corretamente `id`, `password_hash` e `legacy_password`.
-- O usuário `admin@receitasbell.com` não existia no `auth.users` nem em `public.profiles` no diagnóstico anterior.
-- Há dois ramos remotos: `main` e `fix/admin-recovery-script`.
+- O bootstrap atual cria auth user via supabaseAdmin e profile correspondente (corrigido).
+- O `createUser(...)` persiste corretamente `id`, `password_hash` e `legacy_password` (corrigido).
+- O usuario `admin@receitasbell.com` existe em `auth.users` e `public.profiles`.
+- Ha apenas o ramo `main` no remoto.
+- Ha 3 tenants ativos no banco (default e preview incluidos).
 
 ### SUPOSIÇÃO
 
 - O executor terá acesso operacional ao GitHub, Vercel e Supabase.
-- O ramo `fix/admin-recovery-script` não contém trabalho indispensável não documentado neste dossiê.
 
 ### [PENDENTE]
 
-- Confirmar se existe workflow CI ativo fora do caminho padrão.
-- Confirmar se o deploy de produção da Vercel aponta para o último commit da `main` no momento da execução.
+- Confirmar se existe workflow CI ativo fora do caminho padrao.
+- Confirmar se o deploy de producao da Vercel aponta para o ultimo commit da `main` no momento da execucao.
+- Confirmar qual dominio final deve ser usado pelo tenant principal.
 
 ---
 
