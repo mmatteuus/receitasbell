@@ -5,6 +5,7 @@ import type Stripe from "stripe";
 import { env } from "../../../../shared/env.js";
 import { supabaseAdmin } from "../../../../integrations/supabase/client.js";
 import { updatePaymentOrderStatus, getPaymentOrderById } from "../../../repo.js";
+import { upsertConnectAccount } from "../../../repo/accounts.js";
 
 async function buffer(readable: NodeJS.ReadableStream): Promise<Buffer> {
   const chunks: Buffer[] = [];
@@ -43,6 +44,7 @@ export default withApiHandler(async (req: VercelRequest, res: VercelResponse) =>
     return;
   }
 
+  // 1. Evento de Checkout (venda de receitas)
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session;
     const orderId = session.client_reference_id;
@@ -90,5 +92,29 @@ export default withApiHandler(async (req: VercelRequest, res: VercelResponse) =>
     }
   }
 
+  // 2. Evento de Connect (onboarding de vendedores)
+  if (event.type === 'account.updated') {
+    const account = event.data.object as Stripe.Account;
+    const tenantId = account.metadata?.tenantId;
+
+    if (tenantId) {
+      await upsertConnectAccount({
+        tenantId,
+        stripeAccountId: account.id,
+        status: account.details_submitted ? 'ready' : 'pending',
+        detailsSubmitted: account.details_submitted ?? false,
+        chargesEnabled: account.charges_enabled ?? false,
+        payoutsEnabled: account.payouts_enabled ?? false,
+        defaultCurrency: account.default_currency ?? 'BRL',
+        requirements: {
+          currentlyDue: account.requirements?.currently_due || [],
+          eventuallyDue: account.requirements?.eventually_due || [],
+        },
+        disabledReason: account.requirements?.disabled_reason || null,
+      });
+    }
+  }
+
   res.json({ received: true });
 });
+
