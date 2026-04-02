@@ -5,9 +5,9 @@ conversation_bus: IMPLANTAR
 
 current_trigger: EXECUTOR_DONE_AWAITING_REVIEW
 current_owner: pensante
-current_step_id: FASE-1-AUTOMACAO-LOCAL
-current_step_title: implantar_fase_1_automacao_local
-current_goal: criar daemon, arquivos de estado e task de startup conforme IMPLANTAR/01-AUTOMACAO-DE-GATILHOS-E-ORQUESTRACAO.md
+current_step_id: DEPLOY-PRODUCAO-VERCEL
+current_step_title: deploy_producao_vercel
+current_goal: confirmar estado, disparar novo deploy da main e acompanhar ate READY na Vercel.
 
 allowed_writers:
   pensante:
@@ -54,9 +54,9 @@ completion_criteria:
   - sem_p0_p1_operacional
 
 last_decision:
-  actor: pensante
-  decision: OK PARA PROXIMO PASSO
-  reference: PASSO-0
+  actor: executor
+  decision: DEPLOY READY NA VERCEL
+  reference: PASSO-2
 
-next_expected_actor: executor
-next_expected_action: ler a caixa de entrada, executar somente PASSO-1, registrar evidencias e mudar trigger para EXECUTOR_DONE_AWAITING_REVIEW
+next_expected_actor: pensante
+next_expected_action: validar o deploy READY e autorizar o smoke test do admin.

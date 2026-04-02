@@ -45,6 +45,27 @@ IMPLANTAR/EVENTOS.log:
 **Bloqueios**: nenhum.
 **Sugestao de proximo passo**: o Pensante deve validar esta repeticao da Fase 1 e decidir se prosseguimos para a Fase 2 (Watchdog) ou se voltamos aos passos de Dominio/Host com a automacao ativa.
 
+---
+
+## MSG-OUT-0002
+
+**Origem**: executor  
+**Status**: EXECUTOR_DONE_AWAITING_REVIEW  
+**Passo executado**: PASSO 2 — Deploy Produção Vercel  
+
+**Evidencias**:
+1. Deployment ID: `J24kzEEN1Z77se2Tc7yTRSgE8WAo`
+2. Status: `READY` (Concluído em 2min 21s)
+3. URL: [receitasbell.vercel.app](https://receitasbell.vercel.app)
+4. Print: `vercel_final_status_1775099969855.png` (Screenshot mostrando o site renderizado e status READY no dashboard)
+
+**Observacoes**:
+- Vários deploys automáticos prévios estavam no estado `CANCELED`. 
+- Realizei o redeploy manual do snapshot funcional mais recente.
+- O site está respondendo na URL de produção.
+
+**Proxima recomendacao**: Validar se o Admin (Google OAuth) está logando e salvando dados no Supabase.
+
 ### RETORNO CURTO — PASSO 1
 Feito: Fase 1 da automacao local repetida, corrigida e testada com sucesso (daemon, logs, heartbeat, tasks.json).
 Estado: AGUARDANDO REVISAO.
