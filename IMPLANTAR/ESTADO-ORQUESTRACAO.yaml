@@ -1,0 +1,62 @@
+project: receitas-bell
+signature: Desenvolvido por MtsFerreira — mtsferreira.dev
+mode: staged-single-step
+conversation_bus: IMPLANTAR
+
+current_trigger: READY_FOR_EXECUTOR
+current_owner: executor
+current_step_id: PASSO-1
+current_step_title: confirmar_dominio_final_e_host_do_tenant_principal
+current_goal: confirmar se o tenant principal aponta para o dominio real de producao
+
+allowed_writers:
+  pensante:
+    - IMPLANTAR/CAIXA-DE-ENTRADA.md
+    - IMPLANTAR/ESTADO-ORQUESTRACAO.yaml
+    - IMPLANTAR/STATUS-EXECUCAO.md
+  executor:
+    - IMPLANTAR/CAIXA-DE-SAIDA.md
+    - IMPLANTAR/ESTADO-ORQUESTRACAO.yaml
+    - IMPLANTAR/STATUS-EXECUCAO.md
+  verificador:
+    - IMPLANTAR/CAIXA-DE-SAIDA.md
+    - IMPLANTAR/STATUS-EXECUCAO.md
+
+trigger_definitions:
+  READY_FOR_EXECUTOR: proximo passo autorizado para execucao
+  EXECUTOR_IN_PROGRESS: executor assumiu o passo e esta executando
+  EXECUTOR_DONE_AWAITING_REVIEW: executor terminou e aguarda validacao
+  REVIEW_APPROVED: passo aprovado pelo pensante
+  REVIEW_CHANGES_REQUIRED: mesmo passo deve ser corrigido e repetido
+  ROLLBACK_REQUIRED: rollback obrigatorio antes de avancar
+  BLOCKED: existe impedimento externo ou falta de evidencia
+  DONE: objetivo final encerrado
+
+handoff_rules:
+  - somente o current_owner pode agir
+  - apenas um passo por vez
+  - nao pular passo
+  - nao executar sem rollback definido quando houver risco
+  - toda resposta precisa conter evidencias
+  - sem evidencias o trigger nao pode mudar para REVIEW_APPROVED
+
+current_instruction_pointer:
+  input_file: IMPLANTAR/CAIXA-DE-ENTRADA.md
+  output_file: IMPLANTAR/CAIXA-DE-SAIDA.md
+  status_file: IMPLANTAR/STATUS-EXECUCAO.md
+
+completion_criteria:
+  - somente_main
+  - admin_funcional
+  - dominio_correto
+  - deploy_producao_ready
+  - smoke_aprovado
+  - sem_p0_p1_operacional
+
+last_decision:
+  actor: pensante
+  decision: OK PARA PROXIMO PASSO
+  reference: PASSO-0
+
+next_expected_actor: executor
+next_expected_action: ler a caixa de entrada, executar somente PASSO-1, registrar evidencias e mudar trigger para EXECUTOR_DONE_AWAITING_REVIEW
