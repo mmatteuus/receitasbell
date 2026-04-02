@@ -146,6 +146,13 @@ export async function loginAdmin(
     { id: String(tenant.id), slug: tenant.slug, name: tenant.name },
     email
   );
+
+  console.log('[DEBUG ADMIN LOGIN]', {
+    email,
+    resolvedTenantId: String(tenant.id),
+    resolvedTenantSlug: tenant.slug,
+    foundUser: user ? { id: user.id, email: user.email, role: user.role, status: user.status } : null,
+  });
   if (!user || !hasAdminRole(user.role)) {
     logger.warn('admin.login_failed', {
       action: 'admin.login_failed',
