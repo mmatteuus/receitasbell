@@ -8,35 +8,45 @@
 ## MSG-OUT-0001
 
 **Origem**: executor
-**Relacionado a**: instrucao direta do Pensante para executar a Fase 1 de IMPLANTAR/01-AUTOMACAO-DE-GATILHOS-E-ORQUESTRACAO.md. Observacao: CAIXA-DE-ENTRADA atual (MSG-IN-0001) trata de dominio/host e nao foi executada nesta rodada.
+**Relacionado a**: instrucao direta do Pensante (repetir Fase 1 da automacao local corrigindo desalinhamentos).
 **Status**: EXECUTOR_DONE_AWAITING_REVIEW
 **Comandos executados**:
 
-```bash
+```powershell
 python tools/agent_orchestrator.py --once
 ```
 
 **Evidencias**:
 
 ```text
-stdout:
+stdout do teste real (v2):
 ORCHESTRATOR_START
 ORCHESTRATOR_READY
+O volume na unidade D é Backup
+...
+Exit code: 0
 
 IMPLANTAR/HEARTBEAT.json:
-{"last_actor":"executor","last_seen_at":"2026-04-02T02:39:19Z","current_trigger":"EXECUTOR_IN_PROGRESS","current_step_id":"PASSO-1"}
+{
+  "last_actor": "executor",
+  "last_seen_at": "2026-04-02T02:51:37Z",
+  "current_trigger": "READY_FOR_EXECUTOR",
+  "current_step_id": "FASE-1-AUTOMACAO-LOCAL"
+}
 
 IMPLANTAR/EVENTOS.log:
-2026-04-02T02:39:19Z STATE_OBSERVED trigger=EXECUTOR_IN_PROGRESS owner=executor step_id=PASSO-1
+2026-04-02T02:51:32Z STATE_OBSERVED trigger=READY_FOR_EXECUTOR owner=executor step_id=FASE-1-AUTOMACAO-LOCAL
+2026-04-02T02:51:32Z LOCK_ACQUIRED owner=executor step_id=FASE-1-AUTOMACAO-LOCAL
+2026-04-02T02:51:32Z COMMAND_EXIT owner=executor step_id=FASE-1-AUTOMACAO-LOCAL code=0
+2026-04-02T02:51:32Z LOCK_RELEASED owner=executor step_id=FASE-1-AUTOMACAO-LOCAL
 ```
 
-**Resultado observado**: daemon local criado e iniciado em modo once, registrando heartbeat e evento sem disparo duplicado.
+**Resultado observado**: daemon local executado com sucesso em modo --once, identificando corretamente o passo FASE-1-AUTOMACAO-LOCAL, adquirindo lock, executando comando de teste (dir) com sucesso no Windows e liberando lock. Arquivos auxiliares e task do VS Code devidamente versionados e alinhados.
 **Bloqueios**: nenhum.
-**Sugestao de proximo passo**: o Pensante deve validar a Fase 1 e decidir se abre a Fase 2 ou pede ajustes.
+**Sugestao de proximo passo**: o Pensante deve validar esta repeticao da Fase 1 e decidir se prosseguimos para a Fase 2 (Watchdog) ou se voltamos aos passos de Dominio/Host com a automacao ativa.
 
 ### RETORNO CURTO — PASSO 1
-
-Feito: MVP de automacao local criado (daemon, arquivos auxiliares, task de startup) e teste --once registrado.
+Feito: Fase 1 da automacao local repetida, corrigida e testada com sucesso (daemon, logs, heartbeat, tasks.json).
 Estado: AGUARDANDO REVISAO.
-Proximo passo: o Pensante deve validar a Fase 1 e decidir se abre a Fase 2 ou pede ajustes.
+Proximo passo: o Pensante deve validar esta repeticao da Fase 1.
 Responsavel agora: pensante.

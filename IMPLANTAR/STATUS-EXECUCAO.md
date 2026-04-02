@@ -148,7 +148,7 @@ Pasta oficial mantida: IMPLANTAR/.
 
 ### PASSO 1
 
-**Titulo**: Fase 1 — MVP da automacao local por arquivos
+**Titulo**: Fase 1 — Repeticao — MVP da automacao local por arquivos
 **Status**: AGUARDANDO VALIDACAO
 **Objetivo**: criar o daemon local, arquivos auxiliares e task de startup conforme IMPLANTAR/01-AUTOMACAO-DE-GATILHOS-E-ORQUESTRACAO.md
 **Arquivos-alvo**:
@@ -165,7 +165,7 @@ Pasta oficial mantida: IMPLANTAR/.
 
 **Comandos executados**:
 
-```bash
+```powershell
 python tools/agent_orchestrator.py --once
 ```
 
@@ -175,27 +175,36 @@ python tools/agent_orchestrator.py --once
 stdout:
 ORCHESTRATOR_START
 ORCHESTRATOR_READY
+O volume na unidade D é Backup...
+Exit code: 0
 
-IMPLANTAR/HEARTBEAT.json:
-{"last_actor":"executor","last_seen_at":"2026-04-02T02:39:19Z","current_trigger":"EXECUTOR_IN_PROGRESS","current_step_id":"PASSO-1"}
+HEARTBEAT real:
+{
+  "last_actor": "executor",
+  "last_seen_at": "2026-04-02T02:51:37Z",
+  "current_trigger": "READY_FOR_EXECUTOR",
+  "current_step_id": "FASE-1-AUTOMACAO-LOCAL"
+}
 
-IMPLANTAR/EVENTOS.log:
-2026-04-02T02:39:19Z STATE_OBSERVED trigger=EXECUTOR_IN_PROGRESS owner=executor step_id=PASSO-1
+EVENTOS real:
+2026-04-02T02:51:32Z STATE_OBSERVED trigger=READY_FOR_EXECUTOR owner=executor step_id=FASE-1-AUTOMACAO-LOCAL
+2026-04-02T02:51:32Z LOCK_ACQUIRED owner=executor step_id=FASE-1-AUTOMACAO-LOCAL
+2026-04-02T02:51:32Z COMMAND_EXIT owner=executor step_id=FASE-1-AUTOMACAO-LOCAL code=0
+2026-04-02T02:51:32Z LOCK_RELEASED owner=executor step_id=FASE-1-AUTOMACAO-LOCAL
 ```
 
-**Resultado observado**: daemon iniciou em modo once, leu o estado atual, escreveu heartbeat e registrou evento sem disparo duplicado
+**Resultado observado**: daemon iniciou em modo --once, identificou corretamente FASE-1-AUTOMACAO-LOCAL no ESTADO-ORQUESTRACAO.yaml, adquiriu lock, executou comando de teste 'dir' no Windows e registrou eventos reais sem erro. O passo anterior de domínio não foi misturado aqui.
 **Risco**: medio
-**Rollback**: remover os arquivos da automacao local e voltar ao fluxo manual
-**Proximo passo sugerido pelo Executor**: validar Fase 1 e decidir abertura da Fase 2
+**Rollback**: remover os arquivos da automacao local e voltar ao fluxo manual.
+**Proximo passo sugerido pelo Executor**: validar Fase 1 e decidir abertura da Fase 2 ou volta ao fluxo de domínio/host com automação.
 **Aguardando decisao do Pensante**: SIM
 
 ---
 
 ### RETORNO CURTO — PASSO 1
-
-Feito: MVP de automacao local criado (daemon, arquivos auxiliares, task de startup) e teste --once registrado.
+Feito: Fase 1 da automacao local repetida, corrigida e testada com sucesso (daemon, logs, heartbeat, tasks.json).
 Estado: AGUARDANDO REVISAO.
-Proximo passo: o Pensante deve validar a Fase 1 e decidir se abre a Fase 2 ou pede ajustes.
+Proximo passo: o Pensante deve validar esta repeticao da Fase 1.
 Responsavel agora: pensante.
 
 ---
