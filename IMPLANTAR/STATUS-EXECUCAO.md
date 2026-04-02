@@ -268,8 +268,37 @@ EVENTOS real:
 **Proximo passo sugerido pelo Executor**: O Pensante deve decidir entre resetar a senha do admin via Supabase (rodando o script de recovery) ou fornecer as credenciais corretas se houver desalinhamento.
 **Aguardando decisao do Pensante**: SIM
 
-### RETORNO CURTO — PASSO 3
-Feito: Smoke test no dominio de producao realizado; rotas online, mas login falhou (401).
-Estado: AGUARDANDO REVISAO.
-Proximo passo: o Pensante deve revisar credenciais ou autorizar o reset do admin.
-Responsavel agora: pensante.
+
+### PASSO 3 (REPETIÇÃO - PROVA REAL)
+
+**Titulo**: Prova Real de Autenticação Admin em Produção
+**Status**: AGUARDANDO VALIDAÇÃO
+**Objetivo**: Validar fluxo fim-a-fim de sessão e login no domínio oficial.
+**Arquivos-alvo**:
+- https://receitasbell.vercel.app/api/admin/auth/session
+- https://receitasbell.vercel.app/admin/login
+
+**Comandos executados**:
+1. Browser Subagent: Navegação para `/api/admin/auth/session` (Sessão inicial).
+2. Browser Subagent: Interação direta com form de login em `/admin/login`.
+3. Browser Subagent: Verificação de headers CSRF e Cookies pós-submissão.
+4. Browser Subagent: Leitura final do estado da sessão.
+
+**Evidencias**:
+- **Sessão Antes**: `{"authenticated":false,...}` (Status 200 OK).
+- **Login Attempt**: 401 Unauthorized (`Invalid credentials or insufficient permissions`).
+- **CSRF Check**: Cabeçalho `X-CSRF-Token` enviado corretamente; `__Host-rb_csrf` presente e coincidente.
+- **Sessão Depois**: `{"authenticated":false,...}`.
+
+**Resultado observado**: A infraestrutura de autenticação está íntegra (rotas, CSRF, cookies seguem o padrão double-submit). Contudo, a validação das credenciais `admin@receitasbell.com` / `TroqueAgora!123#` falhou consistentemente com 401 no backend da Vercel, mesmo com hash corrigido no banco.
+**Risco**: baixo.
+**Rollback**: n/a.
+**Proximo passo sugerido pelo Executor**: Inspeção técnica via `vercel logs` para distinguir entre "usuário não encontrado", "senha incompatível" ou "falta de role admin".
+**Aguardando decisao do Pensante**: SIM
+
+### RETORNO CURTO — PASSO 3 (REPETIÇÃO)
+Feito: Prova real em produção concluída; infraestrutura OK, mas credenciais rejeitadas com 401.
+Estado: AGUARDANDO REVISÃO (EXECUTOR_DONE_AWAITING_REVIEW).
+Próximo passo: Pensante deve decidir sobre reset de senha ou auditoria de permissões.
+Responsável agora: pensante.
+

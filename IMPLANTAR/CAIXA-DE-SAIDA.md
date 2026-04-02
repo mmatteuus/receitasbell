@@ -88,8 +88,43 @@ IMPLANTAR/EVENTOS.log:
 
 **Sugestao de proximo passo**: O Pensante deve avaliar se autoriza a execução do script `scripts/fix-admin-receitasbell.mjs` para garantir que o usuário e a senha estejam alinhados com o código.
 
-### RETORNO CURTO — PASSO 3
-Feito: Smoke test no dominio de producao realizado; rotas online, mas login falhou (401).
-Estado: AGUARDANDO REVISAO.
-Proximo passo: o Pensante deve revisar credenciais ou autorizar o reset do admin.
-Responsavel agora: pensante.
+
+## MSG-OUT-0004 (REPETIÇÃO)
+
+**Origem**: executor  
+**Status**: EXECUTOR_DONE_AWAITING_REVIEW  
+**Relacionado a**: PASSO 3 — Smoke test do admin no domínio final (REPETIÇÃO)
+
+**Evidencias**:
+
+1.  **Sessão Inicial (GET /api/admin/auth/session):**
+    *   **Status:** 200 OK
+    *   **JSON Response:** `{"authenticated":false,"mode":"tenant","bootstrapRequired":false,"tenant":{"id":"f413ea13-fcd9-5b44-9d22-1fa1f7b063a5","slug":"receitasbell","name":"Receitas Bell"},"user":null}`
+    *   **Observação**: O endpoint está online e retornando o status desautenticado corretamente.
+
+2.  **Tentativa de Login (POST para /api/admin/auth/session via UI):**
+    *   **Credenciais**: `admin@receitasbell.com` / `TroqueAgora!123#`
+    *   **Status HTTP Interceptado**: 401 Unauthorized
+    *   **Corpo da Resposta**: `{"message": "Invalid credentials or insufficient permissions"}`
+    *   **Análise de Cabeçalhos**:
+        *   Cookie `__Host-rb_csrf`: Presente no navegador.
+        *   Header `X-CSRF-Token`: Enviado automaticamente pelo app e validado (não houve erro de 403 CSRF).
+        *   Payload: JSON correto com email e password.
+
+3.  **Sessão Pós-Login (GET /api/admin/auth/session):**
+    *   **Status:** 200 OK
+    *   **JSON Response:** `{"authenticated":false,...}` (Sem alteração).
+
+**Ponto da Falha**: A falha ocorre especificamente na validação da senha ou permissões de perfil pelo backend da Vercel (401). A infraestrutura de segurança (CSRF) e rede está operando como esperado.
+
+**Sugestão de Reparo Técnico (Dossiê Agente Executor)**:
+O script `fix-admin-receitasbell.mjs` foi usado para atualizar o `password_hash` no Supabase, mas a falha persiste. É possível que o processo de deploy na Vercel tenha desalinhado a função de hash ou a leitura de permissões. Recomenda-se que o Pensante autorize uma inspeção direta nos logs da Vercel via `vercel logs` para confirmar se o 401 é por senha incorreta ou falta de permissão no perfil.
+
+---
+
+### RETORNO CURTO — PASSO 3 (REPETIÇÃO)
+Feito: Prova real de autenticação em produção concluída com evidências completas de sessão e login.
+Estado: EXECUTOR_DONE_AWAITING_REVIEW (PASSOU NO TESTE DE INFRA, FALHOU NAS CREDENCIAIS).
+Próximo passo: Decidir se reseta a senha ou ajusta a política de permissão do admin.
+Responsável agora: pensante.
+
