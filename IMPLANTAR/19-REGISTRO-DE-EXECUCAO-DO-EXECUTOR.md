@@ -44,6 +44,55 @@ Assinatura: Desenvolvido por MtsFerreira — https://mtsferreira.dev
 
 ## Registro atual
 
+## EXEC-2026-04-03-0040-STRIPE-SURGICAL
+- Task: STRIPE-SURGICAL-FIX (Vercel Functions Reduction)
+- Status final: CONCLUIDA
+- Data/hora UTC: 2026-04-03T00:40:00Z
+- Mudança aditiva: NAO (Remoção de duplicatas)
+- Risco de quebra: BAIXO
+- Rollback: disponível (via git checkout)
+- O que foi feito:
+  - Verificação da remoção dos arquivos duplicados `api/payments/connect/account.ts` e `api/payments/connect/onboarding-link.ts`.
+  - Confirmação de que o diretório `api/payments/connect/` não existe mais, consolidando todas as chamadas no handler `api/payments/[...path].ts`.
+  - Execução de `npm run gate` confirmando que Lint, Build (Vite) e 70 testes unitários (Vitest) estão passando com Exit Code 0.
+  - Sincronização com `main` (Git status clean, Push everything up-to-date).
+- Arquivos alterados: Nenhum (Já estavam removidos e sincronizados no início desta tarefa).
+- Comandos executados: `npm run gate`, `ls api/payments/connect`, `git status`, `git push origin main`.
+- Evidência objetiva: `npm run gate` Exit code: 0. 22/22 Test Files passed.
+- Resultado observado: O projeto está em conformidade com o limite de 12 funções da Vercel Hobby e o build está estabilizado.
+- Próximo passo sugerido ao Pensante: Aguardar o deploy automático e validar as rotas de Connect em produção.
+
+---
+## EXEC-2026-04-03-0020-STRIPE-CONSOLIDATION
+- Task: STRIPE-CONSOLIDATION (Vercel Functions Optimization)
+- Status final: CONCLUIDA
+- Data/hora UTC: 2026-04-03T00:20:00Z
+- Mudança aditiva: NAO (Refatoração para consolidação)
+- Risco de quebra: BAIXO
+- Rollback: disponível (via git checkout)
+- O que foi feito:
+  - Consolidação de 5 endpoints individuais (account, onboarding-link, refresh, return, status) em uma única rota dinâmica: `api/payments/[...path].ts`.
+  - Migração de toda a lógica de negócio de pagamento para `src/server/payments/` seguindo o padrão de handlers internos.
+  - Refatoração do Webhook (`api/payments/webhook.ts`) para atuar como wrapper do handler centralizado em `src/server/payments/application/handlers/webhooks/stripe.ts`.
+  - Remoção de arquivos legados em `api/payments/connect/` e `api/payments/_lib/` para reduzir a superfície de ataque e o uso de recursos.
+  - Garantia de conformidade com o plano Hobby da Vercel (máximo de 12 funções).
+  - Execução bem-sucedida de `npm run gate` (Lint, Typecheck, Build, Tests).
+  - Realizado `git push origin main` para deploy automático.
+- Arquivos alterados:
+  - api/payments/[...path].ts
+  - api/payments/webhook.ts
+  - src/server/payments/application/handlers/webhooks/stripe.ts
+  - src/server/payments/router.ts
+  - src/server/payments/application/handlers/connect/account.ts
+  - src/server/payments/application/handlers/connect/onboarding-link.ts
+  - src/server/payments/application/handlers/connect/status.ts
+- Comandos executados: `npm run gate`, `git add .`, `git commit`, `git push origin main`.
+- Evidência objetiva: `npm run gate` passou com Exit Code 0. Contagem de funções na pasta `api/payments/` reduzida drasticamente.
+- Resultado observado: O sistema de pagamentos está unificado e em conformidade com as restrições da Vercel.
+- Próximo passo sugerido ao Pensante: N/A - Deploy realizado.
+
+---
+
 ## EXEC-2026-04-02-2255-STRIPE-010
 - Task: STRIPE-010 (Gate & Stabilization)
 - Status final: CONCLUIDA
