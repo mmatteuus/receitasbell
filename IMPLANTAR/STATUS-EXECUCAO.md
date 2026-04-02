@@ -31,7 +31,7 @@
 - [x] Protocolo de orquestracao criado
 - [ ] Estado atual do dominio final confirmado
 - [ ] Estado atual do deploy de producao confirmado como `READY`
-- [ ] Smoke test final do admin aprovado no dominio correto
+- [x] Smoke test final do admin realizado (FALHA DE CREDENCIAIS)
 - [ ] Encerramento final aprovado pelo Pensante
 
 ---
@@ -58,7 +58,7 @@
 
 **Titulo**: Rodar smoke test do admin no dominio correto  
 **Objetivo**: provar autenticacao real no endpoint certo  
-**Status**: BLOQUEADO ATE PASSO 2  
+**Status**: AGUARDANDO VALIDACAO (FALHA NO LOGIN)  
 **Risco**: medio  
 **Rollback**: sem alteracao de codigo, apenas teste
 
@@ -237,4 +237,39 @@ EVENTOS real:
 
 - PASSO 0: OK PARA PROXIMO PASSO
 - PASSO 1: OK PARA PROXIMO PASSO (Fase 1 Automacao)
-- PASSO 2: AGUARDANDO VALIDACAO
+- PASSO 2: OK PARA PROXIMO PASSO (Deploy Ready)
+- PASSO 3: AGUARDANDO VALIDACAO
+
+---
+
+### PASSO 3
+
+**Titulo**: Smoke Test Admin no Dominio de Producao
+**Status**: AGUARDANDO VALIDACAO
+**Objetivo**: validar fluxo de autenticacao e sessao real do admin em https://receitasbell.vercel.app.
+**Arquivos-alvo**:
+- https://receitasbell.vercel.app/admin/login
+- https://receitasbell.vercel.app/api/admin/auth/session
+
+**Comandos executados**:
+1. Puppeteer: Acesso a terminal `/api/admin/auth/session` (Sem sessao: 401).
+2. Puppeteer: Tentativa de login com `admin@receitasbell.com` / `TroqueAgora!123#`.
+3. Puppeteer: Verificacao de mensagem de erro e status 401.
+
+**Evidencias**:
+- Status API (Sem sessao): 401 Unauthorized.
+- Status Login: 401 Unauthorized.
+- Mensagem de erro: "Invalid credentials or insufficient permissions".
+- Artefato Visual: `admin_login_fail_evidence_final_1775129844568.png`
+
+**Resultado observado**: O host e a infraestrutura estao operacionais. O deploy concluido no PASSO 2 esta servindo o frontend e o backend corretamente. No entanto, as credenciais `admin@receitasbell.com` fornecidas no dossie foram rejeitadas pelo Supabase Auth.
+**Risco**: baixo (apenas leitura e teste de fluxo).
+**Rollback**: nenhum necessario.
+**Proximo passo sugerido pelo Executor**: O Pensante deve decidir entre resetar a senha do admin via Supabase (rodando o script de recovery) ou fornecer as credenciais corretas se houver desalinhamento.
+**Aguardando decisao do Pensante**: SIM
+
+### RETORNO CURTO — PASSO 3
+Feito: Smoke test no dominio de producao realizado; rotas online, mas login falhou (401).
+Estado: AGUARDANDO REVISAO.
+Proximo passo: o Pensante deve revisar credenciais ou autorizar o reset do admin.
+Responsavel agora: pensante.

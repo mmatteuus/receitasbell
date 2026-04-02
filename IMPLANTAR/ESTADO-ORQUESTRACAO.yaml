@@ -5,9 +5,9 @@ conversation_bus: IMPLANTAR
 
 current_trigger: EXECUTOR_DONE_AWAITING_REVIEW
 current_owner: pensante
-current_step_id: DEPLOY-PRODUCAO-VERCEL
-current_step_title: deploy_producao_vercel
-current_goal: confirmar estado, disparar novo deploy da main e acompanhar ate READY na Vercel.
+current_step_id: SMOKE-TEST-ADMIN-DOMINIO-FINAL
+current_step_title: smoke_test_admin_dominio_final
+current_goal: validar fluxo de autenticacao e sessao real do admin em https://receitasbell.vercel.app.
 
 allowed_writers:
   pensante:
@@ -59,4 +59,4 @@ last_decision:
   reference: PASSO-2
 
 next_expected_actor: pensante
-next_expected_action: validar o deploy READY e autorizar o smoke test do admin.
+next_expected_action: decidir próximo passo após falha nas credenciais do admin (Passo 3).

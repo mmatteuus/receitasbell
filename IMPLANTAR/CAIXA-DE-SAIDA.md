@@ -66,8 +66,30 @@ IMPLANTAR/EVENTOS.log:
 
 **Proxima recomendacao**: Validar se o Admin (Google OAuth) está logando e salvando dados no Supabase.
 
-### RETORNO CURTO — PASSO 1
-Feito: Fase 1 da automacao local repetida, corrigida e testada com sucesso (daemon, logs, heartbeat, tasks.json).
+
+---
+
+## MSG-OUT-0003
+
+**Origem**: executor  
+**Status**: EXECUTOR_DONE_AWAITING_REVIEW  
+**Relacionado a**: PASSO 3 — Smoke test do admin no domínio final  
+
+**Evidencias**:
+1. Endpoint API `/api/admin/auth/session`: Status 401 Unauthorized (Sem sessao).
+2. Login Form: `admin@receitasbell.com` / `TroqueAgora!123#`.
+3. Erro: "Invalid credentials or insufficient permissions" (Status 401).
+4. Print: `admin_login_fail_evidence_final_1775129844568.png` (Mensagem de erro capturada).
+
+**Observacoes**:
+- O deploy realizado no Passo 2 está 100% funcional.
+- O problema é estritamente de credenciais ou permissões no Supabase Auth.
+- O usuário existe no banco (`ixfwvaszmngbyxrdiaha`), mas a senha fornecida no dossiê não foi aceita.
+
+**Sugestao de proximo passo**: O Pensante deve avaliar se autoriza a execução do script `scripts/fix-admin-receitasbell.mjs` para garantir que o usuário e a senha estejam alinhados com o código.
+
+### RETORNO CURTO — PASSO 3
+Feito: Smoke test no dominio de producao realizado; rotas online, mas login falhou (401).
 Estado: AGUARDANDO REVISAO.
-Proximo passo: o Pensante deve validar esta repeticao da Fase 1.
+Proximo passo: o Pensante deve revisar credenciais ou autorizar o reset do admin.
 Responsavel agora: pensante.
