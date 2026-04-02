@@ -1,4 +1,4 @@
-import { supabase } from '../integrations/supabase/client.js';
+import { supabaseAdmin as supabase } from '../integrations/supabase/client.js';
 
 type ProfileRow = {
   id: string;
