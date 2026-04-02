@@ -1,4 +1,4 @@
-import { supabase } from "../integrations/supabase/client.js";
+import { supabase } from '../integrations/supabase/client.js';
 
 type ProfileRow = {
   id: string;
@@ -20,7 +20,7 @@ export interface UserRecord {
   username: string;
   displayName: string;
   role: string;
-  status: "active" | "inactive";
+  status: 'active' | 'inactive';
   tenantId: string;
   passwordHash?: string;
   legacyPassword?: string;
@@ -32,35 +32,43 @@ function mapProfileToRecord(row: ProfileRow): UserRecord {
   return {
     id: row.id,
     email: row.email,
-    username: row.username || "",
-    displayName: row.display_name || "",
-    role: row.role || "member",
-    status: row.is_active ? "active" : "inactive",
-    tenantId: row.organization_id || "",
-    passwordHash: row.password_hash || "",
-    legacyPassword: row.legacy_password || "",
+    username: row.username || '',
+    displayName: row.display_name || '',
+    role: row.role || 'member',
+    status: row.is_active ? 'active' : 'inactive',
+    tenantId: row.organization_id || '',
+    passwordHash: row.password_hash || '',
+    legacyPassword: row.legacy_password || '',
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
 }
 
 export async function createUser(input: {
+  userId: string;
   tenantId: string;
   email: string;
   displayName?: string;
   role?: string;
-  status?: "active" | "inactive";
-  passwordHash?: string; // Nota: Para Supabase Auth, isso seria tratado via API de Admin
+  status?: 'active' | 'inactive';
+  passwordHash?: string;
+  legacyPassword?: string;
 }): Promise<UserRecord> {
+  const username = input.email.split('@')[0];
+
   const { data, error } = await supabase
     .from('profiles')
     .insert({
+      id: input.userId,
       email: input.email.toLowerCase(),
       organization_id: input.tenantId,
-      display_name: input.displayName || input.email.split('@')[0],
-      username: input.email.split('@')[0],
+      display_name: input.displayName || username,
+      full_name: input.displayName || username,
+      username,
       role: input.role || 'member',
       is_active: input.status !== 'inactive',
+      password_hash: input.passwordHash || null,
+      legacy_password: input.legacyPassword || null,
     })
     .select()
     .single();
@@ -71,7 +79,7 @@ export async function createUser(input: {
 
 export async function findUserByEmailForTenant(
   tenant: { id: string; slug: string; name: string },
-  email: string,
+  email: string
 ): Promise<UserRecord | null> {
   const { data, error } = await supabase
     .from('profiles')
@@ -84,7 +92,11 @@ export async function findUserByEmailForTenant(
   return mapProfileToRecord(data);
 }
 
-export async function findOrCreateUserByEmail(organizationId: string, email: string, displayName?: string): Promise<UserRecord> {
+export async function findOrCreateUserByEmail(
+  organizationId: string,
+  email: string,
+  displayName?: string
+): Promise<UserRecord> {
   const { data: existing } = await supabase
     .from('profiles')
     .select('*')
@@ -98,12 +110,15 @@ export async function findOrCreateUserByEmail(organizationId: string, email: str
   // Aqui fazemos um upsert preventivo ou manual se necessário.
   const { data: created, error } = await supabase
     .from('profiles')
-    .upsert({
-      email: email.toLowerCase(),
-      organization_id: organizationId,
-      display_name: displayName || email.split('@')[0],
-      username: email.split('@')[0],
-    }, { onConflict: 'email' })
+    .upsert(
+      {
+        email: email.toLowerCase(),
+        organization_id: organizationId,
+        display_name: displayName || email.split('@')[0],
+        username: email.split('@')[0],
+      },
+      { onConflict: 'email' }
+    )
     .select()
     .single();
 
