@@ -16,7 +16,8 @@
     "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.node.json --noEmit",
     "test:unit": "vitest run",
     "preview": "vite preview",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "fix-admin": "node scripts/fix-admin-receitasbell.mjs"
   },
   "dependencies": {
     "@fontsource/dm-sans": "^5.2.8",

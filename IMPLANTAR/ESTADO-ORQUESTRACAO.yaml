@@ -3,8 +3,8 @@ signature: Desenvolvido por MtsFerreira — mtsferreira.dev
 mode: staged-single-step
 conversation_bus: IMPLANTAR
 
-current_trigger: EXECUTOR_DONE_AWAITING_REVIEW
-current_owner: pensante
+current_trigger: EXECUTOR_IN_PROGRESS
+current_owner: executor
 current_step_id: FASE-B-PROVA-ADMIN-FINAL
 current_step_title: fase_b_prova_admin_final
 current_goal: Provar autenticação admin completa no domínio final (Resolver 401 e garantir login funcional).
