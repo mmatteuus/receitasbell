@@ -1,13 +1,16 @@
+# ESTADO-ORQUESTRACAO.yaml [PENDENTE]
+# STATUS: BLOCKED-PENDENTE (Aguardando Planejador)
+
 project: receitas-bell
 signature: Desenvolvido por MtsFerreira — mtsferreira.dev
 mode: staged-single-step
 conversation_bus: IMPLANTAR
 
-current_trigger: EXECUTOR_IN_PROGRESS
-current_owner: executor
-current_step_id: FASE-B-PROVA-ADMIN-FINAL
-current_step_title: fase_b_prova_admin_final
-current_goal: Provar autenticação admin completa no domínio final (Resolver 401 e garantir login funcional).
+current_trigger: BLOCKED
+current_owner: pensante
+current_step_id: RELATORIO-DOUBTS-AND-TASKS
+current_step_title: relatorio_de_duvidas_e_bloqueios
+current_goal: Responder ao relatório de dúvidas para destravar o fluxo de produção e Stripe.
 
 allowed_writers:
   pensante:
@@ -59,4 +62,4 @@ last_decision:
   reference: PASSO-4
 
 next_expected_actor: pensante
-next_expected_action: Autorizar início da Fase B para resolver o 401 do admin.
+next_expected_action: Analisar o arquivo RELATORIO-DESSA-VERSAO.md e fornecer os dados faltantes.

@@ -1,3 +1,7 @@
+# STATUS-EXECUCAO.md [PENDENTE]
+> [!NOTE]
+> STATUS: PENDENTE - Execução em curso, aguardando definições do planejador.
+
 # Status de Execucao — Receitas Bell
 
 > Arquivo de controle sequencial entre Agente Executor e Agente Pensante.
@@ -102,6 +106,10 @@ Copiar e preencher abaixo, sem alterar a estrutura:
 ## HISTORICO DE EXECUCAO
 
 ### PASSO 0
+
+# RELATORIO-DESSA-VERSAO.md [PENDENTE]
+> [!NOTE]
+> STATUS: PENDENTE - Aguardando resposta do Agente Planejador.
 
 **Titulo**: Criar protocolo de orquestracao em `IMPLANTAR/`
 **Status**: APROVADO
@@ -282,6 +290,10 @@ EVENTOS real:
 **Aguardando decisao do Pensante**: SIM
 
 ### RETORNO CURTO — PASSO 3 (REPETIÇÃO)
+# 02A-VALIDACAO-VISUAL-E-IMAGENS.md [PENDENTE]
+> [!NOTE]
+> STATUS: PENDENTE - Planejamento da Fase F.
+
 Feito: Prova real de autenticação em produção concluída com evidências completas de sessão e login.
 Estado: APROVADO (Infraestrutura validada, erro de credenciais confirmado).
 Próximo passo: Passo 4 — Sincronização de Estado (Fase A do plano de fechamento).
@@ -317,7 +329,6 @@ Responsável agora: executor.
 
 ### RETORNO CURTO — PASSO 4
 Feito: Sincronização de status concluída; deploy validado e automação registrada; Fase B aberta.
-Estado: AGUARDANDO REVISÃO (EXECUTOR_DONE_AWAITING_REVIEW).
-Próximo passo: Pensante deve abrir a Fase B para provar autenticação admin completa.
+Estado: BLOQUEADO (RELATORIO-DOUBTS-AND-TASKS).
+Próximo passo: Pensante deve responder ao RELATORIO-DESSA-VERSAO.md.
 Responsável agora: pensante.
-

@@ -1,3 +1,7 @@
+# 02-PLANO-DE-FECHAMENTO-NO-GRATIS.md [PENDENTE]
+> [!NOTE]
+> STATUS: PENDENTE - Roadmap de fases B a E.
+
 # Plano de fechamento no gratis
 
 Projeto: Receitas Bell  

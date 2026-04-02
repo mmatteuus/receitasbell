@@ -1,6 +1,6 @@
 {
-  "last_actor": "executor",
-  "last_seen_at": "2026-04-02T18:42:46Z",
-  "current_trigger": "EXECUTOR_IN_PROGRESS",
-  "current_step_id": "FASE-B-PROVA-ADMIN-FINAL"
+  "last_actor": "pensante",
+  "last_seen_at": "2026-04-02T21:15:51Z",
+  "current_trigger": "BLOCKED",
+  "current_step_id": "RELATORIO-DOUBTS-AND-TASKS"
 }

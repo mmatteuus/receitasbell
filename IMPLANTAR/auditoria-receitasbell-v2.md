@@ -1,4 +1,7 @@
-# Auditoria Completa v2 — Receitas Bell
+# Auditoria Completa v2 — Receitas Bell [PENDENTE]
+
+> [!NOTE]
+> STATUS: PENDENTE - Correções em curso conforme levantamento.
 
 **Projeto:** Receitas Bell  
 **Data da auditoria:** 2026-04-01  
