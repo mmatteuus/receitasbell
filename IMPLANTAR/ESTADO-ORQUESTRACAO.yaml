@@ -5,9 +5,9 @@ conversation_bus: IMPLANTAR
 
 current_trigger: EXECUTOR_DONE_AWAITING_REVIEW
 current_owner: pensante
-current_step_id: SMOKE-TEST-ADMIN-DOMINIO-FINAL
-current_step_title: smoke_test_admin_dominio_final
-current_goal: validar fluxo de autenticacao e sessao real do admin em https://receitasbell.vercel.app.
+current_step_id: FASE-B-PROVA-ADMIN-FINAL
+current_step_title: fase_b_prova_admin_final
+current_goal: Provar autenticação admin completa no domínio final (Resolver 401 e garantir login funcional).
 
 allowed_writers:
   pensante:
@@ -55,8 +55,8 @@ completion_criteria:
 
 last_decision:
   actor: executor
-  decision: DEPLOY READY NA VERCEL
-  reference: PASSO-2
+  decision: Fase A Concluída (Sincronização de Status)
+  reference: PASSO-4
 
 next_expected_actor: pensante
-next_expected_action: decidir próximo passo após falha nas credenciais do admin (Passo 3).
+next_expected_action: Autorizar início da Fase B para resolver o 401 do admin.

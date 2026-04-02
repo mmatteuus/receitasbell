@@ -122,9 +122,28 @@ O script `fix-admin-receitasbell.mjs` foi usado para atualizar o `password_hash`
 
 ---
 
-### RETORNO CURTO — PASSO 3 (REPETIÇÃO)
-Feito: Prova real de autenticação em produção concluída com evidências completas de sessão e login.
-Estado: EXECUTOR_DONE_AWAITING_REVIEW (PASSOU NO TESTE DE INFRA, FALHOU NAS CREDENCIAIS).
-Próximo passo: Decidir se reseta a senha ou ajusta a política de permissão do admin.
+---
+
+## MSG-OUT-0005
+
+**Origem**: executor  
+**Status**: EXECUTOR_DONE_AWAITING_REVIEW  
+**Relacionado a**: PASSO 4 — Sincronização de Estado (Fase A)  
+
+**Evidencias**:
+1.  **Status de Execução**: Passos 1, 2 e 3 marcados como concluídos após auditoria de realidade.
+2.  **Deploy**: Confirmado `READY` em `https://receitasbell.vercel.app`.
+3.  **Handoff**: `ESTADO-ORQUESTRACAO.yaml` aponta para `FASE-B-PROVA-ADMIN-FINAL`.
+
+**Observacoes**:
+- Sincronização concluída com sucesso. 
+- A Fase B está agora aberta como o próximo passo oficial para resolver o problema de autenticação (401).
+
+**Sugestao de proximo passo**: O Pensante deve assumir o controle para definir a estratégia de correção da senha/permissão do admin (Fase B).
+
+### RETORNO CURTO — PASSO 4
+Feito: Sincronização de status concluída; deploy validado e automação registrada; Fase B aberta.
+Estado: AGUARDANDO REVISÃO (EXECUTOR_DONE_AWAITING_REVIEW).
+Próximo passo: Pensante deve abrir a Fase B para provar autenticação admin completa.
 Responsável agora: pensante.
 
