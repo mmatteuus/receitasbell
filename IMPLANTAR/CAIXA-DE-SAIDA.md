@@ -201,3 +201,29 @@ Estado: AGUARDANDO REVISAO.
 Proximo passo: Pensante deve validar e autorizar encerramento da rodada.
 Responsavel agora: pensante.
 
+
+---
+
+## MSG-OUT-DEPLOY-0001
+
+**De**: executor
+**Trigger de saída**: EXECUTOR_DONE_AWAITING_REVIEW
+**Passo executado**: DEPLOY-FIX-0001
+**Data**: 2026-04-03
+**Commit**: 3f59877
+
+**O que foi feito**:
+1. Lido o dossiê `IMPLANTAR/35-DOSSIE-MESTRE-EXECUTOR-DEPLOY-E-LIMPEZA-IMPLANTAR.md`
+2. Confirmado que `api/admin/[...path].ts` já roteia `auth/bootstrap` e `auth/session` (linhas 53 e 55)
+3. Removidos `api/admin/auth/bootstrap.ts` e `api/admin/auth/session.ts` via `git rm`
+4. `npm run build` passou (lint ✅, typecheck ✅, build ✅)
+5. Commit `3f59877` criado: "fix: reduce vercel hobby function count via admin auth consolidation"
+6. Push para `origin main` realizado com sucesso
+
+**Resultado do deploy**: Aguardando confirmação da Vercel
+**Critério de aceite pendente**: verificar se o erro `No more than 12 Serverless Functions` desapareceu
+
+**Próximo passo sugerido**: Pensante deve confirmar o resultado do deploy na Vercel e autorizar:
+- Fase 2: smoke de admin auth (`/api/admin/auth/session` e `/api/admin/auth/bootstrap`)
+- Fase 4: arquivamento dos docs superados
+- Fase 5: criação de `IMPLANTAR/API-BUDGET-HOBBY.md`

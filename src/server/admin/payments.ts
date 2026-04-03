@@ -51,6 +51,8 @@ export async function getTenantAdminPaymentSettings(request: VercelRequest, tena
     blockingReasons: isReady ? [] : ["Onboarding do Stripe incompleto."],
     effectiveCheckoutUrlKind: "init_point",
     tenantId,
+    detailsSubmitted: connectAccount?.detailsSubmitted ?? false,
+    chargesEnabled: connectAccount?.chargesEnabled ?? false,
   };
 }
 

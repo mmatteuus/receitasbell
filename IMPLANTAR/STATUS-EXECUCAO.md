@@ -471,3 +471,26 @@ Estado: AGUARDANDO REVISAO.
 Proximo passo: Pensante deve validar as evidências e autorizar encerramento.
 Responsavel agora: pensante.
 
+
+---
+
+## PASSO DEPLOY-FIX-0001 — Redução de function count (admin auth wrappers)
+
+**Data**: 2026-04-03
+**Executor**: Claude Code (Sonnet 4.6)
+**Commit**: 3f59877
+
+**Ação executada**:
+- Confirmado que `api/admin/[...path].ts` já roteia `auth/bootstrap` (linha 53) e `auth/session` (linha 55)
+- Removidos `api/admin/auth/bootstrap.ts` e `api/admin/auth/session.ts` (wrappers sem lógica própria)
+- `npm run lint` ✅ `npm run typecheck` ✅ `npm run build` ✅
+- Commit e push na `main` realizados
+
+**Status do deploy**: Aguardando resultado na Vercel (push: 2026-04-03T~)
+**Aguardando validação do deploy**: SIM
+
+### RETORNO CURTO — DEPLOY-FIX-0001
+Feito: wrappers redundantes removidos; gate passou (lint, typecheck, build); commit 3f59877 na main; push OK.
+Estado: AGUARDANDO RESULTADO DO DEPLOY NA VERCEL.
+Próximo passo: verificar se deploy passou do `Deploying outputs...` sem erro de function count.
+Responsável agora: pensante (validar deploy) ou executor (registrar resultado quando disponível).

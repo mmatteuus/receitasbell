@@ -1,6 +1,6 @@
 {
   "last_actor": "pensante",
-  "last_seen_at": "2026-04-03T23:23:47Z",
+  "last_seen_at": "2026-04-03T23:53:25Z",
   "current_trigger": "EXECUTOR_DONE_AWAITING_REVIEW",
   "current_step_id": "STRIPE-CONNECT-DOSSIE-0001"
 }

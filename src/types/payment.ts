@@ -122,6 +122,8 @@ export interface AdminPaymentSettingsResponse {
   userId: string | null;
   publicKey: string | null;
   webhookUrl: string;
+  detailsSubmitted?: boolean;
+  chargesEnabled?: boolean;
 }
 
 export interface Payment {
