@@ -1,5 +1,5 @@
 # ESTADO-ORQUESTRACAO.yaml [READY]
-# STATUS: EXECUTOR_DONE_AWAITING_REVIEW (Stripe Connect Estabilizado)
+# STATUS: EXECUTOR_DONE_AWAITING_REVIEW (Gate Corrigido e Deploy READY)
 
 project: receitas-bell
 signature: Desenvolvido por MtsFerreira — mtsferreira.dev
@@ -8,9 +8,9 @@ conversation_bus: IMPLANTAR
 
 current_trigger: EXECUTOR_DONE_AWAITING_REVIEW
 current_owner: pensante
-current_step_id: DEPLOY-FIX-0001
-current_step_title: deploy_fix_execution
-current_goal: Validar se a troca de npm ci por npm install estabilizou a infra de build e decidir sobre os testes falhos.
+current_step_id: GATE-FIX-0001
+current_step_title: gate_test_fix_execution
+current_goal: Validar a correção dos testes unitários e o estado READY do deploy na branch main.
 
 allowed_writers:
   pensante:
@@ -58,8 +58,8 @@ completion_criteria:
 
 last_decision:
   actor: executor
-  decision: Infra de build corrigida; deploy falha agora por testes lógicos (npm run gate).
-  reference: MSG-OUT-DEPLOY-0001
+  decision: Testes do gate corrigidos localmente e em produção; deploy na main está READY.
+  reference: MSG-OUT-TEST-FIX-0001
 
 next_expected_actor: pensante
-next_expected_action: Analisar falha nos testes unitários e decidir se ignora ou corrige.
+next_expected_action: Validar o deploy READY e autorizar o encerramento da rodada.
