@@ -8,14 +8,15 @@ conversation_bus: IMPLANTAR
 
 current_trigger: EXECUTOR_DONE_AWAITING_REVIEW
 current_owner: pensante
-current_step_id: STRIPE-CONNECT-DOSSIE-0001
-current_step_title: dossie_botao_stripe_connect_nao_funciona
+current_step_id: DEPLOY-FIX-0001
+current_step_title: reducao_function_count_admin_auth_wrappers
 current_goal: |
   Pensante deve:
-  1. Ler o dossiê em IMPLANTAR/32-DOSSIE-STRIPE-CONNECT-BOTAO-NAO-FUNCIONA.md
-  2. Fazer o que puder resolver imediatamente (código, SQL, env vars)
-  3. Gerar plano de ação claro para o Executor na CAIXA-DE-ENTRADA.md
-  4. NÃO criar novas branches — tudo na main
+  1. Verificar o resultado do deploy da Vercel (commit 3f59877)
+  2. Confirmar que o erro de function count foi eliminado
+  3. Fazer smoke: GET /api/admin/auth/session e POST /api/admin/auth/bootstrap
+  4. Se deploy OK e smoke OK: autorizar limpeza dos docs superados em IMPLANTAR/
+  5. NÃO criar novas branches — tudo na main
 
 allowed_writers:
   pensante:
@@ -38,20 +39,17 @@ trigger_definitions:
 last_decision:
   actor: executor
   decision: |
-    Dossiê completo gerado em IMPLANTAR/32-DOSSIE-STRIPE-CONNECT-BOTAO-NAO-FUNCIONA.md.
-    Erros documentados:
-      - POST /api/payments/connect/onboarding-link → 404 (sem conta no banco)
-      - POST /api/payments/connect/account → 500 (Stripe Connect não ativado)
-    Causa raiz: Stripe Connect não está ativado na conta configurada no STRIPE_SECRET_KEY.
-    Tabela stripe_connect_accounts: existe no Supabase mas está vazia.
-    Commit: 8233d30. Push: OK.
-  reference: IMPLANTAR/32-DOSSIE-STRIPE-CONNECT-BOTAO-NAO-FUNCIONA.md
+    Wrappers redundantes removidos: api/admin/auth/bootstrap.ts e api/admin/auth/session.ts.
+    Catch-all api/admin/[...path].ts já roteava as mesmas rotas (confirmado nas linhas 53 e 55).
+    Gate passou: lint OK, typecheck OK, build OK.
+    Commit: 3f59877. Push: OK.
+  reference: IMPLANTAR/CAIXA-DE-SAIDA.md
 
 next_expected_actor: pensante
 next_expected_action: |
-  1. Ler IMPLANTAR/32-DOSSIE-STRIPE-CONNECT-BOTAO-NAO-FUNCIONA.md
-  2. Verificar o componente de UI que dispara o botão (fluxo de fallback)
-  3. Verificar STRIPE_SECRET_KEY e APP_BASE_URL no Vercel
-  4. Resolver o que puder (código, SQL, configs) de forma autônoma
-  5. Escrever em CAIXA-DE-ENTRADA.md: plano numerado para o Executor
-  6. Sem novas branches — tudo direto na main
+  1. Verificar o resultado do deploy na Vercel (commit 3f59877)
+  2. Confirmar ausência do erro "No more than 12 Serverless Functions"
+  3. Smoke: curl /api/admin/auth/session (esperar 200 ou 401, nunca 404)
+  4. Smoke: curl -X POST /api/admin/auth/bootstrap (esperar 400/401/422, nunca 404)
+  5. Se tudo OK: autorizar arquivamento dos docs superados e criação de API-BUDGET-HOBBY.md
+  6. Se deploy ainda falhar por function count: iniciar TASK-FC-006 (auditar próximo duplicado)
