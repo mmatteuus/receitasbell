@@ -1,5 +1,5 @@
-# ESTADO-ORQUESTRACAO.yaml [AGUARDANDO REVISAO]
-# STATUS: EXECUTOR_DONE_AWAITING_REVIEW (Stripe Connect 404 Corrigido)
+# ESTADO-ORQUESTRACAO.yaml [AGUARDANDO PENSANTE]
+# STATUS: EXECUTOR_DONE_AWAITING_REVIEW — Dossiê Stripe Connect gerado
 
 project: receitas-bell
 signature: Desenvolvido por MtsFerreira — mtsferreira.dev
@@ -8,9 +8,14 @@ conversation_bus: IMPLANTAR
 
 current_trigger: EXECUTOR_DONE_AWAITING_REVIEW
 current_owner: pensante
-current_step_id: STRIPE-CONNECT-FIX-0001
-current_step_title: correcao_rewrite_payments_vercel
-current_goal: Validar a correção do 404 nas rotas /api/payments/connect/* em produção.
+current_step_id: STRIPE-CONNECT-DOSSIE-0001
+current_step_title: dossie_botao_stripe_connect_nao_funciona
+current_goal: |
+  Pensante deve:
+  1. Ler o dossiê em IMPLANTAR/32-DOSSIE-STRIPE-CONNECT-BOTAO-NAO-FUNCIONA.md
+  2. Fazer o que puder resolver imediatamente (código, SQL, env vars)
+  3. Gerar plano de ação claro para o Executor na CAIXA-DE-ENTRADA.md
+  4. NÃO criar novas branches — tudo na main
 
 allowed_writers:
   pensante:
@@ -21,48 +26,32 @@ allowed_writers:
     - IMPLANTAR/CAIXA-DE-SAIDA.md
     - IMPLANTAR/ESTADO-ORQUESTRACAO.yaml
     - IMPLANTAR/STATUS-EXECUCAO.md
-  verificador:
-    - IMPLANTAR/CAIXA-DE-SAIDA.md
-    - IMPLANTAR/STATUS-EXECUCAO.md
 
 trigger_definitions:
   READY_FOR_EXECUTOR: proximo passo autorizado para execucao
   EXECUTOR_IN_PROGRESS: executor assumiu o passo e esta executando
   EXECUTOR_DONE_AWAITING_REVIEW: executor terminou e aguarda validacao
   REVIEW_APPROVED: passo aprovado pelo pensante
-  REVIEW_CHANGES_REQUIRED: mesmo passo deve ser corrigido e repetido
-  ROLLBACK_REQUIRED: rollback obrigatorio antes de avancar
   BLOCKED: existe impedimento externo ou falta de evidencia
   DONE: objetivo final encerrado
-
-handoff_rules:
-  - somente o current_owner pode agir
-  - apenas um passo por vez
-  - nao pular passo
-  - nao executar sem rollback definido quando houver risco
-  - toda resposta precisa conter evidencias
-  - sem evidencias o trigger nao pode mudar para REVIEW_APPROVED
-
-current_instruction_pointer:
-  input_file: IMPLANTAR/CAIXA-DE-ENTRADA.md
-  output_file: IMPLANTAR/CAIXA-DE-SAIDA.md
-  status_file: IMPLANTAR/STATUS-EXECUCAO.md
-
-completion_criteria:
-  - somente_main
-  - admin_funcional
-  - dominio_correto
-  - deploy_producao_ready
-  - smoke_aprovado
-  - sem_p0_p1_operacional
 
 last_decision:
   actor: executor
   decision: |
-    Rewrite explícito /api/payments/:path* adicionado ao vercel.json.
-    Gate passou (70 tests). Deploy READY (commit b7a849b).
-    Rotas /api/payments/connect/* respondem 401 em produção (antes: 404).
-  reference: MSG-OUT-STRIPE-CONNECT-0001
+    Dossiê completo gerado em IMPLANTAR/32-DOSSIE-STRIPE-CONNECT-BOTAO-NAO-FUNCIONA.md.
+    Erros documentados:
+      - POST /api/payments/connect/onboarding-link → 404 (sem conta no banco)
+      - POST /api/payments/connect/account → 500 (Stripe Connect não ativado)
+    Causa raiz: Stripe Connect não está ativado na conta configurada no STRIPE_SECRET_KEY.
+    Tabela stripe_connect_accounts: existe no Supabase mas está vazia.
+    Commit: 8233d30. Push: OK.
+  reference: IMPLANTAR/32-DOSSIE-STRIPE-CONNECT-BOTAO-NAO-FUNCIONA.md
 
 next_expected_actor: pensante
-next_expected_action: Validar as evidências do PASSO 7 e autorizar encerramento da rodada.
+next_expected_action: |
+  1. Ler IMPLANTAR/32-DOSSIE-STRIPE-CONNECT-BOTAO-NAO-FUNCIONA.md
+  2. Verificar o componente de UI que dispara o botão (fluxo de fallback)
+  3. Verificar STRIPE_SECRET_KEY e APP_BASE_URL no Vercel
+  4. Resolver o que puder (código, SQL, configs) de forma autônoma
+  5. Escrever em CAIXA-DE-ENTRADA.md: plano numerado para o Executor
+  6. Sem novas branches — tudo direto na main
