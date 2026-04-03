@@ -411,3 +411,63 @@ Feito: Testes do gate corrigidos; Build Vercel passou; Deploy em READY; Infra es
 Estado: CONCLUIDO.
 Proximo passo: Limpeza final e handoff.
 Responsavel agora: executor.
+
+---
+
+### PASSO 7
+
+**Titulo**: Correção do 404 nas rotas de Stripe Connect em produção
+**Status**: AGUARDANDO VALIDACAO
+**Objetivo**: Eliminar o 404 em `/api/payments/connect/status`, `/api/payments/connect/account` e `/api/payments/connect/onboarding-link` em produção.
+**Arquivos-alvo**:
+- `vercel.json`
+- `IMPLANTAR/STATUS-EXECUCAO.md`
+- `IMPLANTAR/CAIXA-DE-SAIDA.md`
+- `IMPLANTAR/ESTADO-ORQUESTRACAO.yaml`
+
+**Diagnostico**:
+A função `api/payments/[...path].ts` estava sendo compilada e deployada corretamente (2.74 MB), mas recebia **zero requisições**. O 404 ocorria na camada Edge da Vercel antes do código da função. A causa raiz foi identificada como ausência de rewrite explícito para `/api/payments/:path*` no `vercel.json`, enquanto o mesmo pattern era necessário para catch-all routes com framework `vite` (conforme documentação Vercel).
+
+**Comandos executados**:
+```bash
+# Edição do vercel.json — adição de rewrite na linha 55
+# { "source": "/api/payments/:path*", "destination": "/api/payments/[...path]" }
+
+npm run gate
+# Resultado: 22 test files passed, 70 tests passed, exit code 0
+
+git add vercel.json
+git commit -m "fix: adicionar rewrite explicito para /api/payments no vercel.json (resolve 404 Stripe Connect)"
+git push origin main
+```
+
+**Evidencias**:
+```text
+Gate local:
+- lint: pass
+- typecheck: pass
+- build: pass
+- test:unit: 70 passed (22 files), exit code 0
+
+Commit: b7a849b
+Deploy ID: receitasbell-5kl48w8xm-matdev.vercel.app
+Status: READY (2m 7s de build)
+
+Teste em produção (receitasbell.vercel.app):
+- GET /api/payments/connect/status   → 401 (antes: 404) ✅
+- GET /api/payments/connect/account  → 401 (antes: 404) ✅
+- GET /api/payments/connect/onboarding-link → 401 (antes: 404) ✅
+```
+
+**Resultado observado**: As 3 rotas de Stripe Connect deixaram de retornar 404. O 401 é o comportamento correto — essas rotas exigem sessão autenticada de admin do tenant. O handler `api/payments/[...path].ts` está sendo alcançado corretamente pela camada Edge da Vercel.
+**Risco**: baixo
+**Rollback**: `git revert b7a849b && git push origin main`
+**Proximo passo sugerido pelo Executor**: Pensante deve validar as evidências e fechar a rodada.
+**Aguardando decisao do Pensante**: SIM
+
+### RETORNO CURTO — PASSO 7
+Feito: Rewrite explícito para /api/payments/:path* adicionado; 404 eliminado; rotas respondem 401 em produção.
+Estado: AGUARDANDO REVISAO.
+Proximo passo: Pensante deve validar as evidências e autorizar encerramento.
+Responsavel agora: pensante.
+

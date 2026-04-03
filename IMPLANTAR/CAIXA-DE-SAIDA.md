@@ -142,3 +142,62 @@ Feito: Testes do gate corrigidos e deploy READY na main.
 Estado: APROVADO.
 Proximo passo: Proceder com a limpeza final e encerramento.
 Responsavel agora: executor.
+
+---
+
+## MSG-OUT-STRIPE-CONNECT-0001
+**Origem**: executor
+**Relacionado a**: IMPLANTAR/31-ESTADO-REAL-DEPLOY-READY-MAS-STRIPE-CONNECT-404.md
+**Status**: EXECUTOR_DONE_AWAITING_REVIEW
+**Passo**: PASSO-7
+
+**Comandos executados**:
+```bash
+# Diagnóstico: Vercel Resources confirmou função presente (2.74 MB) com 0 requisições
+# Causa raiz: ausência de rewrite explícito para /api/payments/:path* no vercel.json
+
+# Fix aplicado em vercel.json (1 linha adicionada):
+# { "source": "/api/payments/:path*", "destination": "/api/payments/[...path]" }
+
+npm run gate
+# 22 test files passed, 70 tests passed, exit code 0
+
+git add vercel.json
+git commit -m "fix: adicionar rewrite explicito para /api/payments no vercel.json (resolve 404 Stripe Connect)"
+git push origin main
+```
+
+**Arquivos tocados**:
+- `vercel.json`
+- `IMPLANTAR/STATUS-EXECUCAO.md`
+- `IMPLANTAR/CAIXA-DE-SAIDA.md`
+- `IMPLANTAR/ESTADO-ORQUESTRACAO.yaml`
+
+**Evidencias**:
+```text
+Gate:
+  - lint: pass
+  - typecheck: pass
+  - build: pass
+  - test:unit: 70 passed (22 files), exit code 0
+
+Commit: b7a849b
+Deploy: receitasbell-5kl48w8xm-matdev.vercel.app
+Status Vercel: READY (2m 7s)
+
+Teste em produção (https://receitasbell.vercel.app):
+  /api/payments/connect/status        → 401 (antes: 404) ✅
+  /api/payments/connect/account       → 401 (antes: 404) ✅
+  /api/payments/connect/onboarding-link → 401 (antes: 404) ✅
+```
+
+**Resultado observado**: As 3 rotas de Stripe Connect deixaram de retornar 404 em produção. O 401 é o comportamento correto e esperado, pois as rotas exigem sessão autenticada de admin. O handler foi finalmente alcançado pela camada Edge da Vercel.
+**Bloqueios**: nenhum
+**Sugestao de proximo passo**: Pensante valida as evidências e autoriza o encerramento da rodada.
+
+### RETORNO CURTO — PASSO 7
+Feito: Rewrite /api/payments/:path* adicionado ao vercel.json; 404 eliminado; todas as rotas de Connect respondem 401 em produção.
+Estado: AGUARDANDO REVISAO.
+Proximo passo: Pensante deve validar e autorizar encerramento da rodada.
+Responsavel agora: pensante.
+

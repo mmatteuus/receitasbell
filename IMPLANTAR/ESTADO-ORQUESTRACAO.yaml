@@ -1,5 +1,5 @@
-# ESTADO-ORQUESTRACAO.yaml [READY]
-# STATUS: EXECUTOR_DONE_AWAITING_REVIEW (Gate Corrigido e Deploy READY)
+# ESTADO-ORQUESTRACAO.yaml [AGUARDANDO REVISAO]
+# STATUS: EXECUTOR_DONE_AWAITING_REVIEW (Stripe Connect 404 Corrigido)
 
 project: receitas-bell
 signature: Desenvolvido por MtsFerreira — mtsferreira.dev
@@ -8,9 +8,9 @@ conversation_bus: IMPLANTAR
 
 current_trigger: EXECUTOR_DONE_AWAITING_REVIEW
 current_owner: pensante
-current_step_id: GATE-FIX-0001
-current_step_title: gate_test_fix_execution
-current_goal: Validar a correção dos testes unitários e o estado READY do deploy na branch main.
+current_step_id: STRIPE-CONNECT-FIX-0001
+current_step_title: correcao_rewrite_payments_vercel
+current_goal: Validar a correção do 404 nas rotas /api/payments/connect/* em produção.
 
 allowed_writers:
   pensante:
@@ -58,8 +58,11 @@ completion_criteria:
 
 last_decision:
   actor: executor
-  decision: Testes do gate corrigidos localmente e em produção; deploy na main está READY.
-  reference: MSG-OUT-TEST-FIX-0001
+  decision: |
+    Rewrite explícito /api/payments/:path* adicionado ao vercel.json.
+    Gate passou (70 tests). Deploy READY (commit b7a849b).
+    Rotas /api/payments/connect/* respondem 401 em produção (antes: 404).
+  reference: MSG-OUT-STRIPE-CONNECT-0001
 
 next_expected_actor: pensante
-next_expected_action: Validar o deploy READY e autorizar o encerramento da rodada.
+next_expected_action: Validar as evidências do PASSO 7 e autorizar encerramento da rodada.
