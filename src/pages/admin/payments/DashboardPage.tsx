@@ -16,6 +16,8 @@ import { buildTenantAdminPath, getCurrentTenantSlug } from "@/lib/tenant";
 import type { FinancialDashboardStats } from "./FinancialDashboard";
 import { getAdminSnapshot, saveAdminSnapshot } from "@/pwa/offline/cache/admin-snapshot";
 import { LastSyncBadge } from "@/pwa/offline/ui/LastSyncBadge";
+import { getAdminPaymentSettings } from "@/lib/api/payments";
+import type { AdminPaymentSettingsResponse } from "@/types/payment";
 
 const TrendsChart = lazy(() =>
   import("./charts/TrendsChart").then((module) => ({ default: module.TrendsChart })),
@@ -53,6 +55,7 @@ export default function DashboardPage() {
     from.setDate(from.getDate() - 90);
     return { from, to };
   });
+  const [stripeStatus, setStripeStatus] = useState<AdminPaymentSettingsResponse | null>(null);
 
   useEffect(() => {
     async function loadPaymentsForDashboard() {
@@ -96,6 +99,18 @@ export default function DashboardPage() {
 
     void loadPaymentsForDashboard();
   }, [dateRange, tenantSlug]);
+
+  useEffect(() => {
+    async function loadStripeStatus() {
+      try {
+        const status = await getAdminPaymentSettings();
+        setStripeStatus(status);
+      } catch (error) {
+        console.error("Failed to load Stripe status on dashboard", error);
+      }
+    }
+    void loadStripeStatus();
+  }, []);
 
   const stats = useMemo(() => {
     const totalRevenue = payments.reduce((acc, p) => p.status === 'approved' ? acc + p.totalBRL : acc, 0);
@@ -211,8 +226,13 @@ export default function DashboardPage() {
       totalRevenue,
       monthlyRevenue,
       recentPayments,
+      stripeStatus: stripeStatus ? {
+        connected: stripeStatus.connectionStatus === 'connected',
+        detailsSubmitted: stripeStatus.detailsSubmitted ?? false,
+        chargesEnabled: stripeStatus.chargesEnabled ?? false,
+      } : undefined
     };
-  }, [payments]);
+  }, [payments, stripeStatus]);
 
   const setQuickRange = (days: number) => {
     const to = new Date();

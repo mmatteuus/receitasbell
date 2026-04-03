@@ -69,9 +69,8 @@ export function sendProblem(
   detail: string,
   options: { instance?: string; requestId?: string; type?: string; details?: unknown } = {}
 ) {
-  if (!res.getHeader('Cache-Control')) {
-    noStore(res);
-  }
+  // Sempre define no-store em erros para evitar cache de falhas (como 401/500/404)
+  noStore(res);
 
   res.setHeader('Content-Type', 'application/problem+json');
   return res.status(status).json(

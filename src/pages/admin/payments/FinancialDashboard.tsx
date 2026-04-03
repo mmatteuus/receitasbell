@@ -3,10 +3,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { formatBRL, STATUS_LABELS, COLORS } from "./constants";
 import { Landmark, TrendingUp, Calendar, ArrowRight } from "lucide-react";
+import { cn } from "@/lib/utils";
+
 
 export interface FinancialDashboardStats {
   totalRevenue: number;
   monthlyRevenue: number;
+  stripeStatus?: {
+    connected: boolean;
+    detailsSubmitted: boolean;
+    chargesEnabled: boolean;
+  };
   recentPayments: Array<{
     id: string;
     amount: number;
@@ -26,6 +33,11 @@ export default function FinancialDashboard({ loading = false, stats }: Financial
   if (loading) {
     return <div className="text-center py-10 text-muted-foreground">Carregando dados financeiros...</div>;
   }
+
+  const isStripeActive = stats.stripeStatus?.connected && stats.stripeStatus?.chargesEnabled;
+  const stripeStatusText = stats.stripeStatus?.connected 
+    ? (stats.stripeStatus.chargesEnabled ? 'Ativo' : 'Pendente')
+    : 'Desconectado';
 
   return (
     <div className="space-y-6">
@@ -52,14 +64,18 @@ export default function FinancialDashboard({ loading = false, stats }: Financial
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-indigo-500 shadow-sm">
+        <Card className={cn("border-l-4 shadow-sm", isStripeActive ? "border-l-indigo-500" : "border-l-amber-500")}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Status Stripe</CardTitle>
-            <Landmark className="h-4 w-4 text-indigo-500" />
+            <Landmark className={cn("h-4 w-4", isStripeActive ? "text-indigo-500" : "text-amber-500")} />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">Conectado</div>
-            <p className="text-xs text-muted-foreground">Sua conta está ativa e recebendo</p>
+            <div className={cn("text-2xl font-bold", isStripeActive ? "text-green-600" : "text-amber-600")}>
+              {stripeStatusText}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {isStripeActive ? "Sua conta está ativa e recebendo" : "Ação necessária na aba Configurações"}
+            </p>
           </CardContent>
         </Card>
       </div>
