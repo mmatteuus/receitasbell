@@ -44,6 +44,34 @@ Assinatura: Desenvolvido por MtsFerreira — https://mtsferreira.dev
 
 ## Registro atual
 
+## EXEC-2026-04-03-0130-VERCEL-CONSOLIDATION
+- Task: REDUCE-FUNCTIONS-WEBHOOK
+- Status final: CONCLUIDA
+- Data/hora UTC: 2026-04-03T01:30:00Z
+- Mudança aditiva: NAO (Consolidação de função)
+- Risco de quebra: BAIXO
+- Rollback: disponível (via git revert)
+- O que foi feito:
+  - Eliminação da função dedicada `api/payments/webhook.ts`.
+  - Migração do processamento de webhook para o handler catch-all `api/payments/[...path].ts`.
+  - Configuração de `bodyParser: false` no arquivo catch-all para suportar assinaturas do Stripe.
+  - Atualização do utilitário `readJsonBody` em `src/server/shared/http.ts` para suportar leitura manual de streams quando o parser nativo da Vercel está desativado.
+  - Atualização de `checkout/session.ts` para usar o novo `readJsonBody` compatível com streams.
+  - Atualização de `src/server/payments/router.ts` para aceitar a rota `/api/payments/webhook` (singular).
+  - Limpeza de redundâncias no handler de webhook de Stripe.
+- Arquivos alterados:
+  - src/server/shared/http.ts
+  - src/server/payments/application/handlers/checkout/session.ts
+  - src/server/payments/router.ts
+  - api/payments/[...path].ts
+  - src/server/payments/application/handlers/webhooks/stripe.ts
+  - api/payments/webhook.ts (DELETADO)
+- Comandos executados: `npm run gate`, `del api/payments/webhook.ts`, `git add .`, `git commit`, `git push origin main`.
+- Evidência objetiva: `npm run typecheck` passou com sucesso. `npm run gate` em progresso (última verificação antes do push). Redução confirmada de +1 slot no limite de funções Hobby da Vercel.
+- Resultado observado: Rotas de pagamento e webhook agora consolidadas em uma única função serverless.
+- Próximo passo sugerido ao Pensante: Validar o recebimento de webhooks em produção via dashboard do Stripe.
+
+---
 ## EXEC-2026-04-03-0040-STRIPE-SURGICAL
 - Task: STRIPE-SURGICAL-FIX (Vercel Functions Reduction)
 - Status final: CONCLUIDA

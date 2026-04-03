@@ -1,4 +1,4 @@
-import { withApiHandler } from "../../../../shared/http.js";
+import { buffer, withApiHandler } from "../../../../shared/http.js";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { stripeClient } from "../../../providers/stripe/client.js";
 import type Stripe from "stripe";
@@ -6,20 +6,6 @@ import { env } from "../../../../shared/env.js";
 import { supabaseAdmin } from "../../../../integrations/supabase/client.js";
 import { updatePaymentOrderStatus, getPaymentOrderById } from "../../../repo.js";
 import { upsertConnectAccount } from "../../../repo/accounts.js";
-
-async function buffer(readable: NodeJS.ReadableStream): Promise<Buffer> {
-  const chunks: Buffer[] = [];
-  for await (const chunk of readable) {
-    chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
-  }
-  return Buffer.concat(chunks);
-}
-
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
 
 export default withApiHandler(async (req: VercelRequest, res: VercelResponse) => {
   if (req.method !== "POST") {

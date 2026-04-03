@@ -51,7 +51,11 @@ export async function paymentsRouter(request: VercelRequest, response: VercelRes
     target = connectStatusHandler;
   } else if (parts.length === 2 && parts[0] === 'checkout' && parts[1] === 'session') {
     target = checkoutSessionHandler;
-  } else if (parts.length === 2 && parts[0] === 'webhooks' && parts[1] === 'stripe') {
+  } else if (
+    (parts.length === 2 && parts[0] === 'webhooks' && parts[1] === 'stripe') ||
+    (parts.length === 1 && parts[0] === 'webhook')
+  ) {
+    // Preserve /api/payments/webhook as a direct alias for the handler
     target = webhookStripeHandler;
   }
 

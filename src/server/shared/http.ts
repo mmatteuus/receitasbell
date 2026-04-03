@@ -149,11 +149,41 @@ export function getQueryValue(req: VercelRequest, key: string): string | null {
   }
 }
 
+export async function buffer(readable: NodeJS.ReadableStream): Promise<Buffer> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of readable) {
+    chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+  }
+  return Buffer.concat(chunks);
+}
+
 export async function readJsonBody<T>(req: VercelRequest): Promise<T> {
+  // 1. Se já for um objeto (Vercel bodyParser ligado)
+  if (req.body && typeof req.body === 'object' && !Buffer.isBuffer(req.body) && typeof (req as unknown as { on?: unknown }).on !== 'function') {
+    return req.body as T;
+  }
+
+  // 2. Se for uma string (já lida mas não parseada)
   if (typeof req.body === 'string') {
     if (!req.body.trim()) return {} as T;
-    return JSON.parse(req.body) as T;
+    try {
+      return JSON.parse(req.body) as T;
+    } catch {
+      return {} as T;
+    }
   }
+
+  // 3. Se for um stream (bodyParser: false)
+  if (!req.body && typeof (req as unknown as { on?: unknown }).on === 'function') {
+    try {
+      const buf = await buffer(req);
+      if (buf.length === 0) return {} as T;
+      return JSON.parse(buf.toString()) as T;
+    } catch {
+      return {} as T;
+    }
+  }
+
   if (req.body == null) return {} as T;
   return req.body as T;
 }

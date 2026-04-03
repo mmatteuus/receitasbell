@@ -1,4 +1,4 @@
-import { withApiHandler } from '../../../../shared/http.js';
+import { readJsonBody, withApiHandler } from '../../../../shared/http.js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { stripeClient } from '../../../providers/stripe/client.js';
 import { supabaseAdmin } from '../../../../integrations/supabase/client.js';
@@ -19,14 +19,14 @@ export default withApiHandler(async (req: VercelRequest, res: VercelResponse, { 
   }
 
   const { tenant } = await requireTenantFromRequest(req);
-  const body = (req.body ?? {}) as {
+  const body = await readJsonBody<{
     recipeSlug?: string;
     recipeIds?: string[];
     userId?: string;
     payerEmail?: string;
     payerName?: string;
     checkoutReference?: string;
-  };
+  }>(req);
   const recipeSlug = body.recipeSlug;
   const userId = body.userId || body.payerEmail;
 
