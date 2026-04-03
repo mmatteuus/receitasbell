@@ -52,6 +52,7 @@
       "destination": "/api/admin/payments?path=payments/:id/note"
     },
     { "source": "/api/admin/payments/:id", "destination": "/api/admin/payments?path=payments/:id" },
+    { "source": "/api/payments/:path*", "destination": "/api/payments/[...path]" },
     { "source": "/@vite/:path*", "destination": "/@vite/:path*" },
     { "source": "/src/:path*", "destination": "/src/:path*" },
     { "source": "/node_modules/:path*", "destination": "/node_modules/:path*" },
