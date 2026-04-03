@@ -5,7 +5,7 @@ import { ApiError } from "../shared/http.js";
 import { decryptSecret, encryptSecret, sha256Hex } from "../shared/crypto.js";
 import { supabase, supabaseAdmin } from "../integrations/supabase/client.js";
 
-const COOKIE_NAME = isProd ? "__Host-rb_session" : "rb_session";
+export const COOKIE_NAME = isProd ? "__Host-rb_session" : "rb_session";
 const TTL_DAYS = 14;
 const STATELESS_COOKIE_PREFIX = "rb1.";
 
@@ -77,19 +77,25 @@ export async function createSession(req: VercelRequest, res: VercelResponse, inp
   const now = new Date();
   const expiresAt = new Date(now.getTime() + TTL_DAYS * 86400_000);
 
-  const { error } = await supabaseAdmin.from("auth_sessions").insert({
-    token_hash: tokenHash,
-    tenant_id: input.tenantId,
-    user_id: input.userId,
-    email: input.email.toLowerCase().trim(),
-    role: input.role,
-    expires_at: expiresAt.toISOString(),
-    ip: String(req.headers["x-forwarded-for"] ?? ""),
-    user_agent: String(req.headers["user-agent"] ?? ""),
-  });
+  try {
+    const { error } = await supabaseAdmin.from("auth_sessions").insert({
+      token_hash: tokenHash,
+      tenant_id: input.tenantId,
+      user_id: input.userId,
+      email: input.email.toLowerCase().trim(),
+      role: input.role,
+      expires_at: expiresAt.toISOString(),
+      ip: String(req.headers["x-forwarded-for"] ?? ""),
+      user_agent: String(req.headers["user-agent"] ?? ""),
+    });
 
-  if (error) {
-    // Se o banco falhar, usamos stateless como fallback seguro
+    if (error) {
+      console.warn("Session DB insert failed, falling back to stateless:", error);
+      setCookie(res, signSession({ ...input, expiresAt: expiresAt.getTime() }));
+      return;
+    }
+  } catch (err) {
+    console.error("Session DB critical error, falling back to stateless:", err);
     setCookie(res, signSession({ ...input, expiresAt: expiresAt.getTime() }));
     return;
   }

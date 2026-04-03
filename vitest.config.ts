@@ -19,6 +19,7 @@ export default defineConfig({
     clearMocks: true,
     restoreMocks: true,
     env: {
+      NODE_ENV: 'test',
       APP_BASE_URL: 'http://localhost:3000',
       SUPABASE_URL: 'https://example.supabase.co',
       SUPABASE_SERVICE_ROLE_KEY: 'mock-supabase-service-role-key',

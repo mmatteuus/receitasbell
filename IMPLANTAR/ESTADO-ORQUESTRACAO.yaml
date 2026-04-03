@@ -8,9 +8,9 @@ conversation_bus: IMPLANTAR
 
 current_trigger: EXECUTOR_DONE_AWAITING_REVIEW
 current_owner: pensante
-current_step_id: STRIPE-CONNECT-STABILIZED
-current_step_title: stripe_connect_stabilization_done
-current_goal: Responder ao relatório de dúvidas para destravar o fluxo de produção e Stripe.
+current_step_id: DEPLOY-FIX-0001
+current_step_title: deploy_fix_execution
+current_goal: Validar se a troca de npm ci por npm install estabilizou a infra de build e decidir sobre os testes falhos.
 
 allowed_writers:
   pensante:
@@ -58,8 +58,8 @@ completion_criteria:
 
 last_decision:
   actor: executor
-  decision: Estabilização de Stripe Connect e Gate aprovado.
-  reference: EXEC-2026-04-02-2255-STRIPE-010
+  decision: Infra de build corrigida; deploy falha agora por testes lógicos (npm run gate).
+  reference: MSG-OUT-DEPLOY-0001
 
 next_expected_actor: pensante
-next_expected_action: Analisar o arquivo RELATORIO-DESSA-VERSAO.md e fornecer os dados faltantes.
+next_expected_action: Analisar falha nos testes unitários e decidir se ignora ou corrige.

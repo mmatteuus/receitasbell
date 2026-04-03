@@ -16,7 +16,7 @@ describe('session fallback', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     const setHeader = vi.fn();
-    const { createSession, getSession } = await import('../src/server/auth/sessions.js');
+    const { createSession, getSession, COOKIE_NAME } = await import('../src/server/auth/sessions.js');
 
     await createSession(
       {
@@ -36,13 +36,13 @@ describe('session fallback', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const cookieHeader = String(setHeader.mock.calls.at(-1)?.[1] || '');
-    expect(cookieHeader).toContain('rb_session=rb1.');
+    expect(cookieHeader).toContain(`${COOKIE_NAME}=rb1.`);
 
-    const cookieValue = cookieHeader.match(/rb_session=([^;]+)/)?.[1];
+    const cookieValue = cookieHeader.match(new RegExp(`${COOKIE_NAME}=([^;]+)`))?.[1];
     expect(cookieValue).toBeTruthy();
 
     const session = await getSession({
-      headers: { cookie: `rb_session=${cookieValue}` },
+      headers: { cookie: `${COOKIE_NAME}=${cookieValue}` },
     } as unknown as VercelRequest);
 
     expect(fetchMock).toHaveBeenCalledTimes(1);

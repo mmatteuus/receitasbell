@@ -329,6 +329,49 @@ Responsável agora: executor.
 
 ### RETORNO CURTO — PASSO 4
 Feito: Sincronização de status concluída; deploy validado e automação registrada; Fase B aberta.
-Estado: BLOQUEADO (RELATORIO-DOUBTS-AND-TASKS).
-Próximo passo: Pensante deve responder ao RELATORIO-DESSA-VERSAO.md.
-Responsável agora: pensante.
+Estado: APROVADO.
+Próximo passo: Passo 5 — DEPLOY-FIX-0001 (Correção do Build Vercel).
+Responsável agora: executor.
+
+---
+
+## PASSO 5
+
+**Titulo**: Correção de Dependências no Vercel Build (npm install vs npm ci)
+**Status**: AGUARDANDO VALIDACAO
+**Objetivo**: Resolver o erro atual de build (lockfile mismatch ou missing devDependencies)
+**Arquivos-alvo**:
+- `vercel.json`
+- `IMPLANTAR/CAIXA-DE-SAIDA.md`
+- `IMPLANTAR/STATUS-EXECUCAO.md`
+- `IMPLANTAR/ESTADO-ORQUESTRACAO.yaml`
+
+**Comandos executados**:
+```bash
+git pull origin main
+# Troca de npm ci por npm install no vercel.json
+git commit -m "fix: trocar npm ci por npm install para ignorar lockfile mismatch (v2)"
+git push origin main
+```
+
+**Evidencias**:
+```text
+Deploy 7vc2cpRnU:
+Running install command: `npm install --include=dev` (SUCCESS)
+Running build command: `npm run gate`
+> eslint . (SUCCESS)
+> vitest run (FAIL)
+2 failed | 20 passed (22 files)
+```
+
+**Resultado observado**: A infraestrutura de build foi restaurada. O erro `eslint not found` sumiu. O build avançou até a fase de testes, onde falhou por erro lógico em 2 arquivos de teste. O deploy não entrou em READY por falha no gate, mas a instrução de infra foi cumprida.
+**Risco**: baixo
+**Rollback**: git revert 92b3a75
+**Proximo passo sugerido pelo Executor**: Pensante deve decidir se flexibiliza o build (npm run build direto) ou corrige os testes.
+**Aguardando decisao do Pensante**: SIM
+
+### RETORNO CURTO — PASSO 5
+Feito: Infra de build restaurada (npm install); erro de eslint corrigido; build falha agora em testes lógicos.
+Estado: AGUARDANDO REVISAO.
+Proximo passo: Pensante deve analisar falha nos testes (npm run gate) para destravar o READY.
+Responsavel agora: pensante.
