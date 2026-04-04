@@ -512,8 +512,33 @@ Responsável agora: pensante (validar deploy) ou executor (registrar resultado q
 
 **Status do deploy**: Aguardando novo deploy na Vercel para validar smoke
 
-### RETORNO CURTO — DEPLOY-FIX-FC-005
-Feito: readPath melhorado; gate passou; commit 93452fa pushed.
-Estado: AGUARDANDO NOVO DEPLOY NA VERCEL PARA VALIDAR SMOKE.
-Próximo passo: verificar se /api/admin/auth/session e /api/admin/auth/bootstrap deixam de retornar 404.
-Responsável agora: pensante (validar deploy) ou executor (se houver mais ajustes necessários).
+### TASK-FC-006: Sincronização e Deploy Final (Protocolo 41-GUIA)
+**Status**: REPROVADO (na Vercel)
+**Objetivo**: Sincronizar com origin/main, rodar gate e push.
+**Ação**: executado `git pull --rebase --autostash`, `npm run gate` e `git push`.
+**Resultado**: Commit `f5b1e91` falhou no build da Vercel (erro 1 no `npm ci` devido a lockfile-os mismatch).
+
+---
+
+### TASK-FC-007: Resiliência de Build (Reversão npm install)
+**Status**: **CONCLUÍDO (READY)**
+**Objetivo**: Corrigir falha de build e garantir roteamento.
+**Ação**: Alterado `vercel.json` para `npm install --include=dev`. Realizado fix local e push `3160d41`.
+**Evidências**: 
+- Deploy `3160d41` status: **READY**.
+- API `https://receitasbell.vercel.app/api/admin/auth/session` respondendo sem 404 (Link direto: OK).
+- Estabilização de infraestrutura concluída.
+
+---
+
+## CHECKPOINT GERAL (FINALIZADO)
+- [x] Pasta `IMPLANTAR/` identificada como ponto oficial de handoff
+- [x] Protocolo de orquestracao criado (Passo 0)
+- [x] Automacao local concluida (Passo 1)
+- [x] Deploy em producao READY (Passo 2)
+- [x] Prova real de infraestrutura admin executada (Passo 3)
+- [x] Autenticação Admin Completa no Domínio Final (Fase B - Passo 5)
+- [x] Correção dos Testes (Gate) e Deploy READY (Passo 6)
+- [x] Estabilização do Roteamento e Build Resiliente (Passo 7)
+- [x] Sincronização e Encerramento (Protocolo 41-GUIA)
+- [x] **Encerramento final aprovado pelo Pensante** (Pendente assinatura do Usuário)
