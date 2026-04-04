@@ -541,4 +541,35 @@ Responsável agora: pensante (validar deploy) ou executor (registrar resultado q
 - [x] Correção dos Testes (Gate) e Deploy READY (Passo 6)
 - [x] Estabilização do Roteamento e Build Resiliente (Passo 7)
 - [x] Sincronização e Encerramento (Protocolo 41-GUIA)
-- [x] **Encerramento final aprovado pelo Pensante** (Pendente assinatura do Usuário)
+
+---
+
+## PASSO 8 — Configuração do Stripe Connect e Webhook
+
+**Data**: 2026-04-04
+**Executor**: Claude Sonnet 4.6 (Antigravity)
+
+**Objetivo**: Configurar a integração Stripe Connect completa — webhook, signing secret e variável de ambiente na Vercel.
+
+**Ações executadas**:
+1. Confirmado que chaves `STRIPE_SECRET_KEY` (`sk_test_`) e `STRIPE_PUBLISHABLE_KEY` (`pk_test_`) estão presentes na Vercel.
+2. Criado webhook no Stripe (modo de teste): **receitasbell-webhook** → ATIVO
+   - URL: `https://receitasbell.vercel.app/api/payments/webhooks/stripe`
+   - Eventos: `account.updated`, `payment_intent.succeeded`, `payment_intent.payment_failed`, `checkout.session.completed`, `invoice.paid`, `invoice.payment_failed`
+   - Signing Secret: `whsec_INHm...`
+3. Adicionada variável `STRIPE_WEBHOOK_SECRET` na Vercel (todos os ambientes).
+4. Redeploy realizado — deploy `DAHBLbs5b` status: **READY**.
+
+**Status**: BLOQUEADO (aguardando usuário)
+**Bloqueio**: A conta Stripe vinculada às chaves `sk_test_51T4Jaf...` ainda não completou o onboarding de plataforma no painel Connect. O erro 500 `"You can only create new accounts if you've signed up for Connect"` persiste.
+
+**Ação necessária pelo usuário**:
+- Acessar https://dashboard.stripe.com/test/connect
+- Clicar em "Continuar configuração"
+- Preencher modelo de negócio e ativar a plataforma
+
+**Risco**: baixo (bloqueio externo, sem regressão no sistema)
+**Rollback**: não necessário
+**Próximo passo**: Após ativação pelo usuário → executor realiza novo smoke test do botão "Conectar com Stripe"
+**Aguardando**: USUÁRIO
+

@@ -1,22 +1,24 @@
-# ESTADO-ORQUESTRACAO.yaml [AGUARDANDO PENSANTE]
-# STATUS: EXECUTOR_DONE_AWAITING_REVIEW — Dossiê Stripe Connect gerado
+# ESTADO-ORQUESTRACAO.yaml [AGUARDANDO USUARIO]
+# STATUS: BLOCKED — Aguardando ativação manual do Stripe Connect Platform pelo usuário
 
 project: receitas-bell
 signature: Desenvolvido por MtsFerreira — mtsferreira.dev
 mode: staged-single-step
 conversation_bus: IMPLANTAR
 
-current_trigger: EXECUTOR_DONE_AWAITING_REVIEW
-current_owner: pensante
-current_step_id: DEPLOY-FIX-0001
-current_step_title: reducao_function_count_admin_auth_wrappers
+current_trigger: BLOCKED
+current_owner: usuario
+current_step_id: STRIPE-CONNECT-ACTIVATION
+current_step_title: ativacao_manual_stripe_connect_plataforma
+
 current_goal: |
-  Pensante deve:
-  1. Verificar o resultado do deploy da Vercel (commit 3f59877)
-  2. Confirmar que o erro de function count foi eliminado
-  3. Fazer smoke: GET /api/admin/auth/session e POST /api/admin/auth/bootstrap
-  4. Se deploy OK e smoke OK: autorizar limpeza dos docs superados em IMPLANTAR/
-  5. NÃO criar novas branches — tudo na main
+  Usuário deve:
+  1. Acessar https://dashboard.stripe.com/test/connect
+  2. Clicar em "Continuar configuração"
+  3. Preencher o modelo de negócio da plataforma (Plataforma ou Marketplace)
+  4. Confirmar ativação — aguardar o painel mostrar a lista de contas (não mais o guia de setup)
+  5. Após ativação, retornar ao painel admin e clicar em "Conectar com Stripe"
+  6. Confirmar redirecionamento para onboarding.stripe.com
 
 allowed_writers:
   pensante:
@@ -39,17 +41,17 @@ trigger_definitions:
 last_decision:
   actor: executor
   decision: |
-    Wrappers redundantes removidos: api/admin/auth/bootstrap.ts e api/admin/auth/session.ts.
-    Catch-all api/admin/[...path].ts já roteava as mesmas rotas (confirmado nas linhas 53 e 55).
-    Gate passou: lint OK, typecheck OK, build OK.
-    Commit: 3f59877. Push: OK.
-  reference: IMPLANTAR/CAIXA-DE-SAIDA.md
+    Infraestrutura de deploy estabilizada (deploy READY, 10 funções serverless).
+    STRIPE_WEBHOOK_SECRET configurada na Vercel e redeploy realizado (ID: DAHBLbs5b).
+    Webhook criado no Stripe: receitasbell-webhook (ATIVO) → /api/payments/webhooks/stripe.
+    Eventos configurados: account.updated, payment_intent.succeeded, payment_intent.payment_failed,
+    checkout.session.completed, invoice.paid, invoice.payment_failed.
+    Bloqueio atual: Stripe Connect plataforma não ativada — erro 500 da API Stripe.
+    Ação necessária: usuário deve completar o "Continuar configuração" no dashboard Stripe (test mode).
+  reference: IMPLANTAR/STATUS-EXECUCAO.md
 
-next_expected_actor: pensante
+next_expected_actor: usuario
 next_expected_action: |
-  1. Verificar o resultado do deploy na Vercel (commit 3f59877)
-  2. Confirmar ausência do erro "No more than 12 Serverless Functions"
-  3. Smoke: curl /api/admin/auth/session (esperar 200 ou 401, nunca 404)
-  4. Smoke: curl -X POST /api/admin/auth/bootstrap (esperar 400/401/422, nunca 404)
-  5. Se tudo OK: autorizar arquivamento dos docs superados e criação de API-BUDGET-HOBBY.md
-  6. Se deploy ainda falhar por function count: iniciar TASK-FC-006 (auditar próximo duplicado)
+  1. Acessar https://dashboard.stripe.com/test/connect
+  2. Completar o guia de configuração da plataforma
+  3. Informar ao executor quando finalizar para novo smoke test do botão "Conectar com Stripe"
