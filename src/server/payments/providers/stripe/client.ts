@@ -9,7 +9,7 @@ if (!stripeSecretKey) {
 
 // Inicializar cliente do Stripe
 export const stripeClient = new Stripe(stripeSecretKey, {
-  apiVersion: '2025-02-24.acacia', // Updated to valid TS inference type or use any if unsure
+  apiVersion: '2025-02-24.acacia',
   appInfo: {
     name: 'Receitasbell',
     version: '1.0.0',

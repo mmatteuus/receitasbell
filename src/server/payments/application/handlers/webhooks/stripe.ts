@@ -52,7 +52,14 @@ async function processCheckoutSessionEvent(
     return;
   }
 
-  if (options.expectedPaid && session.payment_status !== "paid") {
+  if (!options.expectedPaid) {
+    if (options.statusIfNotPaid && order.status !== options.statusIfNotPaid) {
+      await updatePaymentOrderStatus(tenantId, orderId, options.statusIfNotPaid);
+    }
+    return;
+  }
+
+  if (session.payment_status !== "paid") {
     if (options.statusIfNotPaid && order.status !== options.statusIfNotPaid) {
       await updatePaymentOrderStatus(tenantId, orderId, options.statusIfNotPaid);
     }
