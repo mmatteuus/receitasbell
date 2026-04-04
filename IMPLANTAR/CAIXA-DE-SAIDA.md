@@ -227,3 +227,30 @@ Responsavel agora: pensante.
 - Fase 2: smoke de admin auth (`/api/admin/auth/session` e `/api/admin/auth/bootstrap`)
 - Fase 4: arquivamento dos docs superados
 - Fase 5: criação de `IMPLANTAR/API-BUDGET-HOBBY.md`
+
+---
+
+## MSG-OUT-DEPLOY-FC-005
+
+**De**: executor
+**Trigger de saída**: EXECUTOR_DONE_AWAITING_REVIEW
+**Passo executado**: DEPLOY-FIX-FC-005 (TASK-FC-005 do dossiê mestre)
+**Data**: 2026-04-04
+**Commit**: 93452fa
+
+**O que foi feito**:
+1. Smoke test de `/api/admin/auth/session` retornou 404 (esperado: 200 ou 401)
+2. Smoke test de `/api/admin/auth/bootstrap` retornou 404 (esperado: 400/401/422)
+3. Diagnosticado: função `readPath()` em `api/admin/[...path].ts` não extraía path do rewrite Vercel corretamente
+4. Melhorado `readPath()` para:
+   - Tentar ler `request.query.path` primeiro (array ou string)
+   - Se vazio, extrair do `request.url` com suporte para both `/api/admin/auth/bootstrap` e `/auth/bootstrap` (post-rewrite)
+5. `npm run lint` ✅ `npm run typecheck` ✅ `npm run build` ✅
+6. Commit `93452fa` criado: "fix: improve readPath function to handle Vercel rewrite path extraction correctly (TASK-FC-005)"
+7. Pull + merge com novos docs
+8. Push para `origin main` realizado com sucesso
+
+**Resultado do deploy**: Aguardando confirmação da Vercel
+**Próximo passo sugerido**: Pensante deve validar novo smoke:
+- GET /api/admin/auth/session (esperar 200 ou 401, nunca 404)
+- POST /api/admin/auth/bootstrap (esperar 400/401/422, nunca 404)

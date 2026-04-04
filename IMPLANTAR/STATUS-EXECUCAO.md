@@ -494,3 +494,26 @@ Feito: wrappers redundantes removidos; gate passou (lint, typecheck, build); com
 Estado: AGUARDANDO RESULTADO DO DEPLOY NA VERCEL.
 Próximo passo: verificar se deploy passou do `Deploying outputs...` sem erro de function count.
 Responsável agora: pensante (validar deploy) ou executor (registrar resultado quando disponível).
+
+---
+
+## PASSO DEPLOY-FIX-FC-005 — Ajuste do catch-all de admin (readPath)
+
+**Data**: 2026-04-04
+**Executor**: Claude Code (Sonnet 4.6)
+**Commit**: 93452fa + merge + 0d1b3a0
+
+**Ação executada**:
+- Smoke test detectou 404 em `/api/admin/auth/session` e `/api/admin/auth/bootstrap`
+- Analisado: catch-all `api/admin/[...path].ts` não estava extraindo path corretamente
+- Melhorado `readPath()` para lidar com rewrite do Vercel (linhas 20-42)
+- `npm run lint` ✅ `npm run typecheck` ✅ `npm run build` ✅
+- Commit e push na `main` realizados
+
+**Status do deploy**: Aguardando novo deploy na Vercel para validar smoke
+
+### RETORNO CURTO — DEPLOY-FIX-FC-005
+Feito: readPath melhorado; gate passou; commit 93452fa pushed.
+Estado: AGUARDANDO NOVO DEPLOY NA VERCEL PARA VALIDAR SMOKE.
+Próximo passo: verificar se /api/admin/auth/session e /api/admin/auth/bootstrap deixam de retornar 404.
+Responsável agora: pensante (validar deploy) ou executor (se houver mais ajustes necessários).
