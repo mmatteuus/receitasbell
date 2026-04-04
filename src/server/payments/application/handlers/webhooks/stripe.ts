@@ -7,6 +7,70 @@ import { supabaseAdmin } from "../../../../integrations/supabase/client.js";
 import { updatePaymentOrderStatus, getPaymentOrderById } from "../../../repo.js";
 import { upsertConnectAccount } from "../../../repo/accounts.js";
 
+async function grantEntitlementsFromOrder(
+  tenantId: string,
+  session: Stripe.Checkout.Session,
+  order: Awaited<ReturnType<typeof getPaymentOrderById>>
+) {
+  if (!order?.recipeIds || order.recipeIds.length === 0) return;
+
+  const providerPaymentId = (session.payment_intent as string) || session.id;
+  const entitlements = order.recipeIds.map((recipeId) => ({
+    tenant_id: tenantId,
+    user_id: order.userId || order.payerEmail,
+    recipe_id: recipeId,
+    amount_paid: Number((order.amount / 100).toFixed(2)),
+    provider: "stripe",
+    provider_payment_id: providerPaymentId,
+    payment_order_id: order.id,
+  }));
+
+  const { error: entError } = await supabaseAdmin
+    .from("recipe_purchases")
+    .upsert(entitlements, { onConflict: "user_id,recipe_id" });
+
+  if (entError) {
+    console.error("[Stripe Webhook] Error creating entitlements:", entError);
+  }
+}
+
+async function processCheckoutSessionEvent(
+  session: Stripe.Checkout.Session,
+  options: { expectedPaid: boolean; statusIfNotPaid?: "failed" | "pending" }
+) {
+  const orderId = session.client_reference_id;
+  const tenantId = session.metadata?.tenantId;
+
+  if (!orderId || !tenantId) {
+    console.warn("[Stripe Webhook] Missing orderId or tenantId in session", session.id);
+    return;
+  }
+
+  const order = await getPaymentOrderById(tenantId, orderId);
+  if (!order) {
+    console.error("[Stripe Webhook] Order not found:", orderId);
+    return;
+  }
+
+  if (options.expectedPaid && session.payment_status !== "paid") {
+    if (options.statusIfNotPaid && order.status !== options.statusIfNotPaid) {
+      await updatePaymentOrderStatus(tenantId, orderId, options.statusIfNotPaid);
+    }
+    return;
+  }
+
+  if (order.status !== "approved") {
+    await updatePaymentOrderStatus(
+      tenantId,
+      orderId,
+      "approved",
+      (session.payment_intent as string) || session.id
+    );
+  }
+
+  await grantEntitlementsFromOrder(tenantId, session, order);
+}
+
 export default withApiHandler(async (req: VercelRequest, res: VercelResponse) => {
   if (req.method !== "POST") {
     res.status(405).json({ error: "Method not allowed" });
@@ -33,49 +97,17 @@ export default withApiHandler(async (req: VercelRequest, res: VercelResponse) =>
   // 1. Evento de Checkout (venda de receitas)
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session;
-    const orderId = session.client_reference_id;
-    const tenantId = session.metadata?.tenantId;
+    await processCheckoutSessionEvent(session, { expectedPaid: true, statusIfNotPaid: "pending" });
+  }
 
-    if (!orderId || !tenantId) {
-      console.warn("[Stripe Webhook] Missing orderId or tenantId in session", session.id);
-      res.json({ received: true });
-      return;
-    }
+  if (event.type === "checkout.session.async_payment_succeeded") {
+    const session = event.data.object as Stripe.Checkout.Session;
+    await processCheckoutSessionEvent(session, { expectedPaid: true });
+  }
 
-    const order = await getPaymentOrderById(tenantId, orderId);
-    
-    if (!order) {
-      console.error("[Stripe Webhook] Order not found:", orderId);
-      res.status(404).json({ error: "Order not found" });
-      return;
-    }
-
-    if (order.status === 'approved') {
-      res.json({ received: true, note: "Already approved" });
-      return;
-    }
-
-    await updatePaymentOrderStatus(tenantId, orderId, 'approved', (session.payment_intent as string) || session.id);
-
-    if (order.recipeIds && order.recipeIds.length > 0) {
-      const entitlements = order.recipeIds.map(recipeId => ({
-        tenant_id: tenantId,
-        user_id: order.userId || order.payerEmail,
-        recipe_id: recipeId,
-        amount_paid: Number((order.amount / 100).toFixed(2)),
-        provider: 'stripe',
-        provider_payment_id: (session.payment_intent as string) || session.id,
-        payment_order_id: order.id
-      }));
-
-      const { error: entError } = await supabaseAdmin
-        .from('recipe_purchases')
-        .upsert(entitlements, { onConflict: 'user_id,recipe_id' });
-
-      if (entError) {
-        console.error("[Stripe Webhook] Error creating entitlements:", entError);
-      }
-    }
+  if (event.type === "checkout.session.async_payment_failed") {
+    const session = event.data.object as Stripe.Checkout.Session;
+    await processCheckoutSessionEvent(session, { expectedPaid: false, statusIfNotPaid: "failed" });
   }
 
   // 2. Evento de Connect (onboarding de vendedores)
@@ -103,4 +135,3 @@ export default withApiHandler(async (req: VercelRequest, res: VercelResponse) =>
 
   res.json({ received: true });
 });
-
