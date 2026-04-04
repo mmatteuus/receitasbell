@@ -129,15 +129,6 @@ function SidebarNav({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?
 
       <div className="border-t p-2 space-y-1">
         <DarkModeButton collapsed={collapsed} />
-        {!collapsed && (
-          <div className="px-1 py-1">
-            <InstallAppButton
-              context="admin"
-              className="w-full justify-start h-9 text-xs"
-              variant="ghost"
-            />
-          </div>
-        )}
         <button
           aria-label="Sair do Admin"
           onClick={() => {
@@ -185,7 +176,7 @@ export function AdminSidebar() {
   return (
     <aside
       className={cn(
-        'sticky top-0 h-screen shrink-0 flex-col border-r bg-card transition-all duration-300 hidden md:flex',
+        'fixed inset-y-0 left-0 hidden md:flex h-screen shrink-0 flex-col border-r bg-card transition-all duration-300',
         collapsed ? 'w-16' : 'w-64'
       )}
     >

@@ -204,6 +204,31 @@ Responsavel agora: pensante.
 
 ---
 
+## MSG-OUT-SIDEBAR-0001
+
+**De**: executor
+**Trigger de saída**: EXECUTOR_DONE_AWAITING_REVIEW
+**Passo executado**: SIDEBAR-FIX-RESPONSIVA
+**Data**: 2026-04-04
+**Commit**: pendente (conteúdo local)
+
+**O que foi feito**:
+1. Sidebar admin agora é fixa no desktop (`fixed inset-y-0 left-0`) e não carrega mais o botão “Instalar App” no rodapé (`src/AdminSidebar.tsx`).
+2. Botão “Instalar App” movido para as ações do header do admin; conteúdo recebeu padding dinâmico via CSS custom property para não ser sobreposto pela sidebar fixa (`src/components/layout/AdminLayout.tsx`).
+3. Placeholders de imagem garantidos na home adicionando `fallbackSrc="/placeholder.svg"` nos componentes hero/featured/about e cards de receita.
+
+**Evidências**:
+- Lint: `npm run lint -- --max-warnings=0` ✅
+- Testes automatizados: não executados nesta rodada.
+
+**Risco**: baixo (impacto visual/layout; precisa validar no navegador se o padding evita sobreposição)
+
+### RETORNO CURTO — PASSO 11
+Feito: Sidebar admin fixa com padding variável no conteúdo, botão “Instalar App” no header e placeholders de imagem na home.
+Estado: AGUARDANDO REVISAO.
+Proximo passo: verificador rodar smoke visual do admin e home para confirmar layout e placeholders.
+Responsavel agora: verificador.
+
 ## MSG-OUT-DEPLOY-0001
 
 **De**: executor

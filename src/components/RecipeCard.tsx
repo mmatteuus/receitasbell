@@ -49,6 +49,7 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
       <Link to={recipePath} className="relative aspect-[4/3] overflow-hidden">
         <SmartImage
           src={imageUrl}
+          fallbackSrc="/placeholder.svg"
           alt={recipe.title}
           sizes="(min-width: 1024px) 320px, (min-width: 640px) 45vw, 100vw"
           className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"

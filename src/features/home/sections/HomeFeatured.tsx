@@ -55,6 +55,7 @@ export function HomeFeatured({
               <Link to={`/receitas/${featuredMainRecipe.slug}`} className="block">
                 <SmartImage
                   src={getRecipeImage(featuredMainRecipe)}
+                  fallbackSrc="/placeholder.svg"
                   alt={featuredMainRecipe.title}
                   sizes="(min-width: 1024px) 100vw, 100vw"
                   className="h-[400px] w-full object-cover lg:h-[500px]"

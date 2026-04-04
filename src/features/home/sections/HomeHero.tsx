@@ -96,6 +96,7 @@ export function HomeHero({
           <div className="relative">
             <SmartImage
               src={settings.heroImageUrl}
+              fallbackSrc="/placeholder.svg"
               alt={settings.siteName}
               priority
               sizes="(min-width: 1024px) 45vw, 100vw"

@@ -628,3 +628,32 @@ Responsável agora: pensante (validar deploy) ou executor (registrar resultado q
 **Próximo passo**: Usuario preencher os dados no onboarding da Stripe para transacionar.
 **Aguardando decisao do Pensante**: SIM
 
+---
+
+### PASSO 11 — Sidebar fixa/responsiva e placeholders da home
+
+**Data**: 2026-04-04
+**Executor**: Codex GPT-5
+
+**Objetivo**: Corrigir sidebar/admin fixa e responsiva, reposicionar “Instalar App” no header e garantir placeholders de imagem na home.
+
+**Ações executadas**:
+1. `src/AdminSidebar.tsx`: sidebar desktop agora é `fixed inset-y-0 left-0` e deixa de carregar o botão “Instalar App” no rodapé.
+2. `src/components/layout/AdminLayout.tsx`: moveu o `InstallAppButton` para as ações do header e aplicou `md:pl-[var(--admin-sidebar-width)]` com CSS custom property (64px colapsado / 256px expandido) para evitar sobreposição com a sidebar fixa.
+3. `src/features/home/sections/HomeHero|HomeFeatured|HomeAbout.tsx` e `src/components/RecipeCard.tsx`: adicionados `fallbackSrc="/placeholder.svg"` para prevenir quebras de imagem/placeholder.
+
+**Testes**:
+- `npm run lint -- --max-warnings=0` ✅
+- Testes automatizados: não executados nesta rodada.
+
+**Status**: AGUARDANDO REVISAO
+**Risco**: baixo (alteração de layout; risco visual se cache antigo de CSS)
+**Rollback**: `git checkout -- src/AdminSidebar.tsx src/components/layout/AdminLayout.tsx src/features/home/sections/HomeHero.tsx src/features/home/sections/HomeFeatured.tsx src/features/home/sections/HomeAbout.tsx src/components/RecipeCard.tsx`
+**Próximo passo**: validar no navegador se a sidebar fixa não sobrepõe conteúdo e se placeholders carregam na home.
+
+### RETORNO CURTO — PASSO 11
+Feito: Sidebar admin fixa com padding variável no conteúdo, botão “Instalar App” movido para o header e placeholders de imagem adicionados na home.
+Estado: AGUARDANDO REVISAO.
+Proximo passo: verificador rodar smoke visual do admin e home para confirmar layout e placeholders.
+Responsavel agora: verificador.
+

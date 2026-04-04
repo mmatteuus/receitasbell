@@ -32,6 +32,7 @@ export function HomeAbout({ settings, onLearnMore }: HomeAboutProps) {
           </div>
           <SmartImage
             src={settings.aboutImageUrl}
+            fallbackSrc="/placeholder.svg"
             alt={settings.siteName}
             className="h-[260px] w-full rounded-2xl object-cover sm:h-[320px]"
           />
