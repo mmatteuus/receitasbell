@@ -229,6 +229,31 @@ Estado: AGUARDANDO REVISAO.
 Proximo passo: verificador rodar smoke visual do admin e home para confirmar layout e placeholders.
 Responsavel agora: verificador.
 
+---
+
+## MSG-OUT-SIDEBAR-0002
+
+**De**: executor
+**Trigger de saída**: EXECUTOR_DONE_AWAITING_REVIEW
+**Passo executado**: SIDEBAR-MOBILE-FULLHEIGHT
+**Data**: 2026-04-04
+**Commit**: pendente de push (conteúdo local)
+
+**O que foi feito**:
+1. Menu mobile do admin (Dialog) agora força `left-0 top-0 translate-x-0 translate-y-0 h-screen max-h-screen rounded-none` para ocupar 100% da altura/viewport.
+
+**Evidências**:
+- Lint: `npm run lint -- --max-warnings=0` ✅
+- Testes automatizados: não executados nesta rodada.
+
+**Risco**: baixo (impacto visual mobile; requer smoke em DevTools/real device)
+
+### RETORNO CURTO — PASSO 12
+Feito: Drawer mobile da sidebar agora força top/left 0 e h-screen, ocupando toda a altura.
+Estado: AGUARDANDO REVISAO.
+Proximo passo: verificador rodar smoke visual mobile para confirmar que o menu cobre a tela inteira.
+Responsavel agora: verificador.
+
 ## MSG-OUT-DEPLOY-0001
 
 **De**: executor

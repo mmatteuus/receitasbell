@@ -657,3 +657,30 @@ Estado: AGUARDANDO REVISAO.
 Proximo passo: verificador rodar smoke visual do admin e home para confirmar layout e placeholders.
 Responsavel agora: verificador.
 
+---
+
+### PASSO 12 — Sidebar mobile cobrindo altura total
+
+**Data**: 2026-04-04
+**Executor**: Codex GPT-5
+
+**Objetivo**: Garantir que o menu lateral mobile ocupe toda a altura/viewport em qualquer dispositivo.
+
+**Ações executadas**:
+1. `src/AdminSidebar.tsx`: no `DialogContent` do menu mobile, removida a centralização padrão do Dialog e aplicado `left-0 top-0 translate-x-0 translate-y-0 h-screen max-h-screen rounded-none` para ocupar 100% da altura.
+
+**Testes**:
+- `npm run lint -- --max-warnings=0` ✅
+- Testes automatizados: não executados nesta rodada.
+
+**Status**: AGUARDANDO REVISAO
+**Risco**: baixo (apenas layout mobile; risco visual se cache CSS antigo)
+**Rollback**: `git checkout -- src/AdminSidebar.tsx`
+**Próximo passo**: validar no mobile real/DevTools se o drawer ocupa toda a viewport sem cortes.
+
+### RETORNO CURTO — PASSO 12
+Feito: Drawer mobile da sidebar agora força top/left 0 e h-screen, ocupando toda a altura.
+Estado: AGUARDANDO REVISAO.
+Proximo passo: verificador rodar smoke visual mobile para confirmar que o menu cobre a tela inteira.
+Responsavel agora: verificador.
+
