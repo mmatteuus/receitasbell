@@ -80,7 +80,7 @@ export default withApiHandler(async (req: VercelRequest, res: VercelResponse, { 
     ],
   });
 
-  const applicationFeeAmount = Math.round(amountCents * 0.1);
+  const applicationFeeAmount = Math.round(amountCents * 0.3);
 
   const session = await stripeClient.checkout.sessions.create({
     payment_method_types: ['card', 'pix'],

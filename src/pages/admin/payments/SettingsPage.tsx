@@ -133,9 +133,17 @@ export default function SettingsPage() {
         onboardingUrl = created.onboardingUrl;
       }
       window.location.assign(onboardingUrl);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to start Stripe Connect onboarding', error);
-      toast.error('Não foi possível iniciar a conexão com o Stripe.');
+      const message =
+        error instanceof ApiClientError
+          ? error.message
+          : 'Não foi possível iniciar a conexão com o Stripe.';
+
+      toast.error('Erro de Conexão', {
+        description: message,
+        duration: 10000,
+      });
       setConnecting(false);
     }
   }

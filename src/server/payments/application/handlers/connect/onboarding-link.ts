@@ -48,17 +48,33 @@ export default withApiHandler(async (req: VercelRequest, res: VercelResponse, { 
   }
 
   // 3. Cria o link de onboarding via Stripe
-  const accountLinks = await stripeClient.accountLinks.create({
-    account: account.stripeAccountId,
-    refresh_url: buildStripeRedirectUrl('refresh', returnTo),
-    return_url: buildStripeRedirectUrl('success', returnTo),
-    type: 'account_onboarding',
-  });
+  try {
+    const accountLinks = await stripeClient.accountLinks.create({
+      account: account.stripeAccountId,
+      refresh_url: buildStripeRedirectUrl('refresh', returnTo),
+      return_url: buildStripeRedirectUrl('success', returnTo),
+      type: 'account_onboarding',
+    });
 
-  logger.info('Link de onboarding criado com sucesso', {
-    tenantId: tenant.id,
-    stripeAccountId: account.stripeAccountId,
-  });
+    logger.info('Link de onboarding criado com sucesso', {
+      tenantId: tenant.id,
+      stripeAccountId: account.stripeAccountId,
+    });
 
-  res.status(200).json({ onboardingUrl: accountLinks.url });
+    res.status(200).json({ onboardingUrl: accountLinks.url });
+  } catch (err: unknown) {
+    const error = err as { message?: string }; // Cast seguro para verificar mensagem sem usar 'any'
+    logger.error('Erro ao criar link de onboarding', error);
+
+    // Se o erro for a falta de detalhes da plataforma Connect
+    if (error?.message?.includes("business needs to provide more information")) {
+      res.status(400).json({
+        error: 'Sua plataforma Stripe precisa de mais informações (ex: nome, site) antes de habilitar o onboarding. Por favor, complete o perfil em https://dashboard.stripe.com/settings/update.',
+        code: 'STRIPE_PLATFORM_INCOMPLETE'
+      });
+      return;
+    }
+
+    throw error;
+  }
 });

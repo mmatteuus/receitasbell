@@ -51,12 +51,29 @@ export default withApiHandler(async (req: VercelRequest, res: VercelResponse, { 
   }
 
   // 3. Cria nova conta no Stripe
-  const account = await stripeClient.accounts.create({
-    type: 'standard',
-    metadata: {
-      tenantId: tenant.id,
-    },
-  });
+  let account;
+  try {
+    account = await stripeClient.accounts.create({
+      type: 'standard',
+      metadata: {
+        tenantId: tenant.id,
+      },
+    });
+  } catch (err: unknown) {
+    const error = err as { message?: string }; // Cast seguro para verificar mensagem sem usar 'any'
+    logger.error('Erro ao criar conta no Stripe', error);
+
+    // Se o erro for a falta de ativação do Connect, retornamos 400 com mensagem clara
+    if (error?.message?.includes("signed up for Connect")) {
+      res.status(400).json({
+        error: 'Sua conta Stripe ainda não está habilitada para o Connect. Por favor, acesse https://dashboard.stripe.com/connect e clique em "Get Started" ou conclua o perfil da plataforma para permitir a criação de contas conectadas.',
+        code: 'STRIPE_CONNECT_NOT_ENABLED'
+      });
+      return;
+    }
+
+    throw error; // Deixa o withApiHandler tratar outros erros
+  }
 
   // 4. Persiste no banco de dados Supabase
   const newAccount = await upsertConnectAccount({

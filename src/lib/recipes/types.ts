@@ -11,4 +11,6 @@ export interface RecipeRecord extends Recipe {
   ratingAvg?: number;
   ratingCount?: number;
   hasAccess?: boolean;
+  stripeProductId?: string | null;
+  stripePriceId?: string | null;
 }

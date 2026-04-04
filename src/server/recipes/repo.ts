@@ -31,6 +31,8 @@ type RecipeRow = {
   updated_at: string;
   published_at: string | null;
   author_id: string | null;
+  stripe_product_id: string | null;
+  stripe_price_id: string | null;
 };
 
 export type RecipeListTier = "all" | "free" | "paid";
@@ -97,7 +99,7 @@ export async function listRecipes(tenantId: string, options: {
   return results;
 }
 
-export async function getRecipeBySlug(tenantId: string, slug: string): Promise<RecipeRecord | null> {
+export async function getRecipeBySlug(tenantId: string, slug: string, userId?: string): Promise<RecipeRecord | null> {
   const { data, error } = await supabaseAdmin
     .from('recipes')
     .select('*')
@@ -106,10 +108,14 @@ export async function getRecipeBySlug(tenantId: string, slug: string): Promise<R
     .maybeSingle();
 
   if (error || !data) return null;
-  return mapRecipeRowToRecord(data);
+  
+  const record = mapRecipeRowToRecord(data);
+  record.hasAccess = await checkAccess(tenantId, record, userId);
+  
+  return record;
 }
 
-export async function getRecipeById(tenantId: string, id: string): Promise<RecipeRecord | null> {
+export async function getRecipeById(tenantId: string, id: string, userId?: string): Promise<RecipeRecord | null> {
   const { data, error } = await supabaseAdmin
     .from('recipes')
     .select('*')
@@ -118,7 +124,45 @@ export async function getRecipeById(tenantId: string, id: string): Promise<Recip
     .maybeSingle();
 
   if (error || !data) return null;
-  return mapRecipeRowToRecord(data);
+  
+  const record = mapRecipeRowToRecord(data);
+  record.hasAccess = await checkAccess(tenantId, record, userId);
+  
+  return record;
+}
+
+async function checkAccess(tenantId: string, recipe: RecipeRecord, userId?: string): Promise<boolean> {
+  // 1. Se for gratuita, todos têm acesso
+  if (recipe.accessTier === "free") return true;
+
+  // 2. Se não houver usuário logado e a receita for paga, não tem acesso
+  if (!userId) return false;
+
+  // 3. Se o usuário for o autor da receita, tem acesso
+  if (recipe.createdByUserId === userId) return true;
+
+  // 4. Verificar se existe uma compra confirmada
+  const { data, error } = await supabaseAdmin
+    .from('recipe_purchases')
+    .select('id')
+    .eq('tenant_id', tenantId)
+    .eq('user_id', userId)
+    .eq('recipe_id', recipe.id)
+    .maybeSingle();
+
+  if (!error && data) return true;
+
+  // 5. Verificar se o usuário é administrador do tenant (opcional, mas boa prática)
+  const { data: profile } = await supabaseAdmin
+    .from('profiles')
+    .select('role')
+    .eq('id', userId)
+    .eq('organization_id', tenantId)
+    .maybeSingle();
+
+  if (profile?.role === 'admin' || profile?.role === 'owner') return true;
+
+  return false;
 }
 
 function mapRecipeRowToRecord(row: RecipeRow): RecipeRecord {
@@ -149,11 +193,13 @@ function mapRecipeRowToRecord(row: RecipeRow): RecipeRecord {
     isFeatured: !!row.is_featured,
     ratingAvg: 0,
     ratingCount: 0,
-    hasAccess: true,
+    hasAccess: false,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     publishedAt: row.published_at,
     createdByUserId: row.author_id,
+    stripeProductId: row.stripe_product_id,
+    stripePriceId: row.stripe_price_id,
   };
 }
 
@@ -195,8 +241,23 @@ export async function createRecipe(tenantId: string, recipe: Partial<RecipeRecor
   if (createdRecord.accessTier === "paid" && createdRecord.priceBRL) {
       const connectAccount = await getConnectAccountByTenantId(tenantId);
       if (connectAccount?.stripeAccountId) {
-          await syncStripeProduct(tenantId, connectAccount.stripeAccountId, createdRecord)
-              .catch(e => console.error("[Stripe Sync] Error syncing recipe:", e));
+          try {
+              const syncResult = await syncStripeProduct(tenantId, connectAccount.stripeAccountId, createdRecord);
+              if (syncResult) {
+                  const { error: updateError } = await supabaseAdmin
+                      .from('recipes')
+                      .update({ 
+                          stripe_product_id: syncResult.productId,
+                          stripe_price_id: syncResult.priceId
+                      })
+                      .eq('id', createdRecord.id);
+                  if (updateError) console.error("[Stripe Sync] Failed to save Stripe IDs:", updateError);
+                  createdRecord.stripeProductId = syncResult.productId;
+                  createdRecord.stripePriceId = syncResult.priceId;
+              }
+          } catch (e) {
+              console.error("[Stripe Sync] Error syncing recipe:", e);
+          }
       }
   }
 
@@ -228,8 +289,22 @@ export async function updateRecipe(tenantId: string, recipeId: string, recipe: P
   if (updatedRecord.accessTier === "paid" && updatedRecord.priceBRL) {
       const connectAccount = await getConnectAccountByTenantId(tenantId);
       if (connectAccount?.stripeAccountId) {
-          await syncStripeProduct(tenantId, connectAccount.stripeAccountId, updatedRecord)
-              .catch(e => console.error("[Stripe Sync] Error syncing recipe update:", e));
+          try {
+              const syncResult = await syncStripeProduct(tenantId, connectAccount.stripeAccountId, updatedRecord);
+              if (syncResult) {
+                  await supabaseAdmin
+                      .from('recipes')
+                      .update({ 
+                          stripe_product_id: syncResult.productId,
+                          stripe_price_id: syncResult.priceId
+                      })
+                      .eq('id', updatedRecord.id);
+                  updatedRecord.stripeProductId = syncResult.productId;
+                  updatedRecord.stripePriceId = syncResult.priceId;
+              }
+          } catch (e) {
+              console.error("[Stripe Sync] Error syncing recipe update:", e);
+          }
       }
   }
 
