@@ -279,6 +279,77 @@ Estado: AGUARDANDO REVISAO.
 Proximo passo: verificador rodar smoke na listagem de receitas para confirmar carregamento das imagens.
 Responsavel agora: verificador.
 
+---
+
+## MSG-OUT-SIDEBAR-0003
+
+**De**: executor
+**Trigger de saída**: EXECUTOR_DONE_AWAITING_REVIEW
+**Passo executado**: SIDEBAR-MOBILE-FULLSCREEN
+**Data**: 2026-04-04
+**Commit**: pendente de push (conteúdo local)
+
+**O que foi feito**:
+1. `src/AdminSidebar.tsx`: drawer mobile agora usa `inset-0 h-screen w-screen max-w-none overflow-y-auto`, cobrindo toda a viewport sem cortes em telas pequenas.
+
+**Evidências**:
+- Lint: `npm run lint -- --max-warnings=0` ✅
+- Testes automatizados: não executados nesta rodada.
+
+**Risco**: baixo (apenas layout mobile; requer smoke visual)
+
+### RETORNO CURTO — PASSO 14
+Feito: Drawer mobile da sidebar passa a usar inset-0, h-screen e w-screen ocupando a viewport inteira.
+Estado: AGUARDANDO REVISAO.
+Proximo passo: verificador rodar smoke mobile confirmando cobertura total do menu.
+Responsavel agora: verificador.
+
+## MSG-OUT-SIDEBAR-0004
+
+**De**: executor
+**Trigger de saída**: EXECUTOR_DONE_AWAITING_REVIEW
+**Passo executado**: SIDEBAR-MOBILE-100DVH
+**Data**: 2026-04-04
+**Commit**: pendente de push (conteúdo local)
+
+**O que foi feito**:
+1. `src/AdminSidebar.tsx`: adicionado `min-h-[100dvh] min-w-full` ao `DialogContent` do drawer mobile, preservando `inset-0 h-screen w-screen max-w-none`, para cobrir viewport em dispositivos com barras dinâmicas (100dvh).
+
+**Evidências**:
+- Lint: `npm run lint -- --max-warnings=0` ✅
+- Testes automatizados: não executados nesta rodada.
+
+**Risco**: baixo (ajuste visual mobile; requer smoke em devices reais/DevTools com barras dinâmicas)
+
+### RETORNO CURTO — PASSO 15
+Feito: Drawer mobile ganhou min-h 100dvh/min-w-full mantendo inset-0 para cobrir a viewport em devices com barras dinâmicas.
+Estado: AGUARDANDO REVISAO.
+Proximo passo: verificador rodar smoke mobile confirmando cobertura total do menu em 100dvh.
+Responsavel agora: verificador.
+
+## MSG-OUT-HOME-CATS-0001
+
+**De**: executor
+**Trigger de saída**: EXECUTOR_DONE_AWAITING_REVIEW
+**Passo executado**: HOME-CATEGORIAS-ICONES
+**Data**: 2026-04-04
+**Commit**: pendente de push (conteúdo local)
+
+**O que foi feito**:
+1. `src/features/home/sections/HomeCategories.tsx`: vitrine pública passa a exibir apenas uma grade de até 8 ícones compactos (sem nomes/descrições) e CTA "Ver catálogo completo" para listar todas as categorias com detalhes.
+
+**Evidências**:
+- Lint: `npm run lint -- --max-warnings=0` ✅
+- Testes automatizados: não executados nesta rodada.
+
+**Risco**: baixo (alteração visual na home; requer verificação visual da grade e CTA)
+
+### RETORNO CURTO — PASSO 16
+Feito: Home mostra só ícones compactos de até 8 categorias e mantém detalhes apenas no catálogo completo.
+Estado: AGUARDANDO REVISAO.
+Proximo passo: verificador rodar smoke visual da home e catálogo para confirmar UX.
+Responsavel agora: verificador.
+
 ## MSG-OUT-DEPLOY-0001
 
 **De**: executor

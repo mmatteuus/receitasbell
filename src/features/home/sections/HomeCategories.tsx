@@ -9,6 +9,8 @@ type HomeCategoriesProps = {
 };
 
 export function HomeCategories({ categories, onBrowseAll }: HomeCategoriesProps) {
+  const featuredCategories = categories.slice(0, 8);
+
   return (
     <section className="container px-4 py-12">
       <Reveal>
@@ -17,30 +19,30 @@ export function HomeCategories({ categories, onBrowseAll }: HomeCategoriesProps)
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
               Descubra por tema
             </p>
-            <h2 className="text-3xl">Coleções por categoria</h2>
+            <h2 className="text-3xl">Ícones de categorias</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Toque em um ícone para navegar ou abra o catálogo completo para ver todos os detalhes.
+            </p>
           </div>
           <Button variant="link" onClick={onBrowseAll} className="px-0">
             Ver catálogo completo
           </Button>
         </div>
       </Reveal>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {categories.map((category, index) => (
-          <div key={category.slug} className={index >= 3 ? "hidden sm:block" : "block"}>
-            <Reveal delayMs={index * 35}>
-              <Link
-                to={`/categorias/${category.slug}`}
-                className="group block rounded-2xl border bg-card p-5 transition-all hover:-translate-y-0.5 hover:shadow-md"
-              >
-                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 text-xl">
-                  {category.name.slice(0, 1)}
-                </div>
-                <h3 className="text-xl">{category.name}</h3>
-                <p className="mt-2 text-sm text-muted-foreground hidden sm:block">{category.description}</p>
-                <p className="mt-4 text-sm font-medium text-primary">Explorar categoria</p>
-              </Link>
-            </Reveal>
-          </div>
+      <div className="grid grid-cols-4 gap-3 sm:grid-cols-6 lg:grid-cols-8">
+        {featuredCategories.map((category, index) => (
+          <Reveal key={category.slug} delayMs={index * 35}>
+            <Link
+              to={`/categorias/${category.slug}`}
+              className="group flex aspect-square items-center justify-center rounded-xl border bg-card text-lg font-semibold transition-all hover:-translate-y-0.5 hover:shadow-sm"
+              aria-label={`Abrir categoria ${category.name}`}
+            >
+              <span className="sr-only">{category.name}</span>
+              <span aria-hidden className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm sm:text-base">
+                {category.name.slice(0, 2).toUpperCase()}
+              </span>
+            </Link>
+          </Reveal>
         ))}
       </div>
     </section>

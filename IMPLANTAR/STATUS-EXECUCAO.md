@@ -711,3 +711,84 @@ Estado: AGUARDANDO REVISAO.
 Proximo passo: verificador rodar smoke na listagem de receitas para confirmar carregamento das imagens.
 Responsavel agora: verificador.
 
+---
+
+### PASSO 14 — Sidebar mobile cobrindo largura/altura total
+
+**Data**: 2026-04-04
+**Executor**: Codex GPT-5
+
+**Objetivo**: Garantir que o menu lateral mobile ocupe toda a viewport (altura e largura) em telas pequenas.
+
+**Ações executadas**:
+1. `src/AdminSidebar.tsx`: `DialogContent` agora usa `inset-0 h-screen w-screen max-w-none overflow-y-auto` e removeu limites anteriores, cobrindo toda a tela ao abrir o drawer.
+
+**Testes**:
+- `npm run lint -- --max-warnings=0` ✅
+- Testes automatizados: não executados nesta rodada.
+
+**Status**: AGUARDANDO REVISAO
+**Risco**: baixo (apenas layout mobile)
+**Rollback**: `git checkout -- src/AdminSidebar.tsx`
+**Próximo passo**: smoke visual em mobile/DevTools para confirmar drawer full-screen.
+
+### RETORNO CURTO — PASSO 14
+Feito: Drawer mobile da sidebar passa a usar inset-0, h-screen e w-screen ocupando a viewport inteira.
+Estado: AGUARDANDO REVISAO.
+Proximo passo: verificador rodar smoke mobile confirmando cobertura total do menu.
+Responsavel agora: verificador.
+
+---
+
+### PASSO 15 — Sidebar mobile com altura dinâmica (100dvh)
+
+**Data**: 2026-04-04
+**Executor**: Codex GPT-5
+
+**Objetivo**: Garantir que o drawer do menu lateral admin cubra a viewport inteira em dispositivos que reportam alturas dinâmicas (100dvh) para evitar cortes no mobile.
+
+**Ações executadas**:
+1. `src/AdminSidebar.tsx`: `DialogContent` do menu mobile agora inclui `min-h-[100dvh] min-w-full` mantendo `inset-0 h-screen w-screen max-w-none`, assegurando cobertura total em navegadores que usam unidades dinâmicas.
+
+**Testes**:
+- `npm run lint -- --max-warnings=0` ✅
+- Testes automatizados: não executados nesta rodada.
+
+**Status**: AGUARDANDO REVISAO
+**Risco**: baixo (apenas ajuste de layout mobile; requer validação visual)
+**Rollback**: `git checkout -- src/AdminSidebar.tsx`
+**Próximo passo**: rodar smoke visual em mobile/DevTools validando que o drawer cobre toda a tela em aparelhos com barras dinâmicas.
+
+### RETORNO CURTO — PASSO 15
+Feito: Drawer mobile ganhou min-h 100dvh/min-w-full mantendo inset-0 para cobrir a viewport em devices com barras dinâmicas.
+Estado: AGUARDANDO REVISAO.
+Proximo passo: verificador rodar smoke mobile confirmando cobertura total do menu em 100dvh.
+Responsavel agora: verificador.
+
+---
+
+### PASSO 16 — Home: categorias apenas em ícones e catálogo completo separado
+
+**Data**: 2026-04-04
+**Executor**: Codex GPT-5
+
+**Objetivo**: Mostrar apenas ícones compactos das categorias na página pública e deixar a lista completa (nomes/detalhes) apenas no catálogo completo.
+
+**Ações executadas**:
+1. `src/features/home/sections/HomeCategories.tsx`: limita a vitrine a 8 categorias e troca o card por grade de ícones compactos (sem nomes visíveis), com CTA "Ver catálogo completo" para listar todas as categorias com detalhes.
+
+**Testes**:
+- `npm run lint -- --max-warnings=0` ✅
+- Testes automatizados: não executados nesta rodada.
+
+**Status**: AGUARDANDO REVISAO
+**Risco**: baixo (mudança visual na home; requer validação visual da grade de ícones e CTA)
+**Rollback**: `git checkout -- src/features/home/sections/HomeCategories.tsx`
+**Próximo passo**: smoke visual da home confirmando grade de ícones e botão levando ao catálogo completo.
+
+### RETORNO CURTO — PASSO 16
+Feito: Home mostra só ícones compactos de até 8 categorias e mantém detalhes apenas no catálogo completo.
+Estado: AGUARDANDO REVISAO.
+Proximo passo: verificador rodar smoke visual da home e catálogo para confirmar UX.
+Responsavel agora: verificador.
+
