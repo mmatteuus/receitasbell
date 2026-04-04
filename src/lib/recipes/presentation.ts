@@ -24,7 +24,7 @@ function isGenericTitle(title: string) {
   return normalized.length <= 24 && normalized.split(' ').length <= 3;
 }
 
-type PresentableRecipe = Recipe & Partial<Pick<RecipeRecord, 'excerpt' | 'tags'>>;
+type PresentableRecipe = Recipe & Partial<Pick<RecipeRecord, 'excerpt' | 'tags' | 'imageFileMeta'>>;
 
 function themedNameByCategory(recipe: PresentableRecipe) {
   const category = (recipe.categorySlug || '').toLowerCase();
@@ -103,9 +103,14 @@ function buildHeadline(recipe: Recipe, cardTitle: string) {
   return `${cardTitle} para cozinhar com confiança e prazer`;
 }
 
-export function getRecipeImage(recipe: Pick<Recipe, 'imageUrl'>) {
-  const url = recipe.imageUrl?.trim();
-  if (url) return url;
+export function getRecipeImage(recipe: Pick<RecipeRecord, 'imageUrl' | 'imageFileMeta'>) {
+  const metaUrl = recipe.imageFileMeta?.thumbnailUrl || recipe.imageFileMeta?.publicUrl;
+  const normalizedMeta = metaUrl?.trim();
+  const normalizedImage = recipe.imageUrl?.trim();
+
+  if (normalizedMeta) return normalizedMeta;
+  if (normalizedImage) return normalizedImage;
+
   return RECIPE_PLACEHOLDER;
 }
 
