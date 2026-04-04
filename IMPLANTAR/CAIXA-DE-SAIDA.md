@@ -254,6 +254,31 @@ Estado: AGUARDANDO REVISAO.
 Proximo passo: verificador rodar smoke visual mobile para confirmar que o menu cobre a tela inteira.
 Responsavel agora: verificador.
 
+---
+
+## MSG-OUT-IMAGENS-0001
+
+**De**: executor
+**Trigger de saída**: EXECUTOR_DONE_AWAITING_REVIEW
+**Passo executado**: IMAGENS-RECEITAS-META
+**Data**: 2026-04-04
+**Commit**: 2033a81
+
+**O que foi feito**:
+1. `src/lib/recipes/presentation.ts`: `getRecipeImage` agora prioriza `imageFileMeta.thumbnailUrl` e `imageFileMeta.publicUrl` antes de `imageUrl`, garantindo exibição das imagens armazenadas via upload quando o campo `imageUrl` está vazio.
+
+**Evidências**:
+- Lint: `npm run lint -- --max-warnings=0` ✅
+- Testes automatizados: não executados nesta rodada.
+
+**Risco**: baixo (apenas fonte da URL de imagem; fallback segue /placeholder.svg)
+
+### RETORNO CURTO — PASSO 13
+Feito: getRecipeImage passa a usar thumbnail/publicUrl do arquivo antes do imageUrl, restaurando imagens das receitas.
+Estado: AGUARDANDO REVISAO.
+Proximo passo: verificador rodar smoke na listagem de receitas para confirmar carregamento das imagens.
+Responsavel agora: verificador.
+
 ## MSG-OUT-DEPLOY-0001
 
 **De**: executor

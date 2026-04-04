@@ -684,3 +684,30 @@ Estado: AGUARDANDO REVISAO.
 Proximo passo: verificador rodar smoke visual mobile para confirmar que o menu cobre a tela inteira.
 Responsavel agora: verificador.
 
+---
+
+### PASSO 13 — Correção de imagem das receitas
+
+**Data**: 2026-04-04
+**Executor**: Codex GPT-5
+
+**Objetivo**: Garantir exibição de imagens de receitas armazenadas com metadata de arquivo.
+
+**Ações executadas**:
+1. `src/lib/recipes/presentation.ts`: `getRecipeImage` agora prioriza `imageFileMeta.thumbnailUrl` ou `publicUrl` antes de `imageUrl`, garantindo uso dos arquivos enviados (Supabase/storage) quando o campo `imageUrl` estiver vazio.
+
+**Testes**:
+- `npm run lint -- --max-warnings=0` ✅
+- Testes automatizados: não executados nesta rodada.
+
+**Status**: AGUARDANDO REVISAO
+**Risco**: baixo (mudança de fonte da URL; impacto apenas em resolução de imagem)
+**Rollback**: `git checkout -- src/lib/recipes/presentation.ts`
+**Próximo passo**: validar no frontend que as imagens voltam a aparecer e placeholder continua para casos sem arquivo.
+
+### RETORNO CURTO — PASSO 13
+Feito: getRecipeImage passa a usar thumbnail/publicUrl do arquivo antes do imageUrl, restaurando imagens das receitas.
+Estado: AGUARDANDO REVISAO.
+Proximo passo: verificador rodar smoke na listagem de receitas para confirmar carregamento das imagens.
+Responsavel agora: verificador.
+
