@@ -29,11 +29,16 @@ function readPath(request: VercelRequest, prefix: string): string[] {
       .filter(Boolean);
   }
 
-  const pathname = (request.url || '').split('?')[0] || '';
-  if (!pathname.startsWith(prefix)) return [];
+  let pathname = (request.url || '').split('?')[0] || '';
+  // Handle both cases: /api/admin/auth/bootstrap and /auth/bootstrap
+  if (pathname.startsWith(prefix)) {
+    pathname = pathname.slice(prefix.length);
+  } else if (pathname.startsWith('/' + prefix.split('/').pop() + '/')) {
+    // Already in the sub-path, e.g., /auth/bootstrap from rewrite
+    pathname = pathname.slice(1);
+  }
 
   return pathname
-    .slice(prefix.length)
     .split('/')
     .map((part) => part.trim())
     .filter(Boolean);
