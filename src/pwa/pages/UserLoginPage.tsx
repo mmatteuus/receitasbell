@@ -87,9 +87,14 @@ export default function UserLoginPage() {
       return;
     }
 
+    if (!tenantSlug) {
+      toast.error("Erro interno. Organização não identificada.");
+      return;
+    }
+
     setState("submitting");
     try {
-      await signupWithPassword({ email, password, fullName });
+      await signupWithPassword({ email, password, fullName, tenantSlug });
       toast.success("Conta criada com sucesso!");
       navigate(redirectTarget);
     } catch (err: unknown) {

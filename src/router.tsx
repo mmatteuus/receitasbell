@@ -108,6 +108,10 @@ const router = createBrowserRouter(
       lazy: lazyRoute(() => import('@/pwa/pages/PwaAuthVerifyPage')),
     },
     {
+      path: '/pwa/auth/update-password',
+      lazy: lazyRoute(() => import('@/pwa/pages/UpdatePasswordPage')),
+    },
+    {
       path: '/pwa/admin/login',
       lazy: lazyRoute(() => import('@/pwa/pages/AdminLoginPage')),
     },

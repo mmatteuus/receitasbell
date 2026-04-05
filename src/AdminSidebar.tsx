@@ -209,7 +209,7 @@ export function AdminMobileSidebar() {
 
   return (
     <Dialog open={mobileOpen} onOpenChange={setMobileOpen}>
-      <DialogContent className="fixed left-0 top-0 z-50 flex h-screen max-h-screen w-64 translate-x-0 translate-y-0 flex-col border-r bg-card p-0 transition-transform duration-300 rounded-none data-[state=closed]:-translate-x-full data-[state=open]:translate-x-0 sm:max-w-none">
+      <DialogContent className="fixed inset-0 z-50 flex h-screen max-h-screen min-h-[100dvh] w-screen min-w-full max-w-none translate-x-0 translate-y-0 flex-col overflow-y-auto border-r bg-card p-0 transition-transform duration-300 rounded-none data-[state=closed]:-translate-x-full data-[state=open]:translate-x-0">
         <DialogHeader className="sr-only">
           <DialogTitle>Menu Administrativo</DialogTitle>
           <DialogDescription>Acesse as ferramentas de gestão do site.</DialogDescription>

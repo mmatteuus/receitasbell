@@ -78,13 +78,19 @@ export async function loginWithPassword(input: { email: string; password: string
   });
 }
 
-export async function signupWithPassword(input: { email: string; password: string; fullName: string }) {
+export async function signupWithPassword(input: {
+  email: string;
+  password: string;
+  fullName: string;
+  tenantSlug: string;
+}) {
   return jsonFetch<AuthMeResponse>("/api/auth/signup-password", {
     method: "POST",
     body: {
       email: input.email.trim().toLowerCase(),
       password: input.password,
       fullName: input.fullName,
+      tenantSlug: input.tenantSlug,
     },
   });
 }
@@ -94,6 +100,15 @@ export async function requestPasswordReset(input: { email: string }) {
     method: "POST",
     body: {
       email: input.email.trim().toLowerCase(),
+    },
+  });
+}
+
+export async function updatePassword(input: { password: string }) {
+  return jsonFetch<{ success: boolean }>("/api/auth/update-password", {
+    method: "POST",
+    body: {
+      password: input.password,
     },
   });
 }

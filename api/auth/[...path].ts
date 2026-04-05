@@ -10,6 +10,7 @@ import authOAuthCallback from '../../api_handlers/auth/oauth-callback.js';
 import authLoginPassword from '../../api_handlers/auth/login-password.js';
 import authSignupPassword from '../../api_handlers/auth/signup-password.js';
 import authResetPassword from '../../api_handlers/auth/reset-password.js';
+import authUpdatePassword from '../../api_handlers/auth/update-password.js';
 
 type RouteHandler = (
   request: VercelRequest,
@@ -50,6 +51,7 @@ const routes: Record<string, RouteHandler> = {
   'login-password': authLoginPassword,
   'signup-password': authSignupPassword,
   'reset-password': authResetPassword,
+  'update-password': authUpdatePassword,
 };
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {

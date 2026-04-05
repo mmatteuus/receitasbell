@@ -12,7 +12,7 @@ export default withApiHandler(async (req, res, { requestId, logger }) => {
   }
 
   const appUrl = getAppBaseUrl(req);
-  const destination = redirectTo || `${appUrl}/auth/update-password`;
+  const destination = redirectTo || `${appUrl}/pwa/auth/update-password`;
 
   // Supabase Auth enviará o e-mail de recuperação
   const { error } = await supabaseAdmin.auth.resetPasswordForEmail(email, {
