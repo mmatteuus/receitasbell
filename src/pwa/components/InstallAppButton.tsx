@@ -1,15 +1,22 @@
 import { Button } from "@/components/ui/button";
+import { type ButtonVariantProps } from "@/components/ui/button-variants";
 import { useInstallPrompt } from "../hooks/useInstallPrompt";
-import { Smartphone, Plus } from "lucide-react";
+import { Smartphone } from "lucide-react";
 import type { InstallContext } from "../lib/install-context";
 
 interface InstallAppButtonProps {
   context: InstallContext;
   className?: string;
-  variant?: "default" | "outline" | "ghost";
+  variant?: ButtonVariantProps["variant"];
+  size?: ButtonVariantProps["size"];
 }
 
-export function InstallAppButton({ context, className, variant = "default" }: InstallAppButtonProps) {
+export function InstallAppButton({ 
+  context, 
+  className, 
+  variant = "default",
+  size = "default" 
+}: InstallAppButtonProps) {
   const { deferredPrompt, isInstalled, install, isIOS } = useInstallPrompt();
 
   // If already installed, don't show the button
@@ -33,6 +40,7 @@ export function InstallAppButton({ context, className, variant = "default" }: In
       onClick={handleInstall} 
       className={className} 
       variant={variant}
+      size={size}
     >
       <Smartphone className="mr-2 h-4 w-4" />
       Instalar App
