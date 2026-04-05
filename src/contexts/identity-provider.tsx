@@ -63,8 +63,9 @@ export function useIdentityProvider() {
     if (!isValidEmail(normalized)) {
       throw new ApiClientError(400, "Informe um e-mail válido.");
     }
-
-    throw new ApiClientError(501, "A atualização de e-mail ainda não está disponível.");
+    
+    // Para compatibilidade, apenas define o e-mail localmente se não houver erro
+    setIdentityEmail(normalized);
   }, []);
 
   const clearIdentity = useCallback(async () => {

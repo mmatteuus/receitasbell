@@ -19,7 +19,7 @@ export function resolvePwaTenantSlug(pathname?: string | null) {
         : null;
 
   if (!path) {
-    return readActiveTenantSlug();
+    return readActiveTenantSlug() || "receitasbell";
   }
 
   const fromPath = extractPwaTenantSlugFromPath(path);
@@ -27,11 +27,8 @@ export function resolvePwaTenantSlug(pathname?: string | null) {
     return fromPath;
   }
 
-  if (path.startsWith("/pwa/") || path === "/pwa") {
-    return readActiveTenantSlug();
-  }
-
-  return readActiveTenantSlug();
+  // Se estiver no /pwa/login direto, tenta o cache ou fallback para o principal
+  return readActiveTenantSlug() || "receitasbell";
 }
 
 export function persistTenantSlugFromPwaPath(pathname: string) {
