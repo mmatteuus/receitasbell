@@ -158,7 +158,12 @@ export async function buffer(readable: NodeJS.ReadableStream): Promise<Buffer> {
 
 export async function readJsonBody<T>(req: VercelRequest): Promise<T> {
   // 1. Se já for um objeto (Vercel bodyParser ligado)
-  if (req.body && typeof req.body === 'object' && !Buffer.isBuffer(req.body) && typeof (req as unknown as { on?: unknown }).on !== 'function') {
+  if (
+    req.body &&
+    typeof req.body === 'object' &&
+    !Buffer.isBuffer(req.body) &&
+    typeof (req as unknown as { on?: unknown }).on !== 'function'
+  ) {
     return req.body as T;
   }
 
@@ -202,11 +207,17 @@ export function withApiHandler<T = void>(
       await handler(req, res, { requestId: rid, logger });
     } catch (error: unknown) {
       if (error instanceof ApiError) {
-        logger.warn('API error', {
+        const errorContext = {
           status: error.status,
           message: error.message,
           details: error.details ?? null,
-        });
+        };
+
+        if (error.status >= 500) {
+          logger.withContext(errorContext).error('API error', error);
+        } else {
+          logger.warn('API error', errorContext);
+        }
         return sendProblem(
           res,
           error.status,

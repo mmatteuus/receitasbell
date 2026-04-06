@@ -368,9 +368,17 @@ export default function AdminLoginPage() {
                 {loading ? "Entrando..." : "Entrar no admin"}
               </Button>
 
-              <Button type="button" variant="ghost" className="w-full" asChild>
-                <Link to={buildTenantPath("/", tenantSlugFromPath)}>Voltar para o site</Link>
-              </Button>
+              <div className="flex flex-col gap-2">
+                <Button type="button" variant="link" className="h-auto p-0 text-xs text-muted-foreground hover:text-primary" asChild>
+                  <Link to={buildTenantAdminPath("forgot-password", canonicalTenantSlug)}>
+                    Esqueci minha senha
+                  </Link>
+                </Button>
+
+                <Button type="button" variant="ghost" className="w-full" asChild>
+                  <Link to={buildTenantPath("/", tenantSlugFromPath)}>Voltar para o site</Link>
+                </Button>
+              </div>
             </form>
           )}
         </CardContent>

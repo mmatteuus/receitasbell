@@ -13,6 +13,8 @@ export default defineConfig({
     setupFiles: ['tests/setup-vitest.ts'],
     clearMocks: true,
     restoreMocks: true,
+    pool: 'threads',
+    fileParallelism: false,
     env: {
       NODE_ENV: 'test',
       APP_BASE_URL: 'http://localhost:3000',

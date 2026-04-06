@@ -65,7 +65,7 @@ function buildAdminChildren() {
 const router = createBrowserRouter(
   [
     {
-      path: '/',
+      path: '/t/:tenantSlug',
       element: <PublicLayout />,
       children: [
         { index: true, element: <HomePage /> },
@@ -96,7 +96,7 @@ const router = createBrowserRouter(
       ],
     },
     {
-      path: '/t/:tenantSlug',
+      path: '/',
       element: <PublicLayout />,
       children: [
         { index: true, element: <HomePage /> },
@@ -241,6 +241,22 @@ const router = createBrowserRouter(
     {
       path: '/t/:tenantSlug/admin/login',
       lazy: lazyRoute(() => import('@/pages/admin/LoginPage')),
+    },
+    {
+      path: '/admin/forgot-password',
+      lazy: lazyRoute(() => import('@/pages/auth/ForgotPasswordPage')),
+    },
+    {
+      path: '/t/:tenantSlug/admin/forgot-password',
+      lazy: lazyRoute(() => import('@/pages/auth/ForgotPasswordPage')),
+    },
+    {
+      path: '/auth/reset-password',
+      lazy: lazyRoute(() => import('@/pages/auth/ResetPasswordPage')),
+    },
+    {
+      path: '/t/:tenantSlug/auth/reset-password',
+      lazy: lazyRoute(() => import('@/pages/auth/ResetPasswordPage')),
     },
     {
       path: '/admin',
