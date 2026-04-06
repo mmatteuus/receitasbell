@@ -3,7 +3,7 @@ import { timingSafeEqual } from 'node:crypto';
 import { env } from '../shared/env.js';
 import { ApiError } from '../shared/http.js';
 import { Logger } from '../shared/logger.js';
-import { countTenants } from '../tenancy/repo.js';
+import { countTenants, getTenantBySlug } from '../tenancy/repo.js';
 import { createTenantBootstrap } from '../tenancy/service.js';
 import { requireTenantFromRequest } from '../tenancy/resolver.js';
 import { getSession, createSession, revokeSession } from '../auth/sessions.js';
@@ -89,7 +89,7 @@ export async function readAdminSession(request: VercelRequest): Promise<AdminSes
 export async function loginAdmin(
   request: VercelRequest,
   response: VercelResponse,
-  input: { email?: string; password?: string },
+  input: { email?: string; password?: string; tenantSlug?: string },
   options: { logger?: Logger } = {}
 ): Promise<AdminSessionResponse> {
   const tenantCount = await countTenants();
@@ -128,7 +128,18 @@ export async function loginAdmin(
 
   let tenant: { id: string | number; slug: string; name: string };
   try {
-    ({ tenant } = await requireTenantFromRequest(request));
+    // Try tenant from body first (more reliable than header-based resolution)
+    if (input.tenantSlug) {
+      const bySlug = await getTenantBySlug(input.tenantSlug);
+      if (bySlug) {
+        tenant = bySlug;
+      } else {
+        throw new ApiError(404, `Tenant not found for slug: ${input.tenantSlug}`);
+      }
+    } else {
+      // Fallback to header/host-based resolution
+      ({ tenant } = await requireTenantFromRequest(request));
+    }
   } catch (error) {
     logger.warn('admin.login_failed', {
       action: 'admin.login_failed',
@@ -225,7 +236,7 @@ export async function logoutAdmin(request: VercelRequest, response: VercelRespon
 export async function bootstrapTenantAdmin(
   request: VercelRequest,
   response: VercelResponse,
-  input: { tenantName?: string; tenantSlug?: string; adminEmail?: string; adminPassword?: string }
+  input: { tenantName?: string; tenantSlug?: string; adminEmail?: string; adminPassword?: string; host?: string | null }
 ): Promise<AdminSessionResponse> {
   const tenantCount = await countTenants();
   if (tenantCount > 0) {

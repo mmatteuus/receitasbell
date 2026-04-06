@@ -3,9 +3,11 @@
 Este documento serve como a fonte da verdade para todos os agentes de IA que trabalham no projeto **Receitas Bell**. Ele deve ser lido integralmente antes de qualquer ação.
 
 ## 🎯 Objetivo do Projeto
+
 O Receitas Bell é uma plataforma de receitas com sistema de administração, autenticação via Supabase e integração de pagamentos via Stripe Connect.
 
 ## 📜 Regras de Ouro para Agentes (Protocolo de Harmonia)
+
 Para evitar conflitos, redundâncias e erros, todos os agentes DEVEM seguir estas regras:
 
 1. **Registro de Atividade**: Antes de iniciar QUALQUER tarefa, o agente deve registrar no arquivo `implantar/TAREFAS_PENDENTES.md` que está "EM EXECUÇÃO" por [Nome do Agente/Modelo].
@@ -13,6 +15,8 @@ Para evitar conflitos, redundâncias e erros, todos os agentes DEVEM seguir esta
 3. **Previsão de Erros**: Antes de aplicar uma mudança, o agente deve "pensar à frente", prever possíveis quebras (ex: quebra de build, erro de tipagem, erro de roteamento) e validar via `npm run gate` se possível.
 4. **Comunicação por Arquivos**: Utilize a pasta `implantar/` como o único local de handoff. Se um agente parou, o estado deve estar claro nos arquivos.
 5. **Não Repetir Trabalho**: Verifique sempre o histórico para não refazer o que já foi validado.
+6. **Prioridade Antigravity (Stripe/Navegador)**: O agente **Antigravity** tem prioridade absoluta em tarefas que envolvam o Stripe ou o uso do navegador (interação direta com sistemas externos).
+7. **Responsabilidade de Deploy**: Qualquer agente que realizar alterações deve, se possível, fazer o deploy e acompanhar o status para garantir que deu certo. Caso um agente não consiga ou falhe no deploy, o **Antigravity** deve obrigatoriamente revisar, avaliar o que foi feito e corrigir o erro.
 
 ## 🚀 O que já foi feito (Resumo Consolidado)
 
@@ -34,8 +38,17 @@ Para evitar conflitos, redundâncias e erros, todos os agentes DEVEM seguir esta
   - Fluxo de "Instalar App" movido para o header.
 
 ## 📍 Estado Atual e Bloqueios
+
 - **Autenticação**: A infraestrutura está pronta, mas em produção houve erros de "Organization not identified" ou credenciais 401. O foco atual é estabilizar o login, signup e recuperação de senha.
 - **Stripe**: Preparação para migração definitiva para credenciais de produção (sk_live).
 
+## 🧾 Registro de Atividades (Agentes)
+
+- 2026-04-06: OpenCode leu `implantar/CONTEXTO_AGERIAL.md` integralmente.
+- 2026-04-06: OpenCode conferiu `implantar/HISTORICO_CONCLUIDO.md` para evitar retrabalho.
+- 2026-04-06: OpenCode registrou tarefa em `implantar/TAREFAS_PENDENTES.md` como `[EM EXECUÇÃO - OpenCode]`.
+- 2026-04-06: OpenCode executou `npm run gate` duas vezes; ambas com timeout durante `npm run typecheck` (lint completo, build/testes nao iniciados).
+
 ---
-*Última atualização: 2026-04-06 por Antigravity (Gemini 3 Flash)*
+
+_Última atualização: 2026-04-06 por OpenCode (gpt-5.2-codex)_

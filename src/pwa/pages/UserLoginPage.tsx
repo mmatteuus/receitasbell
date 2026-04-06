@@ -87,14 +87,11 @@ export default function UserLoginPage() {
       return;
     }
 
-    if (!tenantSlug) {
-      toast.error("Erro interno. Organização não identificada.");
-      return;
-    }
+    const targetTenantSlug = tenantSlug || "receitasbell";
 
     setState("submitting");
     try {
-      await signupWithPassword({ email, password, fullName, tenantSlug });
+      await signupWithPassword({ email, password, fullName, tenantSlug: targetTenantSlug });
       toast.success("Conta criada com sucesso!");
       navigate(redirectTarget);
     } catch (err: unknown) {

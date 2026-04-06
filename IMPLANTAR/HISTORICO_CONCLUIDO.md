@@ -4,7 +4,7 @@ Este documento registra as conquistas alcançadas no projeto. Ao finalizar uma t
 
 ## ✅ Infraestrutura e Deploy
 - **Deploy Vercel Estável**: Branch `main` está enviando e construindo aplicações corretamente com `npm install --include=dev`.
-- **Roteamento de API**: Corrigidos os 404 em rotas catch-all (`api/payments/*` e `api/admin/*`) via rewrites oculares no `vercel.json`.
+- **Roteamento de API**: Corrigidos os 404 em rotas catch-all (`api/payments/*` e `api/admin/*`) via rewrites no `vercel.json`.
 - **Gate de Qualidade**: `vitest` e `eslint` integrados ao build para prevenir deploys quebrados.
 
 ## ✅ Stripe Connect
@@ -17,8 +17,9 @@ Este documento registra as conquistas alcançadas no projeto. Ao finalizar uma t
 - **Home Page**: Adição de placeholders e grade compacta de categorias com ícones para navegação intuitiva.
 - **Botão de Instalação App**: Reposicionado no header administrativo.
 
-## ✅ Banco de Dados e Receitas
-- **Renderização de Imagens**: Lógica de resolução de imagens nas receitas corrigida para priorizar arquivos armazenados no bucket do Supabase.
+## ✅ Organização de Projeto
+- **Limpeza da pasta `implantar/`**: Todos os playbooks antigos, logs e scripts de automação inicial foram removidos por Antigravity para garantir um ambiente limpo e focado no fechamento.
+- **Centralização de Contexto**: Criação do `CONTEXTO_AGERIAL.md` como fonte única de verdade para os agentes.
 
 ---
 *Atualizado em: 2026-04-06*

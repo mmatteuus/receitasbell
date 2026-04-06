@@ -1,6 +1,6 @@
 {
-  "last_actor": "usuario",
-  "last_seen_at": "2026-04-06T14:22:53Z",
-  "current_trigger": "BLOCKED",
-  "current_step_id": "STRIPE-CONNECT-ACTIVATION"
+  "last_actor": "ninguem",
+  "last_seen_at": "2026-04-06T15:01:03Z",
+  "current_trigger": null,
+  "current_step_id": null
 }

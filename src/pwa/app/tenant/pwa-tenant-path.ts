@@ -28,7 +28,12 @@ export function resolvePwaTenantSlug(pathname?: string | null) {
   }
 
   // Se estiver no /pwa/login direto, tenta o cache ou fallback para o principal
-  return readActiveTenantSlug() || "receitasbell";
+  const cached = readActiveTenantSlug();
+  if (cached && cached !== "undefined" && cached !== "null") {
+    return cached;
+  }
+
+  return "receitasbell";
 }
 
 export function persistTenantSlugFromPwaPath(pathname: string) {

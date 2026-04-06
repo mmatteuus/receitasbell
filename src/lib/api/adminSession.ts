@@ -1,4 +1,5 @@
 import { jsonFetch } from "./client";
+import { getCurrentTenantSlug } from "@/lib/tenant";
 import {
   clearOfflineSession,
   getOfflineAdminSession,
@@ -54,11 +55,14 @@ export async function getAdminSession(
 }
 
 export async function loginAdmin(
-  input: { email?: string; password?: string },
+  input: { email?: string; password?: string; tenantSlug?: string },
 ): Promise<AdminSessionResponse> {
   const result = await jsonFetch<AdminSessionResponse>("/api/admin/auth/session", {
     method: "POST",
-    body: input,
+    body: {
+      ...input,
+      tenantSlug: input.tenantSlug || getCurrentTenantSlug(),
+    },
   });
   if (result.authenticated) {
     await persistAdminSessionEnvelope(result);
@@ -75,7 +79,10 @@ export async function bootstrapAdmin(input: {
 }): Promise<AdminSessionResponse> {
   return jsonFetch<AdminSessionResponse>("/api/admin/auth/bootstrap", {
     method: "POST",
-    body: input,
+    body: {
+      ...input,
+      tenantSlug: input.tenantSlug || getCurrentTenantSlug(),
+    },
   });
 }
 

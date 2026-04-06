@@ -3,6 +3,6 @@ heartbeat_stale_after_seconds: 900
 lock_timeout_seconds: 1200
 watchdog_interval_minutes: 15
 max_same_step_retries: 2
-executor_command: dir
-pensante_command: '[PENDENTE]'
-verificador_command: '[PENDENTE]'
+executor_command: "[PENDENTE]"
+pensante_command: "[PENDENTE]"
+verificador_command: "[PENDENTE]"
