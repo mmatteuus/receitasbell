@@ -6,7 +6,7 @@
 
 ### TASK-001: Migrar Stripe para Modo LIVE
 
-**Status:** 🔴 BLOQUEADO (requer Antigravity)
+**Status:** 🔵 EM EXECUÇÃO - Antigravity
 
 **Problema:**  
 Stripe está em TEST mode. Pagamentos reais não funcionam.
@@ -19,6 +19,7 @@ Migração de chaves TEST → LIVE via dashboard Stripe.
 **Arquivo de Tarefa:** `IMPLANTAR/tasks/TASK-001-stripe-prod.md`
 
 **Quando Concluir:**
+
 1. Marcar `[X]` aqui
 2. Mover para `IMPLANTAR/02-HISTORICO.md`
 3. Atualizar `IMPLANTAR/03-BLOQUEIOS.md` (remover bloqueio Stripe)
@@ -29,7 +30,7 @@ Migração de chaves TEST → LIVE via dashboard Stripe.
 
 ### TASK-002: Resetar Senha Admin
 
-**Status:** 🟡 PRONTO PARA EXECUÇÃO (OpenCode)
+**Status:** 🟢 CONCLUÍDO (Antigravity - Reset via SQL)
 
 **Problema:**  
 Login `admin@receitasbell.com` falha. Senha perdida.
@@ -42,6 +43,7 @@ Resetar via SQL no Supabase.
 **Arquivo de Tarefa:** `IMPLANTAR/tasks/TASK-002-admin-reset.md`
 
 **Quando Concluir:**
+
 1. Testar login em `https://receitasbell.mtsferreira.dev/admin`
 2. Confirmar sucesso
 3. Marcar `[X]`
@@ -53,33 +55,35 @@ Resetar via SQL no Supabase.
 
 ### TASK-003: Corrigir 404 em `/t/receitasbell`
 
-**Status:** 🔴 EM ANÁLISE (Claude)
+**Status:** 🟢 CONCLUÍDO (OpenCode - 2026-04-06)
 
 **Problema:**  
 Rota `https://receitasbell.mtsferreira.dev/t/receitasbell` retorna 404.
 
-**Próximos Passos:**
-1. Claude analisa rotas em `/src/App.tsx` e `/src/routes.tsx`
-2. Identifica causa do 404
-3. Cria `TASK-003-fix-404.md` com solução detalhada
-4. Delega para OpenCode
+**Solução Implementada:**
 
-**Quando Concluir:**
-1. Rota funcional (retorna 200)
-2. Smoke test ok
-3. Marcar `[X]`
+1. ✅ Claude analisou rotas e identificou root cause
+2. ✅ Tenant "receitasbell" já existia no banco
+3. ✅ API `/api/settings` retorna 200 com sucesso
+4. ✅ Rota agora funcional
+
+**Resultado:**
+
+- Rota: `https://receitasbell.mtsferreira.dev/t/receitasbell` → **200 OK**
+- API Settings: **200 OK**
+- Tenant encontrado: `f413ea13-fcd9-5b44-9d22-1fa1f7b063a5`
 
 ---
 
 ## 📊 FILA DE TAREFAS
 
-| ID | Título | Status | Agente | Prioridade |
-|----|--------|--------|--------|------------|
-| TASK-001 | Stripe LIVE | 🔴 BLOQUEADO | Antigravity | P0 |
-| TASK-002 | Admin Reset | 🟡 PRONTO | OpenCode | P0 |
-| TASK-003 | Fix 404 | 🔴 ANÁLISE | Claude → OpenCode | P0 |
-| TASK-004 | Webhook Audit | ⚪ PENDENTE | OpenCode | P1 |
-| TASK-005 | Rate Limit | ⚪ PENDENTE | OpenCode | P2 |
+| ID       | Título        | Status       | Agente      | Prioridade |
+| -------- | ------------- | ------------ | ----------- | ---------- |
+| TASK-001 | Stripe LIVE   | 🔴 BLOQUEADO | Antigravity | P0         |
+| TASK-002 | Admin Reset   | 🟡 PRONTO    | OpenCode    | P0         |
+| TASK-003 | Fix 404       | 🟢 CONCLUÍDO | OpenCode    | P0         |
+| TASK-004 | Webhook Audit | ⚪ PENDENTE  | OpenCode    | P1         |
+| TASK-005 | Rate Limit    | ⚪ PENDENTE  | OpenCode    | P2         |
 
 ---
 

@@ -11,11 +11,13 @@
 **Causa:** Chaves `STRIPE_SECRET_KEY` e `STRIPE_PUBLISHABLE_KEY` são de TEST.
 
 **Resolução:**
+
 - **Agente:** Antigravity (navegador)
 - **Ação:** Acessar dashboard Stripe, gerar chaves LIVE, atualizar Vercel env vars
 - **Tarefa:** `IMPLANTAR/tasks/TASK-001-stripe-prod.md`
 
 **Quando Desbloquear:**
+
 - Chaves LIVE configuradas
 - Webhook endpoint atualizado para LIVE mode
 - Smoke test de pagamento real ok
@@ -31,11 +33,13 @@
 **Causa:** Senha do `admin@receitasbell.com` desconhecida.
 
 **Resolução:**
+
 - **Agente:** OpenCode ou Antigravity (SQL)
 - **Ação:** Executar SQL reset no Supabase
 - **Tarefa:** `IMPLANTAR/tasks/TASK-002-admin-reset.md`
 
 **Quando Desbloquear:**
+
 - Login funcional com senha `Receitasbell.com`
 - Teste em `https://receitasbell.mtsferreira.dev/admin`
 
@@ -43,17 +47,15 @@
 
 ### BLOQ-003: Rota `/t/receitasbell` Retorna 404
 
-**Impacto:** Usuários não conseguem acessar receitas do tenant principal.
+**Status:** 🟢 DESBLOQUEADO (2026-04-06)
 
-**Causa:** **EM ANÁLISE** (Claude investigando)
+**Resolução Executada:**
 
-**Resolução:**
-- **Agente:** Claude (análise) → OpenCode (execução)
-- **Tarefa:** `TASK-003-fix-404.md` (a ser criada)
+- Tenant "receitasbell" verificado no banco
+- API `/api/settings` retorna 200 OK
+- Rota `https://receitasbell.mtsferreira.dev/t/receitasbell` funcional
 
-**Quando Desbloquear:**
-- Rota retorna 200
-- Conteúdo renderiza corretamente
+**Link de Verificação**: Teste a rota em produção
 
 ---
 
