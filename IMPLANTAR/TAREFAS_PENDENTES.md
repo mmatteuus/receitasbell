@@ -14,8 +14,8 @@ Este documento lista o que falta para estabilizar o sistema e entregar o projeto
 
 ## 🔑 Autenticação e Gestão de Usuários
 
-- [x] **Erro "Organization not identified"**: Investigar e corrigir falha de identificação organizacional durante o login/signup em produção. `[INVESTIGAÇÃO CONCLUÍDA - Claude Haiku 4.5]`
-- [ ] **Fix: Implementar Solução de Tenant no Body**: Aplicar as mudanças sugeridas no relatório de investigação para garantir que o slug do tenant seja enviado corretamente. `[EM EXECUÇÃO - Antigravity - 2026-04-06]`
+- [x] **Erro "Organization not identified"**: Investigação + Implementação da Solução. `[INVESTIGAÇÃO + IMPLEMENTAÇÃO CONCLUÍDA - Claude Haiku 4.5 - 2026-04-06 - Gate: PASS]`
+- [ ] **Limpeza Profunda `implantar/`**: Apagar os subdiretórios `ARQUIVADOS` e `archive` conforme solicitado pelo usuário. `[EM EXECUÇÃO - Antigravity - 2026-04-06]`
 - [ ] **Fluxo de Recuperação de Senha**: Testar e garantir que o envio de e-mails para reset de senha (via Supabase) está enviando para o link correto.
 - [ ] **Fluxo de Signup**: Validar criação de novos usuários administrativos e restrição por convite/domínio se aplicável.
 
@@ -31,4 +31,4 @@ Este documento lista o que falta para estabilizar o sistema e entregar o projeto
 
 ---
 
-_Última atualização: 2026-04-06 por Antigravity (Gemini 3 Flash)_
+_Última atualização: 2026-04-06 por Antigravity (Gemini 3 Pro)_
