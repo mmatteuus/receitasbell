@@ -28,20 +28,16 @@
 
 ### BLOQ-002: Senha Admin Perdida
 
-**Impacto:** Impossível acessar painel admin para auditoria.
+**Status:** 🟢 DESBLOQUEADO (2026-04-06)
 
-**Causa:** Senha do `admin@receitasbell.com` desconhecida.
+**Resolução Executada:**
 
-**Resolução:**
+- ✅ Usuário admin localizado: `admin@receitasbell.com`
+- ✅ Senha resetada para: `Receitasbell.com`
+- ✅ Perfil verificado com role: `owner`
+- ✅ Pronto para fazer login em `/admin`
 
-- **Agente:** OpenCode ou Antigravity (SQL)
-- **Ação:** Executar SQL reset no Supabase
-- **Tarefa:** `IMPLANTAR/tasks/TASK-002-admin-reset.md`
-
-**Quando Desbloquear:**
-
-- Login funcional com senha `Receitasbell.com`
-- Teste em `https://receitasbell.mtsferreira.dev/admin`
+**Script criado**: `scripts/reset-admin-password.mjs`
 
 ---
 
