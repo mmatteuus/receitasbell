@@ -11,6 +11,9 @@ import adminPaymentNote from '../../api_handlers/admin/payments/[id]/note.js';
 import adminPaymentSettings from '../../api_handlers/admin/payments/settings.js';
 import adminAuthBootstrap from '../../api_handlers/admin/auth/bootstrap.js';
 import adminAuthSession from '../../api_handlers/admin/auth/session.js';
+import adminInviteValidate from '../../api_handlers/admin/invites/validate.js';
+import adminInviteAccept from '../../api_handlers/admin/invites/accept.js';
+import adminInviteRequest from '../../api_handlers/admin/invites/request.js';
 
 type RouteHandler = (
   request: VercelRequest,
@@ -77,6 +80,12 @@ export default async function handler(request: VercelRequest, response: VercelRe
     target = adminRecipes;
   } else if (parts.length === 1 && parts[0] === 'settings') {
     target = adminSettings;
+  } else if (parts.length === 2 && parts[0] === 'invites' && parts[1] === 'validate') {
+    target = adminInviteValidate;
+  } else if (parts.length === 2 && parts[0] === 'invites' && parts[1] === 'accept') {
+    target = adminInviteAccept;
+  } else if (parts.length === 2 && parts[0] === 'invites' && parts[1] === 'request') {
+    target = adminInviteRequest;
   }
 
   if (!target) {

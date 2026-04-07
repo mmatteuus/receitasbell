@@ -24,26 +24,25 @@
 
 ## FRONT-004 — Validação de convites admin
 
-- **Status:** ✅ Implementado (2026-04-06)
+- **Status:** ✅ Concluído (2026-04-06)
 - **Owner:** OpenCode
-- **Resumo:** Implementação completa do fluxo de aceitar convites admin com validação de token, criação de senha e integração ao LoginPage. Backend com endpoints validate, accept e request. Telemetry e audit logging integrados.
+- **Resumo:** Fluxo de aceitação de convites voltou a funcionar end-to-end. O LoginPage detecta `?invite=`, renderiza `AdminInviteAcceptance`, valida o token, permite criar senha e pedir novo convite. As rotas `/api/admin/invites/{validate,accept,request}` agora estão expostas no roteador principal.
 - **Código:**
   - **Frontend:**
-    - `src/lib/api/adminInvites.ts` — API client
-    - `src/components/admin/AdminInviteBanner.tsx` — Banner com estados
-    - `src/components/admin/AdminInviteAcceptance.tsx` — Formulário
-    - `src/pages/admin/LoginPage.tsx` — Integração
-  - **Backend:**
-    - `src/server/admin/invites.ts` — Serviço
-    - `api_handlers/admin/invites/{validate,accept,request}.ts` — Endpoints
-- **Evidências:** 
-  - Commit `f389dc9` + `TEST-FRONT-004.md`
-  - Documentação em `FRONT-004-convites.md`
+    - `src/lib/api/adminInvites.ts` — recriado com `validateInvite`, `acceptInvite`, `requestNewInvite`.
+    - `src/components/admin/AdminInviteAcceptance.tsx` + `AdminInviteBanner.tsx` — já existentes, reusados.
+    - `src/pages/admin/LoginPage.tsx` — já integrava o componente (sem mudanças necessárias).
+  - **Backend/API:**
+    - `api/admin/[...path].ts` agora direciona para `invites/*`.
+    - `api_handlers/admin/invites/{validate,accept,request}.ts` + `src/server/admin/invites.ts` permanecem como origem do fluxo.
+- **Evidências:**
+  - `IMPLANTAR/front/FRONT-004-convites.md`
+  - Commit (vide seção de git deste trabalho)
 - **Próximos passos:**
-  1. Integrar com Supabase: criar tabela `admin_invites` com geração real de tokens.
-  2. Implementar envio de email com link de convite.
-  3. Dashboard de gerenciamento de convites (novo endpoint `/admin/invites`).
-  4. Testes automatizados (component + E2E).
+  1. Integrar com tabela real (`admin_invites`) e tokens emitidos pelo backend.
+  2. Conectar envio de e-mail transacional para novos convites.
+  3. Adicionar tela de gestão de convites no painel admin.
+  4. Cobrir com testes automatizados (unit + e2e) quando o backend estiver finalizado.
 
 ## FRONT-005 — SEO + Meta tags finais
 

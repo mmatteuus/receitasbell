@@ -16,17 +16,14 @@
 >    - `validateInvite(token)` — Valida token via `GET /api/admin/invites/validate`
 >    - `acceptInvite({ token, password, passwordConfirm })` — Aceita convite
 >    - `requestNewInvite(email, reason)` — Solicita novo convite
->
 > 2. **Componentes Frontend**:
 >    - `AdminInviteBanner.tsx` — Banner de status (valid/expired/invalid/used/loading)
 >    - `AdminInviteAcceptance.tsx` — Formulário completo de aceitação
 >    - Integração em `LoginPage.tsx` via `?invite=TOKEN`
->
 > 3. **Endpoints Backend**:
 >    - `POST /api/admin/invites/validate` — Valida token
 >    - `POST /api/admin/invites/accept` — Aceita e cria sessão
 >    - `POST /api/admin/invites/request` — Solicita novo
->
 > 4. **Serviço Backend** (`src/server/admin/invites.ts`):
 >    - Validação de tokens com expiração (24h)
 >    - Criação de usuário admin se não existe
@@ -34,21 +31,24 @@
 >    - Sessão autenticada + audit log
 >
 > 📊 **Telemetry Integrado**:
->    - `admin.invite.validated`, `.validation_failed`, `.validation_error`
->    - `admin.invite.accepted`, `.acceptance_failed`
->    - `admin.invite.new_requested`, `.new_request_failed`
+>
+> - `admin.invite.validated`, `.validation_failed`, `.validation_error`
+> - `admin.invite.accepted`, `.acceptance_failed`
+> - `admin.invite.new_requested`, `.new_request_failed`
 >
 > 🧪 **Documentação de Testes**:
->    - `TEST-FRONT-004.md` com checklist completo
->    - Casos de teste manual (6 cenários)
->    - Verificações de código (TypeScript, acessibilidade, CSRF)
+>
+> - `TEST-FRONT-004.md` com checklist completo
+> - Casos de teste manual (6 cenários)
+> - Verificações de código (TypeScript, acessibilidade, CSRF)
 >
 > 💾 **Commit**: `f389dc9`
 >
 > ⚠️ **Dependências Não Implementadas** (bloqueios):
->    - Tabela `admin_invites` no Supabase (atualmente usa tokens simulados)
->    - Envio de email com link de convite
->    - Dashboard de gerenciamento de convites
+>
+> - Tabela `admin_invites` no Supabase (atualmente usa tokens simulados)
+> - Envio de email com link de convite
+> - Dashboard de gerenciamento de convites
 >
 > ✅ **Pronto para**: Testes em staging + Integração com Supabase
 
@@ -64,35 +64,34 @@
 >    - Usar `amount_cents` (centavos) ao invés de `amount`
 >    - Remover campos legados: `payer_email`, `provider_payment_method_id`, `provider_payment_type_id`, `mp_payment_id`
 >    - Usar `items_json` conforme schema real
->
 > 2. **src/server/payments/application/handlers/checkout/session.ts**:
 >    - Remover `payerEmail` da criação de payment_orders
 >    - Usar `amount_cents` correto
->
 > 3. **src/server/payments/application/handlers/webhooks/stripe.ts**:
 >    - Trocar de `recipe_purchases` (inexistente) para `entitlements` (real)
 >    - Implementar idempotência: eventos não processados 2x via `payment_events`
 >    - Usar apenas campos reais: `tenant_id`, `user_id`, `recipe_id`, `payment_order_id`
->
 > 4. **src/server/identity/entitlements.repo.ts**:
 >    - Trocar schema de `recipe_purchases` para `entitlements`
 >    - Usar `user_id` e `recipe_id` como PKs
 >    - Remover: `payer_email`, `recipe_slug`, `access_status`
->
 > 5. **api_handlers/admin/entitlements.ts** e **api_handlers/me/entitlements.ts**:
 >    - Atualizar para novo schema (userId, recipeId)
 >
 > ✅ **Qualidade Validada**:
+>
 > - Lint: ✅ PASSOU
-> - Typecheck: ✅ PASSOU  
+> - Typecheck: ✅ PASSOU
 > - Build: ✅ PASSOU (dist built, sw.js gerado)
 > - Tests: ✅ PASSOU (22 files, 70 tests, 54s)
 >
 > 📦 **Commit Entregue**:
+>
 > - Branch: `feature/task-004-stripe-realign`
 > - Commit: `61cb93d` - feat: Alinhar schema Stripe com banco real (TASK-004)
 >
 > 🔴 **Bloqueado Em**: TASK-006 (Antigravity)
+>
 > - Precisa descobrir Vercel canônico, Stripe canônico, webhook correto
 > - Após TASK-006 ✅ → Retorna para TASK-001 (cutover LIVE)
 >
@@ -115,7 +114,6 @@
 >      - Border primária (2px) + gradiente
 >      - Copy persuasivo com lista de benefícios
 >      - Visual mais chamativo e acessível
->
 > 2. **src/pwa/components/PwaInstallHintIOS.tsx**:
 >    - Melhorado design com gradiente from-primary/10 to-primary/5
 >    - Copy mais persuasivo: "Acesse suas receitas offline, carregamento mais rápido e notificações."
@@ -124,12 +122,14 @@
 >    - Melhor contraste e legibilidade
 >
 > ✅ **Qualidade Validada**:
+>
 > - Lint: ✅ OK
-> - Typecheck: ✅ OK  
+> - Typecheck: ✅ OK
 > - Build: ✅ OK (warning: chunks > 500 kB - pré-existente)
 > - Tests: Problema pré-existente no Vitest setup (não causado por estas mudanças)
 >
 > 📦 **Commit Entregue**:
+>
 > - `4fc602b` - feat: Melhorar sinalização de instalação PWA com call-to-action mais destacado
 >
 > 🚀 **Status**: PRONTO PARA DEPLOY
@@ -148,37 +148,36 @@
 >    - Adicionado `passwordSchema` com requisitos de segurança
 >    - Função `validatePassword()` para validar senha + confirmação
 >    - Schema `.refine()` para validar correspondência
->
 > 2. **src/pages/auth/ForgotPasswordPage.tsx**:
 >    - Importado `validatePasswordResetEmail` (client-side)
 >    - Validação antes de requisição de API
 >    - Melhorado feedback de erro
->
 > 3. **src/pages/auth/ResetPasswordPage.tsx**:
 >    - Importado `validatePassword` (client-side)
 >    - Validação robusta: 8+ chars, maiúscula, minúscula, número
 >    - Diferenciação entre erro de validação e erro de servidor
 >    - Adicionados IDs aos inputs para acessibilidade
->
 > 4. **api_handlers/auth/update-password.ts**:
 >    - Adicionado Zod schema no servidor
 >    - Validação dupla (client + server)
 >    - Mensagens de erro baseadas em regras de validação
->
 > 5. **src/server/middleware/ratelimit.ts**:
 >    - Corrigido tipos para compatibilidade com TypeScript strict
 >    - Adicionados eslint-disable comments onde apropriado
 >
 > ✅ **Gate Status**:
+>
 > - Lint: ✅ OK
 > - Typecheck: ✅ OK
 > - Build: ✅ OK (warning: chunks > 500kB - não bloqueante)
 > - Tests: ✅ 70/70 passed
 >
 > 📦 **Commit Entregue**:
+>
 > - `5683e20` - feat: Implementar fluxo robusto de recuperação de senha com validações Zod
 >
 > 🔒 **Segurança Implementada**:
+>
 > - Validação dupla evita bypass de client-side
 > - Requisitos fortes de senha impedem credenciais fracas
 > - Zod oferece tipagem segura
@@ -297,3 +296,19 @@
 > - Corrigi lint nos fluxos de reset admin trocando `any` por `unknown` nos handlers de erro.
 > - Ajustei `router.tsx` para usar `pages/auth/ForgotPasswordPage` nas rotas `/admin/forgot-password`.
 > - `npm run gate`: lint/typecheck/build ok (warnings: NODE_ENV em `.env`, chunks > 500 kB). `npm run test:unit` passou.
+
+---
+
+**MSG-OUT-CC-09 (FRONT — Convites Admin)**
+
+> ✅ **FRONT-004 concluído**: fluxo de convites admin volta a funcionar do link `?invite=` até a criação de senha.
+>
+> 📋 **Alterações técnicas**:
+>
+> - `api/admin/[...path].ts` agora roteia `invites/validate`, `invites/accept` e `invites/request` para os handlers existentes.
+> - `src/lib/api/adminInvites.ts` recriado com `validateInvite`, `acceptInvite` e `requestNewInvite`, utilizados por `AdminInviteAcceptance`.
+> - Documentação consolidada em `IMPLANTAR/front/FRONT-004-convites.md`, `STATUS-FRONT.md` e `TASKS-FRONT.md`.
+>
+> 🚦 **Status**: aguardando integração futura com tabela real de convites + envio de e-mail.
+>
+> 📦 **Commit**: _(incluso no próximo push desta branch)_
