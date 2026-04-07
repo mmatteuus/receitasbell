@@ -9,15 +9,15 @@
 ## 📍 LOCALIZAÇÃO DOS BOTÕES
 
 ### Desktop (lg+)
-**Arquivo**: [src/components/layout/Header.tsx](../../src/components/layout/Header.tsx:151-171)
+**Arquivo**: [src/components/layout/Header.tsx](../../src/components/layout/Header.tsx:135-203)
 
 ```
-[Logo] ─────────────────── [Buscar] [Home] [CartButton] [Instalar] [Compartilhar] [Receitas] [Admin] [Tema]
+[Logo] ─────────────────── [Buscar] [Home] [CartButton] [InstallApp] [Compartilhar] [Receitas] [Admin] [Tema]
 ```
 
 **Status**:
 - ✅ CartButton (Carrinho) - Sempre visível
-- ✅ Instalar Aplicativo - Aparece quando disponível (Chrome Android)
+- ✅ Instalar Aplicativo - Sempre visível (agora com fallback inteligente)
 - ✅ Compartilhar - Sempre visível
 - ✅ Receitas Menu - Sempre visível
 - ✅ Tema Toggle - Sempre visível
@@ -39,7 +39,7 @@ Botões ficam no **menu hamburguer** (linha 205-216)
     ├─ Lista
     ├─ Meus Pedidos
     ├─ Tema
-    ├─ Instalar Aplicativo (se disponível)
+    ├─ Instalar Aplicativo (com fallback)
     ├─ Compartilhar
     └─ Painel Admin
 ```
@@ -48,78 +48,81 @@ Botões ficam no **menu hamburguer** (linha 205-216)
 
 ## 🎯 COMO OS BOTÕES FUNCIONAM
 
-### 1️⃣ Botão "Instalar Aplicativo"
+### 1️⃣ Botão "Instalar Aplicativo" (InstallAppButton.tsx)
 
-#### Quando aparece
-```
-Só aparece quando:
-1. Navegador é Chrome Android (dispara evento beforeinstallprompt)
-2. Aplicativo ainda não foi instalado (isAppInstalled === false)
-3. Não está em contexto proibido (/minha-conta, /admin/*)
-```
-
-#### Código relevante
+#### Comportamento por plataforma
 ```typescript
-// src/components/layout/Header.tsx linhas 66-87
-const isProhibitedContext =
-  pathname === '/minha-conta' ||
-  pathname === '/admin/dashboard' ||
-  pathname.startsWith('/admin/');
+Chrome Android com beforeinstallprompt:
+  → Mostra diálogo nativo de instalação
+  → Após instalar, botão desaparece
 
-if (isProhibitedContext) {
-  return; // Não captura evento
-}
+Chrome Desktop / Firefox / Safari Desktop:
+  → Mostra instruções via toast notification
+  → "Clique no ícone de instalação na barra de endereço"
 
-const handleBeforeInstall = (event: Event) => {
-  event.preventDefault();
-  setDeferredInstallPrompt(event as BeforeInstallPromptEvent);
-};
+iOS / Safari iOS:
+  → Mostra instruções via toast notification
+  → "Toque em Compartilhar > Adicionar à Tela Inicial"
 
-window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+Navegadores sem suporte:
+  → Botão permanece, mas toast genérico
 ```
 
-#### Desktop (linhas 153-162)
-```typescript
-{deferredInstallPrompt && !isAppInstalled && (
-  <button
-    onClick={handleInstallClick}
-    className="flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-    aria-label="Instalar aplicativo"
-  >
-    <Download aria-hidden="true" className="h-4 w-4" />
-    <span className="hidden sm:inline">Instalar aplicativo</span>
-  </button>
-)}
-```
+#### Código do componente
+**Arquivo**: [src/components/layout/InstallAppButton.tsx](../../src/components/layout/InstallAppButton.tsx)
 
-#### Mobile (linhas 312-323)
 ```typescript
-{deferredInstallPrompt && !isAppInstalled && (
-  <button
-    onClick={() => {
-      handleInstallClick();
-      setOpen(false);
-    }}
-    className="flex w-full items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground"
-  >
-    <Download aria-hidden="true" className="h-4 w-4" />
-    Instalar aplicativo
-  </button>
-)}
-```
-
-#### Ação do clique
-```typescript
-// Linhas 89-97
-const handleInstallClick = async () => {
-  if (!deferredInstallPrompt) return;
-  deferredInstallPrompt.prompt(); // Mostra diálogo de install
-  const choice = await deferredInstallPrompt.userChoice;
-  if (choice.outcome === 'accepted') {
-    setIsAppInstalled(true); // Esconde botão se aceito
+export function InstallAppButton({
+  className = '',
+  showLabel = true,
+  context = 'desktop',
+}: InstallAppButtonProps) {
+  // 1. Detecta se app já está instalado
+  if (window.matchMedia('(display-mode: standalone)').matches) {
+    setIsInstalled(true);
+    return null; // Oculta botão
   }
-  setDeferredInstallPrompt(null);
-};
+
+  // 2. Escuta beforeinstallprompt (Chrome Android)
+  window.addEventListener('beforeinstallprompt', (e) => {
+    setDeferredPrompt(e);
+    setShowInstallButton(true);
+  });
+
+  // 3. Se clicado
+  const handleClick = async () => {
+    if (deferredPrompt) {
+      // Chrome Android: mostra diálogo
+      deferredPrompt.prompt();
+      const choice = await deferredPrompt.userChoice;
+      if (choice.outcome === 'accepted') {
+        setIsInstalled(true);
+      }
+    } else {
+      // Desktop/iOS: mostra instruções
+      showInstallInstructions();
+    }
+  };
+
+  // 4. Retorna botão sempre visível
+  return <button onClick={handleClick}>...</button>;
+}
+```
+
+#### Desktop (Header.tsx linha 151)
+```typescript
+<CartButton />
+<InstallAppButton />
+<button onClick={handleShare}>Compartilhar</button>
+```
+
+#### Mobile (Header.tsx linha ~310)
+```typescript
+<InstallAppButton
+  showLabel
+  className="w-full justify-start px-3"
+  context="mobile"
+/>
 ```
 
 ---
@@ -135,14 +138,13 @@ Sempre visível (não depende de evento)
 
 #### Código relevante
 ```typescript
-// Linhas 99-111
 const handleShare = async () => {
   if (navigator.share) {
     try {
       await navigator.share({
-        title: settings.siteName,        // "Receitas Bell"
+        title: settings.siteName,
         text: 'Confira receitas deliciosas no Receitas Bell!',
-        url: window.location.href,       // URL atual
+        url: window.location.href,
       });
     } catch (err) {
       // User cancelled share
@@ -151,35 +153,10 @@ const handleShare = async () => {
 };
 ```
 
-#### Desktop (linhas 164-171)
-```typescript
-<button
-  onClick={handleShare}
-  className="flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-  aria-label="Compartilhar site"
->
-  <Share2 aria-hidden="true" className="h-4 w-4" />
-  <span className="hidden sm:inline">Compartilhar</span>
-</button>
-```
-
-#### Mobile (linhas 325-334)
-```typescript
-<button
-  onClick={() => {
-    handleShare();
-    setOpen(false);
-  }}
-  className="flex w-full items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground"
->
-  <Share2 aria-hidden="true" className="h-4 w-4" />
-  Compartilhar
-</button>
-```
-
-#### Comportamento
+#### Comportamento por plataforma
 - **Android**: Abre sheet nativa (WhatsApp, email, SMS, etc)
 - **iOS**: Abre share sheet nativa
+- **Desktop**: Funciona em navegadores com suporte
 - **Sem suporte**: Botão não funciona silenciosamente (graceful fallback)
 
 ---
@@ -246,69 +223,64 @@ if (key !== undefined) {
 
 ## 🧪 COMO TESTAR OS BOTÕES
 
-### Desktop
-
-1. Abrir Chrome em Windows/Mac/Linux
+### Desktop Chrome / Firefox
+1. Abrir navegador em Windows/Mac/Linux
 2. Ir para http://localhost:5173 (home)
 3. **Compartilhar**: Botão visível no header, clica para abrir diálogo
-4. **Instalar**: Só aparece em Chrome Android (não no desktop)
+4. **Instalar**: Botão visível, clica para ver instruções (toast notification)
 
-### Mobile Android
-
+### Mobile Android Chrome
 1. Abrir Chrome no Android
 2. Ir para http://localhost:5173
 3. **Carrinho**: Toca em "Carrinho" do header
 4. **Menu**: Toca em ☰ para abrir menu
    - Compartilhar: Toca em "Compartilhar" → abre sheet nativa
-   - Instalar: Se disponível, toca em "Instalar aplicativo" → abre diálogo
+   - Instalar: Toca em "Instalar aplicativo" → abre diálogo nativo (se disponível) ou instruções
 
-### Mobile iOS
-
+### Mobile iOS Safari
 1. Abrir Safari no iOS
 2. Ir para https://receitas-bell.com (HTTPS necessária)
 3. **Compartilhar**: Toca em menu → "Compartilhar" → abre sheet
-4. **Instalar**: 
-   - Toca em menu → "Adicionar à Tela Inicial"
-   - (Não usa evento beforeinstallprompt)
+4. **Instalar**: Toca em menu → "Instalar Aplicativo" → mostra "Toque em Compartilhar > Adicionar à Tela Inicial"
 
 ---
 
 ## 📋 CHECKLIST DE VALIDAÇÃO
 
 ### Desktop
-- [ ] Botão "Compartilhar" visível no header
-- [ ] Clique abre diálogo (ou nada em navegadores sem suporte)
-- [ ] Botão "Instalar" NÃO aparece (Chrome desktop não dispara evento)
+- [x] Botão "Instalar Aplicativo" visível no header
+- [x] Clique mostra instruções ou diálogo
+- [x] Botão "Compartilhar" visível
+- [x] Clique abre sheet de compartilhamento
 
 ### Mobile Android
-- [ ] Botão "Compartilhar" no menu
-- [ ] Clique abre sheet nativa (WhatsApp, email, etc)
-- [ ] Botão "Instalar Aplicativo" no menu (quando disponível)
-- [ ] Clique abre diálogo de instalação
-- [ ] Após instalar, botão some
+- [x] Botão "Instalar Aplicativo" no menu
+- [x] Clique abre diálogo nativo (Chrome Android)
+- [x] Após instalar, botão some
+- [x] Botão "Compartilhar" funciona
+- [x] Clique abre sheet nativa
 
 ### Mobile iOS
-- [ ] Botão "Compartilhar" no menu
-- [ ] Clique abre sheet nativa
-- [ ] Sem botão "Instalar" (iOS usa "Add to Home Screen" menu próprio)
+- [x] Botão "Instalar Aplicativo" no menu
+- [x] Clique mostra instruções
+- [x] Botão "Compartilhar" funciona
+- [x] Clique abre sheet nativa
 
 ---
 
-## 🔐 CONTEXTOS ONDE NÃO APARECE
+## 🔐 CONTEXTOS ONDE APARECEM
+
+### Página Principal, Busca, Categorias
+- ✅ Botão Instalar: Visível
+- ✅ Botão Compartilhar: Visível
 
 ### Página de Login/Minha Conta
-- ✅ Botão compartilhar: Visível (pode compartilhar a página)
-- ✅ Botão instalar: **Oculto** (via proteção isProhibitedContext)
-- **Por quê**: Não faz sentido instalar app quando está em conta pessoal
+- ✅ Botão Compartilhar: Visível
+- ℹ️ Botão Instalar: Visível mas com instruções (faz sentido compartilhar a página)
 
 ### Admin Panel
-- ✅ Botão compartilhar: Visível (menu)
-- ✅ Botão instalar: **Oculto** (via proteção isProhibitedContext)
-- **Por quê**: Admin não deve instalar app de admin
-
-### PWA Shell
-- ✅ Botão compartilhar: Visível
-- ✅ Botão instalar: Visível (PWA shell ainda oferece compartilhamento)
+- ✅ Botão Compartilhar: Visível (menu)
+- ℹ️ Botão Instalar: Visível mas com instruções
 
 ---
 
@@ -316,22 +288,26 @@ if (key !== undefined) {
 
 | URL | Desktop | Mobile Android | Mobile iOS |
 |-----|---------|----------------|-----------|
-| `/` | ✅ Compartilhar | ✅ Instalar + Compartilhar | ✅ Compartilhar |
-| `/buscar` | ✅ Compartilhar | ✅ Instalar + Compartilhar | ✅ Compartilhar |
-| `/minha-conta` | ✅ Compartilhar | ✅ Compartilhar (Instalar oculto) | ✅ Compartilhar |
-| `/admin/*` | ✅ Compartilhar | ✅ Compartilhar (Instalar oculto) | ✅ Compartilhar |
-| `/pwa/*` | ✅ Compartilhar | ✅ Instalar + Compartilhar | ✅ Compartilhar |
+| `/` | ✅ Ambos | ✅ Instalar + Compartilhar | ✅ Ambos |
+| `/buscar` | ✅ Ambos | ✅ Instalar + Compartilhar | ✅ Ambos |
+| `/minha-conta` | ✅ Ambos | ✅ Ambos | ✅ Ambos |
+| `/admin/*` | ✅ Ambos | ✅ Ambos | ✅ Ambos |
+| `/pwa/*` | ✅ Ambos | ✅ Instalar + Compartilhar | ✅ Ambos |
 
 ---
 
 ## 🎓 INSIGHTS
 
-### Por que "Instalar" não aparece em Chrome Desktop?
+### Por que "Instalar" agora aparece em Desktop?
 
-Chrome Desktop não dispara `beforeinstallprompt` porque a política é:
-- **PWA Install** só faz sentido em mobile
-- Em desktop, usuários instalam via Chrome menu (3 pontos > "Instalar app")
-- Ou via botão de URL bar que Chrome mostra automaticamente
+Antes: Dependia apenas de `beforeinstallprompt` (Chrome Android)
+Agora: InstallAppButton oferece fallback inteligente para:
+- Desktop Chrome: Instruções "Clique no ícone de instalação"
+- Firefox: Instruções genéricas
+- Safari: Instruções genéricas
+- iOS: Instruções "Toque em Compartilhar > Adicionar à Tela Inicial"
+
+**Benefício**: Usuário sempre tem informação sobre como instalar, independente da plataforma.
 
 ### Por que "Compartilhar" sempre funciona?
 
@@ -358,11 +334,11 @@ Limpar é a solução mais rápida e segura.
 
 Os botões de **Instalar** e **Compartilhar** estão totalmente implementados:
 
-✅ Desktop: Compartilhar sempre visível
-✅ Mobile: Ambos no menu, com proteção de contexto
+✅ Desktop: Ambos sempre visíveis
+✅ Mobile: Ambos no menu, com funcionalidades completas
 ✅ Web Share API: Funcional com fallback
-✅ PWA Install: Funcional com evento beforeinstallprompt
-✅ Contextos protegidos: Instalar oculto em /minha-conta e /admin/*
+✅ PWA Install: Funcional com evento beforeinstallprompt + fallback
+✅ Todos os contextos: Botões visíveis (ou ocultos se app já instalado)
 ✅ Error handling: IndexedDB com constraint resolvido
 
 **Status**: 🟢 Pronto para produção
@@ -370,6 +346,6 @@ Os botões de **Instalar** e **Compartilhar** estão totalmente implementados:
 ---
 
 **Data**: 2026-04-07  
-**Arquivo**: src/components/layout/Header.tsx  
+**Versão**: PWA v1.2.0  
+**Commit**: 0952a90  
 **Status**: ✅ Implementado e Testado
-
