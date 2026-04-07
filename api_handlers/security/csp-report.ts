@@ -31,6 +31,7 @@ export default withApiHandler(
     assertMethod(request, ['POST']);
     noStore(response);
 
+    const clientAddress = getClientAddress(request);
     let body: unknown = request.body ?? {};
     if (typeof request.body === 'string') {
       try {

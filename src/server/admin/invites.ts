@@ -49,7 +49,7 @@ export async function validateAdminInviteToken(
   token: string,
   options: { logger?: Logger } = {}
 ): Promise<ValidateInviteData> {
-  const logger = options.logger ?? new Logger('invite-validation');
+  const logger = options.logger ?? new Logger({ action: 'invite-validation' });
 
   if (!token || token.length < 10) {
     throw new ApiError(400, 'Token inválido');
@@ -162,11 +162,6 @@ export async function acceptAdminInvite(
         role: 'admin',
         status: 'active',
       });
-    } else if (user.status === 'inactive') {
-      // Reativar usuário se estava inativo
-      await updateUserPasswordCredentials({
-        userId: user.id,
-      });
     }
 
     // Hash da senha
@@ -218,7 +213,7 @@ export async function requestNewAdminInvite(
   reason?: string,
   options: { logger?: Logger } = {}
 ): Promise<{ success: boolean; message: string }> {
-  const logger = options.logger ?? new Logger('invite-request');
+  const logger = options.logger ?? new Logger({ action: 'invite-request' });
 
   try {
     // TODO: Implementar envio de e-mail via fila ou serviço de e-mail

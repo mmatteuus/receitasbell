@@ -7,7 +7,7 @@ import { countTenants, getTenantBySlug } from '../tenancy/repo.js';
 import { createTenantBootstrap } from '../tenancy/service.js';
 import { requireTenantFromRequest } from '../tenancy/resolver.js';
 import { getSession, createSession, revokeSession } from '../auth/sessions.js';
-import { auditLog } from '../audit/service.js';
+import { createAuditLog } from '../audit/service.js';
 import {
   assertStrongAdminPassword,
   hashAdminPassword,
@@ -209,14 +209,11 @@ export async function loginAdmin(
     role,
   });
 
-  await auditLog({
-    tenantId: String(tenant.id),
-    actorType: 'admin',
-    actorId: String(user.id),
+  await createAuditLog({
+    organization_id: String(tenant.id),
+    user_id: String(user.id),
     action: 'admin.login',
-    resourceType: 'session',
-    resourceId: String(user.id),
-    payload: { email: user.email, role },
+    metadata: { email: user.email, role },
   });
 
   return formatAdminSessionResponse({
@@ -269,14 +266,11 @@ export async function bootstrapTenantAdmin(
     role: 'owner',
   });
 
-  await auditLog({
-    tenantId: String(tenant.id),
-    actorType: 'system',
-    actorId: 'bootstrap-owner',
+  await createAuditLog({
+    organization_id: String(tenant.id),
+    user_id: String(adminUser.id),
     action: 'admin.bootstrap',
-    resourceType: 'tenant',
-    resourceId: String(tenant.id),
-    payload: {
+    metadata: {
       tenantSlug: tenant.slug,
       adminEmail: adminUser.email,
       role: 'owner',

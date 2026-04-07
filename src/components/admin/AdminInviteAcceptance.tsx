@@ -19,9 +19,9 @@ export interface AdminInviteAcceptanceProps {
 }
 
 export function AdminInviteAcceptance({ token, onSuccess }: AdminInviteAcceptanceProps) {
-  const [inviteStatus, setInviteStatus] = useState<InviteStatus>("loading");
+  const [inviteStatus, setInviteStatus] = useState<InviteStatus>("invalid");
   const [inviteData, setInviteData] = useState<ValidateInviteResponse | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
