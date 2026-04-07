@@ -196,14 +196,6 @@ export function StripeConnectCard({
           </div>
         )}
 
-        <div className="mt-2 border-t border-dashed pt-4">
-          <div className="flex items-center justify-between text-[10px] text-muted-foreground group cursor-default">
-            <span>Webhook URL</span>
-            <code className="rounded bg-muted px-2 py-1 font-mono text-[9px] group-hover:bg-primary/5 group-hover:text-primary transition-colors">
-              {settings?.webhookUrl || "/api/payments/webhooks/stripe"}
-            </code>
-          </div>
-        </div>
       </CardContent>
     </Card>
   );
