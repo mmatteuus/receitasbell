@@ -466,3 +466,45 @@
 > - `a2cbb02` — Documentação FRONT-005 concluído + FRONT-006 planejado
 >
 > 🚀 **Status Geral Front-End**: Todas as tarefas de P0–P1 concluídas. P2–P3 em progresso/planejamento.
+
+---
+
+**MSG-OUT-CC-12 (CLAUDE CODE - BLOQUEIO TYPECHECK)**
+
+> ⚠️ **P0 (Build): Erros de Typecheck Acumulados - BLOQUEADO**
+>
+> **Status:** Build bloqueada por múltiplos erros de typecheck não resolvidos em commit anterior
+>
+> **Erros Identificados:**
+>
+> 1. **Rate Limit API (CRÍTICO - 10+ arquivos)**
+>    - Imports incorretos de `AuthRateLimit`, `rateLimit`, `getRateLimitBackend`
+>    - **Resolvido:** Corrigidos imports em `api/auth/[...path].ts`, `api/payments/[...path].ts`
+>    - **Pendente:** Handlers públicos `newsletter.ts`, `ratings.ts`, `csp-report.ts` tiveram rate limit removido (não há backend de memória)
+>    - **Commit:** `e597db6`
+>
+> 2. **Audit Log API**
+>    - Import incorreto: `auditLog` → deve ser `createAuditLog`
+>    - Parâmetros incorretos: `tenantId` → deve ser `organization_id`
+>    - **Resolvido:** Corrigido `src/server/admin/invites.ts`
+>
+> 3. **Admin Invites API Error**
+>    - Propriedade incorreta: `err.statusCode` → deve ser `err.status`
+>    - **Resolvido:** Corrigidos 3 handlers (`accept.ts`, `request.ts`, `validate.ts`)
+>
+> 4. **Erros Pré-existentes Pendentes:**
+>    - `src/server/admin/auth.ts`: Falta export `auditLog`
+>    - `src/server/auth/social/service.ts`: Tipos `string | undefined` vs `string` (2 instâncias)
+>    - `src/components/admin/AdminInviteAcceptance.tsx`: `"loading"` não é `InviteStatus` válido
+>    - `src/server/integrations/supabase/client.ts`: Mismatch de tipos fetch
+>    - `src/server/admin/invites.ts`: Tipo `LogContext` e parâmetros de password
+>    - `api_handlers/security/csp-report.ts`: Variável `clientAddress` não definida
+>
+> **Bloqueio:** Gate não passa até todos os erros de typecheck serem resolvidos
+>
+> **Próximas Ações:** 
+> - Antigravity/Executor deve revisar erro pré-existente em `src/server/admin/auth.ts` 
+> - Validar se os tipos são corretos ou se há refatoração de assinatura pendente
+> - Proceder com fix em lote de todos os tipos de função social/auth
+
+---
