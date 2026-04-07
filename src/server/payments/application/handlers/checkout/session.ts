@@ -12,6 +12,17 @@ function detectPaymentMode(secretKey: string | undefined) {
   return secretKey?.startsWith('sk_live_') ? 'production' : 'sandbox';
 }
 
+function normalizeEmail(value: string | undefined) {
+  return value?.trim().toLowerCase() || '';
+}
+
+function isUuid(value: string | undefined): value is string {
+  if (!value) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value
+  );
+}
+
 export default withApiHandler(async (req: VercelRequest, res: VercelResponse, { logger }) => {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
@@ -27,11 +38,13 @@ export default withApiHandler(async (req: VercelRequest, res: VercelResponse, { 
     payerName?: string;
     checkoutReference?: string;
   }>(req);
-  const recipeSlug = body.recipeSlug;
-  const userId = body.userId || body.payerEmail;
 
-  if (!recipeSlug || !userId) {
-    res.status(400).json({ error: 'Missing required parameters (recipeSlug, payerEmail/userId)' });
+  const recipeSlug = body.recipeSlug;
+  const payerEmail = normalizeEmail(body.payerEmail);
+  const persistedUserId = isUuid(body.userId) ? body.userId : null;
+
+  if (!recipeSlug || !payerEmail) {
+    res.status(400).json({ error: 'Missing required parameters (recipeSlug, payerEmail)' });
     return;
   }
 
@@ -58,7 +71,7 @@ export default withApiHandler(async (req: VercelRequest, res: VercelResponse, { 
   const amountCents = Math.round(recipe.priceBRL * 100);
 
   const order = await createPaymentOrder(tenant.id, {
-    userId,
+    userId: persistedUserId,
     recipeIds: [recipe.id],
     amount: amountCents,
     currency: 'BRL',
@@ -66,7 +79,7 @@ export default withApiHandler(async (req: VercelRequest, res: VercelResponse, { 
     provider: 'stripe',
     externalReference: orderId,
     idempotencyKey: orderId,
-    payerEmail: userId,
+    payerEmail,
     paymentMethod: 'stripe_checkout',
     items: [
       {
@@ -84,6 +97,7 @@ export default withApiHandler(async (req: VercelRequest, res: VercelResponse, { 
 
   const session = await stripeClient.checkout.sessions.create({
     payment_method_types: ['card', 'pix'],
+    customer_email: payerEmail,
     line_items: [
       {
         price_data: {
@@ -110,7 +124,8 @@ export default withApiHandler(async (req: VercelRequest, res: VercelResponse, { 
     },
     metadata: {
       tenantId: tenant.id,
-      userId,
+      userId: persistedUserId || '',
+      payerEmail,
       payerName: body.payerName || '',
       recipeId: recipe.id,
       orderId: order.id,
@@ -119,6 +134,20 @@ export default withApiHandler(async (req: VercelRequest, res: VercelResponse, { 
 
   await updatePaymentOrderInternal(tenant.id, order.id, {
     providerPaymentId: session.id,
+    metadata: {
+      ...(order.metadata || {}),
+      payerEmail,
+      payerName: body.payerName || '',
+      userId: persistedUserId || '',
+      sessionId: session.id,
+    },
+  });
+
+  logger.info('stripe.checkout.session_created', {
+    tenantId: tenant.id,
+    paymentOrderId: order.id,
+    recipeId: recipe.id,
+    stripeSessionId: session.id,
   });
 
   res.status(200).json({

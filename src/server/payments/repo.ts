@@ -13,7 +13,7 @@ import {
 } from '../identity/entitlements.repo.js';
 import { listRecipes } from '../recipes/repo.js';
 import { ApiError } from '../shared/http.js';
-import { supabase, supabaseAdmin } from '../integrations/supabase/client.js';
+import { supabaseAdmin } from '../integrations/supabase/client.js';
 
 export type PaymentStatus =
   | 'created'
@@ -40,6 +40,13 @@ export type PaymentListFilters = {
   to?: string;
 };
 
+type PaymentMetadata = Record<string, unknown> & {
+  payerEmail?: string;
+  payerName?: string;
+  userId?: string;
+  sessionId?: string;
+};
+
 export interface PaymentRecord {
   id: string;
   tenantId: string;
@@ -55,10 +62,11 @@ export interface PaymentRecord {
   payerEmail: string;
   paymentMethod: string;
   provider: string;
-  providerPaymentMethodId?: string | null;
-  providerPaymentTypeId?: string | null;
   recipeIds: string[];
   items: CartItem[];
+  metadata?: PaymentMetadata | null;
+  providerEventId?: string | null;
+  providerMetadata?: Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -67,23 +75,37 @@ type PaymentOrderRow = {
   id: string;
   tenant_id: string | number;
   user_id?: string | null;
-  amount: number | string;
+  amount_cents?: number | string | null;
   currency: string;
   status: string;
-  external_reference?: string;
+  external_reference?: string | null;
   provider_payment_id?: string | null;
   mp_payment_id?: string | null;
   preference_id?: string | null;
   idempotency_key?: string | null;
-  payer_email: string;
   payment_method?: string | null;
   provider?: string | null;
-  provider_payment_method_id?: string | null;
-  provider_payment_type_id?: string | null;
-  recipe_ids?: string[];
-  items?: CartItem[];
+  recipe_ids?: string[] | null;
+  items?: CartItem[] | null;
+  metadata?: Record<string, unknown> | null;
+  provider_event_id?: string | null;
+  provider_metadata_json?: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
+};
+
+type PaymentEventRow = {
+  id: string;
+  payment_order_id: string | null;
+  event_type: string;
+  payload?: Record<string, unknown> | null;
+  created_at: string;
+};
+
+type PaymentOrderUpdates = Partial<PaymentRecord> & {
+  providerEventId?: string | null;
+  providerMetadata?: Record<string, unknown> | null;
+  metadata?: PaymentMetadata | null;
 };
 
 export interface PaymentDetailRecord {
@@ -110,42 +132,43 @@ export async function createPaymentOrder(
     items: CartItem[];
   }
 ): Promise<PaymentRecord> {
+  const normalizedEmail = input.payerEmail.toLowerCase().trim();
+
   const { data, error } = await supabaseAdmin
     .from('payment_orders')
     .insert({
       tenant_id: tenantId,
       user_id: input.userId || null,
-      amount: input.amount,
+      amount_cents: input.amount,
       currency: input.currency || 'BRL',
       status: input.status,
       external_reference: input.externalReference,
       idempotency_key: input.idempotencyKey,
-      payer_email: input.payerEmail.toLowerCase().trim(),
       payment_method: input.paymentMethod,
       provider: input.provider || 'stripe',
       recipe_ids: input.recipeIds,
       items: input.items,
+      metadata: {
+        payerEmail: normalizedEmail,
+        userId: input.userId || '',
+      },
     })
     .select()
     .single();
 
   if (error) throw new ApiError(500, 'Erro ao criar pedido de pagamento', { original: error });
-  return mapRowToPayment(data);
+  return mapRowToPayment(data as PaymentOrderRow);
 }
 
 export async function getPaymentOrderById(
   tenantId: string,
   id: string
 ): Promise<PaymentRecord | null> {
-  const { data, error } = await supabaseAdmin
-    .from('payment_orders')
-    .select('*')
-    .eq('id', id)
-    .single();
+  const { data, error } = await supabaseAdmin.from('payment_orders').select('*').eq('id', id).single();
 
   if (error || !data) return null;
   if (String(data.tenant_id) !== String(tenantId)) return null;
-  return mapRowToPayment(data);
+  return mapRowToPayment(data as PaymentOrderRow);
 }
 
 export async function getPaymentOrderByExternalReference(
@@ -160,7 +183,7 @@ export async function getPaymentOrderByExternalReference(
     .maybeSingle();
 
   if (error || !data) return null;
-  return mapRowToPayment(data);
+  return mapRowToPayment(data as PaymentOrderRow);
 }
 
 export async function findPaymentOrderByIdempotencyKey(
@@ -175,30 +198,27 @@ export async function findPaymentOrderByIdempotencyKey(
     .maybeSingle();
 
   if (error || !data) return null;
-  return mapRowToPayment(data);
+  return mapRowToPayment(data as PaymentOrderRow);
 }
 
 export async function updatePaymentOrderStatus(
   tenantId: string,
   id: string,
   status: string,
-  mpPaymentId?: string,
-  mpDetails?: { methodId?: string; typeId?: string }
+  mpPaymentId?: string
 ): Promise<void> {
   await updatePaymentOrderInternal(tenantId, id, {
     status: status as PaymentStatus,
     providerPaymentId: mpPaymentId,
-    providerPaymentMethodId: mpDetails?.methodId,
-    providerPaymentTypeId: mpDetails?.typeId,
   });
 }
 
 export async function updatePaymentOrderInternal(
   tenantId: string,
   id: string,
-  updates: Partial<PaymentRecord>
+  updates: PaymentOrderUpdates
 ): Promise<void> {
-  const rowUpdates: Partial<PaymentOrderRow> = {
+  const rowUpdates: Record<string, unknown> = {
     updated_at: new Date().toISOString(),
   };
 
@@ -206,10 +226,9 @@ export async function updatePaymentOrderInternal(
   if (updates.providerPaymentId) rowUpdates.provider_payment_id = updates.providerPaymentId;
   if (updates.mpPaymentId) rowUpdates.mp_payment_id = updates.mpPaymentId;
   if (updates.preferenceId) rowUpdates.preference_id = updates.preferenceId;
-  if (updates.providerPaymentMethodId)
-    rowUpdates.provider_payment_method_id = updates.providerPaymentMethodId;
-  if (updates.providerPaymentTypeId)
-    rowUpdates.provider_payment_type_id = updates.providerPaymentTypeId;
+  if (updates.providerEventId !== undefined) rowUpdates.provider_event_id = updates.providerEventId;
+  if (updates.providerMetadata !== undefined) rowUpdates.provider_metadata_json = updates.providerMetadata;
+  if (updates.metadata !== undefined) rowUpdates.metadata = updates.metadata;
 
   const { error } = await supabaseAdmin
     .from('payment_orders')
@@ -254,10 +273,6 @@ export async function listPayments(
     .eq('tenant_id', tenantId)
     .order('created_at', { ascending: false });
 
-  if (filters.email) {
-    query = query.ilike('payer_email', `%${filters.email}%`);
-  }
-
   if (filters.status && filters.status.length > 0) {
     query = query.in('status', filters.status);
   }
@@ -265,19 +280,17 @@ export async function listPayments(
   const { data, error } = await query;
   if (error) throw error;
 
-  const orders = (data || []).map(mapRowToPayment);
-  const recipeIndex = await buildRecipeIndex(tenantId, orders);
+  const orders = (data || []).map((row) => mapRowToPayment(row as PaymentOrderRow));
 
   return orders
-    .map((order) => mapPaymentRecordToAdminPayment(order, recipeIndex))
+    .map((order) => mapPaymentRecordToAdminPayment(order))
     .filter((payment) => matchesPaymentFilters(payment, filters));
 }
 
 export async function getPaymentById(tenantId: string, id: string): Promise<AdminPayment | null> {
   const order = await getPaymentOrderById(tenantId, id);
   if (!order) return null;
-  const recipeIndex = await buildRecipeIndex(tenantId, [order]);
-  return mapPaymentRecordToAdminPayment(order, recipeIndex);
+  return mapPaymentRecordToAdminPayment(order);
 }
 
 export async function getPaymentDetailById(
@@ -288,19 +301,20 @@ export async function getPaymentDetailById(
   if (!order) return null;
 
   const recipeIndex = await buildRecipeIndex(tenantId, [order]);
-  const [notes, entitlements] = await Promise.all([
+  const [notes, entitlements, events] = await Promise.all([
     listPaymentNotes(tenantId, order.id),
-    listEntitlementsByEmail(tenantId, order.payerEmail),
+    order.payerEmail ? listEntitlementsByEmail(tenantId, order.payerEmail) : Promise.resolve([]),
+    listPaymentEvents(tenantId, order.id),
   ]);
 
-  const payment = mapPaymentRecordToAdminPayment(order, recipeIndex);
+  const payment = mapPaymentRecordToAdminPayment(order);
   const recipes = order.recipeIds
     .map((recipeId) => recipeIndex.get(String(recipeId)))
     .filter((recipe): recipe is RecipeRecord => Boolean(recipe));
 
   return {
     payment,
-    events: [], // Eventos podem ser carregados dinamicamente do MP se necessário, ou de uma tabela audit_logs
+    events,
     notes,
     recipes,
     entitlements: entitlements
@@ -315,6 +329,28 @@ type AuditLogRow = {
   payload?: Record<string, unknown> | null;
   created_at: string;
 };
+
+async function listPaymentEvents(tenantId: string, paymentId: string): Promise<PaymentEvent[]> {
+  const { data, error } = await supabaseAdmin
+    .from('payment_events')
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .eq('payment_order_id', String(paymentId))
+    .order('created_at', { ascending: false });
+
+  if (error) return [];
+
+  return (data || []).map((row) => {
+    const eventRow = row as PaymentEventRow;
+    return {
+      id: String(eventRow.id),
+      paymentId: String(eventRow.payment_order_id || paymentId),
+      type: String(eventRow.event_type),
+      date_created: eventRow.created_at,
+      payload_json: (eventRow.payload || null) as Record<string, unknown> | null,
+    };
+  });
+}
 
 async function listPaymentNotes(tenantId: string, paymentId: string): Promise<PaymentNote[]> {
   const { data, error } = await supabaseAdmin
@@ -394,11 +430,15 @@ async function buildRecipeIndex(
 }
 
 function mapRowToPayment(row: PaymentOrderRow): PaymentRecord {
+  const metadata = normalizeMetadata(row.metadata);
+  const payerEmail = readString(metadata.payerEmail);
+  const amountCents = Number(row.amount_cents ?? 0);
+
   return {
     id: row.id,
     tenantId: String(row.tenant_id),
     userId: row.user_id ? String(row.user_id) : null,
-    amount: Number(row.amount),
+    amount: Number.isFinite(amountCents) ? amountCents : 0,
     currency: row.currency,
     status: row.status as PaymentStatus,
     externalReference: row.external_reference || '',
@@ -406,32 +446,33 @@ function mapRowToPayment(row: PaymentOrderRow): PaymentRecord {
     mpPaymentId: row.mp_payment_id || '',
     preferenceId: row.preference_id || '',
     idempotencyKey: row.idempotency_key || '',
-    payerEmail: row.payer_email,
+    payerEmail,
     paymentMethod: row.payment_method || '',
     provider: row.provider || 'stripe',
-    providerPaymentMethodId: row.provider_payment_method_id,
-    providerPaymentTypeId: row.provider_payment_type_id,
-    recipeIds: row.recipe_ids || [],
-    items: row.items || [],
+    recipeIds: Array.isArray(row.recipe_ids) ? row.recipe_ids.map(String) : [],
+    items: Array.isArray(row.items) ? row.items : [],
+    metadata,
+    providerEventId: row.provider_event_id || null,
+    providerMetadata: row.provider_metadata_json || null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
 }
 
-function mapPaymentRecordToAdminPayment(
-  payment: PaymentRecord,
-  recipeIndex: Map<string, RecipeRecord>
-): AdminPayment {
+function mapPaymentRecordToAdminPayment(payment: PaymentRecord): AdminPayment {
   const status = normalizeAppPaymentStatus(payment.status);
+  const payerEmail = payment.payerEmail || readString(payment.metadata?.payerEmail);
+  const payerName = readString(payment.metadata?.payerName) || (payerEmail ? payerEmail.split('@')[0] : 'cliente');
+
   return {
     id: String(payment.id),
     paymentIdGateway: payment.providerPaymentId || payment.mpPaymentId || '',
     gateway: payment.provider === 'mock' ? 'mock' : 'stripe',
     recipeIds: payment.recipeIds.map(String),
-    totalBRL: payment.amount,
-    payerName: payment.payerEmail.split('@')[0],
-    payerEmail: payment.payerEmail,
-    payer: { email: payment.payerEmail },
+    totalBRL: Number((payment.amount / 100).toFixed(2)),
+    payerName,
+    payerEmail,
+    payer: { email: payerEmail },
     status,
     statusDetail: '',
     paymentMethod: payment.paymentMethod || 'pending',
@@ -445,7 +486,7 @@ function mapPaymentRecordToAdminPayment(
     paymentType: payment.paymentMethod || null,
     paymentMethodKey: payment.paymentMethod,
     checkoutReference: payment.externalReference || null,
-    webhookReceivedAt: null,
+    webhookReceivedAt: payment.providerEventId ? payment.updatedAt : null,
   };
 }
 
@@ -486,5 +527,34 @@ function mapEntitlementToAppEntitlement(entitlement: ServerEntitlement): AppEnti
 
 function matchesPaymentFilters(payment: AdminPayment, filters: PaymentListFilters) {
   if (filters.paymentId && !String(payment.id).includes(filters.paymentId)) return false;
+  if (filters.paymentIdGateway && !String(payment.paymentIdGateway).includes(filters.paymentIdGateway)) {
+    return false;
+  }
+  if (filters.externalReference && !String(payment.checkoutReference || '').includes(filters.externalReference)) {
+    return false;
+  }
+  if (filters.email && !String(payment.payerEmail || '').toLowerCase().includes(filters.email.toLowerCase())) {
+    return false;
+  }
+
+  const from = filters.dateFrom || filters.from;
+  const to = filters.dateTo || filters.to;
+  if (from) {
+    const fromTime = new Date(from).getTime();
+    if (!Number.isNaN(fromTime) && new Date(payment.createdAt).getTime() < fromTime) return false;
+  }
+  if (to) {
+    const toTime = new Date(to).getTime();
+    if (!Number.isNaN(toTime) && new Date(payment.createdAt).getTime() > toTime) return false;
+  }
+
   return true;
+}
+
+function normalizeMetadata(value: Record<string, unknown> | null | undefined): PaymentMetadata {
+  return value && typeof value === 'object' ? (value as PaymentMetadata) : {};
+}
+
+function readString(value: unknown) {
+  return typeof value === 'string' ? value.trim() : '';
 }

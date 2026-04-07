@@ -4,9 +4,55 @@ import { stripeClient } from '../../../providers/stripe/client.js';
 import type Stripe from 'stripe';
 import { env } from '../../../../shared/env.js';
 import { supabaseAdmin } from '../../../../integrations/supabase/client.js';
-import { updatePaymentOrderStatus, getPaymentOrderById } from '../../../repo.js';
+import {
+  updatePaymentOrderInternal,
+  updatePaymentOrderStatus,
+  getPaymentOrderById,
+} from '../../../repo.js';
 import { upsertConnectAccount } from '../../../repo/accounts.js';
 import type { Logger } from '../../../../shared/logger.js';
+
+function normalizeEmail(value: string | undefined | null) {
+  return value?.trim().toLowerCase() || '';
+}
+
+async function hasProcessedStripeEvent(tenantId: string, orderId: string, eventId: string) {
+  const { data, error } = await supabaseAdmin
+    .from('payment_events')
+    .select('payload')
+    .eq('tenant_id', tenantId)
+    .eq('payment_order_id', orderId);
+
+  if (error || !data) return false;
+
+  return data.some((row) => {
+    const payload = row.payload;
+    return payload && typeof payload === 'object' && payload.eventId === eventId;
+  });
+}
+
+async function recordStripeEvent(
+  tenantId: string,
+  orderId: string,
+  event: Stripe.Event,
+  session: Stripe.Checkout.Session
+) {
+  const { error } = await supabaseAdmin.from('payment_events').insert({
+    tenant_id: tenantId,
+    payment_order_id: orderId,
+    event_type: event.type,
+    payload: {
+      eventId: event.id,
+      livemode: event.livemode,
+      sessionId: session.id,
+      paymentStatus: session.payment_status || null,
+    },
+  });
+
+  if (error) {
+    throw error;
+  }
+}
 
 async function grantEntitlementsFromOrder(
   tenantId: string,
@@ -16,28 +62,57 @@ async function grantEntitlementsFromOrder(
 ) {
   if (!order?.recipeIds || order.recipeIds.length === 0) return;
 
-  const providerPaymentId = (session.payment_intent as string) || session.id;
-  const entitlements = order.recipeIds.map((recipeId) => ({
-    tenant_id: tenantId,
-    user_id: order.userId || order.payerEmail,
-    recipe_id: recipeId,
-    amount_paid: Number((order.amount / 100).toFixed(2)),
-    provider: 'stripe',
-    provider_payment_id: providerPaymentId,
-    payment_order_id: order.id,
-  }));
+  const accessIdentity =
+    normalizeEmail(order.payerEmail) ||
+    normalizeEmail(session.customer_details?.email) ||
+    normalizeEmail(session.customer_email) ||
+    normalizeEmail(session.metadata?.payerEmail) ||
+    (order.userId ? String(order.userId) : '');
 
-  const { error: entError } = await supabaseAdmin
-    .from('recipe_purchases')
-    .upsert(entitlements, { onConflict: 'user_id,recipe_id' });
+  if (!accessIdentity) {
+    logger.warn('stripe.webhook.entitlements_missing_identity', {
+      paymentOrderId: order?.id || null,
+      sessionId: session.id,
+    });
+    return;
+  }
 
-  if (entError) {
-    logger.error('stripe.webhook.entitlements_failed', entError);
+  for (const recipeId of order.recipeIds) {
+    const { data: existing, error: existingError } = await supabaseAdmin
+      .from('entitlements')
+      .select('id')
+      .eq('tenant_id', tenantId)
+      .eq('payment_order_id', order.id)
+      .eq('user_id', accessIdentity)
+      .eq('recipe_id', recipeId)
+      .maybeSingle();
+
+    if (existingError) {
+      logger.error('stripe.webhook.entitlement_lookup_failed', existingError);
+      throw existingError;
+    }
+
+    if (existing?.id) {
+      continue;
+    }
+
+    const { error: insertError } = await supabaseAdmin.from('entitlements').insert({
+      tenant_id: tenantId,
+      user_id: accessIdentity,
+      recipe_id: recipeId,
+      payment_order_id: order.id,
+    });
+
+    if (insertError) {
+      logger.error('stripe.webhook.entitlement_insert_failed', insertError);
+      throw insertError;
+    }
   }
 }
 
 async function processCheckoutSessionEvent(
   session: Stripe.Checkout.Session,
+  event: Stripe.Event,
   options: { expectedPaid: boolean; statusIfNotPaid?: 'failed' | 'pending' },
   logger: Logger
 ) {
@@ -64,40 +139,78 @@ async function processCheckoutSessionEvent(
     return;
   }
 
+  if (await hasProcessedStripeEvent(tenantId, orderId, event.id)) {
+    logger.debug('stripe.webhook.duplicate_event_ignored', {
+      tenantId,
+      paymentOrderId: orderId,
+      providerEventId: event.id,
+    });
+    return;
+  }
+
   const scopedLogger = logger.withContext({
     tenantId,
     paymentOrderId: orderId,
     providerPaymentId,
   });
 
+  const baseUpdate = {
+    providerPaymentId,
+    providerEventId: event.id,
+    providerMetadata: {
+      eventId: event.id,
+      eventType: event.type,
+      paymentStatus: session.payment_status || null,
+      sessionId: session.id,
+    },
+  };
+
   if (!options.expectedPaid) {
     if (options.statusIfNotPaid && order.status !== options.statusIfNotPaid) {
-      await updatePaymentOrderStatus(tenantId, orderId, options.statusIfNotPaid);
+      await updatePaymentOrderInternal(tenantId, orderId, {
+        ...baseUpdate,
+        status: options.statusIfNotPaid,
+      });
       scopedLogger.debug('stripe.webhook.status_updated', {
         status: options.statusIfNotPaid,
       });
+    } else {
+      await updatePaymentOrderInternal(tenantId, orderId, baseUpdate);
     }
+
+    await recordStripeEvent(tenantId, orderId, event, session);
     return;
   }
 
   if (session.payment_status !== 'paid') {
     if (options.statusIfNotPaid && order.status !== options.statusIfNotPaid) {
-      await updatePaymentOrderStatus(tenantId, orderId, options.statusIfNotPaid);
+      await updatePaymentOrderInternal(tenantId, orderId, {
+        ...baseUpdate,
+        status: options.statusIfNotPaid,
+      });
       scopedLogger.debug('stripe.webhook.status_updated', {
         status: options.statusIfNotPaid,
       });
+    } else {
+      await updatePaymentOrderInternal(tenantId, orderId, baseUpdate);
     }
+
+    await recordStripeEvent(tenantId, orderId, event, session);
     return;
   }
 
   if (order.status !== 'approved') {
     await updatePaymentOrderStatus(tenantId, orderId, 'approved', providerPaymentId);
+    await updatePaymentOrderInternal(tenantId, orderId, baseUpdate);
     scopedLogger.debug('stripe.webhook.status_updated', {
       status: 'approved',
     });
+  } else {
+    await updatePaymentOrderInternal(tenantId, orderId, baseUpdate);
   }
 
   await grantEntitlementsFromOrder(tenantId, session, order, scopedLogger);
+  await recordStripeEvent(tenantId, orderId, event, session);
 }
 
 export default withApiHandler(async (req: VercelRequest, res: VercelResponse, { logger }) => {
@@ -159,12 +272,12 @@ export default withApiHandler(async (req: VercelRequest, res: VercelResponse, { 
     livemode: event.livemode,
   });
 
-  // 1. Evento de Checkout (venda de receitas)
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session;
     try {
       await processCheckoutSessionEvent(
         session,
+        event,
         { expectedPaid: true, statusIfNotPaid: 'pending' },
         eventLogger
       );
@@ -177,7 +290,7 @@ export default withApiHandler(async (req: VercelRequest, res: VercelResponse, { 
   if (event.type === 'checkout.session.async_payment_succeeded') {
     const session = event.data.object as Stripe.Checkout.Session;
     try {
-      await processCheckoutSessionEvent(session, { expectedPaid: true }, eventLogger);
+      await processCheckoutSessionEvent(session, event, { expectedPaid: true }, eventLogger);
     } catch (error: unknown) {
       eventLogger.error('stripe.webhook.checkout_failed', error);
       throw error;
@@ -189,6 +302,7 @@ export default withApiHandler(async (req: VercelRequest, res: VercelResponse, { 
     try {
       await processCheckoutSessionEvent(
         session,
+        event,
         { expectedPaid: false, statusIfNotPaid: 'failed' },
         eventLogger
       );
@@ -198,7 +312,6 @@ export default withApiHandler(async (req: VercelRequest, res: VercelResponse, { 
     }
   }
 
-  // 2. Evento de Connect (onboarding de vendedores)
   if (event.type === 'account.updated') {
     const account = event.data.object as Stripe.Account;
     const tenantId = account.metadata?.tenantId;
