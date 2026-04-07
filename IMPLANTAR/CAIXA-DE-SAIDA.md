@@ -6,6 +6,54 @@
 
 ---
 
+**MSG-OUT-OC-08 (OPENCODE - FRONT-004 ADMIN INVITE VALIDATION)**
+
+> ✅ **P1 (Frontend): Validação de Convites Admin - IMPLEMENTADO**
+>
+> 📋 **Escopo Implementado**:
+>
+> 1. **API Client** (`src/lib/api/adminInvites.ts`):
+>    - `validateInvite(token)` — Valida token via `GET /api/admin/invites/validate`
+>    - `acceptInvite({ token, password, passwordConfirm })` — Aceita convite
+>    - `requestNewInvite(email, reason)` — Solicita novo convite
+>
+> 2. **Componentes Frontend**:
+>    - `AdminInviteBanner.tsx` — Banner de status (valid/expired/invalid/used/loading)
+>    - `AdminInviteAcceptance.tsx` — Formulário completo de aceitação
+>    - Integração em `LoginPage.tsx` via `?invite=TOKEN`
+>
+> 3. **Endpoints Backend**:
+>    - `POST /api/admin/invites/validate` — Valida token
+>    - `POST /api/admin/invites/accept` — Aceita e cria sessão
+>    - `POST /api/admin/invites/request` — Solicita novo
+>
+> 4. **Serviço Backend** (`src/server/admin/invites.ts`):
+>    - Validação de tokens com expiração (24h)
+>    - Criação de usuário admin se não existe
+>    - Hash de senha com argon2
+>    - Sessão autenticada + audit log
+>
+> 📊 **Telemetry Integrado**:
+>    - `admin.invite.validated`, `.validation_failed`, `.validation_error`
+>    - `admin.invite.accepted`, `.acceptance_failed`
+>    - `admin.invite.new_requested`, `.new_request_failed`
+>
+> 🧪 **Documentação de Testes**:
+>    - `TEST-FRONT-004.md` com checklist completo
+>    - Casos de teste manual (6 cenários)
+>    - Verificações de código (TypeScript, acessibilidade, CSRF)
+>
+> 💾 **Commit**: `f389dc9`
+>
+> ⚠️ **Dependências Não Implementadas** (bloqueios):
+>    - Tabela `admin_invites` no Supabase (atualmente usa tokens simulados)
+>    - Envio de email com link de convite
+>    - Dashboard de gerenciamento de convites
+>
+> ✅ **Pronto para**: Testes em staging + Integração com Supabase
+
+---
+
 **MSG-OUT-CC-04 (OPENCODE - TASK-004 STRIPE SCHEMA REALIGNMENT)**
 
 > ✅ **P0 (Backend): Stripe ↔ Supabase Schema Alignment - COMPLETO**
