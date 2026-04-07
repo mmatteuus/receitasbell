@@ -508,3 +508,35 @@
 > - Proceder com fix em lote de todos os tipos de função social/auth
 
 ---
+
+---
+
+**MSG-OUT-CC-13 (CLAUDE CODE - PROGRESSO TYPECHECK)**
+
+> ⚠️ **P0 (Build): Typecheck - 5 Erros Pendentes**
+>
+> **Status:** Erros reduzidos de 10+ para 5 através de correções de imports e tipos
+>
+> **Erros Corrigidos (4):**
+> - ✅ Rate Limit imports em 8 arquivos (authRateLimit, checkRateLimit)
+> - ✅ Audit Log: importado createAuditLog, corrigido em 2 handlers
+> - ✅ API Error: statusCode → status (3 handlers admin/invites)
+> - ✅ Logger: constructor recebe LogContext object, não string
+>
+> **Erros Restantes (5):**
+> 1. `src/server/auth/social/service.ts(249,5)`: Tipo `string | undefined` vs `string`
+> 2. `src/server/auth/social/service.ts(260,5)`: Tipo `string | undefined` vs `string`
+> 3. `src/server/auth/social/service.ts(271,36)`: Tipo `string | null | undefined` vs `string | undefined`
+> 4. `src/server/integrations/supabase/client.ts(20,5)`: Mismatch de tipos de fetch (URL vs string)
+> 5. ⚠️ Resolvido parcialmente: AdminInviteAcceptance status type agora "invalid" ao invés de null
+>
+> **Bloqueio Atual:** Gate não passa sem esses 5 erros resolvidos
+>
+> **Causa Raiz:** Erros pré-existentes em tipos opcionais de funções social e Supabase client
+>
+> **Recomendação:** 
+> - Revisar tipos esperados em `social/service.ts`
+> - Validar se Supabase fetch precisa de URL type overload
+> - Considerar usar type assertions ou nullish coalescing
+
+---
