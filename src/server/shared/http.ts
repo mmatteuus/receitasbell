@@ -5,7 +5,7 @@ import { applyCorrelationId, getCorrelationId } from './correlation.js';
 import { problemDetail } from './errors.js';
 import { Logger } from './logger.js';
 import { checkSLO } from './slo.js';
-import { checkRateLimit, globalRateLimit } from './ratelimit.js';
+import { checkRateLimit, globalRateLimit } from './rateLimit.js';
 
 export class ApiError extends Error {
   constructor(
