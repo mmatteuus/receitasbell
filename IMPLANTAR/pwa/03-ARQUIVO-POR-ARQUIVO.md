@@ -1,116 +1,36 @@
 # Plano arquivo por arquivo
 
 ## `src/pwa/components/InstallAppButton.tsx`
-### Objetivo
-Corrigir naming e governanca do CTA.
-
-### Fazer
 - trocar o label para `Instalar aplicativo`
 - manter suporte a `beforeinstallprompt`
-- nao exibir se ja estiver instalado
-- manter compatibilidade com iOS por instrucao externa
-
-### Criterio de aceite
-- nenhum outro texto de instalacao existe neste componente
-
----
+- nao alterar API publica do componente
 
 ## `src/pages/AccountHome.tsx`
-### Objetivo
-Remover CTA de instalacao do perfil e minha conta web.
-
-### Fazer
-- remover import de `InstallAppButton`
-- remover bloco ou card de aplicativo
-- remover dependencia visual de instalacao
-
-### Criterio de aceite
-- nenhuma referencia a `InstallAppButton`
-
----
+- remover CTA de instalacao do perfil web
+- preservar todas as funcoes de conta
 
 ## `src/components/layout/AdminLayout.tsx`
-### Objetivo
-Remover CTA de instalacao do admin web.
-
-### Fazer
-- remover `InstallAppButton`
-- remover import correspondente
-- manter apenas acoes administrativas
-
-### Criterio de aceite
-- header admin sem CTA de instalacao
-
----
+- remover CTA de instalacao do admin web
+- preservar sidebar, breadcrumbs e notificacoes
 
 ## `src/components/layout/Header.tsx`
-### Objetivo
-Garantir que header web global nao seja ponto de instalacao.
-
-### Fazer
-- remover qualquer CTA ou atalho de instalacao
-- nao induzir instalacao fora do namespace PWA
-
-### Criterio de aceite
-- header web sem CTA de instalacao
-
----
+- colocar o botao de instalacao ao lado do carrinho quando houver instrucao explicita do usuario
+- remover instalacao de pontos proibidos que nao tenham instrucao mais recente em contrario
+- preservar navegacao, carrinho, tema e acesso admin
 
 ## `src/pwa/app/shell/UserPwaShell.tsx`
-### Objetivo
-Ficar com comportamento de shell online.
-
-### Fazer
 - remover sinais de offline pronto
-- preservar safe-area
-- preservar top bar e bottom nav
-- preservar update banner
-- preservar redirect de auth
-
-### Criterio de aceite
-- shell nao comunica sync, conflito ou offline pronto
-
----
+- preservar auth redirect, top bar, bottom nav, update banner e safe-area
 
 ## `src/pwa/pages/PwaSearchPage.tsx`
-### Objetivo
-Virar pagina PWA propria.
-
-### Fazer
 - nao importar `@/pages/Search`
-- criar layout proprio de app
-- ter estados loading, empty e error
-- garantir toque confortavel
-
-### Criterio de aceite
-- experiencia claramente diferente da tela web
-
----
+- criar tela propria de app
 
 ## `src/pwa/pages/PwaRecipePage.tsx`
-### Objetivo
-Virar pagina PWA propria.
-
-### Fazer
 - nao importar `@/pages/RecipePage`
-- criar layout de app
-- garantir acoes alinhadas
-- garantir textos contidos
-
-### Criterio de aceite
-- experiencia claramente diferente da tela web
-
----
+- criar tela propria de app
 
 ## `tests/pwa.spec.ts`
-### Objetivo
-Cobrir a governanca PWA online.
-
-### Fazer
 - validar CTA exato
 - validar ausencia do CTA nos contextos proibidos
-- validar 3 fluxos criticos
-- validar viewports moveis
-
-### Criterio de aceite
-- suite verde
+- validar os 3 fluxos criticos
