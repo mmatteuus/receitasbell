@@ -10,7 +10,6 @@ import {
   Moon,
   Sun,
   Menu,
-  X,
   Settings,
   Home,
   FolderTree,
@@ -218,13 +217,6 @@ export function AdminMobileSidebar() {
             RB
           </span>
           <h2 className="text-xl font-bold text-primary">Admin</h2>
-          <button
-            onClick={() => setMobileOpen(false)}
-            aria-label="Fechar menu"
-            className="ml-auto rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-          >
-            <X aria-hidden="true" className="h-4 w-4" />
-          </button>
         </div>
 
         <SidebarNav collapsed={false} onNavigate={() => setMobileOpen(false)} />
