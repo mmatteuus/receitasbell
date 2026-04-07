@@ -75,12 +75,22 @@ test.describe('PWA Install Button Governance', () => {
     await expect(installButton).not.toBeVisible();
   });
 
-  test('should NOT show install button on web header', async ({ page }) => {
+  test('should show share button on web header', async ({ page }) => {
     await page.goto('/');
 
-    // Check that install button is not in the header or navigation
+    // Check that share button is visible in the header
     const header = page.locator('header');
-    const installButton = header.locator(
+    const shareButton = header.locator("button[aria-label='Compartilhar site']");
+    await expect(shareButton).toBeVisible();
+  });
+
+  test('install button should NOT show in prohibited contexts (minha-conta)', async ({
+    page,
+  }) => {
+    await page.goto('/minha-conta');
+
+    // Install button should not be visible on web account page
+    const installButton = page.locator(
       "button:has-text('Instalar aplicativo'), button:has-text('Instalar App')"
     );
     await expect(installButton).not.toBeVisible();
@@ -94,6 +104,18 @@ test.describe('PWA Install Button Governance', () => {
       "button:has-text('Instalar aplicativo'), button:has-text('Instalar App')"
     );
     await expect(installButton).not.toBeVisible();
+  });
+
+  test('should show share button in mobile menu', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto('/');
+
+    // Open mobile menu
+    await page.click("button[aria-label='Abrir menu de navegação']");
+
+    // Share button should be visible in mobile menu
+    const shareButton = page.locator("button:has-text('Compartilhar')");
+    await expect(shareButton).toBeVisible();
   });
 });
 

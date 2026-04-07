@@ -10,6 +10,8 @@ import {
   UserCircle2,
   ListChecks,
   ShoppingBag,
+  Download,
+  Share2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAppContext } from '@/contexts/app-context';
@@ -61,9 +63,13 @@ export default function Header() {
   }, [pathname]);
 
   useEffect(() => {
-    // PROTEÇÃO PWA: Não capturar install prompt em contexto web
-    const isPwaSurface = window.location.pathname.startsWith('/pwa/');
-    if (!isPwaSurface) {
+    // PROTEÇÃO PWA: Não capturar install prompt em contextos proibidos
+    const isProhibitedContext =
+      pathname === '/minha-conta' ||
+      pathname === '/admin/dashboard' ||
+      pathname.startsWith('/admin/');
+
+    if (isProhibitedContext) {
       return;
     }
 
@@ -78,7 +84,7 @@ export default function Header() {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
-  }, []);
+  }, [pathname]);
 
   const handleInstallClick = async () => {
     if (!deferredInstallPrompt) return;
@@ -88,6 +94,20 @@ export default function Header() {
       setIsAppInstalled(true);
     }
     setDeferredInstallPrompt(null);
+  };
+
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: settings.siteName,
+          text: 'Confira receitas deliciosas no Receitas Bell!',
+          url: window.location.href,
+        });
+      } catch (err) {
+        // User cancelled share
+      }
+    }
   };
 
   return (
@@ -153,6 +173,27 @@ export default function Header() {
           </div>
 
           <ThemeModeToggle />
+
+          {deferredInstallPrompt && !isAppInstalled && (
+            <button
+              onClick={handleInstallClick}
+              className="flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              aria-label="Instalar aplicativo"
+            >
+              <Download aria-hidden="true" className="h-4 w-4" />
+              <span className="hidden sm:inline">Instalar</span>
+            </button>
+          )}
+
+          <button
+            onClick={handleShare}
+            className="flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            aria-label="Compartilhar site"
+          >
+            <Share2 aria-hidden="true" className="h-4 w-4" />
+            <span className="hidden sm:inline">Compartilhar</span>
+          </button>
+
           <Link to={adminPath}>
             <Button variant="outline" size="sm" className="ml-2 gap-1.5">
               <Settings aria-hidden="true" className="h-3.5 w-3.5" />
@@ -267,6 +308,31 @@ export default function Header() {
                   <span className="text-sm font-medium text-muted-foreground">Tema:</span>
                   <ThemeModeToggle compact />
                 </div>
+
+                {deferredInstallPrompt && !isAppInstalled && (
+                  <button
+                    onClick={() => {
+                      handleInstallClick();
+                      setOpen(false);
+                    }}
+                    className="flex w-full items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground"
+                  >
+                    <Download aria-hidden="true" className="h-4 w-4" />
+                    Instalar aplicativo
+                  </button>
+                )}
+
+                <button
+                  onClick={() => {
+                    handleShare();
+                    setOpen(false);
+                  }}
+                  className="flex w-full items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground"
+                >
+                  <Share2 aria-hidden="true" className="h-4 w-4" />
+                  Compartilhar
+                </button>
+
                 <Link to={adminPath} onClick={() => setOpen(false)} className="block mt-4 px-3">
                   <Button variant="outline" size="sm" className="w-full gap-1.5">
                     <Settings aria-hidden="true" className="h-3.5 w-3.5" />
