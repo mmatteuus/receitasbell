@@ -1,7 +1,6 @@
-import { Link, Navigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { ShoppingCart } from 'lucide-react';
 import { PageHead } from '@/components/PageHead';
-import { useAppContext } from '@/contexts/app-context';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { CartItemsList } from '@/components/cart/CartItemsList';
@@ -11,12 +10,6 @@ import { useCart } from '@/hooks/use-cart';
 export default function CartPage() {
   const { items, remove, clear, getTotal, updateQuantity } = useCart();
   const total = getTotal();
-
-  const { identityEmail } = useAppContext();
-
-  if (!identityEmail) {
-    return <Navigate to="/minha-conta?redirect=/carrinho" replace />;
-  }
 
   if (items.length === 0) {
     return (
@@ -48,19 +41,19 @@ export default function CartPage() {
         noindex={true}
       />
       <div className="container max-w-2xl px-4 py-8 sm:py-12">
-      <h1 className="font-heading text-2xl font-bold sm:text-3xl">Carrinho</h1>
-      <p className="mt-1 text-sm text-muted-foreground">
-        {items.length} {items.length === 1 ? 'receita' : 'receitas'}
-      </p>
+        <h1 className="font-heading text-2xl font-bold sm:text-3xl">Carrinho</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {items.length} {items.length === 1 ? 'receita' : 'receitas'}
+        </p>
 
-      <div className="mt-6 space-y-4">
-        <CartItemsList items={items} onRemove={remove} onUpdateQuantity={updateQuantity} />
+        <div className="mt-6 space-y-4">
+          <CartItemsList items={items} onRemove={remove} onUpdateQuantity={updateQuantity} />
+        </div>
+
+        <Separator className="my-6" />
+
+        <CartSummary total={total} onClear={clear} />
       </div>
-
-      <Separator className="my-6" />
-
-      <CartSummary total={total} onClear={clear} />
-    </div>
     </>
   );
 }
