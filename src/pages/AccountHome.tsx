@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import {
+  ArrowLeft,
   Heart,
   ListChecks,
   Loader2,
   LockOpen,
+  LogOut,
   ShoppingCart,
   UserRound,
   WalletCards,
@@ -28,6 +30,7 @@ import {
   signupWithPassword,
   requestPasswordReset,
   requestMagicLink,
+  logoutUser,
 } from '@/lib/api/identity';
 import { validatePasswordResetEmail } from '@/lib/validation/identity';
 
@@ -147,6 +150,18 @@ export default function AccountHome() {
   function handleClearIdentity() {
     clearIdentity();
     toast.success('Sessão de identidade removida neste dispositivo.');
+  }
+
+  async function handleLogout() {
+    try {
+      await logoutUser();
+      clearIdentity();
+      navigate('/');
+      toast.success('Você foi desconectado com sucesso.');
+    } catch (error) {
+      logger.error('account.logout', error);
+      toast.error('Erro ao desconectar. Tente novamente.');
+    }
   }
 
   const [password, setPassword] = useState('');
@@ -469,13 +484,35 @@ export default function AccountHome() {
                   culinária.
                 </p>
               </div>
-              <div className="rounded-2xl border bg-background px-4 py-3 text-sm">
-                <p className="flex items-center gap-2 font-medium">
-                  <UserRound className="h-4 w-4 text-primary" />
-                  {identityEmail || 'Visitante'}
-                </p>
-                <div className="mt-2">
-                  <LastSyncBadge lastSyncedAt={lastSyncedAt} />
+              <div className="flex flex-col gap-3">
+                <div className="rounded-2xl border bg-background px-4 py-3 text-sm">
+                  <p className="flex items-center gap-2 font-medium">
+                    <UserRound className="h-4 w-4 text-primary" />
+                    {identityEmail || 'Visitante'}
+                  </p>
+                  <div className="mt-2">
+                    <LastSyncBadge lastSyncedAt={lastSyncedAt} />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => navigate('/')}
+                    className="gap-2"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    Voltar ao site
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={handleLogout}
+                    className="gap-2"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Sair
+                  </Button>
                 </div>
               </div>
             </div>
