@@ -1,10 +1,10 @@
-import { env } from "./env.js";
+import { env } from './env.js';
 
 type CacheOptions = {
   ttlSeconds?: number;
 };
 
-const localCache = new Map<string, { value: any; expiresAt: number }>();
+const localCache = new Map<string, { value: unknown; expiresAt: number }>();
 
 export const cache = {
   async get<T>(key: string): Promise<T | null> {
@@ -30,7 +30,7 @@ export const cache = {
           return value;
         }
       } catch (err) {
-        console.warn("[Cache] Redis get error:", err);
+        console.warn('[Cache] Redis get error:', err);
       }
     }
 
@@ -48,19 +48,19 @@ export const cache = {
     if (env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN) {
       try {
         await fetch(`${env.UPSTASH_REDIS_REST_URL}/set/${key}/${ttl}`, {
-          method: "POST",
+          method: 'POST',
           headers: {
             Authorization: `Bearer ${env.UPSTASH_REDIS_REST_TOKEN}`,
           },
           body: JSON.stringify(value),
         });
       } catch (err) {
-        console.warn("[Cache] Redis set error:", err);
+        console.warn('[Cache] Redis set error:', err);
       }
     }
   },
 
-  setLocal(key: string, value: any, ttlSeconds: number) {
+  setLocal(key: string, value: unknown, ttlSeconds: number) {
     localCache.set(key, { value, expiresAt: Date.now() + ttlSeconds * 1000 });
   },
 
@@ -69,14 +69,14 @@ export const cache = {
     if (env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN) {
       try {
         await fetch(`${env.UPSTASH_REDIS_REST_URL}/del/${key}`, {
-          method: "POST",
+          method: 'POST',
           headers: {
             Authorization: `Bearer ${env.UPSTASH_REDIS_REST_TOKEN}`,
           },
         });
       } catch (err) {
-        console.warn("[Cache] Redis del error:", err);
+        console.warn('[Cache] Redis del error:', err);
       }
     }
-  }
+  },
 };

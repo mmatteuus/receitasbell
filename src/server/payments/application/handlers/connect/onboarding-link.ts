@@ -1,7 +1,7 @@
 import { stripeClient } from '../../../providers/stripe/client.js';
 import { env } from '../../../../shared/env.js';
 import { getConnectAccountByTenantId } from '../../../repo/accounts.js';
-import { readJsonBody, withApiHandler } from '../../../../shared/http.js';
+import { readJsonBody, withApiHandler, ApiError } from '../../../../shared/http.js';
 import { requireTenantAdminSessionContext } from '../../../../auth/sessions.js';
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
@@ -76,10 +76,9 @@ export default withApiHandler(async (req: VercelRequest, res: VercelResponse, { 
     }
 
     // Retorna o erro detalhado para ajudar no debug de produção (apenas para admins)
-    res.status(500).json({
-      error: 'Erro interno ao processar o link do Stripe.',
-      detail: error.message || 'Erro desconhecido',
-      code: 'STRIPE_UNKNOWN_ERROR'
+    throw new ApiError(500, error.message || 'Erro interno ao processar o link do Stripe.', {
+      code: 'STRIPE_UNKNOWN_ERROR',
+      original: error
     });
   }
 });

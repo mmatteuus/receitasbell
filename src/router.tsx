@@ -93,6 +93,12 @@ const publicRoutes = (isTenant: boolean) => [
 
 const router = createBrowserRouter(
   [
+    // Redirects amigáveis globais (devem vir no topo para evitar conflito com catch-all routes)
+    { path: '/login', element: <Navigate to="/t/receitasbell/admin/login" replace /> },
+    { path: '/admin', element: <Navigate to="/t/receitasbell/admin/dashboard" replace /> },
+    { path: '/admin/login', element: <Navigate to="/t/receitasbell/admin/login" replace /> },
+    { path: '/t/:tenantSlug/login', element: <TenantAdminNavigate to="login" /> },
+
     {
       path: '/t/:tenantSlug',
       element: <PublicLayout />,
@@ -103,11 +109,6 @@ const router = createBrowserRouter(
       element: <PublicLayout />,
       children: publicRoutes(false),
     },
-    // Redirects amigáveis globais
-    { path: '/login', element: <Navigate to="/t/receitasbell/admin/login" replace /> },
-    { path: '/admin', element: <Navigate to="/t/receitasbell/admin/dashboard" replace /> },
-    { path: '/admin/login', element: <Navigate to="/t/receitasbell/admin/login" replace /> },
-    { path: '/t/:tenantSlug/login', element: <TenantAdminNavigate to="login" /> },
 
     {
       path: '/pwa/entry',

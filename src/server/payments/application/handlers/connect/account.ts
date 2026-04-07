@@ -1,6 +1,6 @@
 import { stripeClient } from '../../../providers/stripe/client.js';
 import { getConnectAccountByTenantId, upsertConnectAccount } from '../../../repo/accounts.js';
-import { readJsonBody, withApiHandler } from '../../../../shared/http.js';
+import { readJsonBody, withApiHandler, ApiError } from '../../../../shared/http.js';
 import { requireTenantAdminSessionContext } from '../../../../auth/sessions.js';
 import { env } from '../../../../shared/env.js';
 
@@ -38,13 +38,13 @@ export default withApiHandler(async (req: VercelRequest, res: VercelResponse, { 
 
   // 2. Verifica se já existe uma conta
   const existing = await getConnectAccountByTenantId(tenant.id);
-  
+
   // Se existir conta, verifica se ela é compatível com o modo atual (Test/Live)
   // Contas de teste da Stripe começam com acct_ seguido por letras aleatórias,
   // mas aqui o critério de erro da Stripe é o mais confiável.
   if (existing?.stripeAccountId) {
     logger.info('Conta Stripe Connect já existe', { stripeAccountId: existing.stripeAccountId });
-    
+
     try {
       const accountLinks = await stripeClient.accountLinks.create({
         account: existing.stripeAccountId,
@@ -52,25 +52,26 @@ export default withApiHandler(async (req: VercelRequest, res: VercelResponse, { 
         return_url: buildStripeRedirectUrl('success', returnTo),
         type: 'account_onboarding',
       });
-      res.status(200).json({ accountId: existing.stripeAccountId, onboardingUrl: accountLinks.url });
+      res
+        .status(200)
+        .json({ accountId: existing.stripeAccountId, onboardingUrl: accountLinks.url });
       return;
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as { message?: string };
       // Se a conta no banco for de TESTE e estamos em LIVE, a Stripe vai dar erro.
       // Nesse caso, limpamos para permitir criar uma nova real.
-      if (err?.message?.includes("testmode") || err?.message?.includes("livemode")) {
-        logger.warn('Conta Stripe incompatível com o modo atual. Requer nova conta.', { 
-           error: err.message,
-           existingId: existing.stripeAccountId 
+      if (error?.message?.includes('testmode') || error?.message?.includes('livemode')) {
+        logger.warn('Conta Stripe incompatível com o modo atual. Requer nova conta.', {
+          error: error.message,
+          existingId: existing.stripeAccountId,
         });
         // Não res.status aqui, deixa o código seguir para o passo 3 (criar nova conta)
       } else {
         logger.error('Erro ao gerar link para conta existente', err);
-        res.status(500).json({ 
-          error: 'Erro ao gerar link de acesso à conta Stripe.', 
-          detail: err.message,
+        throw new ApiError(500, 'Erro ao gerar link de acesso à conta Stripe.', {
+          detail: error.message,
           code: 'STRIPE_LINK_ERROR'
         });
-        return;
       }
     }
   }
@@ -85,19 +86,30 @@ export default withApiHandler(async (req: VercelRequest, res: VercelResponse, { 
       },
     });
   } catch (err: unknown) {
-    const error = err as { message?: string }; // Cast seguro para verificar mensagem sem usar 'any'
+    const error = err as { message?: string };
     logger.error('Erro ao criar conta no Stripe', error);
 
-    // Se o erro for a falta de ativação do Connect, retornamos 400 com mensagem clara
-    if (error?.message?.includes("signed up for Connect")) {
+    // Se o erro for a falta de ativação do Connect
+    if (error?.message?.includes('signed up for Connect')) {
       res.status(400).json({
-        error: 'Sua conta Stripe ainda não está habilitada para o Connect. Por favor, acesse https://dashboard.stripe.com/connect e clique em "Get Started" ou conclua o perfil da plataforma para permitir a criação de contas conectadas.',
-        code: 'STRIPE_CONNECT_NOT_ENABLED'
+        error:
+          'Sua conta Stripe ainda não está habilitada para o Connect. Por favor, acesse https://dashboard.stripe.com/connect e clique em "Get Started".',
+        code: 'STRIPE_CONNECT_NOT_ENABLED',
       });
       return;
     }
 
-    throw error; // Deixa o withApiHandler tratar outros erros
+    // Se o erro for a falta de detalhes da plataforma Connect
+    if (error?.message?.includes("business needs to provide more information")) {
+      throw new ApiError(400, 'Sua plataforma Stripe precisa de mais informações (ex: nome, site). Por favor, complete o perfil em https://dashboard.stripe.com/settings/update.', {
+        code: 'STRIPE_PLATFORM_INCOMPLETE'
+      });
+    }
+
+    throw new ApiError(500, error.message || 'Erro ao criar conta no Stripe', {
+      original: error,
+      code: 'STRIPE_CREATE_ACCOUNT_ERROR'
+    });
   }
 
   // 4. Persiste no banco de dados Supabase
