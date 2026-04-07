@@ -28,6 +28,8 @@ export async function consumeMagicLink(input: { tenantId: string; token: string;
     .select('*')
     .eq('token_hash', tokenHash)
     .eq('tenant_id', input.tenantId)
+    .eq('role', input.purpose)
+    .eq('user_agent', 'magic-link')
     .is('revoked_at', null)
     .single();
 
@@ -35,7 +37,6 @@ export async function consumeMagicLink(input: { tenantId: string; token: string;
   
   if (new Date(session.expires_at).getTime() <= Date.now()) return null;
 
-  // Revoga o token (consumo único)
   await supabase
     .from('auth_sessions')
     .update({ revoked_at: new Date().toISOString() })
@@ -43,6 +44,6 @@ export async function consumeMagicLink(input: { tenantId: string; token: string;
 
   return { 
     email: session.email, 
-    redirectTo: null // Redirecionamento padrão se necessário
+    redirectTo: null
   };
 }
