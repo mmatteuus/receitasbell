@@ -22,7 +22,7 @@ export const cache = {
             Authorization: `Bearer ${env.UPSTASH_REDIS_REST_TOKEN}`,
           },
         });
-        const data = await res.json();
+        const data = await res.json() as { result?: string };
         if (data.result) {
           const value = JSON.parse(data.result) as T;
           // Hydrate local
