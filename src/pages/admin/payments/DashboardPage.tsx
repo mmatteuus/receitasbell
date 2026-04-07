@@ -331,7 +331,7 @@ export default function DashboardPage() {
               onClick={() => navigate(buildTenantAdminPath('pagamentos/configuracoes', tenantSlug))}
               className="gap-1.5"
             >
-              <Settings className="h-4 w-4" /> Configurações
+              <Settings className="h-4 w-4" /> Config.
             </Button>
             <Button
               variant="outline"
@@ -354,7 +354,7 @@ export default function DashboardPage() {
 
         <KPICards stats={stats} />
 
-        <Tabs defaultValue="trends" className="space-y-4">
+        <Tabs defaultValue="stripe" className="space-y-4 md:block hidden">
           <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
             <TabsTrigger value="trends">Tendências</TabsTrigger>
             <TabsTrigger value="success">Taxa de Sucesso</TabsTrigger>
@@ -400,6 +400,12 @@ export default function DashboardPage() {
             </Suspense>
           </TabsContent>
         </Tabs>
+
+        <div className="md:hidden block">
+          <Suspense fallback={<AnalyticsPanelFallback label="resumo do Stripe" />}>
+            <FinancialDashboard stats={stripeSummary} loading={loadingPayments} />
+          </Suspense>
+        </div>
       </div>
     </>
   );
