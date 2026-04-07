@@ -240,24 +240,6 @@ export default function SettingsPage() {
                     : 'O site está em TESTE. Você pode simular compras com cartões de teste do Stripe (ex: 4242 4242 4242 4242).'}
                 </div>
 
-                <div className="space-y-4 pt-2 border-t">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs font-medium">Webhooks</Label>
-                    <Switch
-                      checked={form.webhooks_enabled}
-                      onCheckedChange={(checked) => setField('webhooks_enabled', checked)}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs font-medium">Tópico de Pagamento</Label>
-                    <Switch
-                      checked={form.payment_topic_enabled}
-                      onCheckedChange={(checked) => setField('payment_topic_enabled', checked)}
-                    />
-                  </div>
-                </div>
-
                 <Button onClick={() => void handleSave()} disabled={saving} className="w-full">
                   {saving ? 'Salvando...' : 'Salvar Configurações'}
                 </Button>
