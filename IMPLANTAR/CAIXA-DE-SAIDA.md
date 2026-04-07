@@ -328,3 +328,41 @@
 > ⚠️ Pendências registradas: geração de `sitemap.xml`, validação manual de OG images e medição Lighthouse ≥ 90.
 >
 > 📦 **Commit**: _(incluído no próximo push desta branch)_
+
+---
+
+**MSG-OUT-CC-11 (FRONT — FRONT-006 Planejado + Consolidação)**
+
+> 📋 **FRONT-006 Dossiê Criado**: Checklist de experiência PWA com plano de ação em 3 fases.
+>
+> ✅ **Consolidação de Frentes Front-End** (2026-04-07):
+>
+> | ID | Tarefa | Status | Última Atualização |
+> |----|--------|--------|-------------------|
+> | FRONT-001 | Corrigir 404 `/t/receitasbell` | ✅ Concluído | 2026-04-06 |
+> | FRONT-002 | Fluxo recuperação de senha | ✅ Concluído | 2026-04-06 |
+> | FRONT-003 | CTA PWA reforçado | ✅ Concluído | 2026-04-06 |
+> | FRONT-004 | Validação convites admin | ✅ Concluído | 2026-04-06 |
+> | FRONT-005 | SEO + Meta tags finais | ✅ Concluído | 2026-04-07 |
+> | FRONT-006 | Checklist experiência PWA | 🟡 Planejado | 2026-04-07 |
+>
+> 📊 **Saída Documentária**:
+>
+> - `IMPLANTAR/front/FRONT-006-pwa.md` — Dossiê com 3 fases (Instrumentação, UX Polishing, Métricas)
+> - `IMPLANTAR/front/TASKS-FRONT.md` — Atualizado com status consolidado
+> - `IMPLANTAR/front/STATUS-FRONT.md` — Tabela de progresso final
+>
+> 🎯 **Próximos Passos**:
+>
+> 1. Implementar FRONT-006 Fase 1: Hook `usePwaState()` + telemetria
+> 2. Testar instalação PWA em Android + iOS
+> 3. Validar OG images em redes sociais
+> 4. Rodar Lighthouse (target SEO ≥ 90)
+> 5. Deploy em staging para validação
+>
+> 📦 **Commits**:
+>
+> - `a2cbb02` — Documentação FRONT-005 concluído + FRONT-006 planejado
+>
+> 🚀 **Status Geral Front-End**: Todas as tarefas de P0–P1 concluídas. P2–P3 em progresso/planejamento.
+
