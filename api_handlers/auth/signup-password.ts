@@ -33,10 +33,28 @@ export default withApiHandler(async (req, res, { requestId, logger }) => {
     throw new ApiError(404, 'Tenant não encontrado.');
   }
 
+  // P1-1: Validação de Convites Admin
+  const { data: invite, error: inviteError } = await supabaseAdmin
+    .from('invitations')
+    .select('id, role')
+    .eq('email', email.toLowerCase())
+    .eq('organization_id', tenant.id)
+    .gt('expires_at', new Date().toISOString())
+    .maybeSingle();
+
+  if (inviteError) {
+    logger.error('Erro ao buscar convite', inviteError);
+  }
+
+  if (!invite) {
+    throw new ApiError(403, 'Acesso restrito. Este email não possui um convite ativo para esta organização.');
+  }
+
   const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
     email,
     password,
-    user_metadata: { full_name: fullName },
+    app_metadata: { tenant_id: tenant.id },
+    user_metadata: { full_name: fullName, tenant_id: tenant.id },
     email_confirm: true,
   });
 
@@ -44,6 +62,9 @@ export default withApiHandler(async (req, res, { requestId, logger }) => {
     logger.error('Falha no signup do Supabase', authError);
     throw new ApiError(400, authError?.message || 'Erro ao criar conta.');
   }
+
+  // Deletar convite usado
+  await supabaseAdmin.from('invitations').delete().eq('id', invite.id);
 
   const { error: profileError } = await supabaseAdmin.from('profiles').upsert(
     {
@@ -53,7 +74,7 @@ export default withApiHandler(async (req, res, { requestId, logger }) => {
       username: authData.user.email!.split('@')[0],
       display_name: fullName,
       full_name: fullName,
-      role: 'member',
+      role: invite.role || 'member',
       is_active: true,
       updated_at: new Date().toISOString(),
     },

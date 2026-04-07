@@ -131,12 +131,25 @@ export async function getSession(req: VercelRequest): Promise<Session | null> {
   if (!data.expires_at || new Date(data.expires_at).getTime() <= Date.now()) return null;
 
   const role = data.role === "admin" || data.role === "owner" ? data.role : "user";
-  return {
+  const session: Session = {
     tenantId: String(data.tenant_id),
     userId: String(data.user_id),
     email: String(data.email),
     role,
   };
+
+  // P1-2: Garantir que o usuário ainda está ativo
+  const { data: profile } = await supabaseAdmin
+    .from("profiles")
+    .select("is_active")
+    .eq("id", session.userId)
+    .single();
+
+  if (!profile || !profile.is_active) {
+    return null;
+  }
+
+  return session;
 }
 
 export const getUserSession = getSession;

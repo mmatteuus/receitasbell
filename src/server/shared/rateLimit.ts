@@ -36,7 +36,15 @@ function getUpstashRedis(): Redis | null {
   }
 
   try {
-    upstashRedis = new Redis({ url: UPSTASH_URL, token: UPSTASH_TOKEN });
+    upstashRedis = new Redis({
+      url: UPSTASH_URL,
+      token: UPSTASH_TOKEN,
+      fetch: (input: any, init: any) => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+        return fetch(input, { ...init, signal: controller.signal }).finally(() => clearTimeout(timeoutId));
+      },
+    } as any);
   } catch (error) {
     upstashInitError = error instanceof Error ? error : new Error(String(error));
   }
