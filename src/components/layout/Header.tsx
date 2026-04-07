@@ -10,13 +10,13 @@ import {
   UserCircle2,
   ListChecks,
   ShoppingBag,
-  Download,
   Share2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAppContext } from '@/contexts/app-context';
 import ThemeModeToggle from '@/components/layout/ThemeModeToggle';
 import { CartButton } from '@/components/cart/CartButton';
+import { InstallAppButton } from '@/components/layout/InstallAppButton';
 import { buildTenantAdminPath, extractTenantSlugFromPath } from '@/lib/tenant';
 
 import {
@@ -27,11 +27,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 
-type BeforeInstallPromptEvent = Event & {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
-};
-
 const navLinks = [
   { to: '/', label: 'Home' },
   { to: '/buscar', label: 'Buscar receitas', icon: Search },
@@ -41,9 +36,6 @@ const navLinks = [
 export default function Header() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [deferredInstallPrompt, setDeferredInstallPrompt] =
-    useState<BeforeInstallPromptEvent | null>(null);
-  const [isAppInstalled, setIsAppInstalled] = useState(false);
   const { pathname } = useLocation();
   const { categories, settings } = useAppContext();
   const tenantSlug = extractTenantSlugFromPath(pathname);
@@ -61,40 +53,6 @@ export default function Header() {
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
-
-  useEffect(() => {
-    // PROTEÇÃO PWA: Não capturar install prompt em contextos proibidos
-    const isProhibitedContext =
-      pathname === '/minha-conta' ||
-      pathname === '/admin/dashboard' ||
-      pathname.startsWith('/admin/');
-
-    if (isProhibitedContext) {
-      return;
-    }
-
-    const handleBeforeInstall = (event: Event) => {
-      event.preventDefault();
-      setDeferredInstallPrompt(event as BeforeInstallPromptEvent);
-    };
-    const handleAppInstalled = () => setIsAppInstalled(true);
-    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
-    window.addEventListener('appinstalled', handleAppInstalled);
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
-      window.removeEventListener('appinstalled', handleAppInstalled);
-    };
-  }, [pathname]);
-
-  const handleInstallClick = async () => {
-    if (!deferredInstallPrompt) return;
-    deferredInstallPrompt.prompt();
-    const choice = await deferredInstallPrompt.userChoice;
-    if (choice.outcome === 'accepted') {
-      setIsAppInstalled(true);
-    }
-    setDeferredInstallPrompt(null);
-  };
 
   const handleShare = async () => {
     if (navigator.share) {
@@ -150,16 +108,7 @@ export default function Header() {
 
           <CartButton />
 
-          {deferredInstallPrompt && !isAppInstalled && (
-            <button
-              onClick={handleInstallClick}
-              className="flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-              aria-label="Instalar aplicativo"
-            >
-              <Download aria-hidden="true" className="h-4 w-4" />
-              <span className="hidden sm:inline">Instalar aplicativo</span>
-            </button>
-          )}
+          <InstallAppButton />
 
           <button
             onClick={handleShare}
@@ -309,18 +258,11 @@ export default function Header() {
                   <ThemeModeToggle compact />
                 </div>
 
-                {deferredInstallPrompt && !isAppInstalled && (
-                  <button
-                    onClick={() => {
-                      handleInstallClick();
-                      setOpen(false);
-                    }}
-                    className="flex w-full items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground"
-                  >
-                    <Download aria-hidden="true" className="h-4 w-4" />
-                    Instalar aplicativo
-                  </button>
-                )}
+                <InstallAppButton
+                  showLabel
+                  className="w-full justify-start px-3"
+                  context="mobile"
+                />
 
                 <button
                   onClick={() => {
