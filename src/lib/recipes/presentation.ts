@@ -108,8 +108,22 @@ export function getRecipeImage(recipe: Pick<RecipeRecord, 'imageUrl' | 'imageFil
   const normalizedMeta = metaUrl?.trim();
   const normalizedImage = recipe.imageUrl?.trim();
 
-  if (normalizedMeta) return normalizedMeta;
-  if (normalizedImage) return normalizedImage;
+  // Validar que a URL é válida e não está vazia ou malformada
+  const isValidUrl = (url: string | undefined): boolean => {
+    if (!url) return false;
+    try {
+      // Aceitar URLs relativas ou absolutas
+      if (url.startsWith('/') || url.startsWith('http://') || url.startsWith('https://')) {
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  };
+
+  if (normalizedMeta && isValidUrl(normalizedMeta)) return normalizedMeta;
+  if (normalizedImage && isValidUrl(normalizedImage)) return normalizedImage;
 
   return RECIPE_PLACEHOLDER;
 }
