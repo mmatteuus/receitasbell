@@ -1,0 +1,26 @@
+# 📊 Status — Front-End / PWA
+
+| ID        | Tarefa                                            | Prioridade | Status          | Última atualização | Evidência                                            |
+| --------- | ------------------------------------------------- | ---------- | --------------- | ------------------ | ---------------------------------------------------- |
+| FRONT-001 | Corrigir 404 em `/t/receitasbell`                 | P0         | ✅ CONCLUÍDO    | 2026-04-06         | Commit `3572aea` + `TASK-003-fix-404.md`             |
+| FRONT-002 | Fluxo robusto de recuperação de senha             | P1         | ✅ CONCLUÍDO    | 2026-04-06         | Commit `5683e20` + MSG-OUT-CC-02                     |
+| FRONT-003 | CTA de instalação PWA reforçado                   | P3         | ✅ CONCLUÍDO    | 2026-04-06         | Commit `4fc602b` + MSG-OUT-CC-03                     |
+| FRONT-004 | Validação de convites admin                       | P1         | ✅ IMPLEMENTADO | 2026-04-06         | `FRONT-004-convites.md` + `TEST-FRONT-004.md` + commits |
+| FRONT-005 | SEO + Meta tags finais (App + PWA)                | P3         | 🟡 PENDENTE     | 2026-04-06         | `TASKS-FRONT.md#front-005`                           |
+| FRONT-006 | Checklist de experiência PWA (instalação/offline) | P2         | 🟡 PENDENTE     | 2026-04-06         | `TASKS-FRONT.md#front-006`                           |
+
+### Legenda
+
+- `✅ CONCLUÍDO`: tarefa finalizada e documentada (ver evidência).
+- `🟡 EM DISCOVERY`: análise/escopo em andamento, aguardando definição de implementação.
+- `🟡 PENDENTE`: pronta para ser executada (sem bloqueios conhecidos).
+
+### Próximas Ações
+
+1. **FRONT-004** → Mapear fluxo de convites (UI + regras) e validar com backend (`supabase.auth.admin.inviteUserByEmail`).
+2. **FRONT-005** → Consolidar plano SEO final (componentização de `PageHead`, validação de OG tags por rota, sitemap).
+3. **FRONT-006** → Criar dossiê com métricas de adesão PWA + melhorias de UX (cards, toasts, instruções iOS/Android).
+
+---
+
+_Arquivo mantido por OpenCode — Atualizado: 2026-04-06 23:05 (BRT)._
