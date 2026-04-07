@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { Download } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -13,6 +13,25 @@ interface InstallAppButtonProps {
   context?: 'desktop' | 'mobile';
 }
 
+// Detecta se é dispositivo mobile
+function isMobileDevice(): boolean {
+  const userAgent = navigator.userAgent.toLowerCase();
+  return /android|iphone|ipad|ipod|windows phone|mobile/.test(userAgent);
+}
+
+// Detecta tipo de navegador
+function detectBrowser() {
+  const userAgent = navigator.userAgent.toLowerCase();
+  return {
+    isIOS: /iphone|ipad|ipod/.test(userAgent),
+    isAndroid: /android/.test(userAgent),
+    isChrome: /chrome|chromium|crios/.test(userAgent) && !/edg/.test(userAgent),
+    isEdge: /edg/.test(userAgent),
+    isFirefox: /firefox/.test(userAgent),
+    isSafari: /safari/.test(userAgent) && !/chrome|crios|android/.test(userAgent),
+  };
+}
+
 export function InstallAppButton({
   className = '',
   showLabel = true,
@@ -22,81 +41,159 @@ export function InstallAppButton({
   const [isInstalled, setIsInstalled] = useState(false);
   const [showInstallButton, setShowInstallButton] = useState(false);
 
+  // Refs para tracking de estado sem triggerar re-renders
+  const promptTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const autoTriggerAttemptedRef = useRef(false);
+  const isMobileRef = useRef(false);
+  const browserRef = useRef(detectBrowser());
+
+  // Cleanup timeout function
+  const clearPromptTimeout = useCallback(() => {
+    if (promptTimeoutRef.current) {
+      clearTimeout(promptTimeoutRef.current);
+      promptTimeoutRef.current = null;
+    }
+  }, []);
+
+  const triggerInstallPrompt = useCallback(async (prompt: BeforeInstallPromptEvent | null) => {
+    if (!prompt) return;
+
+    try {
+      await prompt.prompt();
+      const choice = await prompt.userChoice;
+
+      if (choice.outcome === 'accepted') {
+        setIsInstalled(true);
+        setShowInstallButton(false);
+        toast.success('Aplicativo instalado com sucesso!');
+      } else if (choice.outcome === 'dismissed') {
+        // Usuário rejeitou - informar alternativa
+        const feedbackMsg = isMobileRef.current
+          ? 'Você pode tentar instalar novamente pelo botão de menu'
+          : 'Você pode instalar quando quiser clicando no botão de download';
+
+        toast.info(feedbackMsg, {
+          description: 'A instalação é completamente opcional',
+        });
+      }
+
+      setDeferredPrompt(null);
+    } catch (error) {
+      // Silenciar erro NotAllowedError (usuário cancelou ou algo similar)
+      // Não quebra experiência em nenhum cenário
+      if (error instanceof Error && !error.message.includes('NotAllowedError')) {
+        console.error('Erro ao exibir prompt de instalação:', error);
+      }
+    }
+  }, []);
+
+  // Inicialização e setup de listeners
   useEffect(() => {
-    // Check if app is already installed
+    isMobileRef.current = isMobileDevice();
+
+    // Verifica se app já está instalado
     if (window.matchMedia('(display-mode: standalone)').matches) {
       setIsInstalled(true);
       return;
     }
 
-    // Listen for install prompt
+    // Handler do evento beforeinstallprompt
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
+      const prompt = e as BeforeInstallPromptEvent;
+      setDeferredPrompt(prompt);
       setShowInstallButton(true);
+
+      // Auto-trigger com estratégia por dispositivo:
+      // - Tenta só uma vez (autoTriggerAttemptedRef)
+      // - Não tenta se for iOS (Safari não suporta bem)
+      // - Delay diferente: mobile (2s), desktop (3s)
+      if (!autoTriggerAttemptedRef.current && !browserRef.current.isIOS) {
+        autoTriggerAttemptedRef.current = true;
+        const delayMs = isMobileRef.current ? 2000 : 3000;
+
+        promptTimeoutRef.current = setTimeout(() => {
+          triggerInstallPrompt(prompt);
+        }, delayMs);
+      }
     };
 
-    // App installed event
+    // Handler do evento appinstalled
     const handleAppInstalled = () => {
       setIsInstalled(true);
       setShowInstallButton(false);
+      clearPromptTimeout();
       toast.success('Aplicativo instalado com sucesso!');
     };
 
+    // Registra listeners
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
 
+    // Cleanup
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
+      clearPromptTimeout();
     };
-  }, []);
+  }, [triggerInstallPrompt, clearPromptTimeout]);
 
-  const handleClick = async () => {
-    if (!deferredPrompt) {
-      // Se não tem evento (desktop/iOS), mostrar instruções
-      showInstallInstructions();
+  // Handler de clique no botão
+  const handleClick = useCallback(async () => {
+    clearPromptTimeout(); // Cancela auto-trigger se pendente
+
+    if (deferredPrompt) {
+      // Se tem evento deferred, dispara direto
+      await triggerInstallPrompt(deferredPrompt);
       return;
     }
 
-    // Chrome Android com evento
-    deferredPrompt.prompt();
-    const choice = await deferredPrompt.userChoice;
+    // Sem evento: mostrar instruções específicas por browser
+    const browser = detectBrowser();
 
-    if (choice.outcome === 'accepted') {
-      setIsInstalled(true);
-      setShowInstallButton(false);
-    }
-
-    setDeferredPrompt(null);
-  };
-
-  const showInstallInstructions = () => {
-    const userAgent = navigator.userAgent.toLowerCase();
-    const isIOS = /iphone|ipad|ipod/.test(userAgent);
-    const isChrome = /chrome/.test(userAgent);
-
-    if (isIOS) {
+    if (browser.isIOS) {
       toast.success('Toque em Compartilhar > Adicionar à Tela Inicial', {
-        description: 'Para instalar em iOS',
+        description: 'Para instalar em iOS (Safari)',
       });
-    } else if (isChrome) {
+    } else if (browser.isAndroid) {
+      if (browser.isChrome) {
+        toast.info('Verifique se o PWA está configurado corretamente', {
+          description: 'Ou tente pelo menu do Chrome (⋮) > Instalar app',
+        });
+      } else if (browser.isFirefox) {
+        toast.info('Use o menu (≡) > Instalar > Instalar site', {
+          description: 'Para instalar como app no Firefox Android',
+        });
+      } else {
+        toast.info('Use o menu do navegador para instalar este app', {
+          description: 'A opção geralmente está no menu principal',
+        });
+      }
+    } else if (browser.isChrome || browser.isEdge) {
       toast.info('Clique no ícone de instalação na barra de endereço', {
         description: 'Ou use o menu (⋮) > Instalar app',
       });
+    } else if (browser.isFirefox) {
+      toast.info('Use o menu (≡) > Instalar site', {
+        description: 'Para instalar como web app no Firefox',
+      });
+    } else if (browser.isSafari) {
+      toast.info('Use Arquivo > Adicionar à Dock', {
+        description: 'Ou use o menu Compartilhar (↗)',
+      });
     } else {
       toast.info('Use o menu do navegador para instalar este app', {
-        description: 'A opção geralmente está no menu principal (⋮)',
+        description: 'A opção geralmente está no menu principal',
       });
     }
-  };
+  }, [deferredPrompt, triggerInstallPrompt, clearPromptTimeout]);
 
-  // Se já está instalado, não mostrar botão
+  // Se já instalado, não renderiza nada
   if (isInstalled) {
     return null;
   }
 
-  // Mostrar botão sempre (tenha evento ou não)
+  // Renderiza botão para todos os dispositivos
   return (
     <button
       onClick={handleClick}

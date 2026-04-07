@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getCurrentTenantSlug } from '@/lib/tenant';
 import { setInstallContext, type InstallContext } from '../lib/install-context';
 import { trackEvent } from '@/lib/telemetry';
@@ -19,6 +19,7 @@ type WindowWithMSStream = Window & { MSStream?: unknown };
 export function useInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
+  const isProcessingRef = useRef(false);
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -33,6 +34,7 @@ export function useInstallPrompt() {
     const installedHandler = () => {
       setIsInstalled(true);
       setDeferredPrompt(null);
+      isProcessingRef.current = false;
       trackEvent('pwa.installed', {
         tenantSlug: getCurrentTenantSlug(),
         platform: window.navigator.userAgent,
@@ -63,26 +65,44 @@ export function useInstallPrompt() {
   }, []);
 
   const install = async (context: InstallContext) => {
-    if (!deferredPrompt) return;
+    // Previne múltiplas chamadas simultâneas
+    if (isProcessingRef.current || !deferredPrompt) return;
 
-    trackEvent('pwa.install_cta_clicked', {
-      context,
-      tenantSlug: getCurrentTenantSlug(),
-    });
-    setInstallContext(context, getCurrentTenantSlug());
-    deferredPrompt.prompt();
-    trackEvent('pwa.install_prompt_shown', {
-      context,
-      tenantSlug: getCurrentTenantSlug(),
-    });
+    isProcessingRef.current = true;
 
-    const { outcome } = await deferredPrompt.userChoice;
-    trackEvent(outcome === 'accepted' ? 'pwa.install_accepted' : 'pwa.install_dismissed', {
-      context,
-      tenantSlug: getCurrentTenantSlug(),
-    });
-    if (outcome === 'accepted') {
-      setDeferredPrompt(null);
+    try {
+      trackEvent('pwa.install_cta_clicked', {
+        context,
+        tenantSlug: getCurrentTenantSlug(),
+      });
+      setInstallContext(context, getCurrentTenantSlug());
+
+      // Aguarda o prompt ser exibido
+      await deferredPrompt.prompt();
+
+      trackEvent('pwa.install_prompt_shown', {
+        context,
+        tenantSlug: getCurrentTenantSlug(),
+      });
+
+      // Aguarda a escolha do usuário
+      const { outcome } = await deferredPrompt.userChoice;
+
+      trackEvent(outcome === 'accepted' ? 'pwa.install_accepted' : 'pwa.install_dismissed', {
+        context,
+        tenantSlug: getCurrentTenantSlug(),
+      });
+
+      if (outcome === 'accepted') {
+        setDeferredPrompt(null);
+      } else {
+        // Usuário recusou - permitir tentar novamente
+        isProcessingRef.current = false;
+      }
+    } catch (error) {
+      console.error('Erro ao disparar prompt de instalação:', error);
+      isProcessingRef.current = false;
+      // Não quebra a experiência
     }
   };
 
