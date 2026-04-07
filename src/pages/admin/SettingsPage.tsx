@@ -43,6 +43,7 @@ export default function SettingsPage() {
     setForm({
       siteName: settings.siteName,
       siteDescription: settings.siteDescription,
+      siteUrl: settings.siteUrl,
       logoUrl: settings.logoUrl,
       primaryColor: settings.primaryColor,
       secondaryColor: settings.secondaryColor,
@@ -133,6 +134,22 @@ export default function SettingsPage() {
                 onChange={(event) => setField('siteDescription', event.target.value)}
                 rows={3}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="siteUrl" className="flex items-center gap-2">
+                <Link2 className="h-4 w-4" />
+                URL do Site
+              </Label>
+              <Input
+                id="siteUrl"
+                value={form.siteUrl}
+                onChange={(event) => setField('siteUrl', event.target.value)}
+                placeholder="https://receitasbell.mtsferreira.dev"
+              />
+              <p className="text-xs text-muted-foreground">
+                Usada para gerar links compartilháveis. Mude aqui quando mudar o domínio.
+              </p>
             </div>
 
             <div className="space-y-2">

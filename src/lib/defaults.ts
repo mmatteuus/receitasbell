@@ -15,6 +15,7 @@ export const DEFAULT_CATEGORIES: Category[] = [
 export const DEFAULT_SITE_SETTINGS: SiteSettings = {
   siteName: "Receitas Bell",
   siteDescription: "Receitas testadas e aprovadas para tornar seus momentos na cozinha inesquecíveis.",
+  siteUrl: "https://receitasbell.mtsferreira.dev",
   logoUrl: "",
   primaryColor: "#e8590c",
   secondaryColor: "#f5f5f4",
@@ -73,6 +74,7 @@ export const DEFAULT_PAYMENT_SETTINGS: PaymentSettings = {
 export const SITE_SETTING_KEYS = [
   "siteName",
   "siteDescription",
+  "siteUrl",
   "logoUrl",
   "primaryColor",
   "secondaryColor",

@@ -57,10 +57,14 @@ export default function Header() {
   const handleShare = async () => {
     if (navigator.share) {
       try {
+        // Construir URL compartilhado: siteUrl + pathname atual
+        const baseUrl = settings.siteUrl || window.location.origin;
+        const shareUrl = `${baseUrl}${pathname}`;
+
         await navigator.share({
           title: settings.siteName,
           text: 'Confira receitas deliciosas no Receitas Bell!',
-          url: window.location.href,
+          url: shareUrl,
         });
       } catch (err) {
         // User cancelled share

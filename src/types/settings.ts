@@ -1,6 +1,7 @@
 export interface SiteSettings {
   siteName: string;
   siteDescription: string;
+  siteUrl: string;
   logoUrl: string;
   primaryColor: string;
   secondaryColor: string;

@@ -119,6 +119,7 @@ export function mapTypedSettings(raw: Record<string, string>): SettingsMap {
   return {
     siteName: raw.siteName || DEFAULT_SITE_SETTINGS.siteName,
     siteDescription: raw.siteDescription || DEFAULT_SITE_SETTINGS.siteDescription,
+    siteUrl: raw.siteUrl || DEFAULT_SITE_SETTINGS.siteUrl,
     logoUrl: raw.logoUrl || DEFAULT_SITE_SETTINGS.logoUrl,
     primaryColor: raw.primaryColor || DEFAULT_SITE_SETTINGS.primaryColor,
     secondaryColor: raw.secondaryColor || DEFAULT_SITE_SETTINGS.secondaryColor,
