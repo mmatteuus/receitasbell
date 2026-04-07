@@ -226,7 +226,7 @@ export async function finishGoogleOAuth(
 ) {
   const stateHash = hashOpaqueState(params.state);
 
-  let resolvedTenantId = params.tenantId;
+  let resolvedTenantId: string = params.tenantId || '';
   if (!resolvedTenantId) {
     const { data: stateRow, error } = await supabaseAdmin
       .from("auth_oauth_states")
@@ -240,7 +240,7 @@ export async function finishGoogleOAuth(
       throw new ApiError(400, "Estado OAuth invalido ou sem tenant associado.");
     }
 
-    resolvedTenantId = stateRow.tenant_id;
+    resolvedTenantId = stateRow.tenant_id as string;
   }
 
   const stateRow = await consumeAuthOAuthState({
@@ -261,13 +261,13 @@ export async function finishGoogleOAuth(
     provider: "google",
     providerSubject: profile.sub,
     email: profile.email,
-    pictureUrl: profile.picture,
+    pictureUrl: profile.picture ?? null,
     emailVerified: profile.email_verified,
   });
 
   await createSession(req, res, sessionData);
 
   return {
-    redirectTo: sanitizeRedirectTo(stateRow.redirectTo),
+    redirectTo: sanitizeRedirectTo(stateRow.redirectTo || undefined),
   };
 }

@@ -17,7 +17,7 @@ const supabaseOptions: SupabaseClientOptions<'public'> = {
     persistSession: false,
   },
   global: {
-    fetch: (input: string | Request, init?: RequestInit) => {
+    fetch: (input: string | URL | Request, init?: RequestInit) => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
       return fetch(input, { ...init, signal: controller.signal }).finally(() =>
