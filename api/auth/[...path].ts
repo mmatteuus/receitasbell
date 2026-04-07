@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { sendNotFound } from '../../src/server/shared/http.js';
+import { AuthRateLimit } from '../../src/server/shared/rateLimit.js';
 
 import authLogout from '../../api_handlers/auth/logout.js';
 import authMe from '../../api_handlers/auth/me.js';
@@ -60,6 +61,20 @@ export default async function handler(request: VercelRequest, response: VercelRe
 
   if (!target) {
     return sendNotFound(request, response);
+  }
+
+  // Aplica rate limit para rotas sensíveis
+  const sensitiveRoutes = ['login-password', 'signup-password', 'reset-password', 'request-magic-link', 'verify-magic-link'];
+  if (sensitiveRoutes.includes(key)) {
+    const ip = String(request.headers['x-forwarded-for'] || request.socket.remoteAddress || 'unknown').split(',')[0].trim();
+    const result = await AuthRateLimit.check(ip);
+    if (!result.success) {
+      response.setHeader('Retry-After', String(result.resetAfter));
+      return response.status(429).json({
+        error: 'Muitas tentativas. Por favor, aguarde alguns minutos.',
+        retryAfter: result.resetAfter
+      });
+    }
   }
 
   await target(request, response);

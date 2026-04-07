@@ -1,37 +1,38 @@
-import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { paymentRepo } from "@/lib/repos/paymentRepo";
-import type { Payment } from "@/lib/payments/types";
-import { exportPaymentsCSV, exportPaymentsPDF } from "@/lib/payments/export";
-import { Button } from "@/components/ui/button";
-import { DateRange } from "react-day-picker";
-import { DatePickerWithRange } from "@/components/ui/date-picker-with-range";
-import { Download, FileText, Settings } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "sonner";
-import { COLORS, METHOD_LABELS, STATUS_LABELS, STATUS_LABELS_REVERSE } from "./constants";
-import { KPICards } from "./KPICards";
-import type { MethodChartClickData, StatusChartClickData } from "./charts/MethodsChart";
-import { buildTenantAdminPath, getCurrentTenantSlug } from "@/lib/tenant";
-import type { FinancialDashboardStats } from "./FinancialDashboard";
-import { getAdminSnapshot, saveAdminSnapshot } from "@/pwa/offline/cache/admin-snapshot";
-import { LastSyncBadge } from "@/pwa/offline/ui/LastSyncBadge";
-import { getAdminPaymentSettings } from "@/lib/api/payments";
-import type { AdminPaymentSettingsResponse } from "@/types/payment";
+import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { paymentRepo } from '@/lib/repos/paymentRepo';
+import type { Payment } from '@/lib/payments/types';
+import { exportPaymentsCSV, exportPaymentsPDF } from '@/lib/payments/export';
+import { Button } from '@/components/ui/button';
+import { DateRange } from 'react-day-picker';
+import { DatePickerWithRange } from '@/components/ui/date-picker-with-range';
+import { Download, FileText, Settings } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { toast } from 'sonner';
+import { COLORS, METHOD_LABELS, STATUS_LABELS, STATUS_LABELS_REVERSE } from './constants';
+import { KPICards } from './KPICards';
+import type { MethodChartClickData, StatusChartClickData } from './charts/MethodsChart';
+import { buildTenantAdminPath, getCurrentTenantSlug } from '@/lib/tenant';
+import type { FinancialDashboardStats } from './FinancialDashboard';
+import { getAdminSnapshot, saveAdminSnapshot } from '@/pwa/offline/cache/admin-snapshot';
+import { LastSyncBadge } from '@/pwa/offline/ui/LastSyncBadge';
+import { getAdminPaymentSettings } from '@/lib/api/payments';
+import type { AdminPaymentSettingsResponse } from '@/types/payment';
+import { PageHead } from '@/components/PageHead';
 
 const TrendsChart = lazy(() =>
-  import("./charts/TrendsChart").then((module) => ({ default: module.TrendsChart })),
+  import('./charts/TrendsChart').then((module) => ({ default: module.TrendsChart }))
 );
 const SuccessRateChart = lazy(() =>
-  import("./charts/SuccessRateChart").then((module) => ({ default: module.SuccessRateChart })),
+  import('./charts/SuccessRateChart').then((module) => ({ default: module.SuccessRateChart }))
 );
 const MethodsChart = lazy(() =>
-  import("./charts/MethodsChart").then((module) => ({ default: module.MethodsChart })),
+  import('./charts/MethodsChart').then((module) => ({ default: module.MethodsChart }))
 );
 const MonthlyChart = lazy(() =>
-  import("./charts/MonthlyChart").then((module) => ({ default: module.MonthlyChart })),
+  import('./charts/MonthlyChart').then((module) => ({ default: module.MonthlyChart }))
 );
-const FinancialDashboard = lazy(() => import("./FinancialDashboard"));
+const FinancialDashboard = lazy(() => import('./FinancialDashboard'));
 
 function AnalyticsPanelFallback({ label }: { label: string }) {
   return (
@@ -87,10 +88,10 @@ export default function DashboardPage() {
             setSnapshotMode(true);
             setLastSyncedAt(snapshot?.lastSyncedAt || null);
           } else {
-            console.error("Failed to load payments dashboard", error);
+            console.error('Failed to load payments dashboard', error);
           }
         } else {
-          console.error("Failed to load payments dashboard", error);
+          console.error('Failed to load payments dashboard', error);
         }
       } finally {
         setLoadingPayments(false);
@@ -106,19 +107,28 @@ export default function DashboardPage() {
         const status = await getAdminPaymentSettings();
         setStripeStatus(status);
       } catch (error) {
-        console.error("Failed to load Stripe status on dashboard", error);
+        console.error('Failed to load Stripe status on dashboard', error);
       }
     }
     void loadStripeStatus();
   }, []);
 
   const stats = useMemo(() => {
-    const totalRevenue = payments.reduce((acc, p) => p.status === 'approved' ? acc + p.totalBRL : acc, 0);
+    const totalRevenue = payments.reduce(
+      (acc, p) => (p.status === 'approved' ? acc + p.totalBRL : acc),
+      0
+    );
     const total = payments.length;
-    const approved = payments.filter(p => p.status === 'approved').length;
-    const pending = payments.filter(p => p.status === 'pending' || p.status === 'in_process').length;
-    const refunded = payments.filter(p => p.status === 'refunded' || p.status === 'charged_back').length;
-    const rejected = payments.filter(p => p.status === 'rejected' || p.status === 'cancelled').length;
+    const approved = payments.filter((p) => p.status === 'approved').length;
+    const pending = payments.filter(
+      (p) => p.status === 'pending' || p.status === 'in_process'
+    ).length;
+    const refunded = payments.filter(
+      (p) => p.status === 'refunded' || p.status === 'charged_back'
+    ).length;
+    const rejected = payments.filter(
+      (p) => p.status === 'rejected' || p.status === 'cancelled'
+    ).length;
     const approvalRate = total > 0 ? (approved / total) * 100 : 0;
     const avgTicket = approved > 0 ? totalRevenue / approved : 0;
     return { totalRevenue, total, approved, pending, refunded, rejected, approvalRate, avgTicket };
@@ -126,7 +136,7 @@ export default function DashboardPage() {
 
   const revenueByDay = useMemo(() => {
     const map: Record<string, { revenue: number; count: number }> = {};
-    payments.forEach(p => {
+    payments.forEach((p) => {
       if (p.status === 'approved' && p.approvedAt) {
         const day = new Date(p.approvedAt).toISOString().split('T')[0];
         if (!map[day]) map[day] = { revenue: 0, count: 0 };
@@ -134,28 +144,31 @@ export default function DashboardPage() {
         map[day].count += 1;
       }
     });
-    return Object.entries(map).map(([date, data]) => ({ date, ...data }))
+    return Object.entries(map)
+      .map(([date, data]) => ({ date, ...data }))
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [payments]);
 
   const successRateByDay = useMemo(() => {
     const map: Record<string, { total: number; approved: number }> = {};
-    payments.forEach(p => {
+    payments.forEach((p) => {
       const day = new Date(p.createdAt).toISOString().split('T')[0];
       if (!map[day]) map[day] = { total: 0, approved: 0 };
       map[day].total += 1;
       if (p.status === 'approved') map[day].approved += 1;
     });
-    return Object.entries(map).map(([date, data]) => ({
-      date,
-      rate: data.total > 0 ? Math.round((data.approved / data.total) * 100) : 0,
-      total: data.total,
-    })).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    return Object.entries(map)
+      .map(([date, data]) => ({
+        date,
+        rate: data.total > 0 ? Math.round((data.approved / data.total) * 100) : 0,
+        total: data.total,
+      }))
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [payments]);
 
   const revenueByMethod = useMemo(() => {
     const map: Record<string, { revenue: number; count: number }> = {};
-    payments.forEach(p => {
+    payments.forEach((p) => {
       if (p.status === 'approved') {
         const method = p.paymentMethodKey;
         if (!map[method]) map[method] = { revenue: 0, count: 0 };
@@ -164,22 +177,28 @@ export default function DashboardPage() {
       }
     });
     return Object.entries(map).map(([method, data]) => ({
-      method, label: METHOD_LABELS[method] || method, ...data,
+      method,
+      label: METHOD_LABELS[method] || method,
+      ...data,
     }));
   }, [payments]);
 
   const statusDistribution = useMemo(() => {
     const map: Record<string, number> = {};
-    payments.forEach(p => { map[p.status] = (map[p.status] || 0) + 1; });
+    payments.forEach((p) => {
+      map[p.status] = (map[p.status] || 0) + 1;
+    });
     return Object.entries(map).map(([name, value]) => ({
-      name: STATUS_LABELS[name] || name, statusKey: name, value,
+      name: STATUS_LABELS[name] || name,
+      statusKey: name,
+      value,
       color: COLORS[name] || 'hsl(0,0%,50%)',
     }));
   }, [payments]);
 
   const monthlyComparison = useMemo(() => {
     const map: Record<string, { revenue: number; count: number; approved: number }> = {};
-    payments.forEach(p => {
+    payments.forEach((p) => {
       const d = new Date(p.createdAt);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       if (!map[key]) map[key] = { revenue: 0, count: 0, approved: 0 };
@@ -192,7 +211,10 @@ export default function DashboardPage() {
     return Object.entries(map)
       .map(([month, data]) => ({
         month,
-        label: new Date(month + '-15').toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }),
+        label: new Date(month + '-15').toLocaleDateString('pt-BR', {
+          month: 'short',
+          year: '2-digit',
+        }),
         ...data,
         avgTicket: data.approved > 0 ? data.revenue / data.approved : 0,
       }))
@@ -200,7 +222,7 @@ export default function DashboardPage() {
   }, [payments]);
 
   const stripeSummary = useMemo<FinancialDashboardStats>(() => {
-    const approvedPayments = payments.filter((payment) => payment.status === "approved");
+    const approvedPayments = payments.filter((payment) => payment.status === 'approved');
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
@@ -226,11 +248,13 @@ export default function DashboardPage() {
       totalRevenue,
       monthlyRevenue,
       recentPayments,
-      stripeStatus: stripeStatus ? {
-        connected: stripeStatus.connectionStatus === 'connected',
-        detailsSubmitted: stripeStatus.detailsSubmitted ?? false,
-        chargesEnabled: stripeStatus.chargesEnabled ?? false,
-      } : undefined
+      stripeStatus: stripeStatus
+        ? {
+            connected: stripeStatus.connectionStatus === 'connected',
+            detailsSubmitted: stripeStatus.detailsSubmitted ?? false,
+            chargesEnabled: stripeStatus.chargesEnabled ?? false,
+          }
+        : undefined,
     };
   }, [payments, stripeStatus]);
 
@@ -241,105 +265,143 @@ export default function DashboardPage() {
     setDateRange({ from, to });
   };
 
-  const handleStatusBarClick = useCallback((data?: StatusChartClickData) => {
-    if (!data) return;
-    const statusKey = data.statusKey || data.payload?.statusKey || STATUS_LABELS_REVERSE[data.name || data.payload?.name || ""];
-    if (statusKey) {
-      navigate(`${buildTenantAdminPath("pagamentos/transacoes", tenantSlug)}?status=${statusKey}`);
-      toast.info(`Filtrando transações por: ${STATUS_LABELS[statusKey] || statusKey}`);
-    }
-  }, [navigate, tenantSlug]);
+  const handleStatusBarClick = useCallback(
+    (data?: StatusChartClickData) => {
+      if (!data) return;
+      const statusKey =
+        data.statusKey ||
+        data.payload?.statusKey ||
+        STATUS_LABELS_REVERSE[data.name || data.payload?.name || ''];
+      if (statusKey) {
+        navigate(
+          `${buildTenantAdminPath('pagamentos/transacoes', tenantSlug)}?status=${statusKey}`
+        );
+        toast.info(`Filtrando transações por: ${STATUS_LABELS[statusKey] || statusKey}`);
+      }
+    },
+    [navigate, tenantSlug]
+  );
 
-  const handleMethodBarClick = useCallback((data?: MethodChartClickData) => {
-    if (!data) return;
-    const method = data.method || data.payload?.method;
-    if (method) {
-      navigate(`${buildTenantAdminPath("pagamentos/transacoes", tenantSlug)}?method=${method}`);
-      toast.info(`Filtrando transações por: ${METHOD_LABELS[method] || method}`);
-    }
-  }, [navigate, tenantSlug]);
+  const handleMethodBarClick = useCallback(
+    (data?: MethodChartClickData) => {
+      if (!data) return;
+      const method = data.method || data.payload?.method;
+      if (method) {
+        navigate(`${buildTenantAdminPath('pagamentos/transacoes', tenantSlug)}?method=${method}`);
+        toast.info(`Filtrando transações por: ${METHOD_LABELS[method] || method}`);
+      }
+    },
+    [navigate, tenantSlug]
+  );
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap justify-between items-center gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Analytics de Pagamentos</h1>
-          {snapshotMode && (
-            <div className="mt-2 space-y-2">
-              <p className="text-sm font-medium text-amber-800">Modo offline — dados podem estar desatualizados.</p>
-              <LastSyncBadge lastSyncedAt={lastSyncedAt} />
-            </div>
-          )}
+    <>
+      <PageHead
+        title="Analytics de pagamentos"
+        description="Visualize métricas e tendências financeiras do seu painel."
+        noindex={true}
+      />
+      <div className="space-y-6">
+        <div className="flex flex-wrap justify-between items-center gap-3">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Analytics de Pagamentos</h1>
+            {snapshotMode && (
+              <div className="mt-2 space-y-2">
+                <p className="text-sm font-medium text-amber-800">
+                  Modo offline — dados podem estar desatualizados.
+                </p>
+                <LastSyncBadge lastSyncedAt={lastSyncedAt} />
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <DatePickerWithRange onSelect={setDateRange} />
+            <Button variant="outline" size="sm" onClick={() => setQuickRange(7)}>
+              7d
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setQuickRange(30)}>
+              30d
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setQuickRange(90)}>
+              90d
+            </Button>
+            <div className="h-6 w-px bg-border mx-1" />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate(buildTenantAdminPath('pagamentos/configuracoes', tenantSlug))}
+              className="gap-1.5"
+            >
+              <Settings className="h-4 w-4" /> Configurações
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => exportPaymentsCSV(payments, 'analytics')}
+              className="gap-1.5"
+            >
+              <Download className="h-4 w-4" /> CSV
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => exportPaymentsPDF(payments, 'analytics')}
+              className="gap-1.5"
+            >
+              <FileText className="h-4 w-4" /> PDF
+            </Button>
+          </div>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <DatePickerWithRange onSelect={setDateRange} />
-          <Button variant="outline" size="sm" onClick={() => setQuickRange(7)}>7d</Button>
-          <Button variant="outline" size="sm" onClick={() => setQuickRange(30)}>30d</Button>
-          <Button variant="outline" size="sm" onClick={() => setQuickRange(90)}>90d</Button>
-          <div className="h-6 w-px bg-border mx-1" />
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => navigate(buildTenantAdminPath("pagamentos/configuracoes", tenantSlug))}
-            className="gap-1.5"
-          >
-            <Settings className="h-4 w-4" /> Configurações
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => exportPaymentsCSV(payments, "analytics")} className="gap-1.5">
-            <Download className="h-4 w-4" /> CSV
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => exportPaymentsPDF(payments, "analytics")} className="gap-1.5">
-            <FileText className="h-4 w-4" /> PDF
-          </Button>
-        </div>
+
+        <KPICards stats={stats} />
+
+        <Tabs defaultValue="trends" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
+            <TabsTrigger value="trends">Tendências</TabsTrigger>
+            <TabsTrigger value="success">Taxa de Sucesso</TabsTrigger>
+            <TabsTrigger value="methods">Por Método</TabsTrigger>
+            <TabsTrigger value="monthly">Mês a Mês</TabsTrigger>
+            <TabsTrigger value="stripe" className="text-[#635BFF] font-semibold">
+              Resumo Stripe
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="trends" className="animate-fade-in">
+            <Suspense fallback={<AnalyticsPanelFallback label="tendencias" />}>
+              <TrendsChart data={revenueByDay} />
+            </Suspense>
+          </TabsContent>
+
+          <TabsContent value="success" className="animate-fade-in">
+            <Suspense fallback={<AnalyticsPanelFallback label="taxa de sucesso" />}>
+              <SuccessRateChart data={successRateByDay} />
+            </Suspense>
+          </TabsContent>
+
+          <TabsContent value="methods" className="animate-fade-in">
+            <Suspense fallback={<AnalyticsPanelFallback label="graficos por metodo" />}>
+              <MethodsChart
+                revenueByMethod={revenueByMethod}
+                statusDistribution={statusDistribution}
+                onMethodClick={handleMethodBarClick}
+                onStatusClick={handleStatusBarClick}
+              />
+            </Suspense>
+          </TabsContent>
+
+          <TabsContent value="monthly" className="animate-fade-in">
+            <Suspense fallback={<AnalyticsPanelFallback label="comparacao mensal" />}>
+              <MonthlyChart data={monthlyComparison} />
+            </Suspense>
+          </TabsContent>
+
+          <TabsContent value="stripe" className="animate-fade-in">
+            <Suspense fallback={<AnalyticsPanelFallback label="resumo do Stripe" />}>
+              <FinancialDashboard stats={stripeSummary} loading={loadingPayments} />
+            </Suspense>
+          </TabsContent>
+        </Tabs>
       </div>
-
-      <KPICards stats={stats} />
-
-      <Tabs defaultValue="trends" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
-          <TabsTrigger value="trends">Tendências</TabsTrigger>
-          <TabsTrigger value="success">Taxa de Sucesso</TabsTrigger>
-          <TabsTrigger value="methods">Por Método</TabsTrigger>
-          <TabsTrigger value="monthly">Mês a Mês</TabsTrigger>
-          <TabsTrigger value="stripe" className="text-[#635BFF] font-semibold">Resumo Stripe</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="trends" className="animate-fade-in">
-          <Suspense fallback={<AnalyticsPanelFallback label="tendencias" />}>
-            <TrendsChart data={revenueByDay} />
-          </Suspense>
-        </TabsContent>
-
-        <TabsContent value="success" className="animate-fade-in">
-          <Suspense fallback={<AnalyticsPanelFallback label="taxa de sucesso" />}>
-            <SuccessRateChart data={successRateByDay} />
-          </Suspense>
-        </TabsContent>
-
-        <TabsContent value="methods" className="animate-fade-in">
-          <Suspense fallback={<AnalyticsPanelFallback label="graficos por metodo" />}>
-            <MethodsChart
-              revenueByMethod={revenueByMethod}
-              statusDistribution={statusDistribution}
-              onMethodClick={handleMethodBarClick}
-              onStatusClick={handleStatusBarClick}
-            />
-          </Suspense>
-        </TabsContent>
-
-        <TabsContent value="monthly" className="animate-fade-in">
-          <Suspense fallback={<AnalyticsPanelFallback label="comparacao mensal" />}>
-            <MonthlyChart data={monthlyComparison} />
-          </Suspense>
-        </TabsContent>
-
-        <TabsContent value="stripe" className="animate-fade-in">
-          <Suspense fallback={<AnalyticsPanelFallback label="resumo do Stripe" />}>
-            <FinancialDashboard stats={stripeSummary} loading={loadingPayments} />
-          </Suspense>
-        </TabsContent>
-      </Tabs>
-    </div>
+    </>
   );
 }

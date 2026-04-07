@@ -8,6 +8,46 @@ import { updatePaymentOrderStatus, getPaymentOrderById } from '../../../repo.js'
 import { upsertConnectAccount } from '../../../repo/accounts.js';
 import type { Logger } from '../../../../shared/logger.js';
 
+async function isEventProcessed(
+  tenantId: string,
+  eventId: string,
+  logger: Logger
+): Promise<boolean> {
+  const { data, error } = await supabaseAdmin
+    .from('payment_events')
+    .select('id')
+    .eq('tenant_id', tenantId)
+    .eq('event_type', 'stripe_event_id')
+    .eq('payload', JSON.stringify({ stripeEventId: eventId }))
+    .maybeSingle();
+
+  if (error) {
+    logger.warn('stripe.webhook.idempotency_check_failed', error);
+    return false;
+  }
+
+  return !!data;
+}
+
+async function markEventProcessed(
+  tenantId: string,
+  event: Stripe.Event,
+  logger: Logger
+): Promise<void> {
+  const { error } = await supabaseAdmin
+    .from('payment_events')
+    .insert({
+      tenant_id: tenantId,
+      event_type: 'stripe_event_id',
+      payload: { stripeEventId: event.id, stripeEventType: event.type },
+      created_at: new Date().toISOString(),
+    });
+
+  if (error) {
+    logger.warn('stripe.webhook.idempotency_store_failed', error);
+  }
+}
+
 async function grantEntitlementsFromOrder(
   tenantId: string,
   session: Stripe.Checkout.Session,
@@ -15,25 +55,33 @@ async function grantEntitlementsFromOrder(
   logger: Logger
 ) {
   if (!order?.recipeIds || order.recipeIds.length === 0) return;
+  if (!order.userId) {
+    logger.warn('stripe.webhook.entitlements_missing_userid', {
+      orderId: order.id,
+    });
+    return;
+  }
 
-  const providerPaymentId = (session.payment_intent as string) || session.id;
   const entitlements = order.recipeIds.map((recipeId) => ({
     tenant_id: tenantId,
-    user_id: order.userId || order.payerEmail,
+    user_id: order.userId,
     recipe_id: recipeId,
-    amount_paid: Number((order.amount / 100).toFixed(2)),
-    provider: 'stripe',
-    provider_payment_id: providerPaymentId,
     payment_order_id: order.id,
   }));
 
   const { error: entError } = await supabaseAdmin
-    .from('recipe_purchases')
-    .upsert(entitlements, { onConflict: 'user_id,recipe_id' });
+    .from('entitlements')
+    .upsert(entitlements, { onConflict: 'tenant_id,user_id,recipe_id' });
 
   if (entError) {
     logger.error('stripe.webhook.entitlements_failed', entError);
+    throw entError;
   }
+
+  logger.debug('stripe.webhook.entitlements_granted', {
+    count: entitlements.length,
+    recipeIds: order.recipeIds,
+  });
 }
 
 async function processCheckoutSessionEvent(
@@ -159,6 +207,16 @@ export default withApiHandler(async (req: VercelRequest, res: VercelResponse, { 
     livemode: event.livemode,
   });
 
+  // Validar idempotência: mesmo evento não pode ser processado 2x
+  const tenantIdFromSession = ((event.data.object as unknown as Record<string, unknown>)?.metadata as Record<string, unknown>)?.tenantId as string | undefined;
+  if (tenantIdFromSession && await isEventProcessed(tenantIdFromSession, event.id, eventLogger)) {
+    eventLogger.debug('stripe.webhook.event_already_processed', {
+      reason: 'duplicate_event',
+    });
+    res.json({ received: true, duplicate: true });
+    return;
+  }
+
   // 1. Evento de Checkout (venda de receitas)
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session;
@@ -168,6 +226,7 @@ export default withApiHandler(async (req: VercelRequest, res: VercelResponse, { 
         { expectedPaid: true, statusIfNotPaid: 'pending' },
         eventLogger
       );
+      if (tenantIdFromSession) await markEventProcessed(tenantIdFromSession, event, eventLogger);
     } catch (error: unknown) {
       eventLogger.error('stripe.webhook.checkout_failed', error);
       throw error;
@@ -178,6 +237,7 @@ export default withApiHandler(async (req: VercelRequest, res: VercelResponse, { 
     const session = event.data.object as Stripe.Checkout.Session;
     try {
       await processCheckoutSessionEvent(session, { expectedPaid: true }, eventLogger);
+      if (tenantIdFromSession) await markEventProcessed(tenantIdFromSession, event, eventLogger);
     } catch (error: unknown) {
       eventLogger.error('stripe.webhook.checkout_failed', error);
       throw error;
@@ -192,6 +252,7 @@ export default withApiHandler(async (req: VercelRequest, res: VercelResponse, { 
         { expectedPaid: false, statusIfNotPaid: 'failed' },
         eventLogger
       );
+      if (tenantIdFromSession) await markEventProcessed(tenantIdFromSession, event, eventLogger);
     } catch (error: unknown) {
       eventLogger.error('stripe.webhook.checkout_failed', error);
       throw error;

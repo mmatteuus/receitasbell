@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { Trash2, ShoppingCart, CheckCircle2, Circle, ArrowRight } from "lucide-react";
+import { PageHead } from "@/components/PageHead";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -108,15 +109,28 @@ export default function ShoppingListPage() {
 
   if (loading) {
     return (
-      <div className="container py-20 text-center">
-        <p className="text-muted-foreground">Carregando lista de compras...</p>
-      </div>
+      <>
+        <PageHead
+          title="Lista de Compras"
+          description="Sua lista de compras personalizada com ingredientes das receitas"
+          noindex={true}
+        />
+        <div className="container py-20 text-center">
+          <p className="text-muted-foreground">Carregando lista de compras...</p>
+        </div>
+      </>
     );
   }
 
   if (items.length === 0) {
     return (
-      <div className="container py-20 text-center flex flex-col items-center font-sans">
+      <>
+        <PageHead
+          title="Lista de Compras"
+          description="Sua lista de compras personalizada com ingredientes das receitas"
+          noindex={true}
+        />
+        <div className="container py-20 text-center flex flex-col items-center font-sans">
         <div className="bg-muted p-6 rounded-full mb-6">
           <ShoppingCart className="h-12 w-12 text-muted-foreground" />
         </div>
@@ -138,11 +152,18 @@ export default function ShoppingListPage() {
           </Button>
         </Link>
       </div>
+      </>
     );
   }
 
   return (
-    <div className="container max-w-2xl py-10 font-sans">
+    <>
+      <PageHead
+        title="Lista de Compras"
+        description="Sua lista de compras personalizada com ingredientes das receitas"
+        noindex={true}
+      />
+      <div className="container max-w-2xl py-10 font-sans">
       <div className="flex items-center justify-between mb-8">
         <h1 className="font-serif text-3xl font-bold flex items-center gap-3">
           <ShoppingCart className="h-8 w-8" />
@@ -188,5 +209,6 @@ export default function ShoppingListPage() {
         ))}
       </div>
     </div>
+    </>
   );
 }

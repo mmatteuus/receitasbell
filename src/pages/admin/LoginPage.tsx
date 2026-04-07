@@ -13,6 +13,7 @@ import {
 import { ApiClientError } from "@/lib/api/client";
 import { buildTenantAdminPath, buildTenantPath, extractTenantSlugFromPath } from "@/lib/tenant";
 import { trackEvent } from "@/lib/telemetry";
+import { AdminInviteAcceptance } from "@/components/admin/AdminInviteAcceptance";
 
 export default function AdminLoginPage() {
   const location = useLocation();
@@ -22,6 +23,9 @@ export default function AdminLoginPage() {
   const canonicalTenantSlug = tenantSlugFromPath || "receitasbell";
   const defaultRedirect = buildTenantAdminPath("", canonicalTenantSlug);
   const redirectTo = params.get("redirect") || defaultRedirect;
+
+  // Suporte para fluxo de convites
+  const inviteToken = params.get("invite");
 
   const [session, setSession] = useState<AdminSessionResponse | null>(null);
   const [checking, setChecking] = useState(true);
@@ -125,6 +129,37 @@ export default function AdminLoginPage() {
       </div>
     );
   }
+
+  // Se há um token de convite válido, mostrar fluxo de aceitar convite
+  if (inviteToken) {
+    return (
+      <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gradient-to-b from-orange-50 via-amber-50/60 to-background px-4 py-12">
+        <div className="pointer-events-none absolute -left-24 top-6 h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
+        <div className="pointer-events-none absolute -right-16 bottom-8 h-64 w-64 rounded-full bg-amber-300/20 blur-3xl" />
+
+        <Card className="w-full max-w-md border-0 shadow-xl">
+          <CardHeader className="space-y-3 text-center">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <ChefHat aria-hidden="true" className="h-6 w-6" />
+            </div>
+            <CardTitle className="text-2xl">Aceitar Convite</CardTitle>
+            <CardDescription>Complete seu onboarding como administrador</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AdminInviteAcceptance
+              token={inviteToken}
+              onSuccess={() => {
+                navigate(resolveAdminRedirect(session || { authenticated: false, mode: "tenant", bootstrapRequired: false, tenant: null, user: null }), {
+                  replace: true,
+                });
+              }}
+            />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   const bootstrapRequired = session?.bootstrapRequired;
   const authenticated = session?.authenticated;
   const showLegacyUnlock = bootstrapRequired && !authenticated;

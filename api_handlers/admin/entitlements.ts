@@ -21,19 +21,19 @@ export default withApiHandler(async (request: VercelRequest, response: VercelRes
     }
 
     const payload = request.body as {
-      paymentId?: string;
-      payerEmail?: string;
-      recipeSlug?: string;
+      userId?: string;
+      recipeId?: string;
+      paymentOrderId?: string;
     };
 
-    if (!payload.paymentId?.trim() || !payload.payerEmail?.trim() || !payload.recipeSlug?.trim()) {
-      throw new ApiError(400, "paymentId, payerEmail e recipeSlug são obrigatórios");
+    if (!payload.userId?.trim() || !payload.recipeId?.trim()) {
+      throw new ApiError(400, "userId e recipeId são obrigatórios");
     }
 
     const entitlement = await createEntitlement(tenant.id, {
-      paymentId: payload.paymentId,
-      payerEmail: payload.payerEmail,
-      recipeSlug: payload.recipeSlug,
+      userId: payload.userId,
+      recipeId: payload.recipeId,
+      paymentOrderId: payload.paymentOrderId?.trim() || null,
     });
 
     await logAuditEvent({
@@ -43,7 +43,7 @@ export default withApiHandler(async (request: VercelRequest, response: VercelRes
       action: "create_entitlement",
       resourceType: "entitlement",
       resourceId: String(entitlement.id),
-      payload: { paymentId: payload.paymentId, email: payload.payerEmail, slug: payload.recipeSlug }
+      payload: { userId: payload.userId, recipeId: payload.recipeId, paymentOrderId: payload.paymentOrderId }
     });
 
     return json(response, 201, { entitlement, requestId });
@@ -55,18 +55,18 @@ export default withApiHandler(async (request: VercelRequest, response: VercelRes
     }
 
     const payload = request.body as {
-      paymentId?: string;
-      recipeSlug?: string;
+      userId?: string;
+      recipeId?: string;
     };
 
-    if (!payload.paymentId?.trim()) {
-      throw new ApiError(400, "paymentId é obrigatório");
+    if (!payload.userId?.trim() || !payload.recipeId?.trim()) {
+      throw new ApiError(400, "userId e recipeId são obrigatórios");
     }
 
     await revokeEntitlement(
       tenant.id,
-      payload.paymentId,
-      payload.recipeSlug?.trim() || undefined,
+      payload.userId,
+      payload.recipeId,
     );
 
     await logAuditEvent({
@@ -75,8 +75,8 @@ export default withApiHandler(async (request: VercelRequest, response: VercelRes
       actorId,
       action: "revoke_entitlement",
       resourceType: "entitlement",
-      resourceId: String(payload.paymentId),
-      payload: { paymentId: payload.paymentId, slug: payload.recipeSlug }
+      resourceId: `${payload.userId}:${payload.recipeId}`,
+      payload: { userId: payload.userId, recipeId: payload.recipeId }
     });
 
     return json(response, 200, { success: true, requestId });

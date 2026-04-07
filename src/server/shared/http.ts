@@ -4,6 +4,8 @@ import { env } from './env.js';
 import { applyCorrelationId, getCorrelationId } from './correlation.js';
 import { problemDetail } from './errors.js';
 import { Logger } from './logger.js';
+import { checkSLO } from './slo.js';
+import { checkRateLimit, globalRateLimit } from './rateLimit.js';
 
 export class ApiError extends Error {
   constructor(
@@ -200,13 +202,21 @@ export function withApiHandler<T = void>(
   ) => Promise<T>
 ) {
   return async (req: VercelRequest, res: VercelResponse) => {
+    const start = Date.now();
     const rid = requestId(req);
     const logger = Logger.fromRequest(req, { requestId: rid, correlationId: rid });
     applyCorrelationId(res, rid);
+
+    let status = 200; // default success status
+
     try {
       await handler(req, res, { requestId: rid, logger });
+
+      // O handler pode não ter chamado res.status(X). Se chamou, pegamos o valor correto.
+      status = res.statusCode || 200;
     } catch (error: unknown) {
       if (error instanceof ApiError) {
+        status = error.status;
         const errorContext = {
           status: error.status,
           message: error.message,
@@ -218,7 +228,8 @@ export function withApiHandler<T = void>(
         } else {
           logger.warn('API error', errorContext);
         }
-        return sendProblem(
+
+        sendProblem(
           res,
           error.status,
           String(STATUS_CODES[error.status] ?? 'API Error'),
@@ -229,19 +240,44 @@ export function withApiHandler<T = void>(
             details: error.details ?? undefined,
           }
         );
+      } else {
+        status = 500;
+        logger.error('Unhandled API error', error);
+        sendProblem(
+          res,
+          500,
+          String(STATUS_CODES[500] ?? 'Internal Server Error'),
+          'Internal server error',
+          {
+            instance: buildProblemInstance(req),
+            requestId: rid,
+          }
+        );
       }
+    } finally {
+      const durationMs = Date.now() - start;
+      const metrics = checkSLO(durationMs, status);
 
-      logger.error('Unhandled API error', error);
-      return sendProblem(
-        res,
-        500,
-        String(STATUS_CODES[500] ?? 'Internal Server Error'),
-        'Internal server error',
-        {
-          instance: buildProblemInstance(req),
-          requestId: rid,
+      if (metrics.breached) {
+        const sloLog = {
+          durationMs,
+          status,
+          type: metrics.type,
+          slo_breach: true,
+          critical: metrics.critical,
+        };
+
+        if (metrics.critical) {
+          logger.error(`SLO Critical Breach: ${metrics.type}`, sloLog);
+        } else {
+          logger.warn(`SLO Target Breach: ${metrics.type}`, sloLog);
         }
-      );
+      } else {
+        // Log incidental metrics for successful P95 tracking downstream (logs parser like Sentry or Cloudwatch)
+        if (durationMs > 100) { // log only if non-trivial for noise reduction
+          logger.debug('Request Performance Metrics', { durationMs, status });
+        }
+      }
     }
   };
 }

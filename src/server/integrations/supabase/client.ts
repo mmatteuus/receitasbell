@@ -6,18 +6,30 @@ if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
 }
 
 /**
+ * Configuração global com timeout para o Supabase
+ */
+const supabaseOptions: any = {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+  },
+  global: {
+    fetch: (input: any, init: any) => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+      return fetch(input, { ...init, signal: controller.signal }).finally(() => clearTimeout(timeoutId));
+    },
+  },
+};
+
+/**
  * Cliente admin do Supabase (ignora RLS)
  * Use este para tarefas de sistema, migrações e auditoria.
  */
 export const supabaseAdmin = createClient(
   env.SUPABASE_URL,
   env.SUPABASE_SERVICE_ROLE_KEY,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  }
+  supabaseOptions
 );
 
 /**
@@ -26,5 +38,6 @@ export const supabaseAdmin = createClient(
  */
 export const supabase = createClient(
   env.SUPABASE_URL,
-  env.SUPABASE_ANON_KEY ?? env.SUPABASE_SERVICE_ROLE_KEY
+  env.SUPABASE_ANON_KEY ?? env.SUPABASE_SERVICE_ROLE_KEY,
+  supabaseOptions
 );

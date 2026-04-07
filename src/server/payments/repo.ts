@@ -7,10 +7,6 @@ import type {
 } from '../../lib/payments/types.js';
 import type { PaymentStatus as AppPaymentStatus } from '../../types/payment.js';
 import type { RecipeRecord } from '../../lib/recipes/types.js';
-import {
-  listEntitlementsByEmail,
-  type Entitlement as ServerEntitlement,
-} from '../identity/entitlements.repo.js';
 import { listRecipes } from '../recipes/repo.js';
 import { ApiError } from '../shared/http.js';
 import { supabase, supabaseAdmin } from '../integrations/supabase/client.js';
@@ -44,19 +40,14 @@ export interface PaymentRecord {
   id: string;
   tenantId: string;
   userId?: string | null;
-  amount: number;
+  amount: number; // em centavos (amount_cents do banco)
   currency: string;
   status: PaymentStatus;
   externalReference: string;
   providerPaymentId: string;
-  mpPaymentId: string;
-  preferenceId: string;
   idempotencyKey: string;
-  payerEmail: string;
   paymentMethod: string;
   provider: string;
-  providerPaymentMethodId?: string | null;
-  providerPaymentTypeId?: string | null;
   recipeIds: string[];
   items: CartItem[];
   createdAt: string;
@@ -67,21 +58,15 @@ type PaymentOrderRow = {
   id: string;
   tenant_id: string | number;
   user_id?: string | null;
-  amount: number | string;
+  amount: number | string; // amount_cents no banco
   currency: string;
   status: string;
   external_reference?: string;
   provider_payment_id?: string | null;
-  mp_payment_id?: string | null;
-  preference_id?: string | null;
   idempotency_key?: string | null;
-  payer_email: string;
   payment_method?: string | null;
   provider?: string | null;
-  provider_payment_method_id?: string | null;
-  provider_payment_type_id?: string | null;
-  recipe_ids?: string[];
-  items?: CartItem[];
+  items_json?: CartItem[] | null;
   created_at: string;
   updated_at: string;
 };
@@ -103,7 +88,6 @@ export async function createPaymentOrder(
     status: PaymentStatus;
     externalReference: string;
     idempotencyKey: string;
-    payerEmail: string;
     paymentMethod: string;
     provider?: string;
     recipeIds: string[];
@@ -115,16 +99,14 @@ export async function createPaymentOrder(
     .insert({
       tenant_id: tenantId,
       user_id: input.userId || null,
-      amount: input.amount,
+      amount: input.amount, // em centavos (amount_cents)
       currency: input.currency || 'BRL',
       status: input.status,
       external_reference: input.externalReference,
       idempotency_key: input.idempotencyKey,
-      payer_email: input.payerEmail.toLowerCase().trim(),
       payment_method: input.paymentMethod,
       provider: input.provider || 'stripe',
-      recipe_ids: input.recipeIds,
-      items: input.items,
+      items_json: input.items,
     })
     .select()
     .single();
@@ -182,14 +164,11 @@ export async function updatePaymentOrderStatus(
   tenantId: string,
   id: string,
   status: string,
-  mpPaymentId?: string,
-  mpDetails?: { methodId?: string; typeId?: string }
+  providerPaymentId?: string
 ): Promise<void> {
   await updatePaymentOrderInternal(tenantId, id, {
     status: status as PaymentStatus,
-    providerPaymentId: mpPaymentId,
-    providerPaymentMethodId: mpDetails?.methodId,
-    providerPaymentTypeId: mpDetails?.typeId,
+    providerPaymentId,
   });
 }
 
@@ -204,12 +183,6 @@ export async function updatePaymentOrderInternal(
 
   if (updates.status) rowUpdates.status = updates.status;
   if (updates.providerPaymentId) rowUpdates.provider_payment_id = updates.providerPaymentId;
-  if (updates.mpPaymentId) rowUpdates.mp_payment_id = updates.mpPaymentId;
-  if (updates.preferenceId) rowUpdates.preference_id = updates.preferenceId;
-  if (updates.providerPaymentMethodId)
-    rowUpdates.provider_payment_method_id = updates.providerPaymentMethodId;
-  if (updates.providerPaymentTypeId)
-    rowUpdates.provider_payment_type_id = updates.providerPaymentTypeId;
 
   const { error } = await supabaseAdmin
     .from('payment_orders')
@@ -254,10 +227,6 @@ export async function listPayments(
     .eq('tenant_id', tenantId)
     .order('created_at', { ascending: false });
 
-  if (filters.email) {
-    query = query.ilike('payer_email', `%${filters.email}%`);
-  }
-
   if (filters.status && filters.status.length > 0) {
     query = query.in('status', filters.status);
   }
@@ -288,10 +257,7 @@ export async function getPaymentDetailById(
   if (!order) return null;
 
   const recipeIndex = await buildRecipeIndex(tenantId, [order]);
-  const [notes, entitlements] = await Promise.all([
-    listPaymentNotes(tenantId, order.id),
-    listEntitlementsByEmail(tenantId, order.payerEmail),
-  ]);
+  const notes = await listPaymentNotes(tenantId, order.id);
 
   const payment = mapPaymentRecordToAdminPayment(order, recipeIndex);
   const recipes = order.recipeIds
@@ -300,12 +266,10 @@ export async function getPaymentDetailById(
 
   return {
     payment,
-    events: [], // Eventos podem ser carregados dinamicamente do MP se necessário, ou de uma tabela audit_logs
+    events: [], // Carregados da tabela payment_events se necessário
     notes,
     recipes,
-    entitlements: entitlements
-      .filter((entitlement) => String(entitlement.paymentId) === String(order.id))
-      .map(mapEntitlementToAppEntitlement),
+    entitlements: [], // Carregados via entitlements.repo.ts
   };
 }
 
@@ -398,21 +362,16 @@ function mapRowToPayment(row: PaymentOrderRow): PaymentRecord {
     id: row.id,
     tenantId: String(row.tenant_id),
     userId: row.user_id ? String(row.user_id) : null,
-    amount: Number(row.amount),
+    amount: Number(row.amount), // em centavos
     currency: row.currency,
     status: row.status as PaymentStatus,
     externalReference: row.external_reference || '',
-    providerPaymentId: row.provider_payment_id || row.mp_payment_id || '',
-    mpPaymentId: row.mp_payment_id || '',
-    preferenceId: row.preference_id || '',
+    providerPaymentId: row.provider_payment_id || '',
     idempotencyKey: row.idempotency_key || '',
-    payerEmail: row.payer_email,
     paymentMethod: row.payment_method || '',
     provider: row.provider || 'stripe',
-    providerPaymentMethodId: row.provider_payment_method_id,
-    providerPaymentTypeId: row.provider_payment_type_id,
-    recipeIds: row.recipe_ids || [],
-    items: row.items || [],
+    recipeIds: [], // Usar items_json para inferir
+    items: Array.isArray(row.items_json) ? row.items_json : [],
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -423,15 +382,17 @@ function mapPaymentRecordToAdminPayment(
   recipeIndex: Map<string, RecipeRecord>
 ): AdminPayment {
   const status = normalizeAppPaymentStatus(payment.status);
+  const recipeIds = payment.items.map((item) => String(item.recipeId));
+
   return {
     id: String(payment.id),
-    paymentIdGateway: payment.providerPaymentId || payment.mpPaymentId || '',
+    paymentIdGateway: payment.providerPaymentId || '',
     gateway: payment.provider === 'mock' ? 'mock' : 'stripe',
-    recipeIds: payment.recipeIds.map(String),
+    recipeIds,
     totalBRL: payment.amount,
-    payerName: payment.payerEmail.split('@')[0],
-    payerEmail: payment.payerEmail,
-    payer: { email: payment.payerEmail },
+    payerName: payment.userId || 'Anônimo',
+    payerEmail: payment.userId || '',
+    payer: { email: payment.userId || '' },
     status,
     statusDetail: '',
     paymentMethod: payment.paymentMethod || 'pending',
@@ -470,18 +431,6 @@ function normalizeAppPaymentStatus(value: PaymentStatus): AppPaymentStatus {
     default:
       return 'pending';
   }
-}
-
-function mapEntitlementToAppEntitlement(entitlement: ServerEntitlement): AppEntitlement {
-  return {
-    id: String(entitlement.id),
-    paymentId: String(entitlement.paymentId),
-    payerEmail: entitlement.payerEmail,
-    recipeSlug: entitlement.recipeSlug,
-    accessStatus: entitlement.accessStatus === 'revoked' ? 'revoked' : 'active',
-    createdAt: entitlement.createdAt,
-    updatedAt: entitlement.updatedAt,
-  };
 }
 
 function matchesPaymentFilters(payment: AdminPayment, filters: PaymentListFilters) {

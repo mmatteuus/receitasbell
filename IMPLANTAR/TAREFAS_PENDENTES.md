@@ -18,7 +18,7 @@ Este documento lista o que falta para estabilizar o sistema e entregar o projeto
 
 - [x] **Corrigir 404 Home do Tenant**: A rota `https://receitasbell.mtsferreira.dev/t/receitasbell` está retornando erro 404. Bloqueio crítico de vendas. `[CONCLUÍDO - OpenCode - 2026-04-06]`
 - [x] **Recuperação de Senha**: Finalizar e polir o fluxo de "Esqueci minha senha" integrado ao Resend/Supabase Auth. `[CONCLUÍDO - OpenCode - 2026-04-06]`
-- [ ] **Validação de Convites Admin**: Garantir que apenas quem deve entrar, consiga se cadastrar.
+- [x] **Validação de Convites Admin**: Garantir que apenas quem deve entrar, consiga se cadastrar. (`FRONT-004` ✅ — fluxo de convite integrado ao LoginPage)
 
 ### 🛡️ P2: Backend - Auditoria e Hardening
 
