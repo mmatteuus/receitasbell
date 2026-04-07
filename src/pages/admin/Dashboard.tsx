@@ -19,7 +19,7 @@ import { METHOD_LABELS } from '@/pages/admin/payments/constants';
 import { getRecipeImage } from '@/lib/recipes/presentation';
 import { buildTenantAdminPath, getCurrentTenantSlug } from '@/lib/tenant';
 import { getAdminSnapshot, saveAdminSnapshot } from '@/pwa/offline/cache/admin-snapshot';
-import { LastSyncBadge } from '@/pwa/offline/ui/LastSyncBadge';
+
 import { PageHead } from '@/components/PageHead';
 
 type Period = '7' | '30' | '90';
@@ -232,7 +232,6 @@ export default function Dashboard() {
                 <p className="text-sm font-medium text-amber-800">
                   Modo offline — dados podem estar desatualizados.
                 </p>
-                <LastSyncBadge lastSyncedAt={lastSyncedAt} />
               </div>
             )}
           </div>

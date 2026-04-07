@@ -61,6 +61,12 @@ export default function Header() {
   }, [pathname]);
 
   useEffect(() => {
+    // PROTEÇÃO PWA: Não capturar install prompt em contexto web
+    const isPwaSurface = window.location.pathname.startsWith('/pwa/');
+    if (!isPwaSurface) {
+      return;
+    }
+
     const handleBeforeInstall = (event: Event) => {
       event.preventDefault();
       setDeferredInstallPrompt(event as BeforeInstallPromptEvent);

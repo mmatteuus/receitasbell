@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Settings, Palette, Type, Save, RotateCcw, Link2, Smartphone } from 'lucide-react';
+import { Settings, Palette, Type, Save, RotateCcw, Link2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,7 +14,7 @@ import { updateSettings } from '@/lib/api/settings';
 import { useAppContext } from '@/contexts/app-context';
 import { buildTenantAdminPath, extractTenantSlugFromPath } from '@/lib/tenant';
 import { useInstallPrompt } from '@/pwa/hooks/useInstallPrompt';
-import { InstallAppButton } from '@/pwa/components/InstallAppButton';
+
 import { PageHead } from '@/components/PageHead';
 
 const FONT_OPTIONS = [
@@ -35,7 +35,6 @@ export default function SettingsPage() {
   const tenantSlug = extractTenantSlugFromPath(location.pathname);
   const { settings, refreshSettings } = useAppContext();
   const { isInstalled, deferredPrompt, isIOS } = useInstallPrompt();
-  const showAppCard = !isInstalled && (!!deferredPrompt || isIOS);
 
   const [form, setForm] = useState<SiteSettings>(DEFAULT_SITE_SETTINGS);
   const [saving, setSaving] = useState(false);
@@ -105,23 +104,6 @@ export default function SettingsPage() {
             Editar conteúdo da Página Inicial
           </Link>
         </div>
-
-        {showAppCard && (
-          <Card className="border-primary/50 bg-primary/5">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Smartphone className="h-5 w-5 text-primary" />
-                Aplicativo do Admin
-              </CardTitle>
-              <CardDescription>
-                Instale o painel no seu dispositivo para acesso mais rápido.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <InstallAppButton context="admin" />
-            </CardContent>
-          </Card>
-        )}
 
         <Card>
           <CardHeader>

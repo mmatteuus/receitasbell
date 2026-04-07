@@ -103,9 +103,10 @@ const router = createBrowserRouter(
       element: <PublicLayout />,
       children: publicRoutes(false),
     },
-    // Redirects amigáveis
-    { path: '/login', element: <Navigate to="/admin/login" replace /> },
-    { path: '/admin', element: <Navigate to="/admin/dashboard" replace /> },
+    // Redirects amigáveis globais
+    { path: '/login', element: <Navigate to="/t/receitasbell/admin/login" replace /> },
+    { path: '/admin', element: <Navigate to="/t/receitasbell/admin/dashboard" replace /> },
+    { path: '/admin/login', element: <Navigate to="/t/receitasbell/admin/login" replace /> },
     { path: '/t/:tenantSlug/login', element: <TenantAdminNavigate to="login" /> },
 
     {

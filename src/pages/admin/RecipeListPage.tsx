@@ -32,7 +32,7 @@ import { toast } from 'sonner';
 import { getRecipeImage, getRecipePresentation } from '@/lib/recipes/presentation';
 import { buildTenantAdminPath, getCurrentTenantSlug } from '@/lib/tenant';
 import { getAdminSnapshot, saveAdminSnapshot } from '@/pwa/offline/cache/admin-snapshot';
-import { LastSyncBadge } from '@/pwa/offline/ui/LastSyncBadge';
+
 import { PageHead } from '@/components/PageHead';
 
 export default function RecipeListPage() {
@@ -170,7 +170,6 @@ export default function RecipeListPage() {
             <p className="text-sm font-medium text-amber-800">
               Modo offline — dados podem estar desatualizados.
             </p>
-            <LastSyncBadge lastSyncedAt={lastSyncedAt} />
           </div>
         )}
 

@@ -21,7 +21,7 @@ import SmartImage from '@/components/SmartImage';
 import type { RecipeRecord } from '@/lib/recipes/types';
 import { getProfileOverview } from '@/lib/repos/profileRepo';
 import { toast } from 'sonner';
-import { LastSyncBadge } from '@/pwa/offline/ui/LastSyncBadge';
+
 import { logger } from '@/lib/logger';
 import { startSocialLogin } from '@/lib/api/socialAuth';
 import {
@@ -490,9 +490,6 @@ export default function AccountHome() {
                     <UserRound className="h-4 w-4 text-primary" />
                     {identityEmail || 'Visitante'}
                   </p>
-                  <div className="mt-2">
-                    <LastSyncBadge lastSyncedAt={lastSyncedAt} />
-                  </div>
                 </div>
                 <div className="flex gap-2">
                   <Button
@@ -504,12 +501,7 @@ export default function AccountHome() {
                     <ArrowLeft className="h-4 w-4" />
                     Voltar ao site
                   </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={handleLogout}
-                    className="gap-2"
-                  >
+                  <Button variant="destructive" size="sm" onClick={handleLogout} className="gap-2">
                     <LogOut className="h-4 w-4" />
                     Sair
                   </Button>

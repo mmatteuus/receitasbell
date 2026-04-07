@@ -136,7 +136,7 @@ test.describe('PWA Mobile Responsiveness', () => {
         const box = await button.boundingBox();
         if (box) {
           // Button should have minimum touch target of 48px height
-          expect(box.height).toBeGreaterThanOrEqual(40); // Allow slight variance
+          expect(box.height).toBeGreaterThanOrEqual(48); // PWA standard: 48px minimum
         }
       }
     });
