@@ -19,7 +19,7 @@ const sessionMocks = vi.hoisted(() => ({
 }));
 
 const auditMocks = vi.hoisted(() => ({
-  auditLog: vi.fn(),
+  createAuditLog: vi.fn(),
 }));
 
 const identityMocks = vi.hoisted(() => ({
@@ -51,7 +51,7 @@ vi.mock('../src/server/auth/sessions.js', () => ({
 }));
 
 vi.mock('../src/server/audit/service.js', () => ({
-  auditLog: auditMocks.auditLog,
+  createAuditLog: auditMocks.createAuditLog,
 }));
 
 vi.mock('../src/server/identity/repo.js', () => ({
@@ -77,7 +77,7 @@ describe('admin auth', () => {
     sessionMocks.getSession.mockReset();
     sessionMocks.createSession.mockReset();
     sessionMocks.revokeSession.mockReset();
-    auditMocks.auditLog.mockReset();
+    auditMocks.createAuditLog.mockReset();
     identityMocks.findUserByEmailForTenant.mockReset();
     identityMocks.updateUserPasswordCredentials.mockReset();
     passwordMocks.assertStrongAdminPassword.mockReset();
