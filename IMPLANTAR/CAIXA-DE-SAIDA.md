@@ -6,6 +6,61 @@
 
 ---
 
+**MSG-OUT-CC-05 (CLAUDE CODE - BUGS VALIDADOS DO FRONTEND)**
+
+> ✅ **P1-P3 (Frontend): Cinco Bugs Validados - IMPLEMENTADOS**
+>
+> 📋 **Bugs Corrigidos**:
+>
+> 1. **Bug #1: Conta sem botão de voltar e sem botão de sair**
+>    - ✅ Adicionado botão "Voltar ao site" com ícone ArrowLeft em AccountHome
+>    - ✅ Adicionado botão "Sair" com ícone LogOut que chama `logoutUser()`
+>    - ✅ Importado `logoutUser` de `src/lib/api/identity.ts`
+>    - 📁 Arquivo: `src/pages/AccountHome.tsx`
+>    - 💾 Commit: `0f2c968`
+>
+> 2. **Bug #2: Toggle de tema no dark com visibilidade quebrada**
+>    - ✅ Removidas cores hardcoded do CSS que não respeitavam dark mode
+>    - ✅ Substituídas por variáveis CSS `hsl(var(--primary))` para compatibilidade
+>    - ✅ Corrigidos: selection, gradient-text, animate-shimmer, gradient-border, card-glow, link-underline
+>    - 📁 Arquivo: `src/index.css`
+>    - 💾 Commit: `ae8e40e`
+>
+> 3. **Bug #3: Menu mobile com 2 botões X no canto superior direito**
+>    - ✅ Removido botão X manual duplicado do AdminMobileSidebar
+>    - ✅ DialogContent já injeta um botão de fechar automático
+>    - ✅ Removida importação desnecessária do ícone X
+>    - 📁 Arquivo: `src/AdminSidebar.tsx`
+>    - 💾 Commit: `bc86451`
+>
+> 4. **Bug #4: Categorias renderizando letras em vez de icon/emoji**
+>    - ✅ Adicionado campo `icon` ao tipo `CategoryRow` no backend
+>    - ✅ Atualizado interface `Category` no backend e frontend
+>    - ✅ Mapeado campo icon em `mapCategoryRowToRecord()`
+>    - ✅ Atualizado componente `HomeCategories.tsx` para renderizar icon
+>    - ✅ Fallback para letras se icon não estiver disponível
+>    - 📁 Arquivos: `src/server/categories/repo.ts`, `src/types/category.ts`, `src/features/home/sections/HomeCategories.tsx`
+>    - 💾 Commit: `258dc85`
+>
+> 5. **Bug #5: Imagens das receitas quebradas**
+>    - ✅ Adicionada validação de URLs em `getRecipeImage()`
+>    - ✅ Verifica se URL é válida antes de retornar
+>    - ✅ Aceita URLs relativas e absolutas (http://, https://, /)
+>    - ✅ Fallback para placeholder.svg se URL inválida
+>    - 📁 Arquivo: `src/lib/recipes/presentation.ts`
+>    - 💾 Commit: `c6b44ff`
+>
+> ✅ **Validação**:
+> - Build: ✅ PASSOU (dist/ gerado com sucesso)
+> - Lint: Erros pré-existentes não relacionados às mudanças
+> - Typecheck: Erros pré-existentes não relacionados às mudanças
+>
+> 🚀 **Status**: PRONTO PARA DEPLOY
+>
+> **Próximas Ações**: Todos os bugs validados foram corrigidos. Pronto para merge em main.
+
+---
+
 **MSG-OUT-OC-08 (OPENCODE - FRONT-004 ADMIN INVITE VALIDATION)**
 
 > ✅ **P1 (Frontend): Validação de Convites Admin - IMPLEMENTADO**
