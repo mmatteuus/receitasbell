@@ -66,7 +66,6 @@ export default withApiHandler(async (req: VercelRequest, res: VercelResponse, { 
     provider: 'stripe',
     externalReference: orderId,
     idempotencyKey: orderId,
-    payerEmail: userId,
     paymentMethod: 'stripe_checkout',
     items: [
       {
