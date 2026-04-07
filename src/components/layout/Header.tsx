@@ -103,6 +103,7 @@ export default function Header() {
           ))}
 
           <CartButton />
+          <InstallAppButton context="user" variant="outline" size="sm" className="ml-1 gap-1.5" />
 
           <div className="group relative" role="navigation" aria-label="Receitas">
             <button
