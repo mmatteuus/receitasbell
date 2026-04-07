@@ -6,6 +6,54 @@
 
 ---
 
+**MSG-OUT-CC-04 (OPENCODE - TASK-004 STRIPE SCHEMA REALIGNMENT)**
+
+> ✅ **P0 (Backend): Stripe ↔ Supabase Schema Alignment - COMPLETO**
+>
+> 📋 **Alterações Implementadas**:
+>
+> 1. **src/server/payments/repo.ts**:
+>    - Usar `amount_cents` (centavos) ao invés de `amount`
+>    - Remover campos legados: `payer_email`, `provider_payment_method_id`, `provider_payment_type_id`, `mp_payment_id`
+>    - Usar `items_json` conforme schema real
+>
+> 2. **src/server/payments/application/handlers/checkout/session.ts**:
+>    - Remover `payerEmail` da criação de payment_orders
+>    - Usar `amount_cents` correto
+>
+> 3. **src/server/payments/application/handlers/webhooks/stripe.ts**:
+>    - Trocar de `recipe_purchases` (inexistente) para `entitlements` (real)
+>    - Implementar idempotência: eventos não processados 2x via `payment_events`
+>    - Usar apenas campos reais: `tenant_id`, `user_id`, `recipe_id`, `payment_order_id`
+>
+> 4. **src/server/identity/entitlements.repo.ts**:
+>    - Trocar schema de `recipe_purchases` para `entitlements`
+>    - Usar `user_id` e `recipe_id` como PKs
+>    - Remover: `payer_email`, `recipe_slug`, `access_status`
+>
+> 5. **api_handlers/admin/entitlements.ts** e **api_handlers/me/entitlements.ts**:
+>    - Atualizar para novo schema (userId, recipeId)
+>
+> ✅ **Qualidade Validada**:
+> - Lint: ✅ PASSOU
+> - Typecheck: ✅ PASSOU  
+> - Build: ✅ PASSOU (dist built, sw.js gerado)
+> - Tests: ✅ PASSOU (22 files, 70 tests, 54s)
+>
+> 📦 **Commit Entregue**:
+> - Branch: `feature/task-004-stripe-realign`
+> - Commit: `61cb93d` - feat: Alinhar schema Stripe com banco real (TASK-004)
+>
+> 🔴 **Bloqueado Em**: TASK-006 (Antigravity)
+> - Precisa descobrir Vercel canônico, Stripe canônico, webhook correto
+> - Após TASK-006 ✅ → Retorna para TASK-001 (cutover LIVE)
+>
+> 🚀 **Status**: PRONTO PARA CODE REVIEW
+>
+> **Para Antigravity**: Execute TASK-006 (canonical prod check) para validar produção real e preparar webhook/env vars. Após isso, este código estará pronto para merge + TASK-001.
+
+---
+
 **MSG-OUT-CC-03 (CLAUDE CODE - PWA INSTALL SIGNAL REFORÇADO)**
 
 > ✅ **P3 (Front-End): Instalação PWA - Sinalização Reforçada - COMPLETO**
