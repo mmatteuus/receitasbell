@@ -6,7 +6,6 @@ import {
   ApiError,
   noStore,
 } from '../../src/server/shared/http.js';
-import { rateLimit } from '../../src/server/shared/rateLimit.js';
 
 function normalizeCspPayload(payload: unknown) {
   if (!payload || typeof payload !== 'object') return null;
@@ -31,16 +30,6 @@ export default withApiHandler(
   async (request: VercelRequest, response: VercelResponse, { requestId, logger }) => {
     assertMethod(request, ['POST']);
     noStore(response);
-
-    const clientAddress = getClientAddress(request);
-    const limiter = await rateLimit(`csp-report:${clientAddress}`, {
-      limit: 120,
-      window: '1 m',
-      endpoint: 'security.csp_report',
-    });
-    if (!limiter.success) {
-      throw new ApiError(429, 'Too many CSP reports.');
-    }
 
     let body: unknown = request.body ?? {};
     if (typeof request.body === 'string') {

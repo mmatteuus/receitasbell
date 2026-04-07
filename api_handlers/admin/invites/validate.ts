@@ -34,7 +34,7 @@ export default withApiHandler(
       logger.error('Failed to validate admin invite token', { error: err, token: token?.slice(0, 10) });
 
       if (err instanceof ApiError) {
-        return json(response, err.statusCode, {
+        return json(response, err.status, {
           status: 'invalid',
           message: err.message,
           requestId,

@@ -5,7 +5,7 @@ import { Logger } from '../shared/logger.js';
 import { getTenantBySlug } from '../tenancy/repo.js';
 import { requireTenantFromRequest } from '../tenancy/resolver.js';
 import { createSession } from '../auth/sessions.js';
-import { auditLog } from '../audit/service.js';
+import { createAuditLog } from '../audit/service.js';
 import { assertStrongAdminPassword, hashAdminPassword } from '../auth/passwords.js';
 import { findUserByEmailForTenant, createUser, updateUserPasswordCredentials } from '../identity/repo.js';
 import { readAdminSession } from './auth.js';
@@ -187,9 +187,9 @@ export async function acceptAdminInvite(
     });
 
     // Audit log
-    await auditLog({
-      tenantId: String(tenant.id),
-      userId: String(user.id),
+    await createAuditLog({
+      organization_id: String(tenant.id),
+      user_id: String(user.id),
       action: 'admin.invite.accepted',
       metadata: { email, tenantSlug: tenant.slug },
     });

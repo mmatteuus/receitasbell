@@ -63,7 +63,7 @@ export default withApiHandler(
       logger.error('Failed to accept admin invite', { error: err, token: body.token?.slice(0, 10) });
 
       if (err instanceof ApiError) {
-        return json(response, err.statusCode, {
+        return json(response, err.status, {
           authenticated: false,
           message: err.message,
           requestId,

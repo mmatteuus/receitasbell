@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { withApiHandler, getQueryValue, getClientAddress } from '../../src/server/shared/http.js';
-import { AuthRateLimit } from '../../src/server/shared/rateLimit.js';
+import { authRateLimit, checkRateLimit } from '../../src/server/shared/rateLimit.js';
 import { finishGoogleOAuth } from '../../src/server/auth/social/service.js';
 import { ApiError } from '../../src/server/shared/http.js';
 
@@ -20,9 +20,11 @@ export default withApiHandler(async (req, res, { logger }) => {
   }
 
   const ip = getClientAddress(req);
-  const rl = await AuthRateLimit.check(ip);
-  if (!rl.success) {
-    throw new ApiError(429, 'Too many authentication attempts', { retryAfter: rl.resetAfter });
+  if (authRateLimit) {
+    const rl = await checkRateLimit(authRateLimit, ip);
+    if (!rl.success) {
+      throw new ApiError(429, 'Too many authentication attempts', { retryAfter: rl.reset });
+    }
   }
 
   logger.info('OAuth callback received', { provider, tenantId: tenantId || null });

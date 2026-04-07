@@ -2,7 +2,6 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Redis } from '@upstash/redis';
 import { withApiHandler, sendJson, assertMethod } from '../../src/server/shared/http.js';
 import { env } from '../../src/server/shared/env.js';
-import { getRateLimitBackend } from '../../src/server/shared/rateLimit.js';
 import { supabaseAdmin } from '../../src/server/integrations/supabase/client.js';
 
 type CheckStatus = 'ok' | 'degraded' | 'fail';
@@ -77,7 +76,7 @@ export default withApiHandler(
 
     const upstashUrl = process.env.UPSTASH_REDIS_REST_URL;
     const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN;
-    const rateLimitBackend = getRateLimitBackend();
+    const rateLimitBackend = upstashUrl && upstashToken ? 'redis' : 'memory';
     let rateLimitCheck: { status: CheckStatus; backend: string; reason?: string } = {
       status: 'degraded',
       backend: rateLimitBackend,
@@ -89,9 +88,9 @@ export default withApiHandler(
         const redis = new Redis({ url: upstashUrl, token: upstashToken });
         const pingResult = await redis.ping();
         rateLimitCheck = {
-          status: rateLimitBackend === 'memory' ? 'degraded' : 'ok',
+          status: 'ok',
           backend: rateLimitBackend,
-          reason: rateLimitBackend === 'memory' ? 'runtime_fallback_active' : undefined,
+          reason: undefined,
         };
         if (pingResult !== 'PONG' && pingResult !== 'pong') {
           log.warn('health.ready.rate_limit_ping_unexpected', {

@@ -43,7 +43,7 @@ export default withApiHandler(
       logger.error('Failed to request new admin invite', { error: err, email: body.email });
 
       if (err instanceof ApiError) {
-        return json(response, err.statusCode, {
+        return json(response, err.status, {
           success: false,
           message: err.message,
           requestId,
