@@ -73,13 +73,16 @@ export async function checkRateLimit(
   identifier: string
 ): Promise<RateLimitResult> {
   try {
-    const result = await limiter.limit(identifier);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = await (limiter.limit(identifier) as any);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const pending = (result?.pending as any)?.[0] || 0;
 
     return {
       success: result.success,
       remaining: result.remaining,
-      reset: result.pending?.[0] || 0,
-      retryAfter: result.success ? undefined : Math.ceil((result.pending?.[0] || 0) / 1000),
+      reset: pending,
+      retryAfter: result.success ? undefined : Math.ceil(pending / 1000),
     };
   } catch (error) {
     console.error('Rate limit check failed:', error);
@@ -96,11 +99,12 @@ export async function checkRateLimit(
  * Helper para obter identificador de cliente
  * Prioridade: email > IP forwarded > IP direto
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function getClientIdentifier(request: any, email?: string): string {
   if (email) return email;
 
   // X-Forwarded-For é usado por proxies (Vercel, CloudFlare, etc)
-  const forwarded = request.headers['x-forwarded-for'];
+  const forwarded = request.headers?.['x-forwarded-for'];
   if (forwarded) {
     // Pode conter múltiplos IPs, pegar o primeiro
     return typeof forwarded === 'string' ? forwarded.split(',')[0].trim() : forwarded[0];
@@ -117,6 +121,7 @@ export function getClientIdentifier(request: any, email?: string): string {
 export async function validateRateLimit(
   limiter: Ratelimit,
   identifier: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   response?: any
 ): Promise<boolean> {
   const result = await checkRateLimit(limiter, identifier);

@@ -23,7 +23,7 @@ import { json } from '../shared/http.js';
  * Implementar em: src/server/auth/handlers/admin-login.ts
  */
 export async function exampleAdminLogin(request: VercelRequest, response: VercelResponse) {
-  const { email } = request.body || {};
+  const { email } = (request.body || {}) as { email?: string };
 
   // 1. Obter identificador do cliente
   const identifier = getClientIdentifier(request, email);
@@ -52,7 +52,7 @@ export async function exampleAdminLogin(request: VercelRequest, response: Vercel
  * Implementar em: src/server/auth/handlers/forgot-password.ts
  */
 export async function exampleForgotPassword(request: VercelRequest, response: VercelResponse) {
-  const { email } = request.body || {};
+  const { email } = (request.body || {}) as { email?: string };
 
   // 1. Usar limite mais restritivo para forgot-password
   const identifier = getClientIdentifier(request, email);
@@ -82,7 +82,7 @@ export async function exampleCreateCheckoutSession(
   request: VercelRequest,
   response: VercelResponse
 ) {
-  const { email } = request.body || {};
+  const { email } = (request.body || {}) as { email?: string };
 
   // 1. Obter identificador
   const identifier = getClientIdentifier(request, email);
@@ -110,7 +110,7 @@ export async function exampleCreateCheckoutSession(
  */
 export async function exampleWithApiHandler(request: VercelRequest, response: VercelResponse) {
   // Aplicar rate limit no início do handler
-  const email = request.body?.email;
+  const email = (request.body as { email?: string } | undefined)?.email;
   const identifier = getClientIdentifier(request, email);
 
   const limit = await checkRateLimit(loginRateLimit, `login:${identifier}`);

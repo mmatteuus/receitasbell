@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { updatePassword } from '@/lib/api/identity';
+import { validatePassword } from '@/lib/validation/identity';
 import { buildTenantAdminPath } from '@/lib/tenant';
 
 export default function ResetPasswordPage() {
@@ -16,19 +17,25 @@ export default function ResetPasswordPage() {
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState('');
+  const [fieldError, setFieldError] = useState('');
 
   const token = params.get('token');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password !== confirmPassword) {
-      setError('As senhas não coincidem.');
+    setError('');
+    setFieldError('');
+
+    // Validar senha com Zod
+    const validation = validatePassword({ password, confirmPassword });
+    if (!validation.ok) {
+      setFieldError(validation.message);
       return;
     }
+
     setLoading(true);
-    setError('');
     try {
-      await updatePassword({ password });
+      await updatePassword({ password: validation.password });
       setDone(true);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Erro ao redefinir senha.');
@@ -89,12 +96,13 @@ export default function ResetPasswordPage() {
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Nova Senha</label>
+                <label htmlFor="password" className="text-sm font-medium">Nova Senha</label>
                 <div className="relative">
                   <LockKeyhole className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
+                    id="password"
                     type={showPassword ? 'text' : 'password'}
-                    placeholder="Mínimo 8 caracteres"
+                    placeholder="Mínimo 8 caracteres, com maiúscula, minúscula e número"
                     className="pl-9 pr-10"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -120,10 +128,11 @@ export default function ResetPasswordPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Confirmar Senha</label>
+                <label htmlFor="confirmPassword" className="text-sm font-medium">Confirmar Senha</label>
                 <div className="relative">
                   <LockKeyhole className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
+                    id="confirmPassword"
                     type={showPassword ? 'text' : 'password'}
                     placeholder="Repita a nova senha"
                     className="pl-9"
@@ -133,9 +142,9 @@ export default function ResetPasswordPage() {
                   />
                 </div>
               </div>
-              {error && (
+              {(error || fieldError) && (
                 <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                  {error}
+                  {error || fieldError}
                 </p>
               )}
               <Button type="submit" className="w-full" disabled={loading}>

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { requestPasswordReset } from '@/lib/api/identity';
+import { validatePasswordResetEmail } from '@/lib/validation/identity';
 import { buildTenantAdminPath } from '@/lib/tenant';
 
 export default function ForgotPasswordPage() {
@@ -16,10 +17,18 @@ export default function ForgotPasswordPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
+
+    // Validar email com Zod
+    const validation = validatePasswordResetEmail({ email });
+    if (!validation.ok) {
+      setError(validation.message);
+      return;
+    }
+
+    setLoading(true);
     try {
-      await requestPasswordReset({ email });
+      await requestPasswordReset({ email: validation.email });
       setSent(true);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Erro ao solicitar recuperação.');
