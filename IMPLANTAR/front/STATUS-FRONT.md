@@ -6,7 +6,7 @@
 | FRONT-002 | Fluxo robusto de recuperação de senha             | P1         | ✅ CONCLUÍDO | 2026-04-06         | Commit `5683e20` + MSG-OUT-CC-02                                |
 | FRONT-003 | CTA de instalação PWA reforçado                   | P3         | ✅ CONCLUÍDO | 2026-04-06         | Commit `4fc602b` + MSG-OUT-CC-03                                |
 | FRONT-004 | Validação de convites admin                       | P1         | ✅ CONCLUÍDO | 2026-04-06         | API invites + `AdminInviteAcceptance` + `FRONT-004-convites.md` |
-| FRONT-005 | SEO + Meta tags finais (App + PWA)                | P3         | 🟡 PENDENTE  | 2026-04-06         | `TASKS-FRONT.md#front-005`                                      |
+| FRONT-005 | SEO + Meta tags finais (App + PWA)                | P3         | 🟡 EM IMPLEMENTAÇÃO | 2026-04-07    | `FRONT-005-seo.md` + PageHead adicionado em 4 rotas |
 | FRONT-006 | Checklist de experiência PWA (instalação/offline) | P2         | 🟡 PENDENTE  | 2026-04-06         | `TASKS-FRONT.md#front-006`                                      |
 
 ### Legenda
@@ -22,4 +22,4 @@
 
 ---
 
-_Arquivo mantido por OpenCode — Atualizado: 2026-04-06 23:05 (BRT)._
+_Arquivo mantido por OpenCode — Atualizado: 2026-04-07 00:15 (BRT)._

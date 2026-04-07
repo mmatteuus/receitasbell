@@ -46,16 +46,26 @@
 
 ## FRONT-005 — SEO + Meta tags finais
 
-- **Status:** 🟡 Pendente
-- **Owner:** (vago)
-- **Contexto:** `CAIXA-DE-ENTRADA` e `MSG-OUT-OC-07` citam ajustes finais de SEO (sufixo de título, `noindex` em PWA, OG tags).
-- **Pendências identificadas:**
-  - Garantir `PageHead` com título descritivo + `siteName` em todas as rotas públicas e PWA.
-  - Revisar meta description, OG image e canonical tags (principal `/t/:tenant` e `/`).
-  - Validar sitemap/robots.
+- **Status:** 🟡 Em implementação (2026-04-07)
+- **Owner:** OpenCode
+- **Resumo:** Audit de cobertura PageHead completo + implementação em 4 rotas privadas (AccountHome, CartPage, Favorites, ShoppingListPage). Dossiê SEO criado com checklist e validações necessárias.
+- **Código Implementado:**
+  - `FRONT-005-seo.md` — Dossiê completo com audit, checklist, validações
+  - Rotas privadas com PageHead + `noindex: true`:
+    - `AccountHome.tsx` (`/minha-conta`)
+    - `CartPage.tsx` (`/carrinho`)
+    - `Favorites.tsx` (`/meus-favoritos`)
+    - `ShoppingListPage.tsx` (`/lista-de-compras`)
+  - Commit: `1a7c8ff`
+- **Pendências Restantes:**
+  - [ ] Validar sitemap.xml e robots.txt
+  - [ ] Rodar Lighthouse (target SEO ≥ 90)
+  - [ ] Testar OG images em redes sociais
+  - [ ] Implementar PageHead em admin pages (opcional)
 - **Próximos passos:**
-  - Criar checklist `FRONT-005-seo.md` listando cada rota.
-  - Rodar Lighthouse focado em SEO e registrar métricas.
+  - Executar validações de sitemap/robots
+  - Medir Lighthouse e registrar baseline
+  - Considerar admin pages se houver tempo
 
 ## FRONT-006 — Checklist de experiência PWA
 
@@ -70,4 +80,4 @@
 
 ---
 
-**Atualizado:** 2026-04-06 — OpenCode.
+**Atualizado:** 2026-04-07 — OpenCode.
