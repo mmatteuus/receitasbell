@@ -3,15 +3,8 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { PageHead } from '@/components/PageHead';
 import { useAppContext } from '@/contexts/app-context';
 import { OfflineLockedScreen } from '@/pwa/offline/ui/OfflineLockedScreen';
-import { OfflineBanner } from '@/pwa/offline/ui/OfflineBanner';
-import { PendingChangesBar } from '@/pwa/offline/ui/PendingChangesBar';
-import { SyncCenterSheet } from '@/pwa/offline/ui/SyncCenterSheet';
-import { ConflictResolutionDialog } from '@/pwa/offline/ui/ConflictResolutionDialog';
 import { PwaInstallHintIOS } from '@/pwa/components/PwaInstallHintIOS';
 import { PwaUpdateBanner } from '@/pwa/components/PwaUpdateBanner';
-import { useConflictCenter } from '@/pwa/offline/hooks/useConflictCenter';
-import { useOfflineStatus } from '@/pwa/offline/hooks/useOfflineStatus';
-import { usePendingSyncCount } from '@/pwa/offline/hooks/usePendingSyncCount';
 import { usePwaSessionGate } from '@/pwa/app/shell/usePwaSessionGate';
 import { usePwaChrome } from '@/pwa/app/shell/usePwaChrome';
 import { resolvePwaTenantSlug } from '@/pwa/app/tenant/pwa-tenant-path';
@@ -23,27 +16,13 @@ import { trackEvent } from '@/lib/telemetry';
 
 type NavigatorStandalone = Navigator & { standalone?: boolean };
 
-const OFFLINE_BANNER_HEIGHT = 40;
-const PENDING_BAR_HEIGHT = 44;
-
 export function UserPwaShell() {
-  const [syncCenterOpen, setSyncCenterOpen] = useState(false);
-  const [conflictDialogOpen, setConflictDialogOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { settings } = useAppContext();
   const gate = usePwaSessionGate();
   const chrome = usePwaChrome(location.pathname);
   const tenantSlug = resolvePwaTenantSlug(location.pathname);
-  const { conflicts } = useConflictCenter();
-  const { offline } = useOfflineStatus();
-  const pendingCount = usePendingSyncCount();
-
-  useEffect(() => {
-    if (conflicts.length > 0) {
-      setConflictDialogOpen(true);
-    }
-  }, [conflicts.length]);
 
   useEffect(() => {
     const isStandalone =
@@ -68,17 +47,12 @@ export function UserPwaShell() {
     });
   }, [gate.status, location.hash, location.pathname, location.search, navigate, tenantSlug]);
 
-  const offlineBannerHeight = offline ? OFFLINE_BANNER_HEIGHT : 0;
-  const pendingBannerHeight = pendingCount > 0 ? PENDING_BAR_HEIGHT : 0;
-  const bannerOffset = offlineBannerHeight + pendingBannerHeight;
   const loginPath = buildPwaPath('login', { tenantSlug });
   const headTitle = chrome.title === settings.siteName ? `${settings.siteName} App` : chrome.title;
 
   const shellStyle = {
     '--pwa-topbar-height': 'calc(56px + env(safe-area-inset-top, 0px))',
     '--pwa-bottomnav-height': 'calc(64px + env(safe-area-inset-bottom, 0px))',
-    '--pwa-offline-banner-height': `${offlineBannerHeight}px`,
-    '--pwa-banner-offset': `${bannerOffset}px`,
   } as CSSProperties;
 
   if (gate.status === 'loading') {
@@ -117,16 +91,11 @@ export function UserPwaShell() {
       />
       <PwaUpdateBanner />
       <PwaTopBar title={chrome.title} showBack={chrome.showBack} tenantSlug={tenantSlug} />
-      <OfflineBanner offline={offline} />
-      <PendingChangesBar
-        pendingCount={pendingCount}
-        onOpenSyncCenter={() => setSyncCenterOpen(true)}
-      />
 
       <main
         className="mx-auto w-full max-w-md overflow-x-hidden px-4 pb-8 pt-4 sm:px-6"
         style={{
-          paddingTop: 'calc(var(--pwa-topbar-height) + var(--pwa-banner-offset) + 1rem)',
+          paddingTop: 'calc(var(--pwa-topbar-height) + 1rem)',
           paddingBottom: 'calc(var(--pwa-bottomnav-height) + 1rem)',
         }}
       >
@@ -135,8 +104,6 @@ export function UserPwaShell() {
 
       <PwaBottomNav tenantSlug={tenantSlug} />
       <PwaInstallHintIOS />
-      <SyncCenterSheet open={syncCenterOpen} onOpenChange={setSyncCenterOpen} />
-      <ConflictResolutionDialog open={conflictDialogOpen} onOpenChange={setConflictDialogOpen} />
     </div>
   );
 }

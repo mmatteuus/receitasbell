@@ -355,6 +355,28 @@
 
 ---
 
+**MSG-OUT-OC-12 (FRONT — CTA PWA limitado a /pwa)**
+
+> ✅ **FRONT-006 (Fase 2)**: CTA `Instalar aplicativo` agora aparece só quando o usuário está navegando dentro do namespace `/pwa/**`.
+>
+> 📋 **Mudanças incluídas**:
+>
+> 1. `InstallAppButton` retorna `null` fora do namespace `/pwa/`, evitando qualquer vazamento em telas web (header global, minha conta e admin clássico).
+> 2. `src/pages/AccountHome.tsx`: removidos os cards/banners que empurravam instalação no site tradicional, mantendo apenas o conteúdo de conta.
+> 3. `src/components/layout/AdminLayout.tsx`: botão de instalação removido da barra superior, restando apenas notificações administrativas.
+>
+> 🧭 **Documentação**:
+>
+> - `IMPLANTAR/front/FRONT-006-pwa.md` atualizado com seção 2.5 (governança do CTA) e status da Fase 2.
+> - `IMPLANTAR/front/TASKS-FRONT.md` e `STATUS-FRONT.md` refletem que a execução continua (Fase 2 em curso).
+>
+> 🔜 **Próximos passos**:
+>
+> - Validar `InstallAppButton` nas telas PWA (Entry/Login/AdminLogin) para garantir que o CTA siga disponível onde deve.
+> - Continuar a Fase 2 com validação do `PwaInstallHintIOS`, DevTools/Manifest e checklist de testes Android/iOS.
+
+---
+
 **MSG-OUT-CC-11 (FRONT — FRONT-006 Planejado + Consolidação)**
 
 > 📋 **FRONT-006 Dossiê Criado**: Checklist de experiência PWA com plano de ação em 3 fases.

@@ -7,6 +7,7 @@
 ## 🎯 OBJETIVO
 
 Evitar que:
+
 - 2 agentes façam a mesma tarefa
 - Trabalho seja duplicado
 - Conflitos de código aconteçam
@@ -16,20 +17,32 @@ Evitar que:
 
 ## 📜 REGRAS OBRIGATÓRIAS
 
+### REGRA 0: Trabalhar somente na branch `main`
+
+- 🚫 **Proibido** criar, trocar ou publicar qualquer branch nova.
+- ✅ Sempre execute `git checkout main` e faça todos os commits/push diretamente nela.
+- 📝 Ao receber instruções que sugerem branches (ex.: `feature/...`), **ignore** e mantenha o trabalho na `main`.
+- ⚠️ Se encontrar mudanças locais em outra branch, faça merge fast-forward para a `main` ou peça orientação antes de continuar.
+
 ### REGRA 1: Ler o Task Tracker SEMPRE
+
 **Antes de iniciar qualquer tarefa:**
+
 ```bash
 cat IMPLANTAR/TASK-TRACKER.md
 ```
 
 ### REGRA 2: Verificar Status da Tarefa
+
 - ✅ **CONCLUIDO** → Não fazer nada
 - ⏳ **EM_PROGRESSO** → PARAR! Escolher outra tarefa
 - 🚫 **BLOQUEADO** → Resolver bloqueio ou escolher outra
 - 📝 **PENDENTE** → OK para pegar
 
 ### REGRA 3: Registrar IMEDIATAMENTE
+
 **Ao pegar uma tarefa:**
+
 1. Atualizar status para ⏳ EM_PROGRESSO
 2. Adicionar seu nome
 3. Adicionar timestamp
@@ -46,14 +59,18 @@ git push
 ```
 
 ### REGRA 4: Atualizar ao Concluir
+
 **Ao terminar:**
+
 1. Atualizar status para ✅ CONCLUIDO
 2. Adicionar timestamp de conclusão
 3. Adicionar link do commit/PR
 4. Commitar
 
 ### REGRA 5: Comunicar Bloqueios
+
 **Se bloquear:**
+
 1. Atualizar status para 🚫 BLOQUEADO
 2. Explicar o bloqueio
 3. Marcar dependência
@@ -64,6 +81,7 @@ git push
 ## 🔄 FLUXO COMPLETO
 
 ### Passo 1: Escolher Tarefa
+
 ```bash
 # 1. Atualizar repo
 git pull origin main
@@ -81,17 +99,22 @@ grep "PENDENTE" IMPLANTAR/TASK-TRACKER.md
 ```
 
 ### Passo 2: Verificar Dependências
+
 ```markdown
 # Exemplo: P0-8 depende de P0-4
+
 P0-8: Alertas
 Dependências: P0-4 (SLO definido)
 
 # Se P0-4 ainda não está CONCLUIDO:
+
 # → NÃO pode pegar P0-8
+
 # → Escolher outra tarefa
 ```
 
 ### Passo 3: Registrar Início
+
 ```bash
 # Editar TASK-TRACKER.md
 # Localizar a tarefa (ex: P0-1)
@@ -108,6 +131,7 @@ git push
 ```
 
 ### Passo 4: Executar Tarefa
+
 ```bash
 # Agora pode começar o trabalho
 # Seguir o código do dossiê
@@ -115,6 +139,7 @@ git push
 ```
 
 ### Passo 5: Registrar Conclusão
+
 ```bash
 # Editar TASK-TRACKER.md
 # Status: ⏳ EM_PROGRESSO
@@ -133,6 +158,7 @@ git push
 ## ⚠️ CONFLITOS
 
 ### Cenário 1: Outro agente pegou entre pull e push
+
 ```bash
 # Você fez pull, viu P0-1 PENDENTE
 # Enquanto você editava, outro agente pegou P0-1
@@ -150,13 +176,18 @@ git commit -m "merge: aceitar task de outro agente"
 ```
 
 ### Cenário 2: Tarefa bloqueada
+
 ```markdown
 # P0-8 depende de P0-4
+
 # P0-4 ainda não foi feito
 
 # SOLUÇÃO:
+
 # 1. Marcar P0-8 como BLOQUEADO
+
 # 2. Escolher outra tarefa (ex: P0-5)
+
 # 3. Voltar para P0-8 quando P0-4 estiver CONCLUIDO
 ```
 
@@ -165,8 +196,10 @@ git commit -m "merge: aceitar task de outro agente"
 ## 📋 TEMPLATE DE ATUALIZAÇÃO
 
 ### Ao Iniciar
+
 ```markdown
 ### P0-X: [Nome da Tarefa]
+
 - **Status:** ⏳ EM_PROGRESSO
 - **Agente:** [SEU_NOME]
 - **Iniciado em:** [TIMESTAMP]
@@ -174,8 +207,10 @@ git commit -m "merge: aceitar task de outro agente"
 ```
 
 ### Durante Execução (opcional)
+
 ```markdown
 ### P0-X: [Nome da Tarefa]
+
 - **Status:** ⏳ EM_PROGRESSO (50% completo)
 - **Agente:** [SEU_NOME]
 - **Iniciado em:** [TIMESTAMP]
@@ -183,8 +218,10 @@ git commit -m "merge: aceitar task de outro agente"
 ```
 
 ### Ao Concluir
+
 ```markdown
 ### P0-X: [Nome da Tarefa]
+
 - **Status:** ✅ CONCLUIDO
 - **Agente:** [SEU_NOME]
 - **Iniciado em:** [TIMESTAMP_INICIO]
@@ -194,8 +231,10 @@ git commit -m "merge: aceitar task de outro agente"
 ```
 
 ### Se Bloquear
+
 ```markdown
 ### P0-X: [Nome da Tarefa]
+
 - **Status:** 🚫 BLOQUEADO
 - **Agente:** [SEU_NOME]
 - **Bloqueado em:** [TIMESTAMP]
@@ -269,6 +308,7 @@ cat IMPLANTAR/TASK-TRACKER.md
 ## ✅ CHECKLIST DE COORDENAÇÃO
 
 Antes de iniciar:
+
 - [ ] `git pull`
 - [ ] Ler `TASK-TRACKER.md`
 - [ ] Verificar status da tarefa
@@ -278,10 +318,12 @@ Antes de iniciar:
 - [ ] `git commit` e `git push` ANTES de código
 
 Durante:
+
 - [ ] Commits parciais a cada 30min
 - [ ] Se bloquear > 2h, marcar BLOQUEADO
 
 Ao concluir:
+
 - [ ] Atualizar status para CONCLUIDO
 - [ ] Adicionar timestamp de conclusão
 - [ ] Adicionar link do commit

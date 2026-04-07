@@ -73,10 +73,10 @@
 
 ## FRONT-006 — Checklist de experiência PWA
 
-- **Status:** 🟡 Em Planejamento (2026-04-07)
+- **Status:** ⏳ Em execução — Fase 2 (2026-04-07)
 - **Owner:** OpenCode
 - **Motivação:** Após reforçar CTA em FRONT-003, precisamos medir adesão e polir onboarding (ex.: instruções offline, fallback de ícones, toasts de instalação).
-- **Código Planejado:**
+- **Código Planejado/Executado:**
   - `FRONT-006-pwa.md` — Dossiê completo com plano de ação (3 fases)
   - **Fase 1 (P1):** Instrumentação de eventos de instalação
     - Hook `usePwaState()` para detectar estado (instalável, instalado)
@@ -87,6 +87,7 @@
     - Reforço iOS (já feito em FRONT-003)
     - Fallback de ícones (apple-touch-icon)
     - Toast de confirmação pós-instalação
+    - Governança do CTA `Instalar aplicativo`: removido de `AccountHome`, `Header` e `AdminLayout` web e `InstallAppButton` só renderiza quando a rota atual começa com `/pwa/`.
   - **Fase 3 (P3):** Dashboard de métricas
     - Tabela `pwa_analytics` no Supabase (opcional)
     - Página interna `/admin/pwa-metrics`

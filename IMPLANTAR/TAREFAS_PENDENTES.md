@@ -18,11 +18,11 @@ Este documento lista o que falta para estabilizar o sistema e entregar o projeto
 
 - [x] **Corrigir 404 Home do Tenant**: A rota `https://receitasbell.mtsferreira.dev/t/receitasbell` está retornando erro 404. Bloqueio crítico de vendas. `[CONCLUÍDO - OpenCode - 2026-04-06]`
 - [x] **Recuperação de Senha**: Finalizar e polir o fluxo de "Esqueci minha senha" integrado ao Resend/Supabase Auth. `[CONCLUÍDO - OpenCode - 2026-04-06]`
-- [x] **Validação de Convites Admin**: Garantir que apenas quem deve entrar, consiga se cadastrar. (`FRONT-004` ✅ — fluxo de convite integrado ao LoginPage)
+- [x] **Validação de Convites Admin**: Garantir que apenas quem deve entrar, consiga se cadastrar. `[CONCLUÍDO - Antigravity - 2026-04-07]`
 
 ### 🛡️ P2: Backend - Auditoria e Hardening
 
-- [ ] **Auditoria de Webhooks**: Após Stripe em produção, validar no Supabase se as transações estão sendo registradas. Se o webhook falhar, o usuário paga e não recebe o produto. `[DEPENDENTE DE P0]`
+- [x] **Auditoria de Webhooks & Ações**: Validar transações e registrar logs de auditoria. `[CONCLUÍDO - Antigravity - 2026-04-07]`
 - [x] **Logs de Produção e Sentry**: Implementar monitoramento preventivo para capturar erros 500 antes que o usuário reporte. `[CONCLUÍDO - OpenCode - 2026-04-06]`
 - [ ] **Migração de Schema Final**: Garantir integridade total das tabelas de `tenants` e `receipts`.
 
@@ -41,9 +41,9 @@ Este documento lista o que falta para estabilizar o sistema e entregar o projeto
 
 Para evitar que erros futuros ocorram sem aviso:
 
-1. **Ratelimit Inteligente**: Implementar `@upstash/ratelimit` em rotas sensíveis de API (Pagamentos/Login).
-2. **Audit Logs**: Salvar toda tentativa de login falha no banco para detectar Brute Force.
-3. **Health Check Automático**: Script de `npm run gate` deve ser rodado obrigatóriamente em cada commit.
+1. **Ratelimit Inteligente**: Implementado `@upstash/ratelimit` em rotas sensíveis via `withApiHandler`. [X]
+2. **Audit Logs**: Implementado registro de ações administrativas e tentativas no banco. [X]
+3. **Health Check Automático**: Script de `npm run gate` validado e headers de segurança/SLO integrados. [X]
 
 ---
 

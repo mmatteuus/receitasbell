@@ -1,6 +1,6 @@
 # FRONT-006 — Checklist de Experiência PWA
 
-**Status:** ✅ Concluído (Fase 1)  
+**Status:** ⏳ Em execução — Fase 2  
 **Última atualização:** 2026-04-07 — OpenCode  
 **Objetivo:** Medir adesão de instalação PWA e polir UX de onboarding offline + notificações.
 
@@ -20,6 +20,7 @@ Após reforçar CTA de instalação PWA em FRONT-003, precisamos:
 - Novo hook `usePwaState()` expõe `isInstallable`, `isInstalled`, `isPwaSupported`, `isIOS` e `isMobile`.
 - `AccountHome` usa o novo hook, mantém o card de instalação e avisa quando o usuário fica offline.
 - Eventos `beforeinstallprompt`, `pwa.install_cta_clicked`, `pwa.install_accepted/dismissed` são enviados ao logger/analytics.
+- CTA `Instalar aplicativo` restrito ao namespace `/pwa/**`: removemos cards/botões nas telas web e `InstallAppButton` retorna `null` fora desse escopo.
 
 ### Estados PWA Esperados
 
@@ -142,6 +143,11 @@ Após reforçar CTA de instalação PWA em FRONT-003, precisamos:
     toast.success('App instalado! Acesse via ícone na home screen.');
   });
   ```
+
+#### 2.5 — Governança do CTA (new)
+
+- [x] Remover cartões/botões de instalação das superfícies web (`AccountHome`, `Header`, `AdminLayout`).
+- [x] Fazer `InstallAppButton` renderizar apenas quando `window.location.pathname` inicia com `/pwa/` (evita vazamentos no site tradicional).
 
 ### Fase 3: Dashboard de Métricas (P2)
 

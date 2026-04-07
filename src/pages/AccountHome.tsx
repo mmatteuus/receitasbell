@@ -6,14 +6,11 @@ import {
   Loader2,
   LockOpen,
   ShoppingCart,
-  Smartphone,
   UserRound,
   WalletCards,
 } from 'lucide-react';
 import { PageHead } from '@/components/PageHead';
 import { useAppContext } from '@/contexts/app-context';
-import { usePwaState } from '@/pwa/hooks/usePwaState';
-import { InstallAppButton } from '@/pwa/components/InstallAppButton';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -52,8 +49,6 @@ export default function AccountHome() {
     clearIdentity,
     updateIdentity,
   } = useAppContext();
-  const { isInstalled, isInstallable, isIOS } = usePwaState();
-  const showAppCard = !isInstalled && (isInstallable || isIOS);
 
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
@@ -462,28 +457,6 @@ export default function AccountHome() {
       />
       <div className="container max-w-6xl space-y-8 px-4 py-10">
         <div className="space-y-4">
-          {showAppCard && (
-            <div className="rounded-2xl border-2 border-primary/40 bg-gradient-to-r from-primary/10 via-primary/5 to-background p-5 shadow-md">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                      <Smartphone className="h-4 w-4" />
-                    </div>
-                    <p className="text-sm font-semibold text-primary">Dica importante</p>
-                  </div>
-                  <p className="text-sm text-foreground">
-                    Instale o app no seu celular para acessar suas receitas em qualquer lugar, até
-                    sem internet.
-                  </p>
-                </div>
-                <div className="flex-shrink-0">
-                  <InstallAppButton context="user" variant="default" size="sm" className="h-9" />
-                </div>
-              </div>
-            </div>
-          )}
-
           <div className="rounded-3xl border bg-gradient-to-r from-orange-50 via-amber-50 to-background p-6 sm:p-8">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="space-y-2">
@@ -597,39 +570,6 @@ export default function AccountHome() {
                     </Link>
                   </CardContent>
                 </Card>
-
-                {showAppCard && (
-                  <Card className="border-2 border-primary/30 bg-gradient-to-br from-primary/5 to-primary/10 shadow-lg shadow-primary/10">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="flex items-center gap-2 text-lg">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                          <Smartphone className="h-5 w-5" />
-                        </div>
-                        Instale nosso app
-                      </CardTitle>
-                      <CardDescription className="text-sm">
-                        Acesso rápido na tela inicial. Sem necessidade de internet após o download.
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="space-y-2 text-xs text-muted-foreground">
-                        <div className="flex gap-2">
-                          <span className="text-primary font-bold">✓</span>
-                          <span>Acesse suas receitas offline</span>
-                        </div>
-                        <div className="flex gap-2">
-                          <span className="text-primary font-bold">✓</span>
-                          <span>Carregamento mais rápido</span>
-                        </div>
-                        <div className="flex gap-2">
-                          <span className="text-primary font-bold">✓</span>
-                          <span>Notificações de novos conteúdos</span>
-                        </div>
-                      </div>
-                      <InstallAppButton context="user" className="w-full mt-2" variant="default" />
-                    </CardContent>
-                  </Card>
-                )}
               </div>
             </div>
           </TabsContent>

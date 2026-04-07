@@ -3,12 +3,10 @@ import { Outlet } from "react-router-dom";
 import { AdminBreadcrumbs } from "./AdminBreadcrumbs";
 import { AdminNotifications } from "./AdminNotifications";
 import { BackToTop } from "@/components/BackToTop";
-import { InstallAppButton } from "@/pwa/components/InstallAppButton";
 import { useAdminSidebar } from "@/hooks/use-admin-sidebar";
 function HeaderActions() {
   return (
     <div className="flex items-center gap-2">
-      <InstallAppButton context="admin" size="sm" className="inline-flex" />
       <AdminNotifications />
     </div>
   );

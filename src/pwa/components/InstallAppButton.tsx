@@ -1,23 +1,29 @@
-import { Button } from "@/components/ui/button";
-import { type ButtonVariantProps } from "@/components/ui/button-variants";
-import { useInstallPrompt } from "../hooks/useInstallPrompt";
-import { Smartphone } from "lucide-react";
-import type { InstallContext } from "../lib/install-context";
+import { Button } from '@/components/ui/button';
+import { type ButtonVariantProps } from '@/components/ui/button-variants';
+import { useInstallPrompt } from '../hooks/useInstallPrompt';
+import { Smartphone } from 'lucide-react';
+import type { InstallContext } from '../lib/install-context';
 
 interface InstallAppButtonProps {
   context: InstallContext;
   className?: string;
-  variant?: ButtonVariantProps["variant"];
-  size?: ButtonVariantProps["size"];
+  variant?: ButtonVariantProps['variant'];
+  size?: ButtonVariantProps['size'];
 }
 
-export function InstallAppButton({ 
-  context, 
-  className, 
-  variant = "default",
-  size = "default" 
+export function InstallAppButton({
+  context,
+  className,
+  variant = 'default',
+  size = 'default',
 }: InstallAppButtonProps) {
   const { deferredPrompt, isInstalled, install, isIOS } = useInstallPrompt();
+
+  const isPwaSurface =
+    typeof window !== 'undefined' && window.location.pathname.startsWith('/pwa/');
+  if (!isPwaSurface) {
+    return null;
+  }
 
   // If already installed, don't show the button
   if (isInstalled) return null;
@@ -36,14 +42,9 @@ export function InstallAppButton({
   };
 
   return (
-    <Button 
-      onClick={handleInstall} 
-      className={className} 
-      variant={variant}
-      size={size}
-    >
+    <Button onClick={handleInstall} className={className} variant={variant} size={size}>
       <Smartphone className="mr-2 h-4 w-4" />
-      Instalar App
+      Instalar aplicativo
     </Button>
   );
 }
