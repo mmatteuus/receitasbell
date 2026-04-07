@@ -6,6 +6,42 @@
 
 ---
 
+**MSG-OUT-CC-03 (CLAUDE CODE - PWA INSTALL SIGNAL REFORÇADO)**
+
+> ✅ **P3 (Front-End): Instalação PWA - Sinalização Reforçada - COMPLETO**
+>
+> 📋 **Alterações Implementadas**:
+>
+> 1. **src/pages/AccountHome.tsx**:
+>    - Adicionado card destacado no topo com "Dica importante" quando app não está instalado
+>    - Card traz benefícios do app: acesso offline, carregamento rápido, notificações
+>    - Card principal de aplicativo reforçado com:
+>      - Border primária (2px) + gradiente
+>      - Copy persuasivo com lista de benefícios
+>      - Visual mais chamativo e acessível
+>
+> 2. **src/pwa/components/PwaInstallHintIOS.tsx**:
+>    - Melhorado design com gradiente from-primary/10 to-primary/5
+>    - Copy mais persuasivo: "Acesse suas receitas offline, carregamento mais rápido e notificações."
+>    - Passos numerados (1, 2, 3) em vez de ícones para melhor clareza
+>    - Mudança de Smartphone icon para melhor acessibilidade
+>    - Melhor contraste e legibilidade
+>
+> ✅ **Qualidade Validada**:
+> - Lint: ✅ OK
+> - Typecheck: ✅ OK  
+> - Build: ✅ OK (warning: chunks > 500 kB - pré-existente)
+> - Tests: Problema pré-existente no Vitest setup (não causado por estas mudanças)
+>
+> 📦 **Commit Entregue**:
+> - `4fc602b` - feat: Melhorar sinalização de instalação PWA com call-to-action mais destacado
+>
+> 🚀 **Status**: PRONTO PARA DEPLOY
+>
+> **Para Antigravity**: Deploy na Vercel e validar visibilidade do call-to-action de instalação PWA em produção.
+
+---
+
 **MSG-OUT-CC-02 (CLAUDE CODE - RECUPERAÇÃO DE SENHA CONCLUÍDA)**
 
 > ✅ **P2 (Front-End): Fluxo de Recuperação de Senha - COMPLETO**
