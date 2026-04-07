@@ -99,12 +99,14 @@ async function syncRecipe(recipe, stripeAccountId) {
 async function main() {
     console.log(">>> INICIANDO FORCE SYNC PRODUÇÃO <<<");
 
-    // 1. Obter contas connect
-    const { data: accounts, error: acError } = await supabase
+    // 1. Carrega as contas Stripe do banco
+    const { data: accounts, error: accError } = await supabase
         .from('stripe_connect_accounts')
         .select('*');
 
-    if (acError) throw acError;
+    if (accError) throw accError;
+    console.log(`📎 Contas Stripe Connect carregadas: ${accounts.length}`);
+    accounts.forEach(a => console.log(`   - Map Tenant: [${a.tenant_id}] -> ${a.stripe_account_id}`));
     const accountMap = new Map(accounts.map(a => [a.tenant_id, a.stripe_account_id]));
 
     // 2. Obter receitas pagas pendentes
@@ -115,7 +117,8 @@ async function main() {
         .eq('stripe_sync_status', 'pending');
 
     if (reError) throw reError;
-    console.log(`📝 Total para processar: ${recipes.length}`);
+    console.log(`📝 Receitas pendentes: ${recipes.length}`);
+    recipes.forEach(r => console.log(`   - Receita ID: ${r.id}, Title: ${r.title}, Tenant: [${r.tenant_id}]`));
 
     let successCount = 0;
     for (const recipe of recipes) {
@@ -127,7 +130,7 @@ async function main() {
 
         const stripeAccountId = accountMap.get(recipe.tenant_id);
         if (!stripeAccountId) {
-            console.warn(`⚠️ Pulando ${recipe.title}: Tenant sem conta Stripe Connect.`);
+            console.warn(`⚠️ Pulando ${recipe.title}: Tenant [${recipe.tenant_id}] sem conta Stripe Connect.`);
             continue;
         }
 

@@ -38,16 +38,41 @@ export default withApiHandler(async (req: VercelRequest, res: VercelResponse, { 
 
   // 2. Verifica se já existe uma conta
   const existing = await getConnectAccountByTenantId(tenant.id);
+  
+  // Se existir conta, verifica se ela é compatível com o modo atual (Test/Live)
+  // Contas de teste da Stripe começam com acct_ seguido por letras aleatórias,
+  // mas aqui o critério de erro da Stripe é o mais confiável.
   if (existing?.stripeAccountId) {
     logger.info('Conta Stripe Connect já existe', { stripeAccountId: existing.stripeAccountId });
-    const accountLinks = await stripeClient.accountLinks.create({
-      account: existing.stripeAccountId,
-      refresh_url: buildStripeRedirectUrl('refresh', returnTo),
-      return_url: buildStripeRedirectUrl('success', returnTo),
-      type: 'account_onboarding',
-    });
-    res.status(200).json({ accountId: existing.stripeAccountId, onboardingUrl: accountLinks.url });
-    return;
+    
+    try {
+      const accountLinks = await stripeClient.accountLinks.create({
+        account: existing.stripeAccountId,
+        refresh_url: buildStripeRedirectUrl('refresh', returnTo),
+        return_url: buildStripeRedirectUrl('success', returnTo),
+        type: 'account_onboarding',
+      });
+      res.status(200).json({ accountId: existing.stripeAccountId, onboardingUrl: accountLinks.url });
+      return;
+    } catch (err: any) {
+      // Se a conta no banco for de TESTE e estamos em LIVE, a Stripe vai dar erro.
+      // Nesse caso, limpamos para permitir criar uma nova real.
+      if (err?.message?.includes("testmode") || err?.message?.includes("livemode")) {
+        logger.warn('Conta Stripe incompatível com o modo atual. Requer nova conta.', { 
+           error: err.message,
+           existingId: existing.stripeAccountId 
+        });
+        // Não res.status aqui, deixa o código seguir para o passo 3 (criar nova conta)
+      } else {
+        logger.error('Erro ao gerar link para conta existente', err);
+        res.status(500).json({ 
+          error: 'Erro ao gerar link de acesso à conta Stripe.', 
+          detail: err.message,
+          code: 'STRIPE_LINK_ERROR'
+        });
+        return;
+      }
+    }
   }
 
   // 3. Cria nova conta no Stripe
