@@ -15,6 +15,7 @@ import type { AdminPaymentSettingsResponse } from '@/types/payment';
 import { ApiClientError } from '@/lib/api/client';
 import { Info, ShieldCheck, Activity } from 'lucide-react';
 import { StripeConnectCard } from '@/components/payments/StripeConnectCard';
+import { PageHead } from '@/components/PageHead';
 
 type PaymentFlags = {
   payment_mode: 'sandbox' | 'production';
@@ -151,126 +152,133 @@ export default function SettingsPage() {
   const isConnected = adminSettings?.connectionStatus === 'connected';
 
   return (
-    <div className="space-y-8 max-w-4xl pb-10">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-3xl font-heading font-bold tracking-tight">Pagamentos</h1>
-        <p className="text-muted-foreground">
-          Gerencie como você recebe pelas suas receitas premium via Stripe.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-8 space-y-6">
-          {/* Status da Conexão Stripe */}
-          <StripeConnectCard
-            settings={adminSettings}
-            loading={loadingAdminSettings}
-            connecting={connecting}
-            disconnecting={false}
-            onConnect={handleConnect}
-          />
-
-          {/* Guia de Primeiros Passos */}
-          {!isConnected && (
-            <Card className="border-primary/20 bg-primary/5 overflow-hidden">
-              <div className="h-1 bg-gradient-to-r from-violet-500 to-indigo-500" />
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                  <Info className="h-4 w-4 text-primary" />
-                  Como funciona o Stripe Connect
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-xs space-y-3 text-muted-foreground leading-relaxed">
-                <p>
-                  Clique em <strong>Conectar com Stripe</strong> acima e siga o onboarding seguro do
-                  Stripe. Após concluir, o dinheiro das suas vendas cairá diretamente na sua conta
-                  bancária vinculada, sem intermediários adicionais do sistema.
-                </p>
-                <ul className="space-y-1 list-disc list-inside">
-                  <li>Receba pagamentos em tempo real</li>
-                  <li>Dashboard financeiro completo no Stripe</li>
-                  <li>Segurança PCI DSS nível 1</li>
-                </ul>
-              </CardContent>
-            </Card>
-          )}
+    <>
+      <PageHead
+        title="Configurações de pagamento"
+        description="Controle modo (teste ou produção) e integrações do Stripe."
+        noindex={true}
+      />
+      <div className="space-y-8 max-w-4xl pb-10">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-3xl font-heading font-bold tracking-tight">Pagamentos</h1>
+          <p className="text-muted-foreground">
+            Gerencie como você recebe pelas suas receitas premium via Stripe.
+          </p>
         </div>
 
-        <div className="lg:col-span-4 space-y-6">
-          {/* Controles Avançados */}
-          <Card className="h-fit">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Activity className="h-4 w-4 text-primary" />
-                Modo de Operação
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex items-center justify-between gap-4">
-                <div className="space-y-0.5">
-                  <Label className="text-sm">Ambiente</Label>
-                  <p className="text-xs text-muted-foreground">
-                    {form.payment_mode === 'production' ? 'Cobranças Reais' : 'Modo Teste'}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-8 space-y-6">
+            {/* Status da Conexão Stripe */}
+            <StripeConnectCard
+              settings={adminSettings}
+              loading={loadingAdminSettings}
+              connecting={connecting}
+              disconnecting={false}
+              onConnect={handleConnect}
+            />
+
+            {/* Guia de Primeiros Passos */}
+            {!isConnected && (
+              <Card className="border-primary/20 bg-primary/5 overflow-hidden">
+                <div className="h-1 bg-gradient-to-r from-violet-500 to-indigo-500" />
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <Info className="h-4 w-4 text-primary" />
+                    Como funciona o Stripe Connect
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-xs space-y-3 text-muted-foreground leading-relaxed">
+                  <p>
+                    Clique em <strong>Conectar com Stripe</strong> acima e siga o onboarding seguro
+                    do Stripe. Após concluir, o dinheiro das suas vendas cairá diretamente na sua
+                    conta bancária vinculada, sem intermediários adicionais do sistema.
                   </p>
-                </div>
-                <Switch
-                  checked={form.payment_mode === 'production'}
-                  onCheckedChange={(checked) =>
-                    setField('payment_mode', checked ? 'production' : 'sandbox')
-                  }
-                />
-              </div>
+                  <ul className="space-y-1 list-disc list-inside">
+                    <li>Receba pagamentos em tempo real</li>
+                    <li>Dashboard financeiro completo no Stripe</li>
+                    <li>Segurança PCI DSS nível 1</li>
+                  </ul>
+                </CardContent>
+              </Card>
+            )}
+          </div>
 
-              <div
-                className={`p-3 rounded-lg text-[10px] leading-relaxed ${
-                  form.payment_mode === 'production'
-                    ? 'bg-green-500/10 text-green-700 border border-green-500/20'
-                    : 'bg-amber-500/10 text-amber-700 border border-amber-500/20'
-                }`}
-              >
-                {form.payment_mode === 'production'
-                  ? 'O site está em PRODUÇÃO. As vendas são processadas e cobradas de verdade.'
-                  : 'O site está em TESTE. Você pode simular compras com cartões de teste do Stripe (ex: 4242 4242 4242 4242).'}
-              </div>
-
-              <div className="space-y-4 pt-2 border-t">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-medium">Webhooks</Label>
+          <div className="lg:col-span-4 space-y-6">
+            {/* Controles Avançados */}
+            <Card className="h-fit">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Activity className="h-4 w-4 text-primary" />
+                  Modo de Operação
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="space-y-0.5">
+                    <Label className="text-sm">Ambiente</Label>
+                    <p className="text-xs text-muted-foreground">
+                      {form.payment_mode === 'production' ? 'Cobranças Reais' : 'Modo Teste'}
+                    </p>
+                  </div>
                   <Switch
-                    checked={form.webhooks_enabled}
-                    onCheckedChange={(checked) => setField('webhooks_enabled', checked)}
+                    checked={form.payment_mode === 'production'}
+                    onCheckedChange={(checked) =>
+                      setField('payment_mode', checked ? 'production' : 'sandbox')
+                    }
                   />
                 </div>
 
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-medium">Tópico de Pagamento</Label>
-                  <Switch
-                    checked={form.payment_topic_enabled}
-                    onCheckedChange={(checked) => setField('payment_topic_enabled', checked)}
-                  />
+                <div
+                  className={`p-3 rounded-lg text-[10px] leading-relaxed ${
+                    form.payment_mode === 'production'
+                      ? 'bg-green-500/10 text-green-700 border border-green-500/20'
+                      : 'bg-amber-500/10 text-amber-700 border border-amber-500/20'
+                  }`}
+                >
+                  {form.payment_mode === 'production'
+                    ? 'O site está em PRODUÇÃO. As vendas são processadas e cobradas de verdade.'
+                    : 'O site está em TESTE. Você pode simular compras com cartões de teste do Stripe (ex: 4242 4242 4242 4242).'}
                 </div>
+
+                <div className="space-y-4 pt-2 border-t">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-medium">Webhooks</Label>
+                    <Switch
+                      checked={form.webhooks_enabled}
+                      onCheckedChange={(checked) => setField('webhooks_enabled', checked)}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-medium">Tópico de Pagamento</Label>
+                    <Switch
+                      checked={form.payment_topic_enabled}
+                      onCheckedChange={(checked) => setField('payment_topic_enabled', checked)}
+                    />
+                  </div>
+                </div>
+
+                <Button onClick={() => void handleSave()} disabled={saving} className="w-full">
+                  {saving ? 'Salvando...' : 'Salvar Configurações'}
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Nota de Segurança */}
+            <div className="p-5 rounded-2xl border bg-gradient-to-br from-card to-muted/30 text-center space-y-3">
+              <div className="h-10 w-10 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+                <ShieldCheck className="h-6 w-6 text-primary" />
               </div>
-
-              <Button onClick={() => void handleSave()} disabled={saving} className="w-full">
-                {saving ? 'Salvando...' : 'Salvar Configurações'}
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Nota de Segurança */}
-          <div className="p-5 rounded-2xl border bg-gradient-to-br from-card to-muted/30 text-center space-y-3">
-            <div className="h-10 w-10 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-              <ShieldCheck className="h-6 w-6 text-primary" />
+              <h4 className="text-xs font-bold uppercase tracking-wider">Conexão Blindada</h4>
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
+                Utilizamos o protocolo OAuth 2.0 oficial do Stripe Connect. Suas credenciais
+                bancárias nunca tocam nossos servidores — tudo é processado diretamente pelo Stripe
+                com criptografia PCI DSS nível 1.
+              </p>
             </div>
-            <h4 className="text-xs font-bold uppercase tracking-wider">Conexão Blindada</h4>
-            <p className="text-[10px] text-muted-foreground leading-relaxed">
-              Utilizamos o protocolo OAuth 2.0 oficial do Stripe Connect. Suas credenciais bancárias
-              nunca tocam nossos servidores — tudo é processado diretamente pelo Stripe com
-              criptografia PCI DSS nível 1.
-            </p>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

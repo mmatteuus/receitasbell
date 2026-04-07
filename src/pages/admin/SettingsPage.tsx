@@ -15,6 +15,7 @@ import { useAppContext } from '@/contexts/app-context';
 import { buildTenantAdminPath, extractTenantSlugFromPath } from '@/lib/tenant';
 import { useInstallPrompt } from '@/pwa/hooks/useInstallPrompt';
 import { InstallAppButton } from '@/pwa/components/InstallAppButton';
+import { PageHead } from '@/components/PageHead';
 
 const FONT_OPTIONS = [
   'DM Serif Display',
@@ -85,205 +86,212 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-3xl">
-      <div>
-        <h1 className="text-3xl font-heading font-bold">Configurações</h1>
-        <p className="text-muted-foreground mt-1">
-          Personalize o nome, logo, cores e fontes do seu site.
-        </p>
-        <Link
-          to={buildTenantAdminPath('configuracoes/pagina-inicial', tenantSlug)}
-          className="mt-3 inline-flex text-sm font-medium text-primary hover:underline"
-        >
-          Editar conteúdo da Página Inicial
-        </Link>
-      </div>
+    <>
+      <PageHead
+        title="Configurações do site"
+        description="Personalize identidade visual e integrações do site."
+        noindex={true}
+      />
+      <div className="space-y-6 max-w-3xl">
+        <div>
+          <h1 className="text-3xl font-heading font-bold">Configurações</h1>
+          <p className="text-muted-foreground mt-1">
+            Personalize o nome, logo, cores e fontes do seu site.
+          </p>
+          <Link
+            to={buildTenantAdminPath('configuracoes/pagina-inicial', tenantSlug)}
+            className="mt-3 inline-flex text-sm font-medium text-primary hover:underline"
+          >
+            Editar conteúdo da Página Inicial
+          </Link>
+        </div>
 
-      {showAppCard && (
-        <Card className="border-primary/50 bg-primary/5">
+        {showAppCard && (
+          <Card className="border-primary/50 bg-primary/5">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Smartphone className="h-5 w-5 text-primary" />
+                Aplicativo do Admin
+              </CardTitle>
+              <CardDescription>
+                Instale o painel no seu dispositivo para acesso mais rápido.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <InstallAppButton context="admin" />
+            </CardContent>
+          </Card>
+        )}
+
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
-              <Smartphone className="h-5 w-5 text-primary" />
-              Aplicativo do Admin
+              <Settings className="h-5 w-5 text-primary" />
+              Identidade do Site
             </CardTitle>
             <CardDescription>
-              Instale o painel no seu dispositivo para acesso mais rápido.
+              Esses dados são lidos do banco de dados e aplicados no frontend.
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <InstallAppButton context="admin" />
-          </CardContent>
-        </Card>
-      )}
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Settings className="h-5 w-5 text-primary" />
-            Identidade do Site
-          </CardTitle>
-          <CardDescription>
-            Esses dados são lidos do banco de dados e aplicados no frontend.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="siteName">Nome do Site</Label>
-            <Input
-              id="siteName"
-              value={form.siteName}
-              onChange={(event) => setField('siteName', event.target.value)}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="siteDescription">Descrição</Label>
-            <Textarea
-              id="siteDescription"
-              value={form.siteDescription}
-              onChange={(event) => setField('siteDescription', event.target.value)}
-              rows={3}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="logoUrl" className="flex items-center gap-2">
-              <Link2 className="h-4 w-4" />
-              URL do Logotipo
-            </Label>
-            <Input
-              id="logoUrl"
-              value={form.logoUrl}
-              onChange={(event) => setField('logoUrl', event.target.value)}
-              placeholder="https://..."
-            />
-            <p className="text-xs text-muted-foreground">
-              O banco de dados persiste apenas a URL da imagem.
-            </p>
-          </div>
-
-          {form.logoUrl && (
-            <div className="flex items-center gap-4 rounded-lg border p-4">
-              <img
-                src={form.logoUrl}
-                alt={form.siteName}
-                className="h-16 w-16 rounded object-contain"
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="siteName">Nome do Site</Label>
+              <Input
+                id="siteName"
+                value={form.siteName}
+                onChange={(event) => setField('siteName', event.target.value)}
               />
-              <div>
-                <p className="font-medium">{form.siteName}</p>
-                <p className="text-sm text-muted-foreground">Prévia do logo remoto</p>
-              </div>
             </div>
-          )}
-        </CardContent>
-      </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Palette className="h-5 w-5 text-primary" />
-            Cores do Tema
-          </CardTitle>
-          <CardDescription>
-            As cores salvas aqui alimentam as variáveis CSS globais.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {(
-              [
-                ['primaryColor', 'Cor Primária'],
-                ['secondaryColor', 'Cor Secundária'],
-                ['accentColor', 'Cor de Destaque'],
-              ] as const
-            ).map(([key, label]) => (
-              <div key={key} className="space-y-2">
-                <Label>{label}</Label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    value={form[key]}
-                    onChange={(event) => setField(key, event.target.value)}
-                    className="h-10 w-10 rounded-md border cursor-pointer"
-                  />
-                  <Input
-                    value={form[key]}
-                    onChange={(event) => setField(key, event.target.value)}
-                    className="flex-1 font-mono text-sm"
-                  />
+            <div className="space-y-2">
+              <Label htmlFor="siteDescription">Descrição</Label>
+              <Textarea
+                id="siteDescription"
+                value={form.siteDescription}
+                onChange={(event) => setField('siteDescription', event.target.value)}
+                rows={3}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="logoUrl" className="flex items-center gap-2">
+                <Link2 className="h-4 w-4" />
+                URL do Logotipo
+              </Label>
+              <Input
+                id="logoUrl"
+                value={form.logoUrl}
+                onChange={(event) => setField('logoUrl', event.target.value)}
+                placeholder="https://..."
+              />
+              <p className="text-xs text-muted-foreground">
+                O banco de dados persiste apenas a URL da imagem.
+              </p>
+            </div>
+
+            {form.logoUrl && (
+              <div className="flex items-center gap-4 rounded-lg border p-4">
+                <img
+                  src={form.logoUrl}
+                  alt={form.siteName}
+                  className="h-16 w-16 rounded object-contain"
+                />
+                <div>
+                  <p className="font-medium">{form.siteName}</p>
+                  <p className="text-sm text-muted-foreground">Prévia do logo remoto</p>
                 </div>
               </div>
-            ))}
-          </div>
+            )}
+          </CardContent>
+        </Card>
 
-          <Separator />
-          <div className="flex items-center gap-3 flex-wrap">
-            <div
-              className="h-12 w-24 rounded-md border flex items-center justify-center text-xs font-medium text-white"
-              style={{ backgroundColor: form.primaryColor }}
-            >
-              Primária
-            </div>
-            <div
-              className="h-12 w-24 rounded-md border flex items-center justify-center text-xs font-medium"
-              style={{ backgroundColor: form.secondaryColor }}
-            >
-              Secundária
-            </div>
-            <div
-              className="h-12 w-24 rounded-md border flex items-center justify-center text-xs font-medium"
-              style={{ backgroundColor: form.accentColor }}
-            >
-              Destaque
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Type className="h-5 w-5 text-primary" />
-            Tipografia
-          </CardTitle>
-          <CardDescription>Fontes usadas para títulos e textos do site.</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label>Fonte dos títulos</Label>
-            <select
-              className="flex h-10 w-full rounded-md border bg-background px-3 text-sm"
-              value={form.headingFont}
-              onChange={(event) => setField('headingFont', event.target.value)}
-            >
-              {FONT_OPTIONS.map((font) => (
-                <option key={font}>{font}</option>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Palette className="h-5 w-5 text-primary" />
+              Cores do Tema
+            </CardTitle>
+            <CardDescription>
+              As cores salvas aqui alimentam as variáveis CSS globais.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {(
+                [
+                  ['primaryColor', 'Cor Primária'],
+                  ['secondaryColor', 'Cor Secundária'],
+                  ['accentColor', 'Cor de Destaque'],
+                ] as const
+              ).map(([key, label]) => (
+                <div key={key} className="space-y-2">
+                  <Label>{label}</Label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={form[key]}
+                      onChange={(event) => setField(key, event.target.value)}
+                      className="h-10 w-10 rounded-md border cursor-pointer"
+                    />
+                    <Input
+                      value={form[key]}
+                      onChange={(event) => setField(key, event.target.value)}
+                      className="flex-1 font-mono text-sm"
+                    />
+                  </div>
+                </div>
               ))}
-            </select>
-          </div>
-          <div className="space-y-2">
-            <Label>Fonte do corpo</Label>
-            <select
-              className="flex h-10 w-full rounded-md border bg-background px-3 text-sm"
-              value={form.bodyFont}
-              onChange={(event) => setField('bodyFont', event.target.value)}
-            >
-              {FONT_OPTIONS.map((font) => (
-                <option key={font}>{font}</option>
-              ))}
-            </select>
-          </div>
-        </CardContent>
-      </Card>
+            </div>
 
-      <div className="flex gap-3">
-        <Button onClick={() => void handleSave()} disabled={saving}>
-          <Save className="mr-2 h-4 w-4" /> Salvar
-        </Button>
-        <Button variant="outline" onClick={() => void handleReset()} disabled={saving}>
-          <RotateCcw className="mr-2 h-4 w-4" /> Restaurar padrão
-        </Button>
+            <Separator />
+            <div className="flex items-center gap-3 flex-wrap">
+              <div
+                className="h-12 w-24 rounded-md border flex items-center justify-center text-xs font-medium text-white"
+                style={{ backgroundColor: form.primaryColor }}
+              >
+                Primária
+              </div>
+              <div
+                className="h-12 w-24 rounded-md border flex items-center justify-center text-xs font-medium"
+                style={{ backgroundColor: form.secondaryColor }}
+              >
+                Secundária
+              </div>
+              <div
+                className="h-12 w-24 rounded-md border flex items-center justify-center text-xs font-medium"
+                style={{ backgroundColor: form.accentColor }}
+              >
+                Destaque
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Type className="h-5 w-5 text-primary" />
+              Tipografia
+            </CardTitle>
+            <CardDescription>Fontes usadas para títulos e textos do site.</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label>Fonte dos títulos</Label>
+              <select
+                className="flex h-10 w-full rounded-md border bg-background px-3 text-sm"
+                value={form.headingFont}
+                onChange={(event) => setField('headingFont', event.target.value)}
+              >
+                {FONT_OPTIONS.map((font) => (
+                  <option key={font}>{font}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label>Fonte do corpo</Label>
+              <select
+                className="flex h-10 w-full rounded-md border bg-background px-3 text-sm"
+                value={form.bodyFont}
+                onChange={(event) => setField('bodyFont', event.target.value)}
+              >
+                {FONT_OPTIONS.map((font) => (
+                  <option key={font}>{font}</option>
+                ))}
+              </select>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="flex gap-3">
+          <Button onClick={() => void handleSave()} disabled={saving}>
+            <Save className="mr-2 h-4 w-4" /> Salvar
+          </Button>
+          <Button variant="outline" onClick={() => void handleReset()} disabled={saving}>
+            <RotateCcw className="mr-2 h-4 w-4" /> Restaurar padrão
+          </Button>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

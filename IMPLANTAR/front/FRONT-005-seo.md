@@ -1,8 +1,19 @@
 # FRONT-005 — SEO + Meta Tags Finais
 
-**Status:** Em implementação  
-**Última atualização:** 2026-04-06 — OpenCode  
+**Status:** ✅ Concluído (Fases 1 e 2)  
+**Última atualização:** 2026-04-07 — OpenCode  
 **Objetivo:** Garantir que todas as rotas públicas e PWA tenham meta tags corretas (title, description, OG image, canonical, noindex/follow).
+
+### Resumo de Conclusão
+
+✅ **Fase 1 Completa**: PageHead implementado em 4 rotas privadas (AccountHome, CartPage, Favorites, ShoppingListPage) com `noindex: true`.
+✅ **Fase 2 Completa**: PageHead aplicado em todas as páginas principais do admin (Dashboard, Receitas, Editor, Categorias, Configurações gerais e Pagamentos) com `noindex` e descrições resumidas.
+
+⚠️ **Pendências**:
+
+- Sitemap.xml: não implementado (requer gerador dinâmico)
+- OG images: validação manual em rede social recomendada
+- Lighthouse: passar target SEO ≥ 90 em staging
 
 ---
 
@@ -10,39 +21,35 @@
 
 ### ✅ Rotas Públicas COM PageHead
 
-| Rota | Arquivo | Status | Noindex | Descrição |
-|------|---------|--------|---------|-----------|
-| `/` | `Index.tsx` | ✅ | Não | Home page — indexada |
-| `/t/:tenant` | `Index.tsx` | ✅ | Não | Home tenant — indexada |
-| `/receita/:id` | `RecipePage.tsx` | ✅ | Não | Página de receita — indexada |
-| `/categoria/:id` | `Category.tsx` | ✅ | Não | Listagem de categoria — indexada |
-| `/buscar` | `Search.tsx` | ✅ | Não | Busca de receitas — indexada |
-| `/quem-somos` | `Institutional.tsx` | ✅ | Não | Página institucional — indexada |
-| `/checkout` | `CheckoutPage.tsx` | ✅ | **Sim** | Checkout — noindex,nofollow ✓ |
-| `/pagamento/pendente` | `PendingPage.tsx` | ✅ | **Sim** | Pendente — noindex,nofollow ✓ |
-| `/pagamento/falha` | `FailurePage.tsx` | ✅ | **Sim** | Falha — noindex,nofollow ✓ |
-| `/pagamento/sucesso` | `SuccessPage.tsx` | ✅ | **Sim** | Sucesso — noindex,nofollow ✓ |
+| Rota                  | Arquivo             | Status | Noindex | Descrição                        |
+| --------------------- | ------------------- | ------ | ------- | -------------------------------- |
+| `/`                   | `Index.tsx`         | ✅     | Não     | Home page — indexada             |
+| `/t/:tenant`          | `Index.tsx`         | ✅     | Não     | Home tenant — indexada           |
+| `/receita/:id`        | `RecipePage.tsx`    | ✅     | Não     | Página de receita — indexada     |
+| `/categoria/:id`      | `Category.tsx`      | ✅     | Não     | Listagem de categoria — indexada |
+| `/buscar`             | `Search.tsx`        | ✅     | Não     | Busca de receitas — indexada     |
+| `/quem-somos`         | `Institutional.tsx` | ✅     | Não     | Página institucional — indexada  |
+| `/checkout`           | `CheckoutPage.tsx`  | ✅     | **Sim** | Checkout — noindex,nofollow ✓    |
+| `/pagamento/pendente` | `PendingPage.tsx`   | ✅     | **Sim** | Pendente — noindex,nofollow ✓    |
+| `/pagamento/falha`    | `FailurePage.tsx`   | ✅     | **Sim** | Falha — noindex,nofollow ✓       |
+| `/pagamento/sucesso`  | `SuccessPage.tsx`   | ✅     | **Sim** | Sucesso — noindex,nofollow ✓     |
 
-### ❌ Rotas Públicas SEM PageHead (Necessário Adicionar)
+### ✅ Rotas Privadas com PageHead
 
-| Rota | Arquivo | Tipo | Noindex | Descrição |
-|------|---------|------|---------|-----------|
-| `/minha-conta` | `AccountHome.tsx` | Privada* | **Sim** | Conta do usuário — noindex |
-| `/carrinho` | `CartPage.tsx` | Privada* | **Sim** | Carrinho — noindex |
-| `/meus-favoritos` | `Favorites.tsx` | Privada* | **Sim** | Favoritos — noindex |
-| `/lista-de-compras` | `ShoppingListPage.tsx` | Privada* | **Sim** | Lista — noindex |
+Todas as rotas privadas listadas anteriormente possuem `<PageHead noindex />` com descrições curtas desde 2026-04-07.
 
-*Nota: Páginas privadas (requerem autenticação) devem ter `noindex: true` para evitar indexação de URLs de usuários.
+\*Páginas privadas (requerem autenticação) continuam com `noindex: true` para evitar indexação de URLs de usuários.
 
 ### Admin Pages (Sempre `noindex`)
 
-| Rota | Status | Noindex |
-|------|--------|---------|
-| `/admin/login` | ✅ Tem PageHead via LoginPage | **Sim** |
-| `/admin/dashboard` | ❌ Sem PageHead | **Sim** |
-| `/admin/recipes` | ❌ Sem PageHead | **Sim** |
-| `/admin/settings` | ❌ Sem PageHead | **Sim** |
-| Outras `/admin/*` | ❌ Sem PageHead | **Sim** |
+| Rota                  | Status                                           | Noindex |
+| --------------------- | ------------------------------------------------ | ------- |
+| `/admin/login`        | ✅ Tem PageHead via LoginPage                    | **Sim** |
+| `/admin/dashboard`    | ✅ PageHead aplicado                             | **Sim** |
+| `/admin/receitas`     | ✅ PageHead aplicado (lista + editor)            | **Sim** |
+| `/admin/settings`     | ✅ PageHead aplicado (geral + página inicial)    | **Sim** |
+| `/admin/pagamentos/*` | ✅ Dashboard, transações e detalhes com PageHead | **Sim** |
+| `/admin/categorias`   | ✅ PageHead aplicado                             | **Sim** |
 
 ---
 
@@ -51,7 +58,7 @@
 ### Template para Adicionar PageHead
 
 ```tsx
-import { PageHead } from "@/components/PageHead";
+import { PageHead } from '@/components/PageHead';
 
 export default function MyPage() {
   return (
@@ -64,7 +71,7 @@ export default function MyPage() {
         ogType="website" // ou "article" para posts
         canonicalPath="/minha-rota"
       />
-      
+
       {/* Conteúdo da página */}
     </>
   );
@@ -82,7 +89,8 @@ export default function MyPage() {
 
 ### Fase 1: Rotas Privadas (Mais Urgentes)
 
-- [ ] **AccountHome.tsx** (`/minha-conta`)
+- [x] **AccountHome.tsx** (`/minha-conta`)
+
   ```tsx
   <PageHead
     title="Minha Conta"
@@ -91,7 +99,8 @@ export default function MyPage() {
   />
   ```
 
-- [ ] **CartPage.tsx** (`/carrinho`)
+- [x] **CartPage.tsx** (`/carrinho`)
+
   ```tsx
   <PageHead
     title="Carrinho de Compras"
@@ -100,7 +109,8 @@ export default function MyPage() {
   />
   ```
 
-- [ ] **Favorites.tsx** (`/meus-favoritos`)
+- [x] **Favorites.tsx** (`/meus-favoritos`)
+
   ```tsx
   <PageHead
     title="Minhas Receitas Favoritas"
@@ -109,7 +119,7 @@ export default function MyPage() {
   />
   ```
 
-- [ ] **ShoppingListPage.tsx** (`/lista-de-compras`)
+- [x] **ShoppingListPage.tsx** (`/lista-de-compras`)
   ```tsx
   <PageHead
     title="Lista de Compras"
@@ -120,39 +130,31 @@ export default function MyPage() {
 
 ### Fase 2: Admin Pages
 
-- [ ] **Dashboard.tsx**
+- [x] **Dashboard.tsx**
+
   ```tsx
-  <PageHead
-    title="Painel do Administrador"
-    noindex={true}
-  />
+  <PageHead title="Painel do Administrador" noindex={true} />
   ```
 
-- [ ] **RecipeListPage.tsx** (trocar `AdminPageHeader` por `PageHead`)
+- [x] **RecipeListPage.tsx** (trocar `AdminPageHeader` por `PageHead`)
+
   ```tsx
-  <PageHead
-    title="Gerenciar Receitas"
-    noindex={true}
-  />
+  <PageHead title="Gerenciar Receitas" noindex={true} />
   ```
 
-- [ ] **RecipeEditor.tsx**
+- [x] **RecipeEditor.tsx**
+
   ```tsx
-  <PageHead
-    title="Editar Receita"
-    noindex={true}
-  />
+  <PageHead title="Editar Receita" noindex={true} />
   ```
 
-- [ ] **SettingsPage.tsx**
+- [x] **SettingsPage.tsx**
+
   ```tsx
-  <PageHead
-    title="Configurações do Admin"
-    noindex={true}
-  />
+  <PageHead title="Configurações do Admin" noindex={true} />
   ```
 
-- [ ] Outras pages admin (categorias, payments, etc.)
+- [x] Outras pages admin (categorias, payments, etc.) — `CategoriesPage`, `HomePageSettings`, `payments/DashboardPage`, `payments/TransactionsPage`, `payments/TransactionDetailsPage` e `payments/SettingsPage` também recebem `<PageHead noindex />`.
 
 ---
 
@@ -270,25 +272,27 @@ https://receitasbell.mtsferreira.dev/admin/login    → Admin (noindex)
 
 ## 8. Métricas de Sucesso
 
-| Métrica | Target | Status |
-|---------|--------|--------|
-| Lighthouse SEO | ≥ 90 | ⏳ |
-| Todas rotas públicas indexáveis | 100% | ⏳ |
-| Todas rotas privadas noindex | 100% | ⏳ |
-| Broken canonical links | 0 | ⏳ |
-| OG images carregáveis | 100% | ⏳ |
-| Robots.txt válido | ✓ | ⏳ |
+| Métrica                         | Target | Status |
+| ------------------------------- | ------ | ------ |
+| Lighthouse SEO                  | ≥ 90   | ⏳     |
+| Todas rotas públicas indexáveis | 100%   | ⏳     |
+| Todas rotas privadas noindex    | 100%   | ⏳     |
+| Broken canonical links          | 0      | ⏳     |
+| OG images carregáveis           | 100%   | ⏳     |
+| Robots.txt válido               | ✓      | ⏳     |
 
 ---
 
 ## 9. Plano de Execução
 
 ### Sprint 1 (Hoje)
+
 1. Adicionar PageHead às 4 rotas privadas (AccountHome, Cart, Favorites, ShoppingList)
 2. Validar sitemap e robots.txt
 3. Rodar Lighthouse na home + 2 receitas
 
 ### Sprint 2 (Próximos commits)
+
 1. Adicionar PageHead aos pages admin
 2. Testar OG images em redes sociais
 3. Registrar métricas finais

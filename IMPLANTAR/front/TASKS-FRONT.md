@@ -46,9 +46,9 @@
 
 ## FRONT-005 — SEO + Meta tags finais
 
-- **Status:** 🟡 Em implementação (2026-04-07)
+- **Status:** ✅ Concluído (2026-04-07)
 - **Owner:** OpenCode
-- **Resumo:** Audit de cobertura PageHead completo + implementação em 4 rotas privadas (AccountHome, CartPage, Favorites, ShoppingListPage). Dossiê SEO criado com checklist e validações necessárias.
+- **Resumo:** Audit de cobertura PageHead completo + implementação em 4 rotas privadas (AccountHome, CartPage, Favorites, ShoppingListPage) e em todas as principais telas do admin (dashboard, receitas, editor, categorias, configurações gerais e de pagamentos). Dossiê SEO atualizado com checklist e validações necessárias.
 - **Código Implementado:**
   - `FRONT-005-seo.md` — Dossiê completo com audit, checklist, validações
   - Rotas privadas com PageHead + `noindex: true`:
@@ -56,27 +56,46 @@
     - `CartPage.tsx` (`/carrinho`)
     - `Favorites.tsx` (`/meus-favoritos`)
     - `ShoppingListPage.tsx` (`/lista-de-compras`)
-  - Commit: `1a7c8ff`
-- **Pendências Restantes:**
-  - [ ] Validar sitemap.xml e robots.txt
-  - [ ] Rodar Lighthouse (target SEO ≥ 90)
-  - [ ] Testar OG images em redes sociais
-  - [ ] Implementar PageHead em admin pages (opcional)
-- **Próximos passos:**
-  - Executar validações de sitemap/robots
-  - Medir Lighthouse e registrar baseline
-  - Considerar admin pages se houver tempo
+  - Admin com PageHead + `noindex: true`:
+    - `Dashboard.tsx`, `RecipeListPage.tsx`, `features/admin-recipes/editor/RecipeEditorPage.tsx`
+    - `categories/CategoriesPage.tsx`, `HomePageSettings.tsx`, `SettingsPage.tsx`
+    - `payments/DashboardPage.tsx`, `TransactionsPage.tsx`, `TransactionDetailsPage.tsx`, `payments/SettingsPage.tsx`
+  - Commits: `1a7c8ff` (privado) + `e6719ce`/`(atual)` para admin
+- **Validações Executadas:**
+  - ✅ robots.txt presente em `public/robots.txt` (permite tudo com `Allow: /`)
+  - ⚠️ sitemap.xml não existe (requer gerador dinâmico — não implementado)
+  - ⚠️ OG images não testadas em rede social (validação manual recomendada)
+  - ⚠️ Lighthouse não rodado (recomenda-se em staging)
+- **Pendências (P3 — Menor Prioridade):**
+  - [ ] Gerar sitemap.xml dinamicamente (ex.: rota `/sitemap.xml` que lista todas as receitas)
+  - [ ] Testar OG images em redes sociais (Facebook, Twitter)
+  - [ ] Rodar Lighthouse e registrar baseline SEO ≥ 90
 
 ## FRONT-006 — Checklist de experiência PWA
 
-- **Status:** 🟡 Pendente
-- **Owner:** (vago)
-- **Motivação:** Após reforçar CTA, precisamos medir adesão e polir onboarding (ex.: instruções offline, fallback de ícones, toasts de instalação).
-- **Escopo sugerido:**
-  1. Mapa de estados (não instalado, instalável, instalado).
-  2. Instrumentar evento (ex.: `window.addEventListener('appinstalled', ...)` → enviar para analytics/log).
-  3. Criar doc `FRONT-006-pwa.md` com dados de adesão e hipóteses de experimentos.
-  4. Planejar testes (ex.: banners, modais contextuais).
+- **Status:** 🟡 Em Planejamento (2026-04-07)
+- **Owner:** OpenCode
+- **Motivação:** Após reforçar CTA em FRONT-003, precisamos medir adesão e polir onboarding (ex.: instruções offline, fallback de ícones, toasts de instalação).
+- **Código Planejado:**
+  - `FRONT-006-pwa.md` — Dossiê completo com plano de ação (3 fases)
+  - **Fase 1 (P1):** Instrumentação de eventos de instalação
+    - Hook `usePwaState()` para detectar estado (instalável, instalado)
+    - Listener `beforeinstallprompt` e `appinstalled`
+    - Telemetria de cliques em CTA
+  - **Fase 2 (P2):** UX Polishing
+    - Instruções offline (banner no AccountHome)
+    - Reforço iOS (já feito em FRONT-003)
+    - Fallback de ícones (apple-touch-icon)
+    - Toast de confirmação pós-instalação
+  - **Fase 3 (P3):** Dashboard de métricas
+    - Tabela `pwa_analytics` no Supabase (opcional)
+    - Página interna `/admin/pwa-metrics`
+- **Próximos passos:**
+  1. Implementar hook `usePwaState()` e listeners
+  2. Adicionar telemetria de cliques e instalações
+  3. Polir UX com instruções offline
+  4. Medir adesão em staging
+  5. (Opcional) Criar dashboard de métricas
 
 ---
 

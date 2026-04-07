@@ -312,3 +312,19 @@
 > 🚦 **Status**: aguardando integração futura com tabela real de convites + envio de e-mail.
 >
 > 📦 **Commit**: _(incluso no próximo push desta branch)_
+
+---
+
+**MSG-OUT-CC-10 (FRONT — SEO/Admin PageHead)**
+
+> ✅ **FRONT-005 concluído**: todas as páginas privadas e administrativas agora utilizam o componente `PageHead` com `noindex`, títulos descritivos e descrições curtas.
+>
+> 📋 **Alterações**:
+>
+> - `Dashboard.tsx`, `RecipeListPage.tsx`, `RecipeEditorPage.tsx`, `CategoriesPage.tsx`, `SettingsPage.tsx`, `HomePageSettings.tsx`.
+> - Rotas de pagamentos (`pages/admin/payments/*`) receberam meta tags (dashboard, transações, detalhes e configurações).
+> - Dossiê `FRONT-005-seo.md` atualizado com checklists concluídos.
+>
+> ⚠️ Pendências registradas: geração de `sitemap.xml`, validação manual de OG images e medição Lighthouse ≥ 90.
+>
+> 📦 **Commit**: _(incluído no próximo push desta branch)_
