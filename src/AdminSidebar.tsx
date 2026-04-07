@@ -69,8 +69,6 @@ const sidebarItems = [
   { title: 'Página Inicial', path: 'configuracoes/pagina-inicial', icon: Home },
 ];
 
-import { InstallAppButton } from '@/pwa/components/InstallAppButton';
-
 /* ── Sidebar nav content (shared between desktop and mobile) ── */
 function SidebarNav({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: () => void }) {
   const location = useLocation();

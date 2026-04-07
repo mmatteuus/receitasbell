@@ -1,43 +1,59 @@
-import { useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { Menu, X, Search, Heart, ChefHat, Settings, UserCircle2, ListChecks, ShoppingBag } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useAppContext } from "@/contexts/app-context";
-import ThemeModeToggle from "@/components/layout/ThemeModeToggle";
-import { CartButton } from "@/components/cart/CartButton";
-import { buildTenantAdminPath, extractTenantSlugFromPath } from "@/lib/tenant";
-import { InstallAppButton } from "@/pwa/components/InstallAppButton";
+import { useEffect, useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import {
+  Menu,
+  X,
+  Search,
+  Heart,
+  ChefHat,
+  Settings,
+  UserCircle2,
+  ListChecks,
+  ShoppingBag,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useAppContext } from '@/contexts/app-context';
+import ThemeModeToggle from '@/components/layout/ThemeModeToggle';
+import { CartButton } from '@/components/cart/CartButton';
+import { buildTenantAdminPath, extractTenantSlugFromPath } from '@/lib/tenant';
 
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 };
 
 const navLinks = [
-  { to: "/", label: "Home" },
-  { to: "/buscar", label: "Buscar receitas", icon: Search },
-  { to: "/minha-conta", label: "Minha Conta", icon: UserCircle2 },
+  { to: '/', label: 'Home' },
+  { to: '/buscar', label: 'Buscar receitas', icon: Search },
+  { to: '/minha-conta', label: 'Minha Conta', icon: UserCircle2 },
 ];
 
 export default function Header() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [deferredInstallPrompt, setDeferredInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [deferredInstallPrompt, setDeferredInstallPrompt] =
+    useState<BeforeInstallPromptEvent | null>(null);
   const [isAppInstalled, setIsAppInstalled] = useState(false);
   const { pathname } = useLocation();
   const { categories, settings } = useAppContext();
   const tenantSlug = extractTenantSlugFromPath(pathname);
-  const adminPath = buildTenantAdminPath("", tenantSlug);
+  const adminPath = buildTenantAdminPath('', tenantSlug);
 
   const isActive = (path: string) => pathname === path;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
     onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
   useEffect(() => {
@@ -50,11 +66,11 @@ export default function Header() {
       setDeferredInstallPrompt(event as BeforeInstallPromptEvent);
     };
     const handleAppInstalled = () => setIsAppInstalled(true);
-    window.addEventListener("beforeinstallprompt", handleBeforeInstall);
-    window.addEventListener("appinstalled", handleAppInstalled);
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+    window.addEventListener('appinstalled', handleAppInstalled);
     return () => {
-      window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
-      window.removeEventListener("appinstalled", handleAppInstalled);
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+      window.removeEventListener('appinstalled', handleAppInstalled);
     };
   }, []);
 
@@ -62,7 +78,7 @@ export default function Header() {
     if (!deferredInstallPrompt) return;
     deferredInstallPrompt.prompt();
     const choice = await deferredInstallPrompt.userChoice;
-    if (choice.outcome === "accepted") {
+    if (choice.outcome === 'accepted') {
       setIsAppInstalled(true);
     }
     setDeferredInstallPrompt(null);
@@ -71,15 +87,17 @@ export default function Header() {
   return (
     <header
       className={`sticky top-0 z-50 border-b transition-all duration-500 ${
-        scrolled
-          ? "glass-strong shadow-lg shadow-black/[0.03] dark:shadow-black/20"
-          : "glass"
+        scrolled ? 'glass-strong shadow-lg shadow-black/[0.03] dark:shadow-black/20' : 'glass'
       }`}
     >
       <div className="container flex h-14 items-center justify-between px-4 sm:h-16">
         <Link to="/" className="flex items-center gap-2">
           {settings.logoUrl ? (
-            <img src={settings.logoUrl} alt={settings.siteName} className="h-6 w-6 rounded object-cover sm:h-7 sm:w-7" />
+            <img
+              src={settings.logoUrl}
+              alt={settings.siteName}
+              className="h-6 w-6 rounded object-cover sm:h-7 sm:w-7"
+            />
           ) : (
             <ChefHat aria-hidden="true" className="h-6 w-6 text-primary sm:h-7 sm:w-7" />
           )}
@@ -94,7 +112,9 @@ export default function Header() {
               key={link.to}
               to={link.to}
               className={`flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                isActive(link.to) ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"
+                isActive(link.to)
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               {link.icon && <link.icon aria-hidden="true" className="h-4 w-4" />}
@@ -103,7 +123,6 @@ export default function Header() {
           ))}
 
           <CartButton />
-          <InstallAppButton context="user" variant="outline" size="sm" className="ml-1 gap-1.5" />
 
           <div className="group relative" role="navigation" aria-label="Receitas">
             <button
@@ -139,9 +158,9 @@ export default function Header() {
         <div className="flex items-center gap-2 lg:hidden">
           <CartButton mobile />
           <ThemeModeToggle compact />
-          <button 
-            onClick={() => setOpen(true)} 
-            aria-label="Abrir menu de navegação" 
+          <button
+            onClick={() => setOpen(true)}
+            aria-label="Abrir menu de navegação"
             aria-expanded={open}
             className="p-1"
           >
@@ -156,13 +175,13 @@ export default function Header() {
             <DialogTitle>Menu de Navegação</DialogTitle>
             <DialogDescription>Acesse as principais áreas do site e sua conta.</DialogDescription>
           </DialogHeader>
-          
+
           <div className="flex h-14 items-center justify-between border-b px-4">
             <div className="flex items-center gap-2">
               <ChefHat className="h-6 w-6 text-primary" />
               <span className="font-heading text-lg font-bold">{settings.siteName}</span>
             </div>
-            <button 
+            <button
               onClick={() => setOpen(false)}
               className="rounded-full p-2 hover:bg-muted"
               aria-label="Fechar menu"
@@ -174,42 +193,73 @@ export default function Header() {
           <nav className="flex-1 overflow-y-auto px-4 py-6">
             <div className="space-y-6">
               <div className="space-y-1">
-                <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Principal</p>
-                <Link to="/" onClick={() => setOpen(false)} className={`flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium ${isActive("/") ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
+                <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Principal
+                </p>
+                <Link
+                  to="/"
+                  onClick={() => setOpen(false)}
+                  className={`flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium ${isActive('/') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                >
                   Home
                 </Link>
-                <Link to="/buscar" onClick={() => setOpen(false)} className={`flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium ${isActive("/buscar") ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
+                <Link
+                  to="/buscar"
+                  onClick={() => setOpen(false)}
+                  className={`flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium ${isActive('/buscar') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                >
                   <Search aria-hidden="true" className="h-4 w-4" /> Buscar receitas
                 </Link>
-                <Link to="/buscar" onClick={() => setOpen(false)} className={`flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground`}>
+                <Link
+                  to="/buscar"
+                  onClick={() => setOpen(false)}
+                  className={`flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground`}
+                >
                   <ChefHat aria-hidden="true" className="h-4 w-4" /> Receitas
                 </Link>
               </div>
 
               <div className="space-y-1">
-                <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Pessoal</p>
-                <Link to="/minha-conta" onClick={() => setOpen(false)} className={`flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium ${isActive("/minha-conta") ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
+                <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Pessoal
+                </p>
+                <Link
+                  to="/minha-conta"
+                  onClick={() => setOpen(false)}
+                  className={`flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium ${isActive('/minha-conta') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                >
                   <UserCircle2 aria-hidden="true" className="h-4 w-4" /> Minha Conta
                 </Link>
-                <Link to="/minha-conta/favoritos" onClick={() => setOpen(false)} className={`flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium ${isActive("/minha-conta/favoritos") ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
+                <Link
+                  to="/minha-conta/favoritos"
+                  onClick={() => setOpen(false)}
+                  className={`flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium ${isActive('/minha-conta/favoritos') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                >
                   <Heart aria-hidden="true" className="h-4 w-4" /> Favoritos
                 </Link>
-                <Link to="/minha-conta/lista-de-compras" onClick={() => setOpen(false)} className={`flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium ${isActive("/minha-conta/lista-de-compras") ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
+                <Link
+                  to="/minha-conta/lista-de-compras"
+                  onClick={() => setOpen(false)}
+                  className={`flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium ${isActive('/minha-conta/lista-de-compras') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                >
                   <ListChecks aria-hidden="true" className="h-4 w-4" /> Lista
                 </Link>
-                <Link to="/minha-conta/compras" onClick={() => setOpen(false)} className={`flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium ${isActive("/minha-conta/compras") ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground"}`}>
+                <Link
+                  to="/minha-conta/compras"
+                  onClick={() => setOpen(false)}
+                  className={`flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium ${isActive('/minha-conta/compras') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                >
                   <ShoppingBag aria-hidden="true" className="h-4 w-4" /> Meus Pedidos
                 </Link>
               </div>
 
               <div className="space-y-1">
-                <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Sistema</p>
+                <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Sistema
+                </p>
                 <div className="flex items-center gap-2 px-3 py-2">
                   <span className="text-sm font-medium text-muted-foreground">Tema:</span>
                   <ThemeModeToggle compact />
-                </div>
-                <div className="mt-4 px-3">
-                  <InstallAppButton context="user" className="w-full justify-center" variant="outline" />
                 </div>
                 <Link to={adminPath} onClick={() => setOpen(false)} className="block mt-4 px-3">
                   <Button variant="outline" size="sm" className="w-full gap-1.5">

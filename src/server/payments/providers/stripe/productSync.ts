@@ -30,7 +30,7 @@ export async function syncStripeProduct(
                     tenantId,
                     recipeId: recipe.id,
                 },
-            });
+            }, { stripeAccount: stripeAccountId });
         } catch (e) {
             console.warn(`[Stripe Sync] Could not find product ${recipe.stripe_product_id}, creating new one.`);
         }
@@ -46,7 +46,7 @@ export async function syncStripeProduct(
                 tenantId,
                 recipeId: recipe.id,
             },
-        });
+        }, { stripeAccount: stripeAccountId });
     }
 
     // Para o preço, sempre criamos um novo se o valor mudar ou se for novo, 
@@ -59,7 +59,7 @@ export async function syncStripeProduct(
         tenantId,
         recipeId: recipe.id,
       }
-    });
+    }, { stripeAccount: stripeAccountId });
 
     return { productId: product.id, priceId: price.id };
   } catch (error) {

@@ -2,7 +2,6 @@ import { CSSProperties, useEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { PageHead } from '@/components/PageHead';
 import { useAppContext } from '@/contexts/app-context';
-import { OfflineLockedScreen } from '@/pwa/offline/ui/OfflineLockedScreen';
 import { PwaInstallHintIOS } from '@/pwa/components/PwaInstallHintIOS';
 import { PwaUpdateBanner } from '@/pwa/components/PwaUpdateBanner';
 import { usePwaSessionGate } from '@/pwa/app/shell/usePwaSessionGate';
@@ -69,14 +68,8 @@ export function UserPwaShell() {
   }
 
   if (gate.status === 'offline_locked') {
-    return (
-      <OfflineLockedScreen
-        title="Conecte-se uma vez para liberar o modo offline"
-        description="Este dispositivo ainda não possui sessão e snapshot válidos para abrir o app sem internet."
-        ctaHref={loginPath}
-        ctaLabel="Ir para o login"
-      />
-    );
+    // Phase is online only - no offline locked screen shown
+    return null;
   }
 
   if (gate.status === 'unauthenticated') {

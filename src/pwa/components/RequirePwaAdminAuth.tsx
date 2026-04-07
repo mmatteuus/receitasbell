@@ -1,14 +1,15 @@
-import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
-import { Navigate, useLocation } from "react-router-dom";
-import { getAdminSession } from "@/lib/api/adminSession";
-import { OfflineLockedScreen } from "@/pwa/offline/ui/OfflineLockedScreen";
-import { resolvePwaTenantSlug } from "@/pwa/app/tenant/pwa-tenant-path";
-import { buildPwaPath } from "@/pwa/app/navigation/pwa-paths";
+import type { ReactNode } from 'react';
+import { useEffect, useState } from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
+import { getAdminSession } from '@/lib/api/adminSession';
+import { resolvePwaTenantSlug } from '@/pwa/app/tenant/pwa-tenant-path';
+import { buildPwaPath } from '@/pwa/app/navigation/pwa-paths';
 
 export function RequirePwaAdminAuth({ children }: { children: ReactNode }) {
   const location = useLocation();
-  const [status, setStatus] = useState<"checking" | "authenticated" | "offline_locked" | "unauthenticated">("checking");
+  const [status, setStatus] = useState<
+    'checking' | 'authenticated' | 'offline_locked' | 'unauthenticated'
+  >('checking');
   const tenantSlug = resolvePwaTenantSlug(location.pathname);
 
   useEffect(() => {
@@ -22,27 +23,27 @@ export function RequirePwaAdminAuth({ children }: { children: ReactNode }) {
         }
 
         if (result.authenticated) {
-          setStatus("authenticated");
+          setStatus('authenticated');
           return;
         }
 
-        if (typeof navigator !== "undefined" && !navigator.onLine) {
-          setStatus("offline_locked");
+        if (typeof navigator !== 'undefined' && !navigator.onLine) {
+          setStatus('offline_locked');
           return;
         }
 
-        setStatus("unauthenticated");
+        setStatus('unauthenticated');
       } catch {
         if (!active) {
           return;
         }
 
-        if (typeof navigator !== "undefined" && !navigator.onLine) {
-          setStatus("offline_locked");
+        if (typeof navigator !== 'undefined' && !navigator.onLine) {
+          setStatus('offline_locked');
           return;
         }
 
-        setStatus("unauthenticated");
+        setStatus('unauthenticated');
       }
     }
 
@@ -52,7 +53,7 @@ export function RequirePwaAdminAuth({ children }: { children: ReactNode }) {
     };
   }, [location.pathname]);
 
-  if (status === "checking") {
+  if (status === 'checking') {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-4">
         <p className="text-sm text-muted-foreground">Verificando acesso do admin...</p>
@@ -60,19 +61,13 @@ export function RequirePwaAdminAuth({ children }: { children: ReactNode }) {
     );
   }
 
-  if (status === "offline_locked") {
-    return (
-      <OfflineLockedScreen
-        title="Admin offline bloqueado"
-        description="O admin offline só libera dados previamente sincronizados neste dispositivo e após uma validação online recente."
-        ctaHref={buildPwaPath("adminLogin", { tenantSlug })}
-        ctaLabel="Ir para o login do admin"
-      />
-    );
+  if (status === 'offline_locked') {
+    // Phase is online only - redirect to admin login instead
+    return <Navigate to={buildPwaPath('adminLogin', { tenantSlug })} replace />;
   }
 
-  if (status === "unauthenticated") {
-    return <Navigate to={buildPwaPath("adminLogin", { tenantSlug })} replace />;
+  if (status === 'unauthenticated') {
+    return <Navigate to={buildPwaPath('adminLogin', { tenantSlug })} replace />;
   }
 
   return <>{children}</>;
