@@ -3,8 +3,8 @@ import {
   deleteCategory as deleteCategoryRequest,
   listCategories,
   updateCategory as updateCategoryRequest,
-} from "@/lib/api/categories";
-import { getRecipes } from "@/lib/repos/recipeRepo";
+} from '@/lib/api/categories';
+import { getRecipes } from '@/lib/repos/recipeRepo';
 
 export async function list() {
   return listCategories();
@@ -20,15 +20,18 @@ export async function getCategoryBySlug(slug: string) {
   return categories.find((category) => category.slug === slug);
 }
 
-export async function create(category: { name: string; description?: string }) {
+export async function create(category: { name: string; description?: string; icon?: string }) {
   return createCategoryRequest(category);
 }
 
-export async function addCategory(cat: { name: string; description?: string }) {
+export async function addCategory(cat: { name: string; description?: string; icon?: string }) {
   return create(cat);
 }
 
-export async function editCategory(id: string, cat: { name: string; description?: string }) {
+export async function editCategory(
+  id: string,
+  cat: { name: string; description?: string; icon?: string }
+) {
   return updateCategoryRequest(id, cat);
 }
 

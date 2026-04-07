@@ -15,11 +15,13 @@ type FormState = {
   id?: string;
   name: string;
   description: string;
+  icon: string;
 };
 
 const EMPTY_FORM: FormState = {
   name: '',
   description: '',
+  icon: '',
 };
 
 export default function CategoriesPage() {
@@ -123,6 +125,22 @@ export default function CategoriesPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
+              <label className="text-sm font-medium">Ícone ou Emoji</label>
+              <Input
+                value={form.icon}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, icon: event.target.value }))
+                }
+                placeholder="🍕 ou ⭐ ou qualquer ícone/emoji"
+                maxLength={4}
+                className="text-center text-lg"
+              />
+              <p className="text-xs text-muted-foreground">
+                Cole um emoji (🍕, 🥗, 🍰, etc) ou use um ícone
+              </p>
+            </div>
+
+            <div className="space-y-2">
               <label className="text-sm font-medium">Nome</label>
               <Input
                 value={form.name}
@@ -184,8 +202,12 @@ export default function CategoriesPage() {
                           </div>
                           <h2 className="mt-2 text-xl font-bold tracking-tight">{category.name}</h2>
                         </div>
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                          <Layers className="h-5 w-5" />
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary text-lg">
+                          {category.icon ? (
+                            <span>{category.icon}</span>
+                          ) : (
+                            <Layers className="h-5 w-5" />
+                          )}
                         </div>
                       </div>
 
@@ -203,6 +225,7 @@ export default function CategoriesPage() {
                             id: String(category.id),
                             name: category.name,
                             description: category.description || '',
+                            icon: category.icon || '',
                           })
                         }
                       >

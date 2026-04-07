@@ -1,10 +1,16 @@
-import type { Category } from "@/types/category";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { NewCategoryDialog } from "@/components/admin/NewCategoryDialog";
-import type { EditorState } from "../schema";
+import type { Category } from '@/types/category';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { NewCategoryDialog } from '@/components/admin/NewCategoryDialog';
+import type { EditorState } from '../schema';
 
 type ContentSectionProps = {
   form: EditorState;
@@ -16,9 +22,11 @@ type ContentSectionProps = {
   newCategoryOpen: boolean;
   newCategoryName: string;
   newCategoryDescription: string;
+  newCategoryIcon: string;
   onNewCategoryOpenChange: (open: boolean) => void;
   onNewCategoryNameChange: (value: string) => void;
   onNewCategoryDescriptionChange: (value: string) => void;
+  onNewCategoryIconChange: (value: string) => void;
   onCreateCategory: () => void;
   onTitleChange: (value: string) => void;
   onFieldChange: <K extends keyof EditorState>(key: K, value: EditorState[K]) => void;
@@ -34,9 +42,11 @@ export function ContentSection({
   newCategoryOpen,
   newCategoryName,
   newCategoryDescription,
+  newCategoryIcon,
   onNewCategoryOpenChange,
   onNewCategoryNameChange,
   onNewCategoryDescriptionChange,
+  onNewCategoryIconChange,
   onCreateCategory,
   onTitleChange,
   onFieldChange,
@@ -45,7 +55,11 @@ export function ContentSection({
     <>
       <div className="space-y-2">
         <Label>Título</Label>
-        <Input value={form.title} onChange={(event) => onTitleChange(event.target.value)} placeholder="Ex: Bolo de Cenoura" />
+        <Input
+          value={form.title}
+          onChange={(event) => onTitleChange(event.target.value)}
+          placeholder="Ex: Bolo de Cenoura"
+        />
       </div>
 
       <div className="space-y-2">
@@ -60,14 +74,21 @@ export function ContentSection({
 
       <div className="space-y-2">
         <Label>Descrição</Label>
-        <Textarea value={form.description} onChange={(event) => onFieldChange("description", event.target.value)} rows={3} />
+        <Textarea
+          value={form.description}
+          onChange={(event) => onFieldChange('description', event.target.value)}
+          rows={3}
+        />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
           <Label>Categoria</Label>
           <div className="flex flex-col gap-2 sm:flex-row">
-            <Select value={form.categorySlug} onValueChange={(value) => onFieldChange("categorySlug", value)}>
+            <Select
+              value={form.categorySlug}
+              onValueChange={(value) => onFieldChange('categorySlug', value)}
+            >
               <SelectTrigger className="flex-1">
                 <SelectValue placeholder="Selecione uma categoria" />
               </SelectTrigger>
@@ -86,6 +107,8 @@ export function ContentSection({
               description={newCategoryDescription}
               onNameChange={onNewCategoryNameChange}
               onDescriptionChange={onNewCategoryDescriptionChange}
+              icon={newCategoryIcon}
+              onIconChange={onNewCategoryIconChange}
               onCreate={onCreateCategory}
               disabled={saving || uploadingImage || isOffline}
             />
@@ -96,23 +119,46 @@ export function ContentSection({
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="space-y-2">
           <Label>Preparo (min)</Label>
-          <Input type="number" value={form.prepTime} onChange={(event) => onFieldChange("prepTime", Number(event.target.value || 0))} />
+          <Input
+            type="number"
+            value={form.prepTime}
+            onChange={(event) => onFieldChange('prepTime', Number(event.target.value || 0))}
+          />
         </div>
         <div className="space-y-2">
           <Label>Cozimento (min)</Label>
-          <Input type="number" value={form.cookTime} onChange={(event) => onFieldChange("cookTime", Number(event.target.value || 0))} />
+          <Input
+            type="number"
+            value={form.cookTime}
+            onChange={(event) => onFieldChange('cookTime', Number(event.target.value || 0))}
+          />
         </div>
         <div className="space-y-2">
           <Label>Porções</Label>
-          <Input type="number" min={1} value={form.servings} onChange={(event) => onFieldChange("servings", Number(event.target.value || 1))} />
+          <Input
+            type="number"
+            min={1}
+            value={form.servings}
+            onChange={(event) => onFieldChange('servings', Number(event.target.value || 1))}
+          />
         </div>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="space-y-2">
           <Label>Dificuldade</Label>
-          <Select value={form.difficulty || "none"} onValueChange={(value) => onFieldChange("difficulty", value === "none" ? null : (value as EditorState["difficulty"]))}>
-            <SelectTrigger><SelectValue placeholder="Opcional" /></SelectTrigger>
+          <Select
+            value={form.difficulty || 'none'}
+            onValueChange={(value) =>
+              onFieldChange(
+                'difficulty',
+                value === 'none' ? null : (value as EditorState['difficulty'])
+              )
+            }
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Opcional" />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="none">Opcional</SelectItem>
               <SelectItem value="Fácil">Fácil</SelectItem>
@@ -123,11 +169,23 @@ export function ContentSection({
         </div>
         <div className="space-y-2">
           <Label>Calorias (kcal)</Label>
-          <Input type="number" placeholder="Ex: 350" value={form.calories || ""} onChange={(e) => onFieldChange("calories", e.target.value ? Number(e.target.value) : null)} />
+          <Input
+            type="number"
+            placeholder="Ex: 350"
+            value={form.calories || ''}
+            onChange={(e) =>
+              onFieldChange('calories', e.target.value ? Number(e.target.value) : null)
+            }
+          />
         </div>
         <div className="space-y-2">
           <Label>Vídeo (YouTube/TikTok)</Label>
-          <Input type="url" placeholder="https://..." value={form.videoUrl} onChange={(e) => onFieldChange("videoUrl", e.target.value)} />
+          <Input
+            type="url"
+            placeholder="https://..."
+            value={form.videoUrl}
+            onChange={(e) => onFieldChange('videoUrl', e.target.value)}
+          />
         </div>
       </div>
     </>

@@ -33,6 +33,8 @@ export default function RecipeEditorPage() {
     setNewCategoryName,
     newCategoryDescription,
     setNewCategoryDescription,
+    newCategoryIcon,
+    setNewCategoryIcon,
     handleCreateCategory,
   } = useRecipeEditor();
 
@@ -121,9 +123,11 @@ export default function RecipeEditorPage() {
               newCategoryOpen={newCategoryOpen}
               newCategoryName={newCategoryName}
               newCategoryDescription={newCategoryDescription}
+              newCategoryIcon={newCategoryIcon}
               onNewCategoryOpenChange={setNewCategoryOpen}
               onNewCategoryNameChange={setNewCategoryName}
               onNewCategoryDescriptionChange={setNewCategoryDescription}
+              onNewCategoryIconChange={setNewCategoryIcon}
               onCreateCategory={handleCreateCategory}
               onTitleChange={handleTitleChange}
               onFieldChange={setField}

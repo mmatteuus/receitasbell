@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
-import type { RecipeRecord } from "@/lib/recipes/types";
-import type { RecipeStatus } from "@/types/recipe";
+import { useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import type { RecipeRecord } from '@/lib/recipes/types';
+import type { RecipeStatus } from '@/types/recipe';
 import {
   getRecipeTeaser,
   getRecipes,
@@ -9,52 +9,55 @@ import {
   saveRecipe,
   uniqueSlug,
   uploadRecipeImageFile,
-} from "@/lib/repos/recipeRepo";
-import { addCategory } from "@/lib/repos/categoryRepo";
-import { useAppContext } from "@/contexts/app-context";
-import { normalizeBRLInput, parseBRLInput } from "@/lib/helpers";
-import { createImagePreview, revokeImagePreview } from "@/lib/services/storageFallback";
-import { toast } from "sonner";
-import { buildTenantAdminPath, getCurrentTenantSlug } from "@/lib/tenant";
-import { loadAdminRecipeForEditor, saveAdminRecipeDraftLocal } from "@/pwa/offline/repos/admin-recipes-offline-repo";
-import { logger } from "@/lib/logger";
+} from '@/lib/repos/recipeRepo';
+import { addCategory } from '@/lib/repos/categoryRepo';
+import { useAppContext } from '@/contexts/app-context';
+import { normalizeBRLInput, parseBRLInput } from '@/lib/helpers';
+import { createImagePreview, revokeImagePreview } from '@/lib/services/storageFallback';
+import { toast } from 'sonner';
+import { buildTenantAdminPath, getCurrentTenantSlug } from '@/lib/tenant';
+import {
+  loadAdminRecipeForEditor,
+  saveAdminRecipeDraftLocal,
+} from '@/pwa/offline/repos/admin-recipes-offline-repo';
+import { logger } from '@/lib/logger';
 import {
   EMPTY_STATE,
   type EditorState,
   getEditorErrors,
   parseLines,
   type RecipeDraftInput,
-} from "../schema";
+} from '../schema';
 
 function mapRecipeToState(recipe: RecipeDraftInput): EditorState {
   return {
     ...EMPTY_STATE,
     id: recipe.serverRecipeId || recipe.id,
     localDraftId: recipe.draftId,
-    title: recipe.title || "",
-    slug: recipe.slug || "",
-    description: recipe.description || "",
-    imageUrl: recipe.imageUrl || "",
+    title: recipe.title || '',
+    slug: recipe.slug || '',
+    description: recipe.description || '',
+    imageUrl: recipe.imageUrl || '',
     imageFileMeta: recipe.imageFileMeta ?? null,
-    imagePreviewUrl: recipe.imageUrl || "",
-    categorySlug: recipe.categorySlug || "",
+    imagePreviewUrl: recipe.imageUrl || '',
+    categorySlug: recipe.categorySlug || '',
     prepTime: recipe.prepTime || 0,
     cookTime: recipe.cookTime || 0,
     servings: recipe.servings || 1,
     difficulty: recipe.difficulty ?? null,
     calories: recipe.calories ?? null,
-    videoUrl: recipe.videoUrl || "",
-    accessTier: recipe.accessTier || "free",
+    videoUrl: recipe.videoUrl || '',
+    accessTier: recipe.accessTier || 'free',
     priceBRL: recipe.priceBRL ?? null,
-    priceInput: typeof recipe.priceBRL === "number" ? normalizeBRLInput(recipe.priceBRL) : "",
-    ingredientsText: (recipe.fullIngredients || []).join("\n"),
-    instructionsText: (recipe.fullInstructions || []).join("\n"),
-    tagsText: (recipe.tags || []).join(", "),
-    excerpt: recipe.excerpt || "",
-    seoTitle: recipe.seoTitle || "",
-    seoDescription: recipe.seoDescription || "",
+    priceInput: typeof recipe.priceBRL === 'number' ? normalizeBRLInput(recipe.priceBRL) : '',
+    ingredientsText: (recipe.fullIngredients || []).join('\n'),
+    instructionsText: (recipe.fullInstructions || []).join('\n'),
+    tagsText: (recipe.tags || []).join(', '),
+    excerpt: recipe.excerpt || '',
+    seoTitle: recipe.seoTitle || '',
+    seoDescription: recipe.seoDescription || '',
     isFeatured: Boolean(recipe.isFeatured),
-    status: recipe.status || "draft",
+    status: recipe.status || 'draft',
     createdAt: recipe.createdAt,
     updatedAt: recipe.updatedAt,
     publishedAt: recipe.publishedAt ?? null,
@@ -66,7 +69,7 @@ export function useRecipeEditor() {
   const navigate = useNavigate();
   const location = useLocation();
   const tenantSlug = getCurrentTenantSlug(location.pathname);
-  const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
+  const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
   const isEditing = Boolean(id);
   const { categories, refreshCategories } = useAppContext();
   const [form, setForm] = useState<EditorState>(EMPTY_STATE);
@@ -75,8 +78,9 @@ export function useRecipeEditor() {
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [newCategoryOpen, setNewCategoryOpen] = useState(false);
-  const [newCategoryName, setNewCategoryName] = useState("");
-  const [newCategoryDescription, setNewCategoryDescription] = useState("");
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [newCategoryDescription, setNewCategoryDescription] = useState('');
+  const [newCategoryIcon, setNewCategoryIcon] = useState('');
 
   useEffect(() => {
     async function loadEditor() {
@@ -86,14 +90,14 @@ export function useRecipeEditor() {
           const recipes = await getRecipes();
           setExistingRecipes(recipes);
         } catch (error) {
-          logger.error("recipe-editor-recipes", error);
+          logger.error('recipe-editor-recipes', error);
           setExistingRecipes([]);
         }
 
         if (id) {
           const recipe = await loadAdminRecipeForEditor(id);
           if (!recipe) {
-            navigate(buildTenantAdminPath("receitas", tenantSlug));
+            navigate(buildTenantAdminPath('receitas', tenantSlug));
             return;
           }
           setForm(mapRecipeToState(recipe));
@@ -101,8 +105,8 @@ export function useRecipeEditor() {
           setForm(EMPTY_STATE);
         }
       } catch (error) {
-        logger.error("recipe-editor-load", error);
-        toast.error("Nao foi possivel carregar o editor.");
+        logger.error('recipe-editor-load', error);
+        toast.error('Nao foi possivel carregar o editor.');
       } finally {
         setLoading(false);
       }
@@ -118,18 +122,21 @@ export function useRecipeEditor() {
 
     setForm((current) => ({
       ...current,
-      categorySlug: current.categorySlug || categories[0]?.slug || "",
+      categorySlug: current.categorySlug || categories[0]?.slug || '',
     }));
   }, [categories, form.categorySlug, loading]);
 
   const automaticSlug = useMemo(
-    () => (form.publishedAt ? form.slug : uniqueSlug(form.title || "receita", existingRecipes, form.id)),
-    [existingRecipes, form.id, form.publishedAt, form.slug, form.title],
+    () =>
+      form.publishedAt ? form.slug : uniqueSlug(form.title || 'receita', existingRecipes, form.id),
+    [existingRecipes, form.id, form.publishedAt, form.slug, form.title]
   );
 
-  const recipePublicPath = automaticSlug ? `/receitas/${automaticSlug}` : "/receitas/receita";
+  const recipePublicPath = automaticSlug ? `/receitas/${automaticSlug}` : '/receitas/receita';
   const recipePublicUrl =
-    typeof window === "undefined" ? recipePublicPath : `${window.location.origin}${recipePublicPath}`;
+    typeof window === 'undefined'
+      ? recipePublicPath
+      : `${window.location.origin}${recipePublicPath}`;
 
   const teaserPreview = useMemo(
     () =>
@@ -137,7 +144,7 @@ export function useRecipeEditor() {
         fullIngredients: parseLines(form.ingredientsText),
         fullInstructions: parseLines(form.instructionsText),
       }),
-    [form.ingredientsText, form.instructionsText],
+    [form.ingredientsText, form.instructionsText]
   );
 
   const errors = useMemo(() => getEditorErrors(form), [form]);
@@ -159,7 +166,7 @@ export function useRecipeEditor() {
       return;
     }
     if (isOffline) {
-      toast.error("Upload de imagem offline não está disponível.");
+      toast.error('Upload de imagem offline não está disponível.');
       return;
     }
 
@@ -180,18 +187,21 @@ export function useRecipeEditor() {
         imagePreviewUrl: uploaded.imageUrl,
       }));
       revokeImagePreview(localPreviewUrl);
-      if (previousImageMeta?.storage === "external" && previousImageMeta.fileId !== uploaded.imageFileMeta.fileId) {
+      if (
+        previousImageMeta?.storage === 'external' &&
+        previousImageMeta.fileId !== uploaded.imageFileMeta.fileId
+      ) {
         await removeRecipeImageFile(previousImageMeta);
       }
-      toast.success("Imagem enviada");
+      toast.success('Imagem enviada');
     } catch (error) {
-      logger.error("recipe-editor-upload", error);
+      logger.error('recipe-editor-upload', error);
       revokeImagePreview(localPreviewUrl);
       setForm((current) => ({
         ...current,
         imagePreviewUrl: current.imageUrl,
       }));
-      toast.error("Nao foi possivel enviar a imagem.");
+      toast.error('Nao foi possivel enviar a imagem.');
     } finally {
       setUploadingImage(false);
     }
@@ -199,28 +209,28 @@ export function useRecipeEditor() {
 
   async function handleRemoveImage() {
     if (isOffline) {
-      toast.error("Remoção de imagem offline não está disponível.");
+      toast.error('Remoção de imagem offline não está disponível.');
       return;
     }
 
     try {
       await removeRecipeImageFile(form.imageFileMeta);
     } catch (error) {
-      logger.error("recipe-editor-remove-image", error);
+      logger.error('recipe-editor-remove-image', error);
     }
 
     setForm((current) => ({
       ...current,
-      imageUrl: "",
+      imageUrl: '',
       imageFileMeta: null,
-      imagePreviewUrl: "",
+      imagePreviewUrl: '',
     }));
   }
 
   async function handleCreateCategory() {
     if (!newCategoryName.trim()) return;
     if (isOffline) {
-      toast.error("Criação de categoria offline não está disponível.");
+      toast.error('Criação de categoria offline não está disponível.');
       return;
     }
 
@@ -228,36 +238,42 @@ export function useRecipeEditor() {
       const category = await addCategory({
         name: newCategoryName.trim(),
         description: newCategoryDescription.trim(),
+        icon: newCategoryIcon.trim() || undefined,
       });
       await refreshCategories();
-      setField("categorySlug", category.slug);
-      setNewCategoryName("");
-      setNewCategoryDescription("");
+      setField('categorySlug', category.slug);
+      setNewCategoryName('');
+      setNewCategoryDescription('');
+      setNewCategoryIcon('');
       setNewCategoryOpen(false);
-      toast.success("Categoria criada");
+      toast.success('Categoria criada');
     } catch (error) {
-      logger.error("recipe-editor-category", error);
-      toast.error("Nao foi possivel criar a categoria.");
+      logger.error('recipe-editor-category', error);
+      toast.error('Nao foi possivel criar a categoria.');
     }
   }
 
   async function handleSave(status: RecipeStatus) {
-    if (isOffline && status === "published") {
-      toast.error("Publicação offline não está disponível.");
+    if (isOffline && status === 'published') {
+      toast.error('Publicação offline não está disponível.');
       return;
     }
 
     if (!isOffline && errors.length) {
-      toast.error("Revise os campos obrigatórios antes de salvar.");
+      toast.error('Revise os campos obrigatórios antes de salvar.');
       return;
     }
 
     setSaving(true);
     try {
       const parsedPrice = parseBRLInput(form.priceInput);
-      const nextSlug = form.publishedAt ? form.slug : uniqueSlug(form.title, existingRecipes, form.id);
+      const nextSlug = form.publishedAt
+        ? form.slug
+        : uniqueSlug(form.title, existingRecipes, form.id);
       const publishedAt =
-        status === "published" ? form.publishedAt || new Date().toISOString() : form.publishedAt ?? null;
+        status === 'published'
+          ? form.publishedAt || new Date().toISOString()
+          : (form.publishedAt ?? null);
       const payload = {
         id: form.id,
         title: form.title.trim(),
@@ -273,10 +289,13 @@ export function useRecipeEditor() {
         calories: form.calories ? Number(form.calories) : null,
         videoUrl: form.videoUrl.trim(),
         accessTier: form.accessTier,
-        priceBRL: form.accessTier === "paid" ? parsedPrice : null,
+        priceBRL: form.accessTier === 'paid' ? parsedPrice : null,
         fullIngredients: parseLines(form.ingredientsText),
         fullInstructions: parseLines(form.instructionsText),
-        tags: form.tagsText.split(",").map((item) => item.trim()).filter(Boolean),
+        tags: form.tagsText
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean),
         excerpt: form.excerpt.trim(),
         seoTitle: form.seoTitle.trim(),
         seoDescription: form.seoDescription.trim(),
@@ -289,7 +308,7 @@ export function useRecipeEditor() {
 
       if (isOffline) {
         if (!payload.title) {
-          toast.error("Informe pelo menos o título para salvar o rascunho local.");
+          toast.error('Informe pelo menos o título para salvar o rascunho local.');
           return;
         }
 
@@ -311,19 +330,21 @@ export function useRecipeEditor() {
           updatedAt: savedDraft.updatedAt,
           publishedAt,
         }));
-        toast.success("Rascunho local salvo neste dispositivo.");
+        toast.success('Rascunho local salvo neste dispositivo.');
         if (!form.id) {
-          navigate(buildTenantAdminPath(`receitas/${savedDraft.draftId}/editar`, tenantSlug), { replace: true });
+          navigate(buildTenantAdminPath(`receitas/${savedDraft.draftId}/editar`, tenantSlug), {
+            replace: true,
+          });
         }
         return;
       }
 
       await saveRecipe(payload);
-      toast.success(status === "published" ? "Receita publicada" : "Rascunho salvo");
-      navigate(buildTenantAdminPath("receitas", tenantSlug));
+      toast.success(status === 'published' ? 'Receita publicada' : 'Rascunho salvo');
+      navigate(buildTenantAdminPath('receitas', tenantSlug));
     } catch (error) {
-      logger.error("recipe-editor-save", error);
-      toast.error("Nao foi possivel salvar a receita.");
+      logger.error('recipe-editor-save', error);
+      toast.error('Nao foi possivel salvar a receita.');
     } finally {
       setSaving(false);
     }
@@ -351,6 +372,8 @@ export function useRecipeEditor() {
     setNewCategoryName,
     newCategoryDescription,
     setNewCategoryDescription,
+    newCategoryIcon,
+    setNewCategoryIcon,
     handleCreateCategory,
   };
 }
