@@ -157,7 +157,7 @@ export default function Header() {
               aria-label="Instalar aplicativo"
             >
               <Download aria-hidden="true" className="h-4 w-4" />
-              <span className="hidden sm:inline">Instalar</span>
+              <span className="hidden sm:inline">Instalar aplicativo</span>
             </button>
           )}
 
