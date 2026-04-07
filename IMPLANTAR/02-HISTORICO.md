@@ -41,6 +41,12 @@
 - **Agente:** OpenCode (2026-04-06)
 - **Evidência:** Rota `/auth/reset-password` funcional
 
+### ✅ CONCLUÍDO: Admin Password Reset (TASK-002)
+- **Tarefa:** Resetar senha de admin@receitasbell.com para 'Receitasbell.com'
+- **Agente:** Antigravity (Reset via SQL no Supabase)
+- **Evidência:** Login funcional em https://receitasbell.mtsferreira.dev/admin/login
+- **Data:** 2026-04-06
+
 ---
 
 ## 2026-03 — Sessão Inicial (Pré-Auditoria)

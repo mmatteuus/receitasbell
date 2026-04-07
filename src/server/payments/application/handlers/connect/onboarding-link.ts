@@ -75,6 +75,11 @@ export default withApiHandler(async (req: VercelRequest, res: VercelResponse, { 
       return;
     }
 
-    throw error;
+    // Retorna o erro detalhado para ajudar no debug de produção (apenas para admins)
+    res.status(500).json({
+      error: 'Erro interno ao processar o link do Stripe.',
+      detail: error.message || 'Erro desconhecido',
+      code: 'STRIPE_UNKNOWN_ERROR'
+    });
   }
 });

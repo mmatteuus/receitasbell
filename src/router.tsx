@@ -62,70 +62,52 @@ function buildAdminChildren() {
   ];
 }
 
+const publicRoutes = (isTenant: boolean) => [
+  { index: true, element: <HomePage /> },
+  { path: 'buscar', lazy: lazyRoute(() => import('@/pages/Search')) },
+  { path: 'categorias/:slug', lazy: lazyRoute(() => import('@/pages/Category')) },
+  { path: 'receitas/:slug', lazy: lazyRoute(() => import('@/pages/RecipePage')) },
+  { path: 'minha-conta', lazy: lazyRoute(() => import('@/pages/AccountHome')) },
+  {
+    path: 'minha-conta/minhas-receitas',
+    element: <Navigate to="/minha-conta?tab=minhas-receitas" replace />,
+  },
+  {
+    path: 'minha-conta/compras',
+    element: <Navigate to="/minha-conta?tab=compras" replace />,
+  },
+  { path: 'minha-conta/perfil', element: <Navigate to="/minha-conta" replace /> },
+  { path: 'minha-conta/favoritos', lazy: lazyRoute(() => import('@/pages/Favorites')) },
+  {
+    path: 'minha-conta/lista-de-compras',
+    lazy: lazyRoute(() => import('@/pages/ShoppingListPage')),
+  },
+  { path: 'carrinho', lazy: lazyRoute(() => import('@/pages/CartPage')) },
+  { path: 'institucional/:page', lazy: lazyRoute(() => import('@/pages/Institutional')) },
+  { path: 'checkout', lazy: lazyRoute(() => import('@/pages/CheckoutPage')) },
+  { path: 'compra/sucesso', lazy: lazyRoute(() => import('@/pages/SuccessPage')) },
+  { path: 'compra/pendente', lazy: lazyRoute(() => import('@/pages/PendingPage')) },
+  { path: 'compra/falha', lazy: lazyRoute(() => import('@/pages/FailurePage')) },
+  { path: '*', element: <Navigate to={isTenant ? '' : '/'} replace /> },
+];
+
 const router = createBrowserRouter(
   [
     {
       path: '/t/:tenantSlug',
       element: <PublicLayout />,
-      children: [
-        { index: true, element: <HomePage /> },
-        { path: 'buscar', lazy: lazyRoute(() => import('@/pages/Search')) },
-        { path: 'categorias/:slug', lazy: lazyRoute(() => import('@/pages/Category')) },
-        { path: 'receitas/:slug', lazy: lazyRoute(() => import('@/pages/RecipePage')) },
-        { path: 'minha-conta', lazy: lazyRoute(() => import('@/pages/AccountHome')) },
-        {
-          path: 'minha-conta/minhas-receitas',
-          element: <Navigate to="/minha-conta?tab=minhas-receitas" replace />,
-        },
-        {
-          path: 'minha-conta/compras',
-          element: <Navigate to="/minha-conta?tab=compras" replace />,
-        },
-        { path: 'minha-conta/perfil', element: <Navigate to="/minha-conta" replace /> },
-        { path: 'minha-conta/favoritos', lazy: lazyRoute(() => import('@/pages/Favorites')) },
-        {
-          path: 'minha-conta/lista-de-compras',
-          lazy: lazyRoute(() => import('@/pages/ShoppingListPage')),
-        },
-        { path: 'carrinho', lazy: lazyRoute(() => import('@/pages/CartPage')) },
-        { path: 'institucional/:page', lazy: lazyRoute(() => import('@/pages/Institutional')) },
-        { path: 'checkout', lazy: lazyRoute(() => import('@/pages/CheckoutPage')) },
-        { path: 'compra/sucesso', lazy: lazyRoute(() => import('@/pages/SuccessPage')) },
-        { path: 'compra/pendente', lazy: lazyRoute(() => import('@/pages/PendingPage')) },
-        { path: 'compra/falha', lazy: lazyRoute(() => import('@/pages/FailurePage')) },
-      ],
+      children: publicRoutes(true),
     },
     {
       path: '/',
       element: <PublicLayout />,
-      children: [
-        { index: true, element: <HomePage /> },
-        { path: 'buscar', lazy: lazyRoute(() => import('@/pages/Search')) },
-        { path: 'categorias/:slug', lazy: lazyRoute(() => import('@/pages/Category')) },
-        { path: 'receitas/:slug', lazy: lazyRoute(() => import('@/pages/RecipePage')) },
-        { path: 'minha-conta', lazy: lazyRoute(() => import('@/pages/AccountHome')) },
-        {
-          path: 'minha-conta/minhas-receitas',
-          element: <Navigate to="/minha-conta?tab=minhas-receitas" replace />,
-        },
-        {
-          path: 'minha-conta/compras',
-          element: <Navigate to="/minha-conta?tab=compras" replace />,
-        },
-        { path: 'minha-conta/perfil', element: <Navigate to="/minha-conta" replace /> },
-        { path: 'minha-conta/favoritos', lazy: lazyRoute(() => import('@/pages/Favorites')) },
-        {
-          path: 'minha-conta/lista-de-compras',
-          lazy: lazyRoute(() => import('@/pages/ShoppingListPage')),
-        },
-        { path: 'carrinho', lazy: lazyRoute(() => import('@/pages/CartPage')) },
-        { path: 'institucional/:page', lazy: lazyRoute(() => import('@/pages/Institutional')) },
-        { path: 'checkout', lazy: lazyRoute(() => import('@/pages/CheckoutPage')) },
-        { path: 'compra/sucesso', lazy: lazyRoute(() => import('@/pages/SuccessPage')) },
-        { path: 'compra/pendente', lazy: lazyRoute(() => import('@/pages/PendingPage')) },
-        { path: 'compra/falha', lazy: lazyRoute(() => import('@/pages/FailurePage')) },
-      ],
+      children: publicRoutes(false),
     },
+    // Redirects amigáveis
+    { path: '/login', element: <Navigate to="/admin/login" replace /> },
+    { path: '/admin', element: <Navigate to="/admin/dashboard" replace /> },
+    { path: '/t/:tenantSlug/login', element: <TenantAdminNavigate to="login" /> },
+
     {
       path: '/pwa/entry',
       lazy: lazyRoute(() => import('@/pwa/entry/PwaEntryPage')),
