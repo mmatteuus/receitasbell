@@ -10,6 +10,7 @@ import {
   UserRound,
   WalletCards,
 } from 'lucide-react';
+import { PageHead } from '@/components/PageHead';
 import { useAppContext } from '@/contexts/app-context';
 import { useInstallPrompt } from '@/pwa/hooks/useInstallPrompt';
 import { InstallAppButton } from '@/pwa/components/InstallAppButton';
@@ -224,7 +225,13 @@ export default function AccountHome() {
 
   if (!identityEmail) {
     return (
-      <div className="container flex min-h-[80vh] items-center justify-center px-4 py-16">
+      <>
+        <PageHead
+          title="Minha Conta"
+          description="Gerencie seu perfil, favoritos, lista de compras e compras realizadas"
+          noindex={true}
+        />
+        <div className="container flex min-h-[80vh] items-center justify-center px-4 py-16">
         <div className="w-full max-w-sm space-y-8">
           <div className="flex flex-col items-center gap-4 text-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
@@ -414,20 +421,33 @@ export default function AccountHome() {
             acesso é 100% seguro.
           </div>
         </div>
-      </div>
+      </>
     );
   }
 
   if (loading) {
     return (
-      <div className="container px-4 py-16 text-center text-muted-foreground">
-        Carregando sua conta...
-      </div>
+      <>
+        <PageHead
+          title="Minha Conta"
+          description="Gerencie seu perfil, favoritos, lista de compras e compras realizadas"
+          noindex={true}
+        />
+        <div className="container px-4 py-16 text-center text-muted-foreground">
+          Carregando sua conta...
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="container max-w-6xl space-y-8 px-4 py-10">
+    <>
+      <PageHead
+        title="Minha Conta"
+        description="Gerencie seu perfil, favoritos, lista de compras e compras realizadas"
+        noindex={true}
+      />
+      <div className="container max-w-6xl space-y-8 px-4 py-10">
       <div className="space-y-4">
         {showAppCard && (
           <div className="rounded-2xl border-2 border-primary/40 bg-gradient-to-r from-primary/10 via-primary/5 to-background p-5 shadow-md">
@@ -716,5 +736,6 @@ export default function AccountHome() {
         </TabsContent>
       </Tabs>
     </div>
+    </>
   );
 }
