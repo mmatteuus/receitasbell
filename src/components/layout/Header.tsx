@@ -150,6 +150,26 @@ export default function Header() {
 
           <CartButton />
 
+          {deferredInstallPrompt && !isAppInstalled && (
+            <button
+              onClick={handleInstallClick}
+              className="flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              aria-label="Instalar aplicativo"
+            >
+              <Download aria-hidden="true" className="h-4 w-4" />
+              <span className="hidden sm:inline">Instalar</span>
+            </button>
+          )}
+
+          <button
+            onClick={handleShare}
+            className="flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            aria-label="Compartilhar site"
+          >
+            <Share2 aria-hidden="true" className="h-4 w-4" />
+            <span className="hidden sm:inline">Compartilhar</span>
+          </button>
+
           <div className="group relative" role="navigation" aria-label="Receitas">
             <button
               className="flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
@@ -173,26 +193,6 @@ export default function Header() {
           </div>
 
           <ThemeModeToggle />
-
-          {deferredInstallPrompt && !isAppInstalled && (
-            <button
-              onClick={handleInstallClick}
-              className="flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-              aria-label="Instalar aplicativo"
-            >
-              <Download aria-hidden="true" className="h-4 w-4" />
-              <span className="hidden sm:inline">Instalar</span>
-            </button>
-          )}
-
-          <button
-            onClick={handleShare}
-            className="flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-            aria-label="Compartilhar site"
-          >
-            <Share2 aria-hidden="true" className="h-4 w-4" />
-            <span className="hidden sm:inline">Compartilhar</span>
-          </button>
 
           <Link to={adminPath}>
             <Button variant="outline" size="sm" className="ml-2 gap-1.5">
