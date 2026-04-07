@@ -30,13 +30,17 @@ function parseCookies(header?: string) {
   return out;
 }
 
+function buildCookie(value: string, maxAge: number) {
+  return `${COOKIE_NAME}=${value}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${isProd ? "; Secure" : ""}`;
+}
+
 function setCookie(res: VercelResponse, token: string) {
   const maxAge = TTL_DAYS * 86400;
-  res.setHeader("Set-Cookie", `${COOKIE_NAME}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${isProd ? "; Secure" : ""}`);
+  res.setHeader("Set-Cookie", buildCookie(token, maxAge));
 }
 
 function clearCookie(res: VercelResponse) {
-  res.setHeader("Set-Cookie", `${COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`);
+  res.setHeader("Set-Cookie", buildCookie('', 0));
 }
 
 export function signSession(input: Session & { expiresAt?: number }) {

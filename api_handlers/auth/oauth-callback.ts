@@ -15,20 +15,18 @@ export default withApiHandler(async (req, res, { logger }) => {
   const state = getQueryValue(req, 'state');
   const tenantId = getQueryValue(req, 'tenantId');
 
-  if (!code || !state || !tenantId) {
-    throw new ApiError(400, 'Parâmetros OAuth inválidos ou ausentes (code, state, tenantId).');
+  if (!code || !state) {
+    throw new ApiError(400, 'Parâmetros OAuth inválidos ou ausentes (code, state).');
   }
 
-  // 1. Rate limit distribuído (Upstash em prod)
   const ip = getClientAddress(req);
   const rl = await AuthRateLimit.check(ip);
   if (!rl.success) {
     throw new ApiError(429, 'Too many authentication attempts', { retryAfter: rl.resetAfter });
   }
 
-  logger.info('OAuth callback received', { provider, tenantId });
+  logger.info('OAuth callback received', { provider, tenantId: tenantId || null });
 
-  // 2. Finaliza o fluxo com o service
   if (provider !== 'google') {
     throw new ApiError(400, `Provedor social ${provider} não suportado ainda.`);
   }
@@ -36,9 +34,8 @@ export default withApiHandler(async (req, res, { logger }) => {
   const { redirectTo } = await finishGoogleOAuth(req, res, {
     code,
     state,
-    tenantId,
+    tenantId: tenantId || undefined,
   });
 
-  // 3. Redireciona o usuário para a URL de destino original (guardada no state)
   res.redirect(302, redirectTo);
 });
