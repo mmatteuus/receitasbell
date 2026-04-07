@@ -12,9 +12,6 @@
 - excesso de texto
 - CTA com nome diferente
 
-### Aceite
-- o usuario entende rapidamente que esta entrando no aplicativo
-
 ## `/pwa/login`
 ### Deve ter
 - fluxo de login claro e compacto
@@ -27,9 +24,6 @@
 - espacos mortos excessivos
 - experiencia de site desktop espremido
 
-### Aceite
-- o login parece tela de app e nao pagina web generica
-
 ## `/pwa/app`
 ### Deve ter
 - shell limpa
@@ -41,9 +35,6 @@
 - mensagens de offline pronto
 - conflito offline
 - sync center
-
-### Aceite
-- o usuario autenticado sente uma shell de app online limpa
 
 ## `/pwa/app/buscar`
 ### Deve ter
@@ -58,9 +49,6 @@
 - chrome web
 - overflow horizontal
 
-### Aceite
-- busca confortavel em 360, 390 e 430 px
-
 ## `/pwa/app/receitas/:slug`
 ### Deve ter
 - hierarquia clara de titulo, metadados e conteudo
@@ -73,15 +61,13 @@
 - blocos largos com cara de desktop
 - texto quebrando layout
 
-### Aceite
-- a receita pode ser consumida como tela de app instalada
-
 ## `Header` web
 ### Deve ter
 - navegacao web legitima
+- CTA ao lado do carrinho por instrucao explicita do usuario
 
 ### Nao deve ter
-- CTA de instalacao
+- instalacao espalhada em outros pontos web genericos
 
 ## `AccountHome` web
 ### Deve ter

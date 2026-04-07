@@ -5,14 +5,12 @@ Voce nao pensa. Voce nao decide. Voce nao pesquisa. Voce executa exatamente o qu
 
 ## Ordem obrigatoria
 1. Ler `README.md`
-2. Ler `01-PRD-PWA-ONLINE.md`
-3. Executar `02-ORDEM-DE-EXECUCAO.md`
-4. Consultar `03-ARQUIVO-POR-ARQUIVO.md` durante cada alteracao
-5. Aplicar `04-PADRAO-UI-MOBILE.md`
-6. Respeitar `05-CONTRATOS-E-REGRAS.md`
-7. Validar `06-FLUXO-DE-INSTALACAO.md`
-8. Executar `07-PLANO-DE-TESTES.md`
-9. Fechar com `08-CHECKLIST-DE-VALIDACAO.md`
+2. Ler `00-LEIA-PRIMEIRO-DCI-MESTRE.md`
+3. Executar `10-DCI-DETALHADO-POR-ETAPA.md`
+4. Aplicar `11-GUARDRAILS-E-NAO-REGRESSAO.md`
+5. Validar por `12-ACEITE-POR-TELA.md`
+6. Validar por `13-ACEITE-POR-ARQUIVO.md`
+7. Fechar com `08-CHECKLIST-DE-VALIDACAO.md`
 
 ## Comandos obrigatorios ao final
 - `npm run lint`
@@ -23,16 +21,12 @@ Voce nao pensa. Voce nao decide. Voce nao pesquisa. Voce executa exatamente o qu
 
 ## Instrucoes finais no imperativo
 - Corrija o CTA para `Instalar aplicativo`.
-- Remova o CTA de instalacao de `Header`, `AccountHome` e `AdminLayout`.
-- Preserve a instalacao apenas em superficies PWA proprias.
+- Preserve o botao de instalacao ao lado do carrinho no header, porque houve instrucao explicita do usuario.
+- Remova o CTA de instalacao de `AccountHome` e `AdminLayout`.
 - Nao implemente offline real nesta fase.
-- Nao implemente sync offline.
-- Nao implemente outbox.
-- Nao implemente conflito offline.
 - Refaça `PwaSearchPage` como tela PWA propria.
 - Refaça `PwaRecipePage` como tela PWA propria.
-- Ajuste `UserPwaShell` para experiencia online, sem comunicar offline pronto.
+- Ajuste `UserPwaShell` para experiencia online sem comunicar offline pronto.
 - Padronize altura, alinhamento e truncamento de todos os componentes do namespace PWA.
 - Preserve `display: standalone`, `start_url: /pwa/entry` e `scope: /pwa/`, salvo impedimento tecnico real.
-- Gere evidencia dos 3 fluxos criticos em viewport movel.
-- So avance para offline apos receber `APROVADO ONLINE`.
+- Gere evidencias dos 3 fluxos criticos em viewport movel.
