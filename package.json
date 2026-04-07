@@ -17,7 +17,8 @@
     "test:unit": "vitest run",
     "preview": "vite preview",
     "test:e2e": "playwright test",
-    "fix-admin": "node scripts/fix-admin-receitasbell.mjs"
+    "fix-admin": "node scripts/fix-admin-receitasbell.mjs",
+    "validate:stripe": "node --loader ts-node/esm scripts/validate-stripe-config.ts"
   },
   "dependencies": {
     "@fontsource/dm-sans": "^5.2.8",
