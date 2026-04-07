@@ -7,6 +7,27 @@
 **Criado em:** 2026-04-06
 **Atualizado em:** 2026-04-06 16:45 UTC
 
+## 🤖 Instruções claras para Antigravity
+
+1. **Entrar no Stripe Dashboard** (`https://dashboard.stripe.com`) e garantir que o toggle está em **LIVE**.
+2. **Validar Connect Account** (`Connect → Accounts → acct_1T4JafCuHeylIIjI`).
+   - Confirmar `Charges enabled = true`, `Payouts enabled = true`, `Status = Complete`.
+   - Se houver pendências, finalizar onboarding (dados bancários/documentos).
+3. **Checar Webhook** (`Developers → Webhooks`).
+   - Endpoint obrigatório: `https://receitasbell.mtsferreira.dev/api/payments/webhook`.
+   - Eventos necessários: `checkout.session.completed`, `payment_intent.*`, `charge.*`, `customer.subscription.*`.
+   - Copiar o secret e garantir que é o mesmo `whsec_...` configurado no `.env`.
+4. **Executar Pagamento Real** no site público.
+   - URL: `https://receitasbell.mtsferreira.dev/t/receitasbell` → escolher receita paga.
+   - Cartão teste Stripe: `4242 4242 4242 4242`, validade `12/34`, CVC `123`, CEP `01310-100`.
+5. **Auditar Resultado**.
+   - Stripe Dashboard → `Payments`: confirmar transação `Succeeded`.
+   - `Developers → Webhooks`: evento correspondente com status `200`.
+   - Supabase → `payments` / `recipe_purchases`: registro criado com `status = completed`.
+6. **Documentar**.
+   - Atualizar esta tarefa marcando checkbox final.
+   - Mover arquivo para `IMPLANTAR/02-HISTORICO.md` e remover BLOQ-001.
+
 ---
 
 ## 🎯 OBJETIVO

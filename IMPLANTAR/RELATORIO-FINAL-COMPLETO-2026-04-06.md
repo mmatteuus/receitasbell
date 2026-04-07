@@ -20,6 +20,15 @@ Analisar a pasta `IMPLANTAR` e executar todas as tarefas que precisam ser feitas
 ✅ **1 tarefa 95% pronta (aguardando validação)**  
 ✅ **2 tarefas com documentação técnica completa**
 
+## 🤖 Instruções específicas para o agente Antigravity
+
+1. **Stripe Dashboard (modo LIVE)** — acessar `https://dashboard.stripe.com` e garantir que o toggle no topo está em **LIVE**.
+2. **Validar Connect Account (`acct_1T4JafCuHeylIIjI`)** — caminho `Connect → Accounts`. Confirmar `Charges enabled = true`, `Payouts enabled = true`, `Status = Complete`. Finalizar onboarding se necessário.
+3. **Checar Webhook** — `Developers → Webhooks` deve ter endpoint `https://receitasbell.mtsferreira.dev/api/payments/webhook` com eventos `checkout.session.completed`, `payment_intent.succeeded`, `payment_intent.payment_failed`, `charge.succeeded`, `charge.failed`, `customer.subscription.*`. Confirmar secret `whsec_...` igual ao `.env`/Vercel.
+4. **Executar pagamento real** — entrar em `https://receitasbell.mtsferreira.dev/t/receitasbell`, escolher uma receita paga e usar cartão 4242 4242 4242 4242 (12/34, CVC 123, CEP 01310-100).
+5. **Auditar o fluxo** — Stripe `Payments` deve mostrar a transação `Succeeded`; em `Developers → Webhooks` o evento precisa retornar `200`; no Supabase (`payments` e `recipe_purchases`) deve existir registro com `status = completed`.
+6. **Documentar conclusão** — marcar `[X]` na TASK-001 em `01-TAREFAS-ATIVAS.md`, mover `TASK-001-stripe-prod.md` para `02-HISTORICO.md`, remover BLOQ-001 e adicionar evidências na caixa de saída.
+
 ---
 
 ## 📋 TAREFAS EXECUTADAS
