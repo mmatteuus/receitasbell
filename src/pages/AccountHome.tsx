@@ -428,23 +428,46 @@ export default function AccountHome() {
 
   return (
     <div className="container max-w-6xl space-y-8 px-4 py-10">
-      <div className="rounded-3xl border bg-gradient-to-r from-orange-50 via-amber-50 to-background p-6 sm:p-8">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="space-y-2">
-            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Minha Conta</p>
-            <h1 className="text-3xl">Seu espaço pessoal no Receitas Bell</h1>
-            <p className="text-muted-foreground">
-              Gerencie sua identidade, acompanhe receitas desbloqueadas e continue sua jornada
-              culinária.
-            </p>
+      <div className="space-y-4">
+        {showAppCard && (
+          <div className="rounded-2xl border-2 border-primary/40 bg-gradient-to-r from-primary/10 via-primary/5 to-background p-5 shadow-md">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                    <Smartphone className="h-4 w-4" />
+                  </div>
+                  <p className="text-sm font-semibold text-primary">Dica importante</p>
+                </div>
+                <p className="text-sm text-foreground">
+                  Instale o app no seu celular para acessar suas receitas em qualquer lugar, até sem internet.
+                </p>
+              </div>
+              <div className="flex-shrink-0">
+                <InstallAppButton context="user" variant="default" size="sm" className="h-9" />
+              </div>
+            </div>
           </div>
-          <div className="rounded-2xl border bg-background px-4 py-3 text-sm">
-            <p className="flex items-center gap-2 font-medium">
-              <UserRound className="h-4 w-4 text-primary" />
-              {identityEmail || 'Visitante'}
-            </p>
-            <div className="mt-2">
-              <LastSyncBadge lastSyncedAt={lastSyncedAt} />
+        )}
+
+        <div className="rounded-3xl border bg-gradient-to-r from-orange-50 via-amber-50 to-background p-6 sm:p-8">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="space-y-2">
+              <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Minha Conta</p>
+              <h1 className="text-3xl">Seu espaço pessoal no Receitas Bell</h1>
+              <p className="text-muted-foreground">
+                Gerencie sua identidade, acompanhe receitas desbloqueadas e continue sua jornada
+                culinária.
+              </p>
+            </div>
+            <div className="rounded-2xl border bg-background px-4 py-3 text-sm">
+              <p className="flex items-center gap-2 font-medium">
+                <UserRound className="h-4 w-4 text-primary" />
+                {identityEmail || 'Visitante'}
+              </p>
+              <div className="mt-2">
+                <LastSyncBadge lastSyncedAt={lastSyncedAt} />
+              </div>
             </div>
           </div>
         </div>
@@ -540,16 +563,34 @@ export default function AccountHome() {
               </Card>
 
               {showAppCard && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Smartphone className="h-5 w-5 text-primary" />
-                      Aplicativo
+                <Card className="border-2 border-primary/30 bg-gradient-to-br from-primary/5 to-primary/10 shadow-lg shadow-primary/10">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                        <Smartphone className="h-5 w-5" />
+                      </div>
+                      Instale nosso app
                     </CardTitle>
-                    <CardDescription>Acesso rápido na tela inicial.</CardDescription>
+                    <CardDescription className="text-sm">
+                      Acesso rápido na tela inicial. Sem necessidade de internet após o download.
+                    </CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <InstallAppButton context="user" className="w-full" />
+                  <CardContent className="space-y-3">
+                    <div className="space-y-2 text-xs text-muted-foreground">
+                      <div className="flex gap-2">
+                        <span className="text-primary font-bold">✓</span>
+                        <span>Acesse suas receitas offline</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <span className="text-primary font-bold">✓</span>
+                        <span>Carregamento mais rápido</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <span className="text-primary font-bold">✓</span>
+                        <span>Notificações de novos conteúdos</span>
+                      </div>
+                    </div>
+                    <InstallAppButton context="user" className="w-full mt-2" variant="default" />
                   </CardContent>
                 </Card>
               )}
