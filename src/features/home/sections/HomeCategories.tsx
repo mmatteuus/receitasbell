@@ -39,7 +39,7 @@ export function HomeCategories({ categories, onBrowseAll }: HomeCategoriesProps)
             >
               <span className="sr-only">{category.name}</span>
               <span aria-hidden className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm sm:text-base">
-                {category.name.slice(0, 2).toUpperCase()}
+                {category.icon || category.name.slice(0, 2).toUpperCase()}
               </span>
             </Link>
           </Reveal>

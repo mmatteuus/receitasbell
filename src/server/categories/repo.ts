@@ -5,6 +5,7 @@ type CategoryRow = {
   slug: string;
   name: string;
   description: string | null;
+  icon: string | null;
   created_at: string;
   tenant_id: string | number;
 };
@@ -14,6 +15,7 @@ export interface Category {
   slug: string;
   name: string;
   description?: string;
+  icon?: string;
   createdAt: string;
   tenantId: string | number;
 }
@@ -89,6 +91,7 @@ function mapCategoryRowToRecord(record: CategoryRow): Category {
     slug: record.slug,
     name: record.name,
     description: record.description || "",
+    icon: record.icon || undefined,
     createdAt: record.created_at,
     tenantId: String(record.tenant_id),
   };
