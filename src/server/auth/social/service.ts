@@ -30,6 +30,14 @@ export interface GoogleProfile {
   picture?: string;
 }
 
+function sanitizeRedirectTo(redirectTo: string | undefined) {
+  if (!redirectTo) return "/minha-conta";
+  const value = redirectTo.trim();
+  if (!value.startsWith('/')) return "/minha-conta";
+  if (value.startsWith('//')) return "/minha-conta";
+  return value;
+}
+
 /**
  * Inicia o fluxo OAuth Social enviando o state para o Supabase
  */
@@ -52,12 +60,13 @@ export async function startSocialOAuth(input: {
 
   const state = createOpaqueState();
   const stateHash = hashOpaqueState(state);
+  const safeRedirectTo = sanitizeRedirectTo(input.redirectTo);
 
   await saveAuthOAuthState({
     provider: input.provider,
     tenantId: input.tenantId,
     stateHash: stateHash,
-    redirectTo: input.redirectTo,
+    redirectTo: safeRedirectTo,
     expiresAt: new Date(Date.now() + SOCIAL_STATE_TTL_MS).toISOString(),
     ip: input.ip,
     userAgent: input.userAgent,
@@ -79,9 +88,6 @@ export async function startSocialOAuth(input: {
   return { authorizationUrl: url.toString() };
 }
 
-/**
- * Troca o código do Google por um token
- */
 async function exchangeGoogleCode(code: string): Promise<GoogleTokenResponse> {
   const { GOOGLE_OAUTH_CLIENT_ID, GOOGLE_OAUTH_CLIENT_SECRET, GOOGLE_OAUTH_REDIRECT_URI } = env;
   if (!GOOGLE_OAUTH_CLIENT_ID || !GOOGLE_OAUTH_CLIENT_SECRET || !GOOGLE_OAUTH_REDIRECT_URI) {
@@ -108,9 +114,6 @@ async function exchangeGoogleCode(code: string): Promise<GoogleTokenResponse> {
   return res.json() as Promise<GoogleTokenResponse>;
 }
 
-/**
- * Busca o perfil do usuário no Google
- */
 async function fetchGoogleProfile(accessToken: string): Promise<GoogleProfile> {
   const res = await fetch(SOCIAL_PROVIDERS.google.userInfoUrl, {
     headers: { Authorization: `Bearer ${accessToken}` },
@@ -123,9 +126,6 @@ async function fetchGoogleProfile(accessToken: string): Promise<GoogleProfile> {
   return res.json() as Promise<GoogleProfile>;
 }
 
-/**
- * Resolve ou cria um usuário no tenant a partir dos dados do provedor social usando Supabase.
- */
 async function resolveOrCreateTenantUser(input: {
   tenantId: string;
   provider: SocialProviderId;
@@ -136,14 +136,12 @@ async function resolveOrCreateTenantUser(input: {
 }) {
   const normalizedEmail = input.email.toLowerCase();
 
-  // 1. Tenta achar vínculo social existente no Supabase
   const identity = await findSocialIdentity(input.tenantId, input.provider, input.providerSubject);
   
   if (identity) {
     await updateSocialIdentityLastLogin(identity.id);
     
     if (identity.userId) {
-      // Já temos um vínculo direto com um profile UUID
       const { data: profile } = await supabaseAdmin
         .from("profiles")
         .select("id, email, role")
@@ -161,8 +159,7 @@ async function resolveOrCreateTenantUser(input: {
     }
   }
 
-  // 2. Busca perfil por email no tenant (tabela profiles do Supabase)
-  const { data: existingProfile, error: profileError } = await supabaseAdmin
+  const { data: existingProfile } = await supabaseAdmin
     .from("profiles")
     .select("id, email, role")
     .eq("tenant_id", input.tenantId)
@@ -177,7 +174,6 @@ async function resolveOrCreateTenantUser(input: {
     targetRole = (existingProfile.role as Session["role"]) || "user";
     logger.info("Found existing profile for social login", { email: normalizedEmail, tenantId: input.tenantId });
   } else {
-    // 3. Cria novo perfil no Supabase
     const { data: newProfile, error: createError } = await supabaseAdmin
       .from("profiles")
       .insert({
@@ -198,7 +194,6 @@ async function resolveOrCreateTenantUser(input: {
     logger.info("Created new profile via social login", { email: normalizedEmail, tenantId: input.tenantId });
   }
 
-  // 4. Cria ou atualiza o vínculo de identidade social
   if (!identity) {
     await createSocialIdentity({
       tenantId: input.tenantId,
@@ -210,7 +205,6 @@ async function resolveOrCreateTenantUser(input: {
       pictureUrl: input.pictureUrl,
     });
   } else if (!identity.userId) {
-    // Vincula identidade órfã ao novo perfil
     await supabaseAdmin
       .from("user_identities_social")
       .update({ user_id: targetUserId })
@@ -225,34 +219,45 @@ async function resolveOrCreateTenantUser(input: {
   };
 }
 
-/**
- * Finaliza o fluxo Google OAuth
- */
 export async function finishGoogleOAuth(
   req: VercelRequest,
   res: VercelResponse,
-  params: { code: string; state: string; tenantId: string }
+  params: { code: string; state: string; tenantId?: string }
 ) {
-  // 1. Valida e consome o state no Supabase
+  const stateHash = hashOpaqueState(params.state);
+
+  let resolvedTenantId = params.tenantId;
+  if (!resolvedTenantId) {
+    const { data: stateRow, error } = await supabaseAdmin
+      .from("auth_oauth_states")
+      .select("tenant_id")
+      .eq("state_hash", stateHash)
+      .eq("provider", "google")
+      .eq("status", "active")
+      .maybeSingle();
+
+    if (error || !stateRow?.tenant_id) {
+      throw new ApiError(400, "Estado OAuth invalido ou sem tenant associado.");
+    }
+
+    resolvedTenantId = stateRow.tenant_id;
+  }
+
   const stateRow = await consumeAuthOAuthState({
-    stateHash: hashOpaqueState(params.state),
+    stateHash,
     provider: "google",
-    tenantId: params.tenantId,
+    tenantId: resolvedTenantId,
   });
 
-  // 2. Troca code por tokens via API do Google
   const tokenRes = await exchangeGoogleCode(params.code);
-
-  // 3. Busca perfil via API do Google
   const profile = await fetchGoogleProfile(tokenRes.access_token);
 
   if (!profile.email_verified) {
     throw new ApiError(403, "O e-mail do Google precisa estar verificado.");
   }
 
-  // 4. Resolve usuário no tenant via Supabase
   const sessionData = await resolveOrCreateTenantUser({
-    tenantId: params.tenantId,
+    tenantId: resolvedTenantId,
     provider: "google",
     providerSubject: profile.sub,
     email: profile.email,
@@ -260,10 +265,9 @@ export async function finishGoogleOAuth(
     emailVerified: profile.email_verified,
   });
 
-  // 5. Cria sessão server-side (Cookie Seguro)
   await createSession(req, res, sessionData);
 
   return {
-    redirectTo: stateRow.redirectTo || "/minha-conta",
+    redirectTo: sanitizeRedirectTo(stateRow.redirectTo),
   };
 }
