@@ -94,10 +94,7 @@ const publicRoutes = (isTenant: boolean) => [
 const router = createBrowserRouter(
   [
     // Redirects amigáveis globais (devem vir no topo para evitar conflito com catch-all routes)
-    { path: '/login', element: <Navigate to="/t/receitasbell/admin/login" replace /> },
-    { path: '/admin', element: <Navigate to="/t/receitasbell/admin/dashboard" replace /> },
-    { path: '/admin/login', element: <Navigate to="/t/receitasbell/admin/login" replace /> },
-    { path: '/t/:tenantSlug/login', element: <TenantAdminNavigate to="login" /> },
+    { path: '/admin', element: <Navigate to="/" replace /> },
 
     {
       path: '/t/:tenantSlug',
@@ -236,13 +233,10 @@ const router = createBrowserRouter(
       element: <PwaTenantRuntimeRedirect targetBasePath="/pwa/admin" />,
     },
     {
-      path: '/admin/login',
-      lazy: lazyRoute(() => import('@/pages/admin/LoginPage')),
+      path: '/t/:tenantSlug/admin/forgot-password',
+      lazy: lazyRoute(() => import('@/pages/auth/ForgotPasswordPage')),
     },
-    {
-      path: '/t/:tenantSlug/admin/login',
-      lazy: lazyRoute(() => import('@/pages/admin/LoginPage')),
-    },
+
     {
       path: '/admin/forgot-password',
       lazy: lazyRoute(() => import('@/pages/auth/ForgotPasswordPage')),

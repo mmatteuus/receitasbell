@@ -1,7 +1,7 @@
-import { createContext, useContext } from "react";
-import type { Category } from "@/types/category";
-import type { SettingsMap } from "@/types/settings";
-import type { FavoriteRecord } from "@/lib/api/interactions";
+import { createContext, useContext } from 'react';
+import type { Category } from '@/types/category';
+import type { SettingsMap } from '@/types/settings';
+import type { FavoriteRecord } from '@/lib/api/interactions';
 
 export type AppContextValue = {
   categories: Category[];
@@ -11,8 +11,12 @@ export type AppContextValue = {
   settingsLoading: boolean;
   refreshSettings: () => Promise<SettingsMap>;
   identityEmail: string | null;
-  requireIdentity: (message?: string, mode?: "login-prompt" | "email-form") => Promise<string | null>;
-  updateIdentity: (email: string) => Promise<void>;
+  identityRole: string | null;
+  requireIdentity: (
+    message?: string,
+    mode?: 'login-prompt' | 'email-form'
+  ) => Promise<string | null>;
+  updateIdentity: (email: string, role?: string) => Promise<void>;
   clearIdentity: () => Promise<void>;
   favoriteRecords: FavoriteRecord[];
   favorites: string[];
@@ -20,7 +24,7 @@ export type AppContextValue = {
   refreshFavorites: () => Promise<FavoriteRecord[]>;
   isFavorite: (recipeId: string) => boolean;
   toggleFavorite: (recipeId: string) => Promise<boolean>;
-  theme: "light" | "dark";
+  theme: 'light' | 'dark';
   toggleTheme: () => void;
 };
 
@@ -29,7 +33,7 @@ export const AppContext = createContext<AppContextValue | null>(null);
 export function useAppContext() {
   const context = useContext(AppContext);
   if (!context) {
-    throw new Error("useAppContext must be used within AppProvider");
+    throw new Error('useAppContext must be used within AppProvider');
   }
   return context;
 }

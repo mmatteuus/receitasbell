@@ -5,7 +5,6 @@ import {
   Search,
   Heart,
   ChefHat,
-  Settings,
   UserCircle2,
   ListChecks,
   LogOut,
@@ -18,7 +17,6 @@ import { useAppContext } from '@/contexts/app-context';
 import ThemeModeToggle from '@/components/layout/ThemeModeToggle';
 import { CartButton } from '@/components/cart/CartButton';
 import { InstallAppButton } from '@/components/layout/InstallAppButton';
-import { buildTenantAdminPath, extractTenantSlugFromPath } from '@/lib/tenant';
 
 import {
   Dialog,
@@ -39,8 +37,6 @@ export default function Header() {
   const [scrolled, setScrolled] = useState(false);
   const { pathname } = useLocation();
   const { categories, settings, identityEmail, clearIdentity } = useAppContext();
-  const tenantSlug = extractTenantSlugFromPath(pathname);
-  const adminPath = buildTenantAdminPath('', tenantSlug);
 
   const isActive = (path: string) => pathname === path;
 
@@ -152,13 +148,6 @@ export default function Header() {
           <div className="mx-1 h-5 w-px bg-border" />
 
           <InstallAppButton />
-
-          <Link to={adminPath}>
-            <Button variant="outline" size="sm" className="gap-1.5">
-              <Settings aria-hidden="true" className="h-3.5 w-3.5" />
-              Admin
-            </Button>
-          </Link>
         </nav>
 
         <div className="flex items-center gap-3 lg:hidden">
@@ -183,7 +172,10 @@ export default function Header() {
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent hideCloseButton className="flex h-full max-h-screen w-full flex-col border-none p-0 sm:max-w-full">
+        <DialogContent
+          hideCloseButton
+          className="flex h-full max-h-screen w-full flex-col border-none p-0 sm:max-w-full"
+        >
           <DialogHeader className="sr-only">
             <DialogTitle>Menu de Navegação</DialogTitle>
             <DialogDescription>Acesse as principais áreas do site e sua conta.</DialogDescription>
@@ -284,13 +276,6 @@ export default function Header() {
                   <Share2 aria-hidden="true" className="h-4 w-4" />
                   Compartilhar
                 </button>
-
-                <Link to={adminPath} onClick={() => setOpen(false)} className="block mt-4 px-3">
-                  <Button variant="outline" size="sm" className="w-full gap-1.5">
-                    <Settings aria-hidden="true" className="h-3.5 w-3.5" />
-                    Painel Admin
-                  </Button>
-                </Link>
               </div>
 
               {identityEmail && (

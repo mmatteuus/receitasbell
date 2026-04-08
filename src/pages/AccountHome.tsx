@@ -215,7 +215,7 @@ export default function AccountHome() {
 
       const user = await fetchMe();
       if (user?.email) {
-        await updateIdentity(user.email);
+        await updateIdentity(user.email, user.role);
         const redirectTo = params.get('redirect');
         if (redirectTo) {
           navigate(redirectTo);
@@ -326,7 +326,7 @@ export default function AccountHome() {
                       <div className="relative">
                         <input
                           id="password"
-                          type={showPassword ? "text" : "password"}
+                          type={showPassword ? 'text' : 'password'}
                           placeholder="Sua senha secreta"
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
@@ -343,7 +343,9 @@ export default function AccountHome() {
                           ) : (
                             <Eye aria-hidden="true" className="h-4 w-4" />
                           )}
-                          <span className="sr-only">{showPassword ? 'Ocultar senha' : 'Exibir senha'}</span>
+                          <span className="sr-only">
+                            {showPassword ? 'Ocultar senha' : 'Exibir senha'}
+                          </span>
                         </button>
                       </div>
                     </div>
