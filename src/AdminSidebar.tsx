@@ -87,7 +87,7 @@ function SidebarNav({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?
   }
 
   return (
-    <>
+    <div className="flex flex-col h-full">
       <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
         {sidebarItems.map((item) => {
           const href = buildTenantAdminPath(item.path, tenantSlug);
@@ -125,7 +125,7 @@ function SidebarNav({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?
         })}
       </nav>
 
-      <div className="border-t p-2 space-y-1">
+      <div className="shrink-0 border-t p-2 space-y-1">
         <DarkModeButton collapsed={collapsed} />
         <button
           aria-label="Sair do Admin"
@@ -141,7 +141,7 @@ function SidebarNav({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?
           {!collapsed && 'Sair do Admin'}
         </button>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -207,13 +207,13 @@ export function AdminMobileSidebar() {
 
   return (
     <Dialog open={mobileOpen} onOpenChange={setMobileOpen}>
-      <DialogContent className="fixed inset-0 z-50 flex h-screen max-h-screen min-h-[100dvh] w-screen min-w-full max-w-none translate-x-0 translate-y-0 flex-col overflow-y-auto border-r bg-card p-0 transition-transform duration-300 rounded-none data-[state=closed]:-translate-x-full data-[state=open]:translate-x-0">
+      <DialogContent hideCloseButton className="fixed inset-0 z-50 flex h-screen max-h-screen min-h-[100dvh] w-screen min-w-full max-w-none translate-x-0 translate-y-0 flex-col overflow-hidden border-r bg-card p-0 transition-transform duration-300 rounded-none data-[state=closed]:-translate-x-full data-[state=open]:translate-x-0">
         <DialogHeader className="sr-only">
           <DialogTitle>Menu Administrativo</DialogTitle>
           <DialogDescription>Acesse as ferramentas de gestão do site.</DialogDescription>
         </DialogHeader>
 
-        <div className="flex items-center gap-2 border-b p-4">
+        <div className="flex shrink-0 items-center gap-2 border-b p-4">
           <span className="bg-primary text-primary-foreground rounded-md p-1 text-xs font-bold">
             RB
           </span>
@@ -221,13 +221,15 @@ export function AdminMobileSidebar() {
           <button
             onClick={() => setMobileOpen(false)}
             aria-label="Fechar menu lateral"
-            className="ml-auto rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            className="ml-auto rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
           >
-            <X aria-hidden="true" className="h-4 w-4" />
+            <X aria-hidden="true" className="h-5 w-5" />
           </button>
         </div>
 
-        <SidebarNav collapsed={false} onNavigate={() => setMobileOpen(false)} />
+        <div className="flex flex-1 flex-col overflow-y-auto min-h-0">
+          <SidebarNav collapsed={false} onNavigate={() => setMobileOpen(false)} />
+        </div>
       </DialogContent>
     </Dialog>
   );
