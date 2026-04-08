@@ -7,12 +7,12 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
  */
 export default function handler(request: VercelRequest, response: VercelResponse) {
   const url = new URL(request.url || '/', 'http://localhost');
-  const startUrl = url.searchParams.get('startUrl') || '/admin/login';
-  const scope = url.searchParams.get('scope') || '/admin/';
+  const startUrl = url.searchParams.get('startUrl') || '/pwa/admin/entry';
+  const scope = url.searchParams.get('scope') || '/pwa/';
 
   // Sanitizar: só aceitar caminhos relativos internos
-  const safeStartUrl = startUrl.startsWith('/') && !startUrl.startsWith('//') ? startUrl : '/admin/login';
-  const safeScope = scope.startsWith('/') && !scope.startsWith('//') ? scope : '/admin/';
+  const safeStartUrl = startUrl.startsWith('/') && !startUrl.startsWith('//') ? startUrl : '/pwa/admin/entry';
+  const safeScope = scope.startsWith('/') && !scope.startsWith('//') ? scope : '/pwa/';
 
   const manifest = {
     name: 'Receitas Bell — Admin',

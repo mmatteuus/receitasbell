@@ -6,7 +6,7 @@ import { BackToTop } from "@/components/BackToTop";
 import { useAdminSidebar } from "@/hooks/use-admin-sidebar";
 import { Helmet } from "react-helmet-async";
 import { AdminInstallPwaButton } from "@/components/pwa/AdminInstallPwaButton";
-import { extractTenantSlugFromPath, buildTenantAdminPath } from "@/lib/tenant";
+import { extractTenantSlugFromPath } from "@/lib/tenant";
 function HeaderActions() {
   return (
     <div className="flex items-center gap-2">
@@ -21,9 +21,9 @@ function AdminShell() {
   const location = useLocation();
   const sidebarWidth = collapsed ? "64px" : "256px";
   const tenantSlug = extractTenantSlugFromPath(location.pathname);
-  const adminLoginUrl = buildTenantAdminPath("login", tenantSlug);
-  const adminScope = tenantSlug ? `/${tenantSlug}/admin/` : "/admin/";
-  const manifestUrl = `/api/admin-manifest?startUrl=${encodeURIComponent(adminLoginUrl)}&scope=${encodeURIComponent(adminScope)}`;
+  const adminEntryUrl = tenantSlug ? `/t/${tenantSlug}/pwa/admin/entry` : "/pwa/admin/entry";
+  const adminScope = "/pwa/";
+  const manifestUrl = `/api/admin-manifest?startUrl=${encodeURIComponent(adminEntryUrl)}&scope=${encodeURIComponent(adminScope)}`;
 
   return (
     // NOTE: `position: sticky` does not work reliably when any ancestor has

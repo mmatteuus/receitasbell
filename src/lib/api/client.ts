@@ -156,10 +156,16 @@ export async function jsonFetch<T>(path: string, options: JsonFetchOptions = {})
 
   if (!response.ok) {
     if (admin && response.status === 401) {
-      const loginPath = buildTenantAdminPath('login', tenantSlug);
-      if (typeof window !== 'undefined' && window.location.pathname !== loginPath) {
-        const redirect = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-        window.location.assign(`${loginPath}?redirect=${encodeURIComponent(redirect)}`);
+      if (typeof window !== 'undefined') {
+        const currentPath = window.location.pathname;
+        // No contexto PWA, redireciona para a entry admin do PWA
+        const loginPath = currentPath.startsWith('/pwa/')
+          ? '/pwa/admin/entry'
+          : buildTenantAdminPath('login', tenantSlug);
+        if (currentPath !== loginPath) {
+          const redirect = `${currentPath}${window.location.search}${window.location.hash}`;
+          window.location.assign(`${loginPath}?redirect=${encodeURIComponent(redirect)}`);
+        }
       }
     }
     throw new ApiClientError(
