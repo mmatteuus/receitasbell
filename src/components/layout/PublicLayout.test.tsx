@@ -3,6 +3,7 @@
 import { axe } from 'jest-axe';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
 import { describe, expect, it, vi } from 'vitest';
 import PublicLayout from '@/components/layout/PublicLayout';
 
@@ -21,16 +22,18 @@ vi.mock('@/components/BackToTop', () => ({
 describe('PublicLayout', () => {
   it('renders a skip link and main landmark with no obvious accessibility violations', async () => {
     const { container } = render(
-      <MemoryRouter
-        initialEntries={['/']}
-        future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
-      >
-        <Routes>
-          <Route path="/" element={<PublicLayout />}>
-            <Route index element={<div>Conteúdo principal</div>} />
-          </Route>
-        </Routes>
-      </MemoryRouter>
+      <HelmetProvider>
+        <MemoryRouter
+          initialEntries={['/']}
+          future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+        >
+          <Routes>
+            <Route path="/" element={<PublicLayout />}>
+              <Route index element={<div>Conteúdo principal</div>} />
+            </Route>
+          </Routes>
+        </MemoryRouter>
+      </HelmetProvider>
     );
 
     const skipLink = screen.getByRole('link', { name: 'Pular para conteúdo principal' });
