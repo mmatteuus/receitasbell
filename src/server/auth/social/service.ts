@@ -55,7 +55,7 @@ export async function startSocialOAuth(input: {
   const redirectUri = input.provider === "google" ? env.GOOGLE_OAUTH_REDIRECT_URI : null;
 
   if (!clientId || !redirectUri) {
-    throw new ApiError(500, `Configuração OAuth ausente para o provedor: ${input.provider}`);
+    throw new ApiError(503, `Login com Google não está configurado. Entre em contato com o administrador.`);
   }
 
   const state = createOpaqueState();

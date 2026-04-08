@@ -4,11 +4,9 @@ import { PageHead } from '@/components/PageHead';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChefHat, Mail, ArrowRight, Loader2, Key, UserPlus } from 'lucide-react';
+import { ChefHat, Mail, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
-  isValidEmail,
-  requestMagicLink,
   loginWithPassword,
   signupWithPassword,
   requestPasswordReset,
@@ -21,7 +19,7 @@ import { persistPwaUserLoginEmail, readPwaUserLoginEmail } from '@/pwa/app/auth/
 import { readPwaRedirect, savePwaRedirect } from '@/pwa/app/auth/pwa-auth-redirect';
 import { resolvePwaTenantSlug } from '@/pwa/app/tenant/pwa-tenant-path';
 
-type UserLoginMode = 'magic-link' | 'password-login' | 'password-signup' | 'forgot-password';
+type UserLoginMode = 'password-login' | 'password-signup' | 'forgot-password';
 
 type UserLoginState = 'idle' | 'submitting' | 'sent' | 'offline_error' | 'retryable_error';
 
@@ -33,11 +31,9 @@ export default function UserLoginPage() {
   const [fullName, setFullName] = useState('');
   const [mode, setMode] = useState<UserLoginMode>('password-login');
   const [state, setState] = useState<UserLoginState>('idle');
-  const [feedback, setFeedback] = useState('');
 
   const tenantSlug = useMemo(() => resolvePwaTenantSlug(location.pathname), [location.pathname]);
   const modeTitles: Record<UserLoginMode, string> = {
-    'magic-link': 'Entrar sem senha',
     'password-login': 'Entrar no app',
     'password-signup': 'Criar conta no app',
     'forgot-password': 'Recuperar senha',
@@ -48,25 +44,6 @@ export default function UserLoginPage() {
     () => readPwaRedirect() || buildPwaPath('home', { tenantSlug }),
     [tenantSlug]
   );
-
-  async function handleMagicLink() {
-    const normalized = email.trim().toLowerCase();
-    if (!isValidEmail(normalized)) {
-      toast.error('Informe um e-mail válido.');
-      return;
-    }
-
-    setState('submitting');
-    try {
-      await requestMagicLink({ email: normalized, redirectTo: redirectTarget });
-      setState('sent');
-      toast.success('Link enviado!');
-    } catch (err: unknown) {
-      setState('idle');
-      const message = err instanceof Error ? err.message : 'Erro ao enviar link.';
-      toast.error(message);
-    }
-  }
 
   async function handlePasswordLogin() {
     if (!email || !password) {
@@ -117,7 +94,6 @@ export default function UserLoginPage() {
     try {
       await requestPasswordReset({ email: validation.email });
       setState('sent');
-      setFeedback('Instruções de recuperação enviadas.');
       toast.success('E-mail enviado!');
     } catch (err: unknown) {
       setState('idle');
@@ -148,8 +124,7 @@ export default function UserLoginPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (mode === 'magic-link') handleMagicLink();
-    else if (mode === 'password-login') handlePasswordLogin();
+    if (mode === 'password-login') handlePasswordLogin();
     else if (mode === 'password-signup') handlePasswordSignup();
     else if (mode === 'forgot-password') handleResetPassword();
   };
@@ -208,13 +183,11 @@ export default function UserLoginPage() {
             <CardTitle className="text-xl font-semibold">
               {mode === 'password-login' && 'Entrar'}
               {mode === 'password-signup' && 'Criar Conta'}
-              {mode === 'magic-link' && 'Entrar sem Senha'}
               {mode === 'forgot-password' && 'Recuperar Senha'}
             </CardTitle>
             <CardDescription>
               {mode === 'password-login' && 'Acesse seu painel com sua conta.'}
               {mode === 'password-signup' && 'Junte-se a nós para salvar suas receitas.'}
-              {mode === 'magic-link' && 'Receba um link de acesso por e-mail.'}
               {mode === 'forgot-password' && 'Enviaremos um link para redefinir sua senha.'}
             </CardDescription>
           </CardHeader>
@@ -282,18 +255,9 @@ export default function UserLoginPage() {
                   >
                     Não tem conta? <span className="text-primary font-medium">Criar uma agora</span>
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setMode('magic-link')}
-                    className="mt-2 flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground border rounded-lg p-2 transition-colors"
-                  >
-                    <Key className="h-4 w-4" /> Entrar com Link Mágico
-                  </button>
                 </>
               )}
-              {(mode === 'password-signup' ||
-                mode === 'magic-link' ||
-                mode === 'forgot-password') && (
+              {(mode === 'password-signup' || mode === 'forgot-password') && (
                 <button
                   type="button"
                   onClick={() => setMode('password-login')}

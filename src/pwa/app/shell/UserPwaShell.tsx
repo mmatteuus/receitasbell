@@ -1,5 +1,5 @@
-import { CSSProperties, useEffect, useState } from 'react';
-import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { CSSProperties, useEffect } from 'react';
+import { Outlet, useLocation } from 'react-router-dom';
 import { PageHead } from '@/components/PageHead';
 import { useAppContext } from '@/contexts/app-context';
 import { PwaInstallHintIOS } from '@/pwa/components/PwaInstallHintIOS';
@@ -7,8 +7,6 @@ import { PwaUpdateBanner } from '@/pwa/components/PwaUpdateBanner';
 import { usePwaSessionGate } from '@/pwa/app/shell/usePwaSessionGate';
 import { usePwaChrome } from '@/pwa/app/shell/usePwaChrome';
 import { resolvePwaTenantSlug } from '@/pwa/app/tenant/pwa-tenant-path';
-import { buildPwaPath } from '@/pwa/app/navigation/pwa-paths';
-import { savePwaRedirect } from '@/pwa/app/auth/pwa-auth-redirect';
 import { PwaTopBar } from '@/pwa/app/navigation/PwaTopBar';
 import { PwaBottomNav } from '@/pwa/app/navigation/PwaBottomNav';
 import { trackEvent } from '@/lib/telemetry';
@@ -17,7 +15,6 @@ type NavigatorStandalone = Navigator & { standalone?: boolean };
 
 export function UserPwaShell() {
   const location = useLocation();
-  const navigate = useNavigate();
   const { settings } = useAppContext();
   const gate = usePwaSessionGate();
   const chrome = usePwaChrome(location.pathname);
@@ -34,19 +31,6 @@ export function UserPwaShell() {
     });
   }, [location.pathname]);
 
-  useEffect(() => {
-    if (gate.status !== 'unauthenticated') {
-      return;
-    }
-
-    const currentPath = `${location.pathname}${location.search}${location.hash}`;
-    savePwaRedirect(currentPath);
-    navigate(buildPwaPath('login', { tenantSlug }), {
-      replace: true,
-    });
-  }, [gate.status, location.hash, location.pathname, location.search, navigate, tenantSlug]);
-
-  const loginPath = buildPwaPath('login', { tenantSlug });
   const headTitle = chrome.title === settings.siteName ? `${settings.siteName} App` : chrome.title;
 
   const shellStyle = {
@@ -69,10 +53,6 @@ export function UserPwaShell() {
 
   if (gate.status === 'offline_locked') {
     // Phase is online only - no offline locked screen shown
-    return null;
-  }
-
-  if (gate.status === 'unauthenticated') {
     return null;
   }
 
