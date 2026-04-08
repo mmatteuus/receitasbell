@@ -4,24 +4,24 @@ import { PageHead } from '@/components/PageHead';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChefHat, Mail, Loader2 } from 'lucide-react';
+import { ChefHat, Mail, Loader2, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   loginWithPassword,
   signupWithPassword,
   requestPasswordReset,
 } from '@/lib/api/identity';
+import { loginAdmin } from '@/lib/api/adminSession';
 import { startSocialLogin } from '@/lib/api/socialAuth';
 import { validatePasswordResetEmail } from '@/lib/validation/identity';
 import { InstallAppButton } from '../components/InstallAppButton';
-import { buildPwaPath } from '@/pwa/app/navigation/pwa-paths';
+import { buildPwaPath, buildPwaAdminPath } from '@/pwa/app/navigation/pwa-paths';
 import { persistPwaUserLoginEmail, readPwaUserLoginEmail } from '@/pwa/app/auth/pwa-auth-storage';
 import { readPwaRedirect, savePwaRedirect } from '@/pwa/app/auth/pwa-auth-redirect';
 import { resolvePwaTenantSlug } from '@/pwa/app/tenant/pwa-tenant-path';
 
-type UserLoginMode = 'password-login' | 'password-signup' | 'forgot-password';
-
-type UserLoginState = 'idle' | 'submitting' | 'sent' | 'offline_error' | 'retryable_error';
+type LoginMode = 'login' | 'signup' | 'forgot-password';
+type LoginState = 'idle' | 'submitting' | 'sent';
 
 export default function UserLoginPage() {
   const location = useLocation();
@@ -29,53 +29,65 @@ export default function UserLoginPage() {
   const [email, setEmail] = useState(() => readPwaUserLoginEmail() || '');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [mode, setMode] = useState<UserLoginMode>('password-login');
-  const [state, setState] = useState<UserLoginState>('idle');
+  const [showPassword, setShowPassword] = useState(false);
+  const [mode, setMode] = useState<LoginMode>('login');
+  const [state, setState] = useState<LoginState>('idle');
 
   const tenantSlug = useMemo(() => resolvePwaTenantSlug(location.pathname), [location.pathname]);
-  const modeTitles: Record<UserLoginMode, string> = {
-    'password-login': 'Entrar no app',
-    'password-signup': 'Criar conta no app',
-    'forgot-password': 'Recuperar senha',
-  };
-  const pageTitle = state === 'sent' ? 'Verifique seu e-mail' : modeTitles[mode];
 
   const redirectTarget = useMemo(
     () => readPwaRedirect() || buildPwaPath('home', { tenantSlug }),
     [tenantSlug]
   );
 
-  async function handlePasswordLogin() {
+  // Login unificado: tenta admin primeiro, depois usuário comum.
+  // Quem é admin vai para o painel admin; usuário comum vai para o app.
+  async function handleLogin() {
     if (!email || !password) {
-      toast.error('Preencha todos os campos.');
+      toast.error('Preencha e-mail e senha.');
       return;
     }
 
     setState('submitting');
+    persistPwaUserLoginEmail(email);
+
+    // 1. Tenta login como admin
+    try {
+      const adminResult = await loginAdmin({ email, password });
+      if (adminResult.authenticated) {
+        toast.success(`Bem-vindo(a), ${adminResult.user?.email ?? 'admin'}!`);
+        navigate(buildPwaAdminPath({ tenantSlug }), { replace: true });
+        return;
+      }
+    } catch {
+      // Não é admin — tenta como usuário comum
+    }
+
+    // 2. Tenta login como usuário comum
     try {
       await loginWithPassword({ email, password });
       toast.success('Bem-vindo(a)!');
-      navigate(redirectTarget);
+      navigate(redirectTarget, { replace: true });
     } catch (err: unknown) {
       setState('idle');
-      const message = err instanceof Error ? err.message : 'Erro ao entrar. Verifique seus dados.';
+      const message =
+        err instanceof Error ? err.message : 'E-mail ou senha incorretos.';
       toast.error(message);
     }
   }
 
-  async function handlePasswordSignup() {
+  async function handleSignup() {
     if (!email || !password || !fullName) {
       toast.error('Preencha todos os campos.');
       return;
     }
 
     const targetTenantSlug = tenantSlug || 'receitasbell';
-
     setState('submitting');
     try {
       await signupWithPassword({ email, password, fullName, tenantSlug: targetTenantSlug });
       toast.success('Conta criada com sucesso!');
-      navigate(redirectTarget);
+      navigate(redirectTarget, { replace: true });
     } catch (err: unknown) {
       setState('idle');
       const message = err instanceof Error ? err.message : 'Erro ao criar conta.';
@@ -83,7 +95,7 @@ export default function UserLoginPage() {
     }
   }
 
-  async function handleResetPassword() {
+  async function handleForgotPassword() {
     const validation = validatePasswordResetEmail({ email });
     if (!validation.ok) {
       toast.error(validation.message);
@@ -117,22 +129,23 @@ export default function UserLoginPage() {
     } catch (err: unknown) {
       setState('idle');
       const message =
-        err instanceof Error ? err.message : 'Erro ao iniciar login com Google. Tente novamente.';
+        err instanceof Error ? err.message : 'Erro ao iniciar login com Google.';
       toast.error(message);
     }
   }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (mode === 'password-login') handlePasswordLogin();
-    else if (mode === 'password-signup') handlePasswordSignup();
-    else if (mode === 'forgot-password') handleResetPassword();
+    if (mode === 'login') handleLogin();
+    else if (mode === 'signup') handleSignup();
+    else if (mode === 'forgot-password') handleForgotPassword();
   };
 
+  // Tela de confirmação de e-mail enviado
   if (state === 'sent') {
     return (
       <>
-        <PageHead title={pageTitle} noindex />
+        <PageHead title="Verifique seu e-mail" noindex />
         <div className="flex min-h-screen flex-col items-center justify-center bg-background p-6">
           <Card className="w-full max-w-sm border-none shadow-none bg-transparent text-center">
             <CardHeader className="space-y-4">
@@ -144,18 +157,17 @@ export default function UserLoginPage() {
                   Verifique seu e-mail
                 </CardTitle>
                 <CardDescription className="text-base text-balance">
-                  Enviamos instruções importantes para <strong>{email}</strong>. Por favor, confira
-                  sua caixa de entrada.
+                  Enviamos instruções para <strong>{email}</strong>. Confira sua caixa de entrada.
                 </CardDescription>
               </div>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent>
               <Button
                 variant="outline"
                 className="w-full"
                 onClick={() => {
                   setState('idle');
-                  setMode('password-login');
+                  setMode('login');
                 }}
               >
                 Voltar ao login
@@ -169,8 +181,12 @@ export default function UserLoginPage() {
 
   return (
     <>
-      <PageHead title={pageTitle} noindex />
+      <PageHead
+        title={mode === 'login' ? 'Entrar' : mode === 'signup' ? 'Criar conta' : 'Recuperar senha'}
+        noindex
+      />
       <div className="flex min-h-screen flex-col items-center justify-center bg-background p-6">
+        {/* Logo */}
         <div className="mb-8 flex flex-col items-center gap-3">
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/20">
             <ChefHat className="h-8 w-8" />
@@ -181,48 +197,64 @@ export default function UserLoginPage() {
         <Card className="w-full max-w-sm border-none shadow-none bg-transparent">
           <CardHeader className="px-0 text-center">
             <CardTitle className="text-xl font-semibold">
-              {mode === 'password-login' && 'Entrar'}
-              {mode === 'password-signup' && 'Criar Conta'}
+              {mode === 'login' && 'Entrar'}
+              {mode === 'signup' && 'Criar Conta'}
               {mode === 'forgot-password' && 'Recuperar Senha'}
             </CardTitle>
             <CardDescription>
-              {mode === 'password-login' && 'Acesse seu painel com sua conta.'}
-              {mode === 'password-signup' && 'Junte-se a nós para salvar suas receitas.'}
+              {mode === 'login' && 'Admin ou usuário — entre com sua conta.'}
+              {mode === 'signup' && 'Junte-se a nós para salvar suas receitas.'}
               {mode === 'forgot-password' && 'Enviaremos um link para redefinir sua senha.'}
             </CardDescription>
           </CardHeader>
+
           <CardContent className="px-0 pt-4">
             <form onSubmit={handleSubmit} className="space-y-4">
-              {mode === 'password-signup' && (
+              {mode === 'signup' && (
                 <Input
-                  placeholder="Nome Completo"
+                  placeholder="Nome completo"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   required
                   className="h-12"
+                  autoComplete="name"
                 />
               )}
+
               <Input
                 type="email"
                 placeholder="seu@email.com"
                 value={email}
                 onChange={(e) => {
-                  const val = e.target.value;
-                  setEmail(val);
-                  persistPwaUserLoginEmail(val);
+                  setEmail(e.target.value);
+                  persistPwaUserLoginEmail(e.target.value);
                 }}
                 required
                 className="h-12"
+                autoComplete="email"
+                autoFocus
               />
-              {(mode === 'password-login' || mode === 'password-signup') && (
-                <Input
-                  type="password"
-                  placeholder="Sua senha"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="h-12"
-                />
+
+              {(mode === 'login' || mode === 'signup') && (
+                <div className="relative">
+                  <Input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Sua senha"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="h-12 pr-12"
+                    autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
+                </div>
               )}
 
               <Button
@@ -232,14 +264,19 @@ export default function UserLoginPage() {
               >
                 {state === 'submitting' ? (
                   <Loader2 className="animate-spin h-5 w-5" />
+                ) : mode === 'login' ? (
+                  'Entrar'
+                ) : mode === 'signup' ? (
+                  'Criar conta'
                 ) : (
-                  'Prosseguir'
+                  'Enviar instruções'
                 )}
               </Button>
             </form>
 
+            {/* Links de navegação entre modos */}
             <div className="mt-4 flex flex-col gap-2 text-center text-sm">
-              {mode === 'password-login' && (
+              {mode === 'login' && (
                 <>
                   <button
                     type="button"
@@ -250,74 +287,78 @@ export default function UserLoginPage() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setMode('password-signup')}
+                    onClick={() => setMode('signup')}
                     className="text-muted-foreground hover:text-foreground"
                   >
-                    Não tem conta? <span className="text-primary font-medium">Criar uma agora</span>
+                    Não tem conta?{' '}
+                    <span className="text-primary font-medium">Criar uma agora</span>
                   </button>
                 </>
               )}
-              {(mode === 'password-signup' || mode === 'forgot-password') && (
+              {(mode === 'signup' || mode === 'forgot-password') && (
                 <button
                   type="button"
-                  onClick={() => setMode('password-login')}
+                  onClick={() => setMode('login')}
                   className="text-primary hover:underline"
                 >
-                  Voltar para entrar com senha
+                  Voltar para entrar
                 </button>
               )}
             </div>
 
-            <div className="mt-8 flex flex-col gap-4">
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
+            {/* Google OAuth e instalar app — só no modo login */}
+            {mode === 'login' && (
+              <div className="mt-8 flex flex-col gap-4">
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground text-[10px]">OU</span>
+                  </div>
                 </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground text-[10px]">OU</span>
-                </div>
-              </div>
 
-              <Button
-                variant="outline"
-                className="w-full h-12 gap-2"
-                type="button"
-                disabled={state === 'submitting'}
-                onClick={handleGoogleLogin}
-              >
-                <svg className="h-5 w-5" viewBox="0 0 24 24">
-                  <path
-                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                    fill="#4285F4"
-                  />
-                  <path
-                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                    fill="#34A853"
-                  />
-                  <path
-                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                    fill="#FBBC05"
-                  />
-                  <path
-                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                    fill="#EA4335"
-                  />
-                </svg>
-                Entrar com Google
-              </Button>
+                <Button
+                  variant="outline"
+                  className="w-full h-12 gap-2"
+                  type="button"
+                  disabled={state === 'submitting'}
+                  onClick={handleGoogleLogin}
+                >
+                  <svg className="h-5 w-5" viewBox="0 0 24 24">
+                    <path
+                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                      fill="#4285F4"
+                    />
+                    <path
+                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                      fill="#34A853"
+                    />
+                    <path
+                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                      fill="#FBBC05"
+                    />
+                    <path
+                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                      fill="#EA4335"
+                    />
+                  </svg>
+                  Entrar com Google
+                </Button>
 
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t" />
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground text-[10px]">
+                      OU EXPERIMENTE O APP
+                    </span>
+                  </div>
                 </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground text-[10px]">
-                    OU EXPERIMENTE O APP
-                  </span>
-                </div>
+                <InstallAppButton context="user" variant="outline" className="w-full h-12" />
               </div>
-              <InstallAppButton context="user" variant="outline" className="w-full h-12" />
-            </div>
+            )}
           </CardContent>
         </Card>
       </div>

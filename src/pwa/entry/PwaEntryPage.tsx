@@ -60,8 +60,8 @@ export default function PwaEntryPage() {
         return;
       }
 
-      // Visitante: abre direto na home do app (sem forçar login)
-      navigate(buildPwaPath('home', { tenantSlug }), { replace: true });
+      // Não autenticado: vai para a tela de login unificada
+      navigate(buildPwaPath('login', { tenantSlug }), { replace: true });
     }
 
     void run();
