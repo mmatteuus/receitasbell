@@ -1,5 +1,6 @@
 export type PwaRouteKey =
   | "entry"
+  | "adminEntry"
   | "login"
   | "verify"
   | "adminLogin"
@@ -25,6 +26,8 @@ export function buildPwaPath(
   switch (key) {
     case "entry":
       return `${base}/entry`;
+    case "adminEntry":
+      return `${base}/admin/entry`;
     case "login":
       return `${base}/login`;
     case "verify":

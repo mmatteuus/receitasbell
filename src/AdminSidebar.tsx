@@ -18,6 +18,8 @@ import {
 import { cn } from '@/lib/utils';
 import { logoutAdmin } from '@/lib/api/adminSession';
 import { buildTenantAdminPath, extractTenantSlugFromPath } from '@/lib/tenant';
+import { buildPwaPath } from '@/pwa/app/navigation/pwa-paths';
+import { resolvePwaTenantSlug } from '@/pwa/app/tenant/pwa-tenant-path';
 import { trackEvent } from '@/lib/telemetry';
 import {
   Dialog,
@@ -83,7 +85,14 @@ function SidebarNav({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?
       // Ignora erro de logout para não bloquear saída.
     }
     onNavigate?.();
-    navigate(buildTenantAdminPath('login', tenantSlug), { replace: true });
+    // Se estiver no contexto PWA (/pwa/admin/...), redireciona para a entry do PWA admin
+    // para garantir que ao reabrir o app vá para login admin, não login de usuário.
+    if (location.pathname.startsWith('/pwa/')) {
+      const pwaTenantSlug = resolvePwaTenantSlug(location.pathname);
+      navigate(buildPwaPath('adminEntry', { tenantSlug: pwaTenantSlug }), { replace: true });
+    } else {
+      navigate(buildTenantAdminPath('login', tenantSlug), { replace: true });
+    }
   }
 
   return (

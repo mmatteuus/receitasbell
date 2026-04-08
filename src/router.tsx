@@ -127,6 +127,10 @@ const router = createBrowserRouter(
       lazy: lazyRoute(() => import('@/pwa/pages/UpdatePasswordPage')),
     },
     {
+      path: '/pwa/admin/entry',
+      lazy: lazyRoute(() => import('@/pwa/entry/PwaAdminEntryPage')),
+    },
+    {
       path: '/pwa/admin/login',
       lazy: lazyRoute(() => import('@/pwa/pages/AdminLoginPage')),
     },
@@ -188,6 +192,19 @@ const router = createBrowserRouter(
       path: '/t/:tenantSlug/pwa/auth/verify',
       lazy: async () => {
         const { default: Component } = await import('@/pwa/pages/PwaAuthVerifyPage');
+        return {
+          element: (
+            <PwaTenantBridge>
+              <Component />
+            </PwaTenantBridge>
+          ),
+        };
+      },
+    },
+    {
+      path: '/t/:tenantSlug/pwa/admin/entry',
+      lazy: async () => {
+        const { default: Component } = await import('@/pwa/entry/PwaAdminEntryPage');
         return {
           element: (
             <PwaTenantBridge>

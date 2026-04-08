@@ -5,8 +5,8 @@
   "theme_color": "#ffffff",
   "background_color": "#ffffff",
   "display": "standalone",
-  "start_url": "/admin/login",
-  "scope": "/admin/",
+  "start_url": "/pwa/admin/entry",
+  "scope": "/pwa/",
   "icons": [
     {
       "src": "/pwa/icons/icon-192.png",
