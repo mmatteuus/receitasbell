@@ -33,6 +33,7 @@
       "source": "/api/payments/(.*)",
       "headers": [{ "key": "Cache-Control", "value": "no-store" }]
     },
+    { "source": "/api/uploads/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-store" }] },
     { "source": "/api/jobs/(.*)", "headers": [{ "key": "Cache-Control", "value": "no-store" }] },
     {
       "source": "/api/security/(.*)",
@@ -43,6 +44,7 @@
   "crons": [{ "path": "/api/jobs/cleanup", "schedule": "0 3 * * *" }],
   "rewrites": [
     { "source": "/api/health", "destination": "/api/health/live" },
+    { "source": "/api/uploads/recipe-image", "destination": "/api/uploads/recipe-image" },
     { "source": "/api/admin/:path*", "destination": "/api/admin/[...path]" },
     { "source": "/api/payments/:path*", "destination": "/api/payments/[...path]" },
     { "source": "/@vite/:path*", "destination": "/@vite/:path*" },

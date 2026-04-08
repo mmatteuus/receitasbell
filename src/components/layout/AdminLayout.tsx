@@ -4,9 +4,12 @@ import { AdminBreadcrumbs } from "./AdminBreadcrumbs";
 import { AdminNotifications } from "./AdminNotifications";
 import { BackToTop } from "@/components/BackToTop";
 import { useAdminSidebar } from "@/hooks/use-admin-sidebar";
+import { Helmet } from "react-helmet-async";
+import { AdminInstallPwaButton } from "@/components/pwa/AdminInstallPwaButton";
 function HeaderActions() {
   return (
     <div className="flex items-center gap-2">
+      <AdminInstallPwaButton />
       <AdminNotifications />
     </div>
   );
@@ -17,7 +20,14 @@ function AdminShell() {
   const sidebarWidth = collapsed ? "64px" : "256px";
 
   return (
-    <div className="flex min-h-screen overflow-x-hidden">
+    // NOTE: `position: sticky` does not work reliably when any ancestor has
+    // `overflow` set (including only-x overflow). Use `overflow-x-clip` to
+    // prevent horizontal scroll without breaking the sticky admin header.
+    <div className="flex min-h-screen overflow-x-clip">
+      <Helmet>
+        {/* Use an admin-specific manifest so installed PWA opens at /admin/login. */}
+        <link rel="manifest" href="/admin.webmanifest" />
+      </Helmet>
       {/* Desktop sidebar */}
       <AdminSidebar />
       {/* Mobile sidebar drawer */}
@@ -25,7 +35,7 @@ function AdminShell() {
 
       {/* Main column */}
       <div
-        className="flex-1 flex min-w-0 flex-col overflow-x-hidden md:pl-[var(--admin-sidebar-width)] transition-[padding]"
+        className="flex-1 flex min-w-0 flex-col overflow-x-clip md:pl-[var(--admin-sidebar-width)] transition-[padding]"
         style={{ ['--admin-sidebar-width' as string]: sidebarWidth }}
       >
         {/* Top header bar */}
