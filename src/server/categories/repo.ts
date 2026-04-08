@@ -28,7 +28,16 @@ export async function listCategories(tenantId: string | number): Promise<Categor
     .order("name");
 
   if (error) return [];
-  return (data || []).map(mapCategoryRowToRecord);
+  // Defensive dedupe: if the DB ever contains duplicate slugs for a tenant,
+  // we should not render duplicates across the app/admin.
+  const items = (data || []).map(mapCategoryRowToRecord);
+  const bySlug = new Map<string, Category>();
+  for (const item of items) {
+    const key = String(item.slug || "").trim().toLowerCase();
+    if (!key) continue;
+    if (!bySlug.has(key)) bySlug.set(key, item);
+  }
+  return Array.from(bySlug.values());
 }
 
 export async function getCategoryBySlug(tenantId: string | number, slug: string): Promise<Category | null> {

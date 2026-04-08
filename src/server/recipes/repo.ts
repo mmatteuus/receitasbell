@@ -11,6 +11,7 @@ type RecipeRow = {
   description: string | null;
   image_url: string | null;
   category_id: string | null;
+  categories?: { id: string; slug: string; name: string } | null;
   tags_json: string[] | null;
   status: RecipeStatus | null;
   prep_time_min: number | null;
@@ -39,7 +40,7 @@ export type RecipeListTier = "all" | "free" | "paid";
 export type RecipeListTempo = "all" | "quick" | "medium" | "long";
 export type RecipeListOrder = "latest" | "timeAsc" | "timeDesc";
 
-export async function listRecipes(tenantId: string, options: { 
+export async function listRecipes(tenantId: string, options: {
   includeDrafts?: boolean;
   categorySlug?: string;
   q?: string;
@@ -50,15 +51,23 @@ export async function listRecipes(tenantId: string, options: {
 } = {}): Promise<RecipeRecord[]> {
   let query = supabaseAdmin
     .from('recipes')
-    .select('*')
+    .select('*, categories(id, slug, name)')
     .eq('tenant_id', tenantId);
 
   if (!options.includeDrafts) {
     query = query.eq('status', 'published').eq('is_active', true);
   }
 
-  if (options.categorySlug && options.categorySlug !== 'all') {
-    query = query.eq('category_id', options.categorySlug); 
+  const filterBySlug = options.categorySlug && options.categorySlug !== 'all'
+    ? options.categorySlug
+    : null;
+
+  if (filterBySlug) {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(filterBySlug);
+    if (isUuid) {
+      query = query.eq('category_id', filterBySlug);
+    }
+    // Se for slug textual, filtramos após o JOIN (ver abaixo)
   }
 
   if (options.q) {
@@ -86,6 +95,14 @@ export async function listRecipes(tenantId: string, options: {
 
   let results = data.map(mapRecipeRowToRecord);
 
+  // Filtro por slug textual após o JOIN (quando não é UUID)
+  if (filterBySlug) {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(filterBySlug);
+    if (!isUuid) {
+      results = results.filter(r => r.categorySlug === filterBySlug);
+    }
+  }
+
   if (options.tempo && options.tempo !== 'all') {
       results = results.filter(r => {
           const t = r.totalTime ?? 0;
@@ -102,7 +119,7 @@ export async function listRecipes(tenantId: string, options: {
 export async function getRecipeBySlug(tenantId: string, slug: string, userId?: string): Promise<RecipeRecord | null> {
   const { data, error } = await supabaseAdmin
     .from('recipes')
-    .select('*')
+    .select('*, categories(id, slug, name)')
     .eq('tenant_id', tenantId)
     .eq('slug', slug)
     .maybeSingle();
@@ -118,7 +135,7 @@ export async function getRecipeBySlug(tenantId: string, slug: string, userId?: s
 export async function getRecipeById(tenantId: string, id: string, userId?: string): Promise<RecipeRecord | null> {
   const { data, error } = await supabaseAdmin
     .from('recipes')
-    .select('*')
+    .select('*, categories(id, slug, name)')
     .eq('tenant_id', tenantId)
     .eq('id', id)
     .maybeSingle();
@@ -173,7 +190,7 @@ function mapRecipeRowToRecord(row: RecipeRow): RecipeRecord {
     description: row.description || "",
     imageUrl: row.image_url,
     imageFileMeta: null,
-    categorySlug: row.category_id || "",
+    categorySlug: row.categories?.slug || row.category_id || "",
     tags: row.tags_json || [],
     status: row.status || "draft",
     prepTime: row.prep_time_min || 0,
@@ -203,7 +220,28 @@ function mapRecipeRowToRecord(row: RecipeRow): RecipeRecord {
   };
 }
 
+/**
+ * Resolve o UUID da categoria a partir de slug ou UUID.
+ * Se já for um UUID válido, retorna como está. Se for slug, busca no banco.
+ */
+async function resolveCategoryId(tenantId: string, slugOrId: string | null | undefined): Promise<string | null> {
+  if (!slugOrId) return null;
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slugOrId);
+  if (isUuid) return slugOrId;
+
+  const { data } = await supabaseAdmin
+    .from('categories')
+    .select('id')
+    .eq('tenant_id', tenantId)
+    .eq('slug', slugOrId)
+    .maybeSingle();
+
+  return data?.id ?? null;
+}
+
 export async function createRecipe(tenantId: string, recipe: Partial<RecipeRecord>): Promise<RecipeRecord> {
+  const categoryId = await resolveCategoryId(tenantId, recipe.categorySlug);
+
   const { data, error } = await supabaseAdmin
     .from('recipes')
     .insert({
@@ -212,7 +250,7 @@ export async function createRecipe(tenantId: string, recipe: Partial<RecipeRecor
       slug: recipe.slug,
       description: recipe.description,
       image_url: recipe.imageUrl,
-      category_id: recipe.categorySlug,
+      category_id: categoryId,
       tags_json: recipe.tags,
       status: recipe.status || 'draft',
       prep_time_min: recipe.prepTime,
@@ -232,7 +270,7 @@ export async function createRecipe(tenantId: string, recipe: Partial<RecipeRecor
       author_id: recipe.createdByUserId,
       published_at: recipe.status === 'published' ? new Date().toISOString() : null
     })
-    .select()
+    .select('*, categories(id, slug, name)')
     .single();
 
   if (error) throw error;
@@ -270,9 +308,31 @@ export async function updateRecipe(tenantId: string, recipeId: string, recipe: P
   if (recipe.slug !== undefined) payload.slug = recipe.slug;
   if (recipe.description !== undefined) payload.description = recipe.description;
   if (recipe.imageUrl !== undefined) payload.image_url = recipe.imageUrl;
+  if (recipe.categorySlug !== undefined) {
+    payload.category_id = await resolveCategoryId(tenantId, recipe.categorySlug);
+  }
+  if (recipe.tags !== undefined) payload.tags_json = recipe.tags;
+  if (recipe.prepTime !== undefined) payload.prep_time_min = recipe.prepTime;
+  if (recipe.cookTime !== undefined) payload.cook_time_min = recipe.cookTime;
+  if (recipe.prepTime !== undefined || recipe.cookTime !== undefined) {
+    payload.total_time_min = (recipe.prepTime || 0) + (recipe.cookTime || 0);
+  }
+  if (recipe.servings !== undefined) payload.servings = recipe.servings;
+  if (recipe.calories !== undefined) payload.kcal = recipe.calories;
+  if (recipe.videoUrl !== undefined) payload.video_id = recipe.videoUrl;
+  if (recipe.accessTier !== undefined) payload.access_tier = recipe.accessTier;
+  if (recipe.priceBRL !== undefined) payload.price_brl = recipe.priceBRL;
+  if (recipe.fullIngredients !== undefined) payload.ingredients_json = recipe.fullIngredients;
+  if (recipe.fullInstructions !== undefined) {
+    payload.instructions_text = Array.isArray(recipe.fullInstructions) ? recipe.fullInstructions.join('\n') : "";
+  }
+  if (recipe.isFeatured !== undefined) payload.is_featured = recipe.isFeatured;
+  if (recipe.excerpt !== undefined) payload.excerpt = recipe.excerpt;
+  if (recipe.seoTitle !== undefined) payload.seo_title = recipe.seoTitle;
+  if (recipe.seoDescription !== undefined) payload.seo_description = recipe.seoDescription;
   if (recipe.status !== undefined) {
-      payload.status = recipe.status;
-      if (recipe.status === 'published') payload.published_at = new Date().toISOString();
+    payload.status = recipe.status;
+    if (recipe.status === 'published') payload.published_at = new Date().toISOString();
   }
 
   const { data, error } = await supabaseAdmin
@@ -280,7 +340,7 @@ export async function updateRecipe(tenantId: string, recipeId: string, recipe: P
     .update(payload)
     .eq('tenant_id', tenantId)
     .eq('id', recipeId)
-    .select()
+    .select('*, categories(id, slug, name)')
     .single();
 
   if (error) throw error;

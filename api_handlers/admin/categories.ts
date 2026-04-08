@@ -3,7 +3,7 @@ import { withApiHandler, json, ApiError } from '../../src/server/shared/http.js'
 import { requireAdminAccess } from '../../src/server/admin/guards.js';
 import { logAuditEvent } from '../../src/server/audit/repo.js';
 import { requireTenantFromRequest } from '../../src/server/tenancy/resolver.js';
-import { listCategories, createCategory, updateCategory, deleteCategory } from '../../src/server/categories/repo.js';
+import { listCategories, createCategory, updateCategory, deleteCategory, getCategoryBySlug } from '../../src/server/categories/repo.js';
 import { requireCsrf } from '../../src/server/security/csrf.js';
 import { z } from 'zod';
 
@@ -52,9 +52,14 @@ export default withApiHandler(async (request: VercelRequest, response: VercelRes
 
   if (method === 'POST') {
     const body = categorySchema.parse(request.body);
+    const nextSlug = body.slug || slugify(body.name);
+    const existing = await getCategoryBySlug(tenant.id, nextSlug);
+    if (existing) {
+      throw new ApiError(409, "Já existe uma categoria com este slug.");
+    }
     const result = await createCategory(tenant.id, {
       ...body,
-      slug: body.slug || slugify(body.name),
+      slug: nextSlug,
       description: body.description || "",
     });
     
@@ -74,9 +79,16 @@ export default withApiHandler(async (request: VercelRequest, response: VercelRes
   if (method === 'PATCH' || method === 'PUT') {
     if (!id) throw new ApiError(400, 'Missing category ID');
     const body = categorySchema.partial().parse(request.body);
+    const nextSlug = body.slug || (body.name ? slugify(body.name) : undefined);
+    if (nextSlug) {
+      const existing = await getCategoryBySlug(tenant.id, nextSlug);
+      if (existing && String(existing.id) !== String(id)) {
+        throw new ApiError(409, "Já existe uma categoria com este slug.");
+      }
+    }
     const result = await updateCategory(tenant.id, id, {
       ...body,
-      slug: body.slug || (body.name ? slugify(body.name) : undefined),
+      slug: nextSlug,
     });
 
     await logAuditEvent({
