@@ -12,6 +12,10 @@ import { resolveCategoryDisplay } from '@/lib/categoriesDisplay';
 import { useAppContext } from '@/contexts/app-context';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
+// Número de cards visíveis por breakpoint
+const VISIBLE = { mobile: 1, tablet: 2, desktop: 3 };
+const GAP_PX = 16; // gap-4
+
 type HomeFeaturedProps = {
   settings: SettingsMap;
   loading: boolean;
@@ -40,28 +44,45 @@ export function HomeFeatured({
 
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(VISIBLE.mobile);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+
+  // Detecta quantos cards cabem baseado na largura da janela
+  useEffect(() => {
+    function update() {
+      const w = window.innerWidth;
+      if (w >= 1024) setVisibleCount(VISIBLE.desktop);
+      else if (w >= 768) setVisibleCount(VISIBLE.tablet);
+      else setVisibleCount(VISIBLE.mobile);
+    }
+    update();
+    window.addEventListener('resize', update, { passive: true });
+    return () => window.removeEventListener('resize', update);
+  }, []);
+
+  const maxIndex = Math.max(0, total - visibleCount);
 
   const go = useCallback(
     (next: number) => {
-      setIndex(((next % total) + total) % total);
+      setIndex(Math.min(Math.max(next, 0), maxIndex));
     },
-    [total],
+    [maxIndex],
   );
 
   const prev = useCallback(() => go(index - 1), [go, index]);
   const next = useCallback(() => go(index + 1), [go, index]);
 
-  // Auto-play
+  // Auto-play: avança até o fim e volta ao início
   useEffect(() => {
     if (loading || total < 2 || paused) return;
     timerRef.current = setInterval(() => {
-      setIndex((cur) => (cur + 1) % total);
+      setIndex((cur) => (cur >= maxIndex ? 0 : cur + 1));
     }, AUTOPLAY_MS);
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [loading, total, paused]);
+  }, [loading, total, paused, maxIndex]);
 
   if (loading) {
     return (
@@ -91,10 +112,11 @@ export function HomeFeatured({
     );
   }
 
-  // Quantos cards mostrar por breakpoint é controlado via CSS (basis-*)
-  // Mas para o índice, calculamos o offset de translação por card
-  // Usamos uma janela deslizante: o card "index" fica na primeira posição visível
-  const translatePct = index * (100 / total);
+  // Calcula a largura percentual de cada card no track (inclui gap)
+  // cardWidth = (100% / visibleCount), translate = index * (cardWidth + gap relativo)
+  // Usamos calc com px para compensar os gaps
+  const cardWidthPct = 100 / visibleCount;
+  const translateValue = `calc(-${index * cardWidthPct}% - ${index * GAP_PX}px)`;
 
   return (
     <section className="container px-4 py-12">
@@ -116,20 +138,17 @@ export function HomeFeatured({
             <span className="font-medium text-foreground">
               {recipes[index]?.title}
             </span>
-            {featuredMainPresentation?.marketingHeadline && (
-              <span className="hidden md:inline"> — {featuredMainPresentation.marketingHeadline}</span>
-            )}
           </p>
 
           <div className="flex items-center gap-2 ml-auto shrink-0">
-            {/* Indicadores */}
-            {total > 1 && (
+            {/* Indicadores — um por posição possível */}
+            {maxIndex > 0 && (
               <div className="flex gap-1.5 mr-2">
-                {recipes.map((_, i) => (
+                {Array.from({ length: maxIndex + 1 }).map((_, i) => (
                   <button
                     key={i}
                     onClick={() => go(i)}
-                    aria-label={`Ir para receita ${i + 1}`}
+                    aria-label={`Ir para posição ${i + 1}`}
                     className={`h-1.5 rounded-full transition-all duration-300 ${
                       i === index ? 'w-5 bg-primary' : 'w-1.5 bg-muted-foreground/30 hover:bg-muted-foreground/60'
                     }`}
@@ -137,20 +156,21 @@ export function HomeFeatured({
                 ))}
               </div>
             )}
-            <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={prev} aria-label="Anterior">
+            <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={prev} disabled={index === 0} aria-label="Anterior">
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={next} aria-label="Próximo">
+            <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={next} disabled={index >= maxIndex} aria-label="Próximo">
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
         </div>
 
         {/* Carrossel */}
-        <div className="overflow-hidden rounded-2xl" aria-label="Carrossel de receitas em destaque">
+        <div className="overflow-hidden" aria-label="Carrossel de receitas em destaque">
           <div
+            ref={trackRef}
             className="flex gap-4 transition-transform duration-500 ease-in-out"
-            style={{ transform: `translateX(calc(-${translatePct}% - ${index * 16}px))` }}
+            style={{ transform: `translateX(${translateValue})` }}
           >
             {recipes.map((recipe, i) => (
               <Link
@@ -158,7 +178,8 @@ export function HomeFeatured({
                 to={`/receitas/${recipe.slug}`}
                 onClick={() => onFeaturedClick(recipe)}
                 aria-label={recipe.title}
-                className="group relative shrink-0 w-full md:w-[calc(50%-8px)] lg:w-[calc(33.333%-11px)] overflow-hidden rounded-2xl border bg-card shadow-sm"
+                style={{ width: `calc(${cardWidthPct}% - ${GAP_PX * (visibleCount - 1) / visibleCount}px)` }}
+                className="group relative shrink-0 overflow-hidden rounded-2xl border bg-card shadow-sm"
               >
                 <SmartImage
                   src={getRecipeImage(recipe)}
@@ -166,7 +187,7 @@ export function HomeFeatured({
                   alt={recipe.title}
                   priority={i === 0}
                   sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
-                  className="h-56 w-full object-cover sm:h-64 lg:h-52 transition-transform duration-700 group-hover:scale-105"
+                  className="h-48 w-full object-cover transition-transform duration-700 group-hover:scale-105"
                 />
                 <div className="pointer-events-none absolute inset-x-0 bottom-0">
                   <div className="bg-gradient-to-t from-black/70 via-black/35 to-transparent px-4 pb-4 pt-10">
