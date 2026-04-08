@@ -6,17 +6,26 @@ import { cn } from "@/lib/utils";
 
 type CartButtonProps = {
   mobile?: boolean;
+  iconOnly?: boolean;
   onClick?: () => void;
 };
 
-export function CartButton({ mobile = false, onClick }: CartButtonProps) {
+export function CartButton({ mobile = false, iconOnly = false, onClick }: CartButtonProps) {
   const { pathname } = useLocation();
   const { count } = useCart();
   const isActive = pathname === "/carrinho";
 
-  if (mobile) {
+  if (mobile || iconOnly) {
     return (
-      <Link to="/carrinho" className="relative p-2" onClick={onClick}>
+      <Link
+        to="/carrinho"
+        aria-label="Carrinho de compras"
+        className={cn(
+          "relative flex h-9 w-9 items-center justify-center rounded-md transition-colors",
+          isActive ? "text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+        )}
+        onClick={onClick}
+      >
         <ShoppingCart aria-hidden="true" className="h-5 w-5" />
         {count > 0 && (
           <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">

@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
+import { Link } from "react-router-dom";
 import { ApiClientError } from "@/lib/api/client";
 import { fetchMe, isValidEmail, logoutUser, requestMagicLink } from "@/lib/api/identity";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Heart } from "lucide-react";
 import { isPwaRuntimePath } from "@/pwa/offline/runtime";
 
 type IdentityDialogState = {
   open: boolean;
+  mode: "login-prompt" | "email-form";
   message: string;
   email: string;
   error: string;
@@ -16,6 +19,7 @@ type IdentityDialogState = {
 
 const initialDialogState: IdentityDialogState = {
   open: false,
+  mode: "login-prompt",
   message: "",
   email: "",
   error: "",
@@ -35,7 +39,7 @@ export function useIdentityProvider() {
     });
   }, []);
 
-  const requireIdentity = useCallback(async (message?: string) => {
+  const requireIdentity = useCallback(async (message?: string, mode: "login-prompt" | "email-form" = "login-prompt") => {
     if (identityEmail) {
       return identityEmail;
     }
@@ -48,7 +52,8 @@ export function useIdentityProvider() {
       setIdentityResolver(() => resolve);
       setIdentityDialog({
         open: true,
-        message: message || "Informe seu e-mail para salvar favoritos, compras e receitas desbloqueadas.",
+        mode,
+        message: message || "Para favoritar receitas é preciso estar conectado à sua conta.",
         email: "",
         error: "",
       });
@@ -114,45 +119,70 @@ export function useIdentityProvider() {
 
   const identityDialogElement = useMemo<ReactNode>(() => (
     <Dialog open={identityDialog.open} onOpenChange={(open) => !open && handleIdentityCancel()}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Identifique-se para continuar</DialogTitle>
-          <DialogDescription>{identityDialog.message}</DialogDescription>
-        </DialogHeader>
+      <DialogContent className="sm:max-w-sm">
+        {identityDialog.mode === "login-prompt" ? (
+          <>
+            <DialogHeader>
+              <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                <Heart className="h-6 w-6 text-primary" />
+              </div>
+              <DialogTitle className="text-center">Conta necessária</DialogTitle>
+              <DialogDescription className="text-center">
+                {identityDialog.message}
+              </DialogDescription>
+            </DialogHeader>
 
-        <div className="space-y-2">
-          <label htmlFor="identity-email" className="text-sm font-medium">
-            E-mail
-          </label>
-          <Input
-            id="identity-email"
-            autoFocus
-            type="email"
-            value={identityDialog.email}
-            onChange={(event) =>
-              setIdentityDialog((current) => ({
-                ...current,
-                email: event.target.value,
-                error: "",
-              }))
-            }
-            placeholder="voce@email.com"
-          />
-          {identityDialog.error ? (
-            <p className="text-sm text-destructive" role="alert">
-              {identityDialog.error}
-            </p>
-          ) : null}
-        </div>
+            <DialogFooter className="flex-col gap-2 sm:flex-col">
+              <Button asChild className="w-full" onClick={handleIdentityCancel}>
+                <Link to="/minha-conta">Ir para login</Link>
+              </Button>
+              <Button variant="ghost" className="w-full" onClick={handleIdentityCancel}>
+                Agora não
+              </Button>
+            </DialogFooter>
+          </>
+        ) : (
+          <>
+            <DialogHeader>
+              <DialogTitle>Identifique-se para continuar</DialogTitle>
+              <DialogDescription>{identityDialog.message}</DialogDescription>
+            </DialogHeader>
 
-        <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="ghost" onClick={handleIdentityCancel} disabled={identityLoading}>
-            Agora não
-          </Button>
-          <Button onClick={() => void handleIdentityConfirm()} disabled={identityLoading}>
-            {identityLoading ? "Enviando..." : "Receber link mágico"}
-          </Button>
-        </DialogFooter>
+            <div className="space-y-2">
+              <label htmlFor="identity-email" className="text-sm font-medium">
+                E-mail
+              </label>
+              <Input
+                id="identity-email"
+                autoFocus
+                type="email"
+                value={identityDialog.email}
+                onChange={(event) =>
+                  setIdentityDialog((current) => ({
+                    ...current,
+                    email: event.target.value,
+                    error: "",
+                  }))
+                }
+                placeholder="voce@email.com"
+              />
+              {identityDialog.error ? (
+                <p className="text-sm text-destructive" role="alert">
+                  {identityDialog.error}
+                </p>
+              ) : null}
+            </div>
+
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button variant="ghost" onClick={handleIdentityCancel} disabled={identityLoading}>
+                Agora não
+              </Button>
+              <Button onClick={() => void handleIdentityConfirm()} disabled={identityLoading}>
+                {identityLoading ? "Enviando..." : "Receber link mágico"}
+              </Button>
+            </DialogFooter>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   ), [handleIdentityCancel, handleIdentityConfirm, identityDialog, identityLoading]);

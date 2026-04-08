@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Menu,
-  X,
   Search,
   Heart,
   ChefHat,
@@ -94,7 +93,7 @@ export default function Header() {
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-1 lg:flex">
+        <nav className="hidden items-center gap-3 lg:flex">
           {navLinks.map((link) => (
             <Link
               key={link.to}
@@ -109,19 +108,6 @@ export default function Header() {
               {link.label}
             </Link>
           ))}
-
-          <CartButton />
-
-          <InstallAppButton />
-
-          <button
-            onClick={handleShare}
-            className="flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-            aria-label="Compartilhar site"
-          >
-            <Share2 aria-hidden="true" className="h-4 w-4" />
-            <span className="hidden sm:inline">Compartilhar</span>
-          </button>
 
           <div className="group relative" role="navigation" aria-label="Receitas">
             <button
@@ -145,26 +131,51 @@ export default function Header() {
             </div>
           </div>
 
-          <ThemeModeToggle />
+          <div className="mx-1 h-5 w-px bg-border" />
+
+          <div className="flex items-center gap-1">
+            <CartButton iconOnly />
+
+            <button
+              onClick={handleShare}
+              className="flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              aria-label="Compartilhar site"
+            >
+              <Share2 aria-hidden="true" className="h-4 w-4" />
+            </button>
+
+            <ThemeModeToggle compact />
+          </div>
+
+          <div className="mx-1 h-5 w-px bg-border" />
+
+          <InstallAppButton />
 
           <Link to={adminPath}>
-            <Button variant="outline" size="sm" className="ml-2 gap-1.5">
+            <Button variant="outline" size="sm" className="gap-1.5">
               <Settings aria-hidden="true" className="h-3.5 w-3.5" />
               Admin
             </Button>
           </Link>
         </nav>
 
-        <div className="flex items-center gap-2 lg:hidden">
+        <div className="flex items-center gap-3 lg:hidden">
           <CartButton mobile />
+          <button
+            onClick={handleShare}
+            className="flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            aria-label="Compartilhar site"
+          >
+            <Share2 aria-hidden="true" className="h-5 w-5" />
+          </button>
           <ThemeModeToggle compact />
           <button
             onClick={() => setOpen(true)}
             aria-label="Abrir menu de navegação"
             aria-expanded={open}
-            className="p-1"
+            className="flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
-            <Menu aria-hidden="true" className="h-6 w-6" />
+            <Menu aria-hidden="true" className="h-5 w-5" />
           </button>
         </div>
       </div>
@@ -176,18 +187,11 @@ export default function Header() {
             <DialogDescription>Acesse as principais áreas do site e sua conta.</DialogDescription>
           </DialogHeader>
 
-          <div className="flex h-14 items-center justify-between border-b px-4">
+          <div className="flex h-14 items-center border-b px-4">
             <div className="flex items-center gap-2">
               <ChefHat className="h-6 w-6 text-primary" />
               <span className="font-heading text-lg font-bold">{settings.siteName}</span>
             </div>
-            <button
-              onClick={() => setOpen(false)}
-              className="rounded-full p-2 hover:bg-muted"
-              aria-label="Fechar menu"
-            >
-              <X className="h-6 w-6" />
-            </button>
           </div>
 
           <nav className="flex-1 overflow-y-auto px-4 py-6">
@@ -209,13 +213,6 @@ export default function Header() {
                   className={`flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium ${isActive('/buscar') ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground'}`}
                 >
                   <Search aria-hidden="true" className="h-4 w-4" /> Buscar receitas
-                </Link>
-                <Link
-                  to="/buscar"
-                  onClick={() => setOpen(false)}
-                  className={`flex items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground`}
-                >
-                  <ChefHat aria-hidden="true" className="h-4 w-4" /> Receitas
                 </Link>
               </div>
 

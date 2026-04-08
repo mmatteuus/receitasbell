@@ -194,7 +194,7 @@ export default function RecipeListPage() {
                 </TableHeader>
                 <TableBody>
                   {recipes.map((recipe) => {
-                    const category = categories.find((item) => item.slug === recipe.categorySlug);
+                    const category = categories.find((item) => item.slug === recipe.categorySlug || item.id === recipe.categorySlug);
                     const presentation = getRecipePresentation(recipe);
                     const imageUrl = getRecipeImage(recipe);
 
@@ -345,7 +345,7 @@ export default function RecipeListPage() {
 
             <div className="mt-6 grid gap-4 sm:hidden">
               {recipes.map((recipe) => {
-                const category = categories.find((item) => item.slug === recipe.categorySlug);
+                const category = categories.find((item) => item.slug === recipe.categorySlug || item.id === recipe.categorySlug);
                 const presentation = getRecipePresentation(recipe);
                 const imageUrl = getRecipeImage(recipe);
 

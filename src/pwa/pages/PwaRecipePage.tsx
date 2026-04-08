@@ -50,7 +50,7 @@ export default function PwaRecipePage() {
     );
   }
 
-  const cat = categories.find((category) => category.slug === recipe.categorySlug);
+  const cat = categories.find((category) => category.slug === recipe.categorySlug || category.id === recipe.categorySlug);
   const favorite = isFavorite(recipe.id);
   const imageUrl = getRecipeImage(recipe);
   const presentation = getRecipePresentation(recipe);

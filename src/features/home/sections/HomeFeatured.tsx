@@ -9,6 +9,8 @@ import type { RecipeRecord } from '@/lib/recipes/types';
 import type { RecipePresentation } from '@/lib/recipes/presentation';
 import type { SettingsMap } from '@/types/settings';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { resolveCategoryDisplay } from '@/lib/categoriesDisplay';
+import { useAppContext } from '@/contexts/app-context';
 
 type HomeFeaturedProps = {
   settings: SettingsMap;
@@ -31,6 +33,7 @@ export function HomeFeatured({
   onFeaturedClick,
   onViewRelated,
 }: HomeFeaturedProps) {
+  const { categories } = useAppContext();
   const recipes = useMemo(() => featuredRecipes ?? [], [featuredRecipes]);
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const firstItemRef = useRef<HTMLAnchorElement | null>(null);
@@ -160,7 +163,7 @@ export function HomeFeatured({
                       <div className="bg-gradient-to-t from-black/70 via-black/35 to-transparent px-4 pb-4 pt-10">
                         <div className="flex items-center gap-2 text-[11px] text-white/80">
                           <span className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-2 py-0.5 capitalize">
-                            {recipe.categorySlug}
+                            {resolveCategoryDisplay(categories, recipe.categorySlug).label}
                           </span>
                           <span>{recipe.totalTime} min</span>
                         </div>

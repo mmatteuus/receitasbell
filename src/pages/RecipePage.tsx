@@ -130,7 +130,7 @@ export default function RecipePage() {
     );
   }
 
-  const cat = categories.find((category) => category.slug === recipe.categorySlug);
+  const cat = categories.find((category) => category.slug === recipe.categorySlug || category.id === recipe.categorySlug);
   const categoryPath = cat
     ? isPwaNamespace
       ? `${searchPath}?category=${encodeURIComponent(cat.slug)}`
@@ -158,7 +158,7 @@ export default function RecipePage() {
   const currentServings = customServings ?? baseServings;
 
   async function handleRate(value: number) {
-    const email = await requireIdentity("Digite seu e-mail para avaliar esta receita.");
+    const email = await requireIdentity("Digite seu e-mail para avaliar esta receita.", "email-form");
     if (!email) return;
 
     if (!recipe) return;

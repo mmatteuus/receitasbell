@@ -22,8 +22,8 @@ export function Footer() {
     <footer className="relative mt-auto overflow-hidden border-t bg-muted/20">
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
       <div className="container px-4 py-10 sm:py-12">
-        <div className="grid gap-8 md:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)_minmax(0,0.8fr)]">
-          <div className="space-y-4">
+        <div className="flex flex-col gap-8 sm:flex-row sm:gap-12">
+          <div className="space-y-4 sm:flex-1">
             <div className="flex items-center gap-2.5">
               {settings.logoUrl ? (
                 <img
@@ -43,35 +43,37 @@ export function Footer() {
             </p>
           </div>
 
-          <nav aria-label="Links públicos" className="space-y-3">
-            <h2 className="text-sm font-semibold tracking-wide uppercase text-foreground/80">Explorar</h2>
-            <div className="flex flex-col gap-2.5 text-sm">
-              {publicLinks.map((link) => (
-                <Link
-                  key={link.to}
-                  to={link.to}
-                  className="link-underline w-fit text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  {link.label}
-                </Link>
-              ))}
-            </div>
-          </nav>
+          <div className="flex gap-12 shrink-0">
+            <nav aria-label="Links públicos" className="space-y-3">
+              <h2 className="text-sm font-semibold tracking-wide uppercase text-foreground/80">Explorar</h2>
+              <div className="flex flex-col gap-2.5 text-sm">
+                {publicLinks.map((link) => (
+                  <Link
+                    key={link.to}
+                    to={link.to}
+                    className="link-underline w-fit text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+              </div>
+            </nav>
 
-          <nav aria-label="Links institucionais" className="space-y-3">
-            <h2 className="text-sm font-semibold tracking-wide uppercase text-foreground/80">Informações</h2>
-            <div className="flex flex-col gap-2.5 text-sm">
-              {legalLinks.map((link) => (
-                <Link
-                  key={link.to}
-                  to={link.to}
-                  className="link-underline w-fit text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  {link.label}
-                </Link>
-              ))}
-            </div>
-          </nav>
+            <nav aria-label="Links institucionais" className="space-y-3">
+              <h2 className="text-sm font-semibold tracking-wide uppercase text-foreground/80">Informações</h2>
+              <div className="flex flex-col gap-2.5 text-sm">
+                {legalLinks.map((link) => (
+                  <Link
+                    key={link.to}
+                    to={link.to}
+                    className="link-underline w-fit text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+              </div>
+            </nav>
+          </div>
         </div>
 
         <div className="mt-10 flex flex-col items-center gap-3 border-t pt-6 sm:flex-row sm:justify-between">

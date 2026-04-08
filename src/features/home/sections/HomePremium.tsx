@@ -3,6 +3,8 @@ import { Moon, Sparkles, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/motion/Reveal";
 import { Badge } from "@/components/ui/badge";
+import SmartImage from "@/components/SmartImage";
+import { getRecipeImage } from "@/lib/recipes/presentation";
 import type { RecipeRecord } from "@/lib/recipes/types";
 
 type HomePremiumProps = {
@@ -78,11 +80,13 @@ export function HomePremium({
               </div>
 
               <div className="relative aspect-[16/9] lg:aspect-[21/9]">
-                 <img
-                    src={premiumRecipes[0].imageUrl || ""}
-                    alt={premiumRecipes[0].title}
-                    className="w-full h-full object-cover"
-                 />
+                <SmartImage
+                  src={getRecipeImage(premiumRecipes[0])}
+                  fallbackSrc="/placeholder.svg"
+                  alt={premiumRecipes[0].title}
+                  sizes="100vw"
+                  className="w-full h-full object-cover"
+                />
               </div>
             </div>
           </Reveal>

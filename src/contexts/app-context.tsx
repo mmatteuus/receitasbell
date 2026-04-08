@@ -11,7 +11,7 @@ export type AppContextValue = {
   settingsLoading: boolean;
   refreshSettings: () => Promise<SettingsMap>;
   identityEmail: string | null;
-  requireIdentity: (message?: string) => Promise<string | null>;
+  requireIdentity: (message?: string, mode?: "login-prompt" | "email-form") => Promise<string | null>;
   updateIdentity: (email: string) => Promise<void>;
   clearIdentity: () => Promise<void>;
   favoriteRecords: FavoriteRecord[];
