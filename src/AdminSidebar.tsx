@@ -13,6 +13,7 @@ import {
   Settings,
   Home,
   FolderTree,
+  X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { logoutAdmin } from '@/lib/api/adminSession';
@@ -217,6 +218,13 @@ export function AdminMobileSidebar() {
             RB
           </span>
           <h2 className="text-xl font-bold text-primary">Admin</h2>
+          <button
+            onClick={() => setMobileOpen(false)}
+            aria-label="Fechar menu lateral"
+            className="ml-auto rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          >
+            <X aria-hidden="true" className="h-4 w-4" />
+          </button>
         </div>
 
         <SidebarNav collapsed={false} onNavigate={() => setMobileOpen(false)} />

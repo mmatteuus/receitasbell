@@ -162,7 +162,7 @@ async function resolveOrCreateTenantUser(input: {
   const { data: existingProfile } = await supabaseAdmin
     .from("profiles")
     .select("id, email, role")
-    .eq("tenant_id", input.tenantId)
+    .eq("organization_id", input.tenantId)
     .eq("email", normalizedEmail)
     .maybeSingle();
 
@@ -178,8 +178,8 @@ async function resolveOrCreateTenantUser(input: {
       .from("profiles")
       .insert({
         email: normalizedEmail,
-        tenant_id: input.tenantId,
-        role: "user",
+        organization_id: input.tenantId,
+        role: "member",
         full_name: normalizedEmail.split("@")[0],
         avatar_url: input.pictureUrl || null,
       })

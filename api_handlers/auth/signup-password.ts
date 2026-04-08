@@ -33,7 +33,7 @@ export default withApiHandler(async (req, res, { requestId, logger }) => {
     throw new ApiError(404, 'Tenant não encontrado.');
   }
 
-  // P1-1: Validação de Convites Admin
+  // Verificar convite (opcional — necessário apenas para roles admin/owner)
   const { data: invite, error: inviteError } = await supabaseAdmin
     .from('invitations')
     .select('id, role')
@@ -46,7 +46,9 @@ export default withApiHandler(async (req, res, { requestId, logger }) => {
     logger.error('Erro ao buscar convite', inviteError);
   }
 
-  if (!invite) {
+  // Se o convite exige role admin/owner mas não há convite, bloquear
+  const assignedRole = invite?.role || 'member';
+  if ((assignedRole === 'admin' || assignedRole === 'owner') && !invite) {
     throw new ApiError(403, 'Acesso restrito. Este email não possui um convite ativo para esta organização.');
   }
 
@@ -63,8 +65,10 @@ export default withApiHandler(async (req, res, { requestId, logger }) => {
     throw new ApiError(400, authError?.message || 'Erro ao criar conta.');
   }
 
-  // Deletar convite usado
-  await supabaseAdmin.from('invitations').delete().eq('id', invite.id);
+  // Deletar convite usado (se existia)
+  if (invite) {
+    await supabaseAdmin.from('invitations').delete().eq('id', invite.id);
+  }
 
   const { error: profileError } = await supabaseAdmin.from('profiles').upsert(
     {
@@ -74,7 +78,7 @@ export default withApiHandler(async (req, res, { requestId, logger }) => {
       username: authData.user.email!.split('@')[0],
       display_name: fullName,
       full_name: fullName,
-      role: invite.role || 'member',
+      role: assignedRole,
       is_active: true,
       updated_at: new Date().toISOString(),
     },

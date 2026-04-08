@@ -2,10 +2,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
+  Eye,
+  EyeOff,
   Heart,
   ListChecks,
   Loader2,
-  LockOpen,
   LogOut,
   ShoppingCart,
   UserRound,
@@ -29,7 +30,6 @@ import {
   loginWithPassword,
   signupWithPassword,
   requestPasswordReset,
-  requestMagicLink,
   logoutUser,
 } from '@/lib/api/identity';
 import { validatePasswordResetEmail } from '@/lib/validation/identity';
@@ -165,9 +165,10 @@ export default function AccountHome() {
   }
 
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [fullName, setFullName] = useState('');
   const [authMode, setAuthMode] = useState<
-    'magic-link' | 'password-login' | 'password-signup' | 'forgot-password'
+    'password-login' | 'password-signup' | 'forgot-password'
   >('password-login');
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -207,11 +208,6 @@ export default function AccountHome() {
         }
         await requestPasswordReset({ email: validation.email });
         toast.success('Instruções enviadas para seu e-mail.');
-        setAuthMode('password-login');
-        return;
-      } else {
-        await requestMagicLink({ email: normalized });
-        toast.success('Link mágico enviado!');
         setAuthMode('password-login');
         return;
       }
@@ -264,7 +260,6 @@ export default function AccountHome() {
                   {authMode === 'password-login' && 'Entrar na sua conta'}
                   {authMode === 'password-signup' && 'Criar uma nova conta'}
                   {authMode === 'forgot-password' && 'Recuperar sua senha'}
-                  {authMode === 'magic-link' && 'Entrar com link mágico'}
                 </h1>
                 <p className="text-sm text-muted-foreground">
                   {authMode === 'password-login' && 'Digite seu e-mail e senha para continuar.'}
@@ -272,8 +267,6 @@ export default function AccountHome() {
                     'Informe seus dados para se juntar ao Receitas Bell.'}
                   {authMode === 'forgot-password' &&
                     'Enviaremos um link para você definir uma nova senha.'}
-                  {authMode === 'magic-link' &&
-                    'Enviaremos um link de acesso direto para seu e-mail.'}
                 </p>
               </div>
             </div>
@@ -329,15 +322,29 @@ export default function AccountHome() {
                           </button>
                         )}
                       </div>
-                      <input
-                        id="password"
-                        type="password"
-                        placeholder="Sua senha secreta"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                        className="flex h-11 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all"
-                      />
+                      <div className="relative">
+                        <input
+                          id="password"
+                          type={showPassword ? "text" : "password"}
+                          placeholder="Sua senha secreta"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          required
+                          className="flex h-11 w-full rounded-xl border border-input bg-background px-3 py-2 pr-10 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword((v) => !v)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          {showPassword ? (
+                            <EyeOff aria-hidden="true" className="h-4 w-4" />
+                          ) : (
+                            <Eye aria-hidden="true" className="h-4 w-4" />
+                          )}
+                          <span className="sr-only">{showPassword ? 'Ocultar senha' : 'Exibir senha'}</span>
+                        </button>
+                      </div>
                     </div>
                   )}
 
@@ -382,15 +389,6 @@ export default function AccountHome() {
                         className="text-sm text-primary hover:underline font-medium"
                       >
                         Voltar para o login com senha
-                      </button>
-                    )}
-                    {authMode === 'password-login' && (
-                      <button
-                        type="button"
-                        onClick={() => setAuthMode('magic-link')}
-                        className="text-xs flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground mt-2 border rounded-full py-2 transition-colors"
-                      >
-                        <LockOpen className="h-3 w-3" /> Entrar rápido sem senha (Link Mágico)
                       </button>
                     )}
                   </div>

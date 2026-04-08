@@ -1,11 +1,12 @@
 import { AdminSidebar, AdminSidebarProvider, AdminMobileSidebar, AdminMobileMenuButton } from "@/AdminSidebar";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import { AdminBreadcrumbs } from "./AdminBreadcrumbs";
 import { AdminNotifications } from "./AdminNotifications";
 import { BackToTop } from "@/components/BackToTop";
 import { useAdminSidebar } from "@/hooks/use-admin-sidebar";
 import { Helmet } from "react-helmet-async";
 import { AdminInstallPwaButton } from "@/components/pwa/AdminInstallPwaButton";
+import { extractTenantSlugFromPath, buildTenantAdminPath } from "@/lib/tenant";
 function HeaderActions() {
   return (
     <div className="flex items-center gap-2">
@@ -17,7 +18,12 @@ function HeaderActions() {
 
 function AdminShell() {
   const { collapsed } = useAdminSidebar();
+  const location = useLocation();
   const sidebarWidth = collapsed ? "64px" : "256px";
+  const tenantSlug = extractTenantSlugFromPath(location.pathname);
+  const adminLoginUrl = buildTenantAdminPath("login", tenantSlug);
+  const adminScope = tenantSlug ? `/${tenantSlug}/admin/` : "/admin/";
+  const manifestUrl = `/api/admin-manifest?startUrl=${encodeURIComponent(adminLoginUrl)}&scope=${encodeURIComponent(adminScope)}`;
 
   return (
     // NOTE: `position: sticky` does not work reliably when any ancestor has
@@ -25,8 +31,8 @@ function AdminShell() {
     // prevent horizontal scroll without breaking the sticky admin header.
     <div className="flex min-h-screen overflow-x-clip">
       <Helmet>
-        {/* Use an admin-specific manifest so installed PWA opens at /admin/login. */}
-        <link rel="manifest" href="/admin.webmanifest" />
+        {/* Manifesto do PWA do admin — inicia na tela de login do painel */}
+        <link rel="manifest" href={manifestUrl} />
       </Helmet>
       {/* Desktop sidebar */}
       <AdminSidebar />

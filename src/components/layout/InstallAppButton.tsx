@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Download } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -11,12 +11,6 @@ interface InstallAppButtonProps {
   className?: string;
   showLabel?: boolean;
   context?: 'desktop' | 'mobile';
-}
-
-// Detecta se é dispositivo mobile
-function isMobileDevice(): boolean {
-  const userAgent = navigator.userAgent.toLowerCase();
-  return /android|iphone|ipad|ipod|windows phone|mobile/.test(userAgent);
 }
 
 // Detecta tipo de navegador
@@ -41,19 +35,6 @@ export function InstallAppButton({
   const [isInstalled, setIsInstalled] = useState(false);
   const [showInstallButton, setShowInstallButton] = useState(false);
 
-  // Refs para tracking de estado sem triggerar re-renders
-  const promptTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const autoTriggerAttemptedRef = useRef(false);
-  const isMobileRef = useRef(false);
-  const browserRef = useRef(detectBrowser());
-
-  // Cleanup timeout function
-  const clearPromptTimeout = useCallback(() => {
-    if (promptTimeoutRef.current) {
-      clearTimeout(promptTimeoutRef.current);
-      promptTimeoutRef.current = null;
-    }
-  }, []);
 
   const triggerInstallPrompt = useCallback(async (prompt: BeforeInstallPromptEvent | null) => {
     if (!prompt) return;
@@ -67,12 +48,7 @@ export function InstallAppButton({
         setShowInstallButton(false);
         toast.success('Aplicativo instalado com sucesso!');
       } else if (choice.outcome === 'dismissed') {
-        // Usuário rejeitou - informar alternativa
-        const feedbackMsg = isMobileRef.current
-          ? 'Você pode tentar instalar novamente pelo botão de menu'
-          : 'Você pode instalar quando quiser clicando no botão de download';
-
-        toast.info(feedbackMsg, {
+        toast.info('Você pode instalar quando quiser clicando no botão de download', {
           description: 'A instalação é completamente opcional',
         });
       }
@@ -89,8 +65,6 @@ export function InstallAppButton({
 
   // Inicialização e setup de listeners
   useEffect(() => {
-    isMobileRef.current = isMobileDevice();
-
     // Verifica se app já está instalado
     if (window.matchMedia('(display-mode: standalone)').matches) {
       setIsInstalled(true);
@@ -104,25 +78,12 @@ export function InstallAppButton({
       setDeferredPrompt(prompt);
       setShowInstallButton(true);
 
-      // Auto-trigger com estratégia por dispositivo:
-      // - Tenta só uma vez (autoTriggerAttemptedRef)
-      // - Não tenta se for iOS (Safari não suporta bem)
-      // - Delay diferente: mobile (2s), desktop (3s)
-      if (!autoTriggerAttemptedRef.current && !browserRef.current.isIOS) {
-        autoTriggerAttemptedRef.current = true;
-        const delayMs = isMobileRef.current ? 2000 : 3000;
-
-        promptTimeoutRef.current = setTimeout(() => {
-          triggerInstallPrompt(prompt);
-        }, delayMs);
-      }
     };
 
     // Handler do evento appinstalled
     const handleAppInstalled = () => {
       setIsInstalled(true);
       setShowInstallButton(false);
-      clearPromptTimeout();
       toast.success('Aplicativo instalado com sucesso!');
     };
 
@@ -134,14 +95,11 @@ export function InstallAppButton({
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
-      clearPromptTimeout();
     };
-  }, [triggerInstallPrompt, clearPromptTimeout]);
+  }, [triggerInstallPrompt]);
 
   // Handler de clique no botão
   const handleClick = useCallback(async () => {
-    clearPromptTimeout(); // Cancela auto-trigger se pendente
-
     if (deferredPrompt) {
       // Se tem evento deferred, dispara direto
       await triggerInstallPrompt(deferredPrompt);
@@ -186,7 +144,7 @@ export function InstallAppButton({
         description: 'A opção geralmente está no menu principal',
       });
     }
-  }, [deferredPrompt, triggerInstallPrompt, clearPromptTimeout]);
+  }, [deferredPrompt, triggerInstallPrompt]);
 
   // Se já instalado, não renderiza nada
   if (isInstalled) {

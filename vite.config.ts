@@ -121,6 +121,8 @@ function patchDevResponse(response: ServerResponse): DevApiResponse {
 function resolveApiModule(pathname: string) {
   if (pathname === '/api/events') return '/api/events.ts';
   if (pathname === '/api/settings') return '/api/settings.ts';
+  if (pathname === '/api/admin-manifest') return '/api/admin-manifest.ts';
+  if (pathname === '/api/uploads/recipe-image') return '/api/uploads/recipe-image.ts';
   if (pathname === '/api/admin/auth/bootstrap') return '/api/admin/auth/bootstrap.ts';
   if (pathname === '/api/admin/auth/session') return '/api/admin/auth/session.ts';
 

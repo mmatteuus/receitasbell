@@ -3,6 +3,47 @@ import { Reveal } from "@/components/motion/Reveal";
 import { Button } from "@/components/ui/button";
 import type { Category } from "@/types/category";
 
+const CATEGORY_ICONS: Record<string, string> = {
+  // slugs comuns
+  doces: "🍰",
+  bolos: "🎂",
+  tortas: "🥧",
+  massas: "🍝",
+  salgadas: "🥘",
+  salgados: "🥐",
+  sopas: "🍲",
+  saladas: "🥗",
+  carnes: "🥩",
+  frango: "🍗",
+  peixes: "🐟",
+  frutos_do_mar: "🦐",
+  vegetariano: "🥦",
+  vegano: "🌱",
+  saudaveis: "🥑",
+  bebidas: "🥤",
+  cafe: "☕",
+  paes: "🍞",
+  pizzas: "🍕",
+  lanches: "🥪",
+  sobremesas: "🍮",
+  cafe_da_manha: "🍳",
+  almoço: "🍽️",
+  almoco: "🍽️",
+  jantar: "🌙",
+  snacks: "🥨",
+  fitness: "💪",
+  rapidas: "⚡",
+  gratinados: "🫕",
+  gratins: "🫕",
+};
+
+function getCategoryIcon(category: Category): string {
+  if (category.icon) return category.icon;
+  const slug = (category.slug || "").toLowerCase().replace(/-/g, "_");
+  const name = (category.name || "").toLowerCase().replace(/\s+/g, "_");
+  return CATEGORY_ICONS[slug] || CATEGORY_ICONS[name] || "🍴";
+}
+
 type HomeCategoriesProps = {
   categories: Category[];
   onBrowseAll: () => void;
@@ -33,13 +74,18 @@ export function HomeCategories({ categories, onBrowseAll }: HomeCategoriesProps)
         {featuredCategories.map((category, index) => (
           <Reveal key={category.slug} delayMs={index * 35}>
             <Link
-              to={`/categorias/${category.slug}`}
-              className="group flex aspect-square items-center justify-center rounded-xl border bg-card text-lg font-semibold transition-all hover:-translate-y-0.5 hover:shadow-sm"
+              to={`/buscar?category=${category.slug}`}
+              className="group flex flex-col items-center justify-center gap-2 rounded-xl border bg-card px-2 py-4 text-center transition-all hover:-translate-y-0.5 hover:shadow-md hover:border-primary/30"
               aria-label={`Abrir categoria ${category.name}`}
             >
-              <span className="sr-only">{category.name}</span>
-              <span aria-hidden className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm sm:text-base">
-                {category.icon || category.name.slice(0, 2).toUpperCase()}
+              <span
+                aria-hidden
+                className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 text-2xl transition-transform duration-300 group-hover:scale-110"
+              >
+                {getCategoryIcon(category)}
+              </span>
+              <span className="text-[11px] font-medium leading-tight text-muted-foreground group-hover:text-foreground line-clamp-2">
+                {category.name}
               </span>
             </Link>
           </Reveal>

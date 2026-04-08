@@ -39,12 +39,19 @@
       "source": "/api/security/(.*)",
       "headers": [{ "key": "Cache-Control", "value": "no-store" }]
     },
-    { "source": "/api/health(.*)", "headers": [{ "key": "Cache-Control", "value": "no-store" }] }
+    { "source": "/api/health(.*)", "headers": [{ "key": "Cache-Control", "value": "no-store" }] },
+    { "source": "/api/admin-manifest", "headers": [{ "key": "Cache-Control", "value": "no-store" }] }
   ],
   "crons": [{ "path": "/api/jobs/cleanup", "schedule": "0 3 * * *" }],
   "rewrites": [
     { "source": "/api/health", "destination": "/api/health/live" },
+    { "source": "/api/health/:path*", "destination": "/api/health/[...path]" },
     { "source": "/api/uploads/recipe-image", "destination": "/api/uploads/recipe-image" },
+    { "source": "/api/auth/:path*", "destination": "/api/auth/[...path]" },
+    { "source": "/api/me/:path*", "destination": "/api/me/[...path]" },
+    { "source": "/api/public/:path*", "destination": "/api/public/[...path]" },
+    { "source": "/api/jobs/:path*", "destination": "/api/jobs/[...path]" },
+    { "source": "/api/security/:path*", "destination": "/api/security/[...path]" },
     { "source": "/api/admin/:path*", "destination": "/api/admin/[...path]" },
     { "source": "/api/payments/:path*", "destination": "/api/payments/[...path]" },
     { "source": "/@vite/:path*", "destination": "/@vite/:path*" },
