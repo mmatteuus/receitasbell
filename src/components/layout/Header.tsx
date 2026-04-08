@@ -8,8 +8,10 @@ import {
   Settings,
   UserCircle2,
   ListChecks,
+  LogOut,
   ShoppingBag,
   Share2,
+  X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAppContext } from '@/contexts/app-context';
@@ -36,7 +38,7 @@ export default function Header() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const { pathname } = useLocation();
-  const { categories, settings } = useAppContext();
+  const { categories, settings, identityEmail, clearIdentity } = useAppContext();
   const tenantSlug = extractTenantSlugFromPath(pathname);
   const adminPath = buildTenantAdminPath('', tenantSlug);
 
@@ -187,11 +189,18 @@ export default function Header() {
             <DialogDescription>Acesse as principais áreas do site e sua conta.</DialogDescription>
           </DialogHeader>
 
-          <div className="flex h-14 items-center border-b px-4">
+          <div className="flex h-14 items-center justify-between border-b px-4">
             <div className="flex items-center gap-2">
               <ChefHat className="h-6 w-6 text-primary" />
               <span className="font-heading text-lg font-bold">{settings.siteName}</span>
             </div>
+            <button
+              onClick={() => setOpen(false)}
+              aria-label="Fechar menu"
+              className="flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <X aria-hidden="true" className="h-5 w-5" />
+            </button>
           </div>
 
           <nav className="flex-1 overflow-y-auto px-4 py-6">
@@ -283,6 +292,25 @@ export default function Header() {
                   </Button>
                 </Link>
               </div>
+
+              {identityEmail && (
+                <div className="border-t pt-4 space-y-1">
+                  <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Conta
+                  </p>
+                  <p className="px-3 text-xs text-muted-foreground truncate">{identityEmail}</p>
+                  <button
+                    onClick={() => {
+                      void clearIdentity();
+                      setOpen(false);
+                    }}
+                    className="flex w-full items-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors"
+                  >
+                    <LogOut aria-hidden="true" className="h-4 w-4" />
+                    Sair da conta
+                  </button>
+                </div>
+              )}
             </div>
           </nav>
         </DialogContent>
