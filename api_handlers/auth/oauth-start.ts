@@ -10,6 +10,7 @@ import { authRateLimit, checkRateLimit } from '../../src/server/shared/rateLimit
 import { startSocialOAuth } from '../../src/server/auth/social/service.js';
 import { ApiError } from '../../src/server/shared/http.js';
 import { requireTenantFromRequest } from '../../src/server/tenancy/resolver.js';
+import { env } from '../../src/server/shared/env.js';
 
 /**
  * POST /api/auth/oauth/start
@@ -23,6 +24,11 @@ export default withApiHandler(async (req, res, { logger }) => {
 
   if (!body.provider) {
     throw new ApiError(400, 'Missing required field: provider');
+  }
+
+  // Verifica se o OAuth social está habilitado via variável de ambiente
+  if (env.AUTH_SOCIAL_ENABLED === false) {
+    throw new ApiError(503, 'Login social não está habilitado nesta instância.');
   }
 
   // 1. Resolve tenant pelo Host da request (não requer envio do tenantId pelo cliente)
