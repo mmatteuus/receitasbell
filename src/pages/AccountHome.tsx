@@ -7,6 +7,7 @@ import {
   Heart,
   ListChecks,
   Loader2,
+  LockOpen,
   LogOut,
   ShoppingCart,
   UserRound,
