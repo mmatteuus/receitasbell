@@ -280,6 +280,33 @@ CREATE TABLE IF NOT EXISTS public.user_identities (
 );
 
 -- ################################################
+-- STORAGE BUCKETS
+-- ################################################
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'recipe-images',
+  'recipe-images',
+  true,
+  5242880,
+  ARRAY['image/jpeg','image/png','image/webp','image/gif']
+)
+ON CONFLICT (id) DO NOTHING;
+
+-- Política: qualquer pessoa pode ler imagens públicas
+CREATE POLICY IF NOT EXISTS "recipe-images public read"
+  ON storage.objects FOR SELECT
+  USING (bucket_id = 'recipe-images');
+
+-- Política: apenas service_role pode fazer upload/delete (feito via API server-side)
+CREATE POLICY IF NOT EXISTS "recipe-images service upload"
+  ON storage.objects FOR INSERT
+  WITH CHECK (bucket_id = 'recipe-images');
+
+CREATE POLICY IF NOT EXISTS "recipe-images service delete"
+  ON storage.objects FOR DELETE
+  USING (bucket_id = 'recipe-images');
+
+-- ################################################
 -- INDEXES for common query patterns
 -- ################################################
 CREATE INDEX IF NOT EXISTS idx_recipes_tenant_status ON public.recipes(tenant_id, status, is_active);

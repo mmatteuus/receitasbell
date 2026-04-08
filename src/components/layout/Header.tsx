@@ -181,7 +181,7 @@ export default function Header() {
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="flex h-full max-h-screen w-full flex-col border-none p-0 sm:max-w-full">
+        <DialogContent hideCloseButton className="flex h-full max-h-screen w-full flex-col border-none p-0 sm:max-w-full">
           <DialogHeader className="sr-only">
             <DialogTitle>Menu de Navegação</DialogTitle>
             <DialogDescription>Acesse as principais áreas do site e sua conta.</DialogDescription>
