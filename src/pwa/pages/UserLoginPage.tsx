@@ -40,8 +40,8 @@ export default function UserLoginPage() {
     [tenantSlug]
   );
 
-  // Login unificado: tenta admin primeiro, depois usuário comum.
-  // Quem é admin vai para o painel admin; usuário comum vai para o app.
+  // Login unificado: tenta usuário comum primeiro, depois admin.
+  // Usuário comum vai para o app; admin vai para o painel admin.
   async function handleLogin() {
     if (!email || !password) {
       toast.error('Preencha e-mail e senha.');
@@ -51,7 +51,17 @@ export default function UserLoginPage() {
     setState('submitting');
     persistPwaUserLoginEmail(email);
 
-    // 1. Tenta login como admin
+    // 1. Tenta login como usuário comum
+    try {
+      await loginWithPassword({ email, password });
+      toast.success('Bem-vindo(a)!');
+      navigate(redirectTarget, { replace: true });
+      return;
+    } catch {
+      // Não é usuário comum — tenta como admin
+    }
+
+    // 2. Tenta login como admin
     try {
       const adminResult = await loginAdmin({ email, password });
       if (adminResult.authenticated) {
@@ -59,21 +69,15 @@ export default function UserLoginPage() {
         navigate(buildPwaAdminPath({ tenantSlug }), { replace: true });
         return;
       }
-    } catch {
-      // Não é admin — tenta como usuário comum
-    }
-
-    // 2. Tenta login como usuário comum
-    try {
-      await loginWithPassword({ email, password });
-      toast.success('Bem-vindo(a)!');
-      navigate(redirectTarget, { replace: true });
     } catch (err: unknown) {
       setState('idle');
       const message =
         err instanceof Error ? err.message : 'E-mail ou senha incorretos.';
       toast.error(message);
     }
+
+    setState('idle');
+    toast.error('E-mail ou senha incorretos.');
   }
 
   async function handleSignup() {
