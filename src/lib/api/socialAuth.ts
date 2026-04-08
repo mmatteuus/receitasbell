@@ -4,19 +4,37 @@ export type OAuthStartResponse = {
   success: boolean;
   data: {
     authorizationUrl: string;
-    state: string;
   };
 };
+
+type StartSocialLoginOptions =
+  | string
+  | {
+      redirectTo?: string;
+      tenantSlug?: string;
+    };
+
+function normalizeOptions(options?: StartSocialLoginOptions) {
+  if (typeof options === "string") {
+    return { redirectTo: options };
+  }
+  return options ?? {};
+}
 
 /**
  * Inicia o fluxo de autenticação social (Google).
  * Retorna a URL para redirecionar o usuário.
- * O tenantId é resolvido automaticamente pelo servidor via Host header.
+ * O tenant é resolvido no servidor por header/host, com suporte a tenantSlug no payload.
  */
-export async function startSocialLogin(provider = "google", redirectTo?: string) {
+export async function startSocialLogin(provider = "google", options?: StartSocialLoginOptions) {
+  const { redirectTo, tenantSlug } = normalizeOptions(options);
+  const body: { provider: string; redirectTo?: string; tenantSlug?: string } = { provider };
+  if (redirectTo) body.redirectTo = redirectTo;
+  if (tenantSlug) body.tenantSlug = tenantSlug;
+
   const result = await jsonFetch<OAuthStartResponse>("/api/auth/oauth/start", {
     method: "POST",
-    body: { provider, redirectTo },
+    body,
   });
   return result.data;
 }

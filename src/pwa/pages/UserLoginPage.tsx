@@ -13,6 +13,7 @@ import {
   signupWithPassword,
   requestPasswordReset,
 } from '@/lib/api/identity';
+import { startSocialLogin } from '@/lib/api/socialAuth';
 import { validatePasswordResetEmail } from '@/lib/validation/identity';
 import { InstallAppButton } from '../components/InstallAppButton';
 import { buildPwaPath } from '@/pwa/app/navigation/pwa-paths';
@@ -121,6 +122,26 @@ export default function UserLoginPage() {
     } catch (err: unknown) {
       setState('idle');
       const message = err instanceof Error ? err.message : 'Erro ao solicitar recuperação.';
+      toast.error(message);
+    }
+  }
+
+  async function handleGoogleLogin() {
+    const targetTenantSlug = tenantSlug || 'receitasbell';
+    const targetRedirect = redirectTarget || buildPwaPath('home', { tenantSlug: targetTenantSlug });
+    savePwaRedirect(targetRedirect);
+
+    setState('submitting');
+    try {
+      const { authorizationUrl } = await startSocialLogin('google', {
+        redirectTo: targetRedirect,
+        tenantSlug: targetTenantSlug,
+      });
+      window.location.assign(authorizationUrl);
+    } catch (err: unknown) {
+      setState('idle');
+      const message =
+        err instanceof Error ? err.message : 'Erro ao iniciar login com Google. Tente novamente.';
       toast.error(message);
     }
   }
@@ -296,7 +317,9 @@ export default function UserLoginPage() {
               <Button
                 variant="outline"
                 className="w-full h-12 gap-2"
-                onClick={() => (window.location.href = '/api/auth/oauth/start?provider=google')}
+                type="button"
+                disabled={state === 'submitting'}
+                onClick={handleGoogleLogin}
               >
                 <svg className="h-5 w-5" viewBox="0 0 24 24">
                   <path
