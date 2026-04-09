@@ -201,11 +201,11 @@ export default function CategoriesPage() {
                           </div>
                           <h2 className="mt-2 text-xl font-bold tracking-tight">{category.name}</h2>
                         </div>
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary text-lg">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary text-3xl leading-none">
                           {category.icon ? (
                             <span>{category.icon}</span>
                           ) : (
-                            <Layers className="h-5 w-5" />
+                            <Layers className="h-6 w-6" />
                           )}
                         </div>
                       </div>

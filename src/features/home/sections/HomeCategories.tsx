@@ -1,55 +1,55 @@
-import { Link } from "react-router-dom";
-import { Reveal } from "@/components/motion/Reveal";
-import { Button } from "@/components/ui/button";
-import type { Category } from "@/types/category";
+import { Link } from 'react-router-dom';
+import { Reveal } from '@/components/motion/Reveal';
+import { Button } from '@/components/ui/button';
+import type { Category } from '@/types/category';
 
 const CATEGORY_ICONS: Record<string, string> = {
   // slugs comuns
-  doces: "🍰",
-  bolos: "🎂",
-  tortas: "🥧",
-  massas: "🍝",
-  salgadas: "🥘",
-  salgados: "🥐",
-  sopas: "🍲",
-  saladas: "🥗",
-  carnes: "🥩",
-  frango: "🍗",
-  peixes: "🐟",
-  frutos_do_mar: "🦐",
-  vegetariano: "🥦",
-  vegano: "🌱",
-  saudaveis: "🥑",
-  bebidas: "🥤",
-  cafe: "☕",
-  paes: "🍞",
-  pizzas: "🍕",
-  lanches: "🥪",
-  sobremesas: "🍮",
-  cafe_da_manha: "🍳",
-  almoço: "🍽️",
-  almoco: "🍽️",
-  jantar: "🌙",
-  snacks: "🥨",
-  fitness: "💪",
-  rapidas: "⚡",
-  gratinados: "🫕",
-  gratins: "🫕",
+  doces: '🍰',
+  bolos: '🎂',
+  tortas: '🥧',
+  massas: '🍝',
+  salgadas: '🥘',
+  salgados: '🥐',
+  sopas: '🍲',
+  saladas: '🥗',
+  carnes: '🥩',
+  frango: '🍗',
+  peixes: '🐟',
+  frutos_do_mar: '🦐',
+  vegetariano: '🥦',
+  vegano: '🌱',
+  saudaveis: '🥑',
+  bebidas: '🥤',
+  cafe: '☕',
+  paes: '🍞',
+  pizzas: '🍕',
+  lanches: '🥪',
+  sobremesas: '🍮',
+  cafe_da_manha: '🍳',
+  almoço: '🍽️',
+  almoco: '🍽️',
+  jantar: '🌙',
+  snacks: '🥨',
+  fitness: '💪',
+  rapidas: '⚡',
+  gratinados: '🫕',
+  gratins: '🫕',
 };
 
 function isImageUrl(value: string): boolean {
-  return /^https?:\/\//i.test(value) || value.startsWith("/");
+  return /^https?:\/\//i.test(value) || value.startsWith('/');
 }
 
-function getCategoryIcon(category: Category): { type: "emoji" | "image"; value: string } {
+function getCategoryIcon(category: Category): { type: 'emoji' | 'image'; value: string } {
   if (category.icon) {
-    if (isImageUrl(category.icon)) return { type: "image", value: category.icon };
-    return { type: "emoji", value: category.icon };
+    if (isImageUrl(category.icon)) return { type: 'image', value: category.icon };
+    return { type: 'emoji', value: category.icon };
   }
-  const slug = (category.slug || "").toLowerCase().replace(/-/g, "_");
-  const name = (category.name || "").toLowerCase().replace(/\s+/g, "_");
-  const emoji = CATEGORY_ICONS[slug] || CATEGORY_ICONS[name] || "🍴";
-  return { type: "emoji", value: emoji };
+  const slug = (category.slug || '').toLowerCase().replace(/-/g, '_');
+  const name = (category.name || '').toLowerCase().replace(/\s+/g, '_');
+  const emoji = CATEGORY_ICONS[slug] || CATEGORY_ICONS[name] || '🍴';
+  return { type: 'emoji', value: emoji };
 }
 
 type HomeCategoriesProps = {
@@ -88,17 +88,17 @@ export function HomeCategories({ categories, onBrowseAll }: HomeCategoriesProps)
             >
               {(() => {
                 const icon = getCategoryIcon(category);
-                return icon.type === "image" ? (
+                return icon.type === 'image' ? (
                   <span
                     aria-hidden
-                    className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 overflow-hidden transition-transform duration-300 group-hover:scale-110"
+                    className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 overflow-hidden transition-transform duration-300 group-hover:scale-110"
                   >
-                    <img src={icon.value} alt="" className="h-7 w-7 object-contain" />
+                    <img src={icon.value} alt="" className="h-8 w-8 object-contain" />
                   </span>
                 ) : (
                   <span
                     aria-hidden
-                    className="flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 text-2xl transition-transform duration-300 group-hover:scale-110"
+                    className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-3xl leading-none transition-transform duration-300 group-hover:scale-110"
                   >
                     {icon.value}
                   </span>
