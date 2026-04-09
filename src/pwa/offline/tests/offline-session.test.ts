@@ -126,8 +126,8 @@ describe("getOfflineAdminSession", () => {
 describe("persistUserSessionEnvelope", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockSaveEnvelope.mockResolvedValue(undefined);
-    mockClearEnvelope.mockResolvedValue(undefined);
+    mockSaveEnvelope.mockResolvedValue(undefined as never);
+    mockClearEnvelope.mockResolvedValue(undefined as never);
   });
 
   it("limpa envelope quando sessão não está autenticada", async () => {
@@ -159,7 +159,7 @@ describe("persistUserSessionEnvelope", () => {
 
 describe("clearOfflineSession", () => {
   it("delega para clearSessionEnvelope com o kind correto", async () => {
-    mockClearEnvelope.mockResolvedValue(undefined);
+    mockClearEnvelope.mockResolvedValue(undefined as never);
     await clearOfflineSession("user");
     expect(mockClearEnvelope).toHaveBeenCalledWith("user");
     await clearOfflineSession("admin");
