@@ -1,15 +1,6 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import {
-  PlusCircle,
-  List,
-  Eye,
-  FilePen,
-  DollarSign,
-  TrendingUp,
-  Users,
-  ShoppingCart,
-} from 'lucide-react';
+import { PlusCircle, List, Eye, FilePen, DollarSign, TrendingUp, ShoppingCart } from 'lucide-react';
 import type { RecipeRecord } from '@/lib/recipes/types';
 import { Button } from '@/components/ui/button';
 import { getRecipes } from '@/lib/repos/recipeRepo';
@@ -129,7 +120,12 @@ export default function Dashboard() {
     },
     { label: 'Receitas Publicadas', value: published, icon: Eye, color: 'text-sky-500' },
     { label: 'Rascunhos', value: drafts, icon: FilePen, color: 'text-muted-foreground' },
-    { label: 'Total Pagamentos', value: payments.length, icon: Users, color: 'text-violet-500' },
+    {
+      label: 'Total Pagamentos',
+      value: payments.length,
+      icon: ShoppingCart,
+      color: 'text-violet-500',
+    },
   ];
 
   const revenueByDay = useMemo(() => {
@@ -410,22 +406,6 @@ export default function Dashboard() {
               className="w-full h-14 rounded-2xl gap-3 text-sm font-bold border-muted"
             >
               <List className="h-5 w-5" /> Gerenciar Itens
-            </Button>
-          </Link>
-          <Link to={buildTenantAdminPath('pagamentos/transacoes', tenantSlug)}>
-            <Button
-              variant="secondary"
-              className="w-full h-14 rounded-2xl gap-3 text-sm font-bold border-muted"
-            >
-              <DollarSign className="h-5 w-5" /> Relatório Financeiro
-            </Button>
-          </Link>
-          <Link to={buildTenantAdminPath('newsletter', tenantSlug)}>
-            <Button
-              variant="secondary"
-              className="w-full h-14 rounded-2xl gap-3 text-sm font-bold border-muted"
-            >
-              <Users className="h-5 w-5" /> Audiência
             </Button>
           </Link>
         </div>
