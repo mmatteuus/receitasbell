@@ -1,16 +1,17 @@
 import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { PageHead } from '@/components/PageHead';
-import { getAdminSession } from '@/lib/api/adminSession';
 import { fetchMe } from '@/lib/api/identity';
 import { getInstallContext } from '../lib/install-context';
 import { buildPwaAdminPath, buildPwaPath } from '@/pwa/app/navigation/pwa-paths';
 import { clearPwaRedirect, readPwaRedirect } from '@/pwa/app/auth/pwa-auth-redirect';
 import { resolvePwaTenantSlug } from '@/pwa/app/tenant/pwa-tenant-path';
+import { useAppContext } from '@/contexts/app-context';
 
 export default function PwaEntryPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { identityEmail, identityRole } = useAppContext();
 
   useEffect(() => {
     let active = true;
@@ -21,26 +22,15 @@ export default function PwaEntryPage() {
       const pendingRedirect = readPwaRedirect();
 
       try {
-        const [adminSession, userSession] = await Promise.all([
-          getAdminSession({ allowOffline: true }).catch(() => ({
-            authenticated: false as const,
-          })),
-          fetchMe({ allowOffline: true }),
-        ]);
-
-        if (!active) {
-          return;
-        }
-
-        if (adminSession.authenticated) {
+        // Verifica se é admin pelo contexto
+        if (identityEmail && (identityRole === 'admin' || identityRole === 'owner')) {
           navigate(buildPwaAdminPath({ tenantSlug }), { replace: true });
           return;
         }
 
-        if (userSession?.email) {
-          const target =
-            pendingRedirect ||
-            buildPwaPath('home', { tenantSlug: userSession.tenantSlug ?? tenantSlug });
+        // Se há identity email, redireciona para home
+        if (identityEmail) {
+          const target = pendingRedirect || buildPwaPath('home', { tenantSlug });
           clearPwaRedirect();
           navigate(target, { replace: true });
           return;
@@ -55,11 +45,6 @@ export default function PwaEntryPage() {
         return;
       }
 
-      if (installContext === 'admin') {
-        navigate(buildPwaPath('adminLogin', { tenantSlug }), { replace: true });
-        return;
-      }
-
       // Não autenticado: vai para a tela de login unificada
       navigate(buildPwaPath('login', { tenantSlug }), { replace: true });
     }
@@ -69,7 +54,7 @@ export default function PwaEntryPage() {
     return () => {
       active = false;
     };
-  }, [location.pathname, navigate]);
+  }, [location.pathname, navigate, identityEmail, identityRole]);
 
   return (
     <>

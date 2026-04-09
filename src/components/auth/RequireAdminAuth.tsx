@@ -1,54 +1,22 @@
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { getAdminSession } from '@/lib/api/adminSession';
 import { buildTenantAdminPath, extractTenantSlugFromPath } from '@/lib/tenant';
+import { useAppContext } from '@/contexts/app-context';
 
 export function RequireAdminAuth({ children }: { children: ReactNode }) {
   const location = useLocation();
-  const [status, setStatus] = useState<'checking' | 'authenticated' | 'unauthenticated'>(
-    'checking'
-  );
+  const { identityEmail, identityRole } = useAppContext();
 
-  useEffect(() => {
-    let active = true;
-    const timeout = setTimeout(() => {
-      if (active) setStatus('unauthenticated');
-    }, 8000);
+  // Verifica se o usuário está autenticado e tem role de admin ou owner
+  const isAdminAuthenticated =
+    identityEmail && (identityRole === 'admin' || identityRole === 'owner');
 
-    async function checkSession() {
-      try {
-        const result = await getAdminSession();
-        if (!active) return;
-        setStatus(result.authenticated ? 'authenticated' : 'unauthenticated');
-      } catch {
-        if (!active) return;
-        setStatus('unauthenticated');
-      } finally {
-        clearTimeout(timeout);
-      }
-    }
-
-    void checkSession();
-    return () => {
-      active = false;
-      clearTimeout(timeout);
-    };
-  }, [location.pathname]);
-
-  if (status === 'checking') {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background px-4">
-        <p className="text-sm text-muted-foreground">Verificando acesso do admin...</p>
-      </div>
-    );
-  }
-
-  if (status === 'unauthenticated') {
+  if (!isAdminAuthenticated) {
     const redirect = `${location.pathname}${location.search}${location.hash}`;
     const tenantSlug = extractTenantSlugFromPath(location.pathname);
     return (
       <Navigate
-        to={`${buildTenantAdminPath('login', tenantSlug)}?redirect=${encodeURIComponent(redirect)}`}
+        to={`${buildTenantAdminPath('', tenantSlug)}?redirect=${encodeURIComponent(redirect)}`}
         replace
       />
     );
