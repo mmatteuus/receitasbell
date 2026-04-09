@@ -1,30 +1,9 @@
-import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { runOfflineSanityCheck } from "../db/open-db";
 import { attachSyncOnOnline } from "../sync/sync-on-online";
 import { attachSyncOnResume } from "../sync/sync-on-resume";
 import { syncNow } from "../sync/sync-engine";
-
-type SyncStatus = "idle" | "syncing" | "error";
-
-type OfflineRuntimeContextValue = {
-  syncCenterOpen: boolean;
-  openSyncCenter: () => void;
-  closeSyncCenter: () => void;
-  syncNow: () => Promise<void>;
-  syncStatus: SyncStatus;
-};
-
-const OfflineRuntimeContext = createContext<OfflineRuntimeContextValue>({
-  syncCenterOpen: false,
-  openSyncCenter: () => undefined,
-  closeSyncCenter: () => undefined,
-  syncNow: async () => undefined,
-  syncStatus: "idle",
-});
-
-export function useOfflineRuntime() {
-  return useContext(OfflineRuntimeContext);
-}
+import { OfflineRuntimeContext, type SyncStatus } from "./use-offline-runtime";
 
 export function OfflineRuntimeProvider({ children }: { children: React.ReactNode }) {
   const [syncCenterOpen, setSyncCenterOpen] = useState(false);
