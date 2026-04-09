@@ -20,7 +20,7 @@ function escapeHtml(value: string) {
 }
 
 export function exportRecipeToPDF(input: ExportRecipeToPdfInput) {
-  const printWindow = window.open('', '_blank', 'noopener,noreferrer');
+  const printWindow = window.open('', '_blank', 'width=900,height=700');
   if (!printWindow) {
     return false;
   }
