@@ -4,13 +4,9 @@ import { PageHead } from '@/components/PageHead';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChefHat, Mail, Loader2, Eye, EyeOff } from 'lucide-react';
+import { ChefHat, Mail, Loader2, Eye, EyeOff, Home } from 'lucide-react';
 import { toast } from 'sonner';
-import {
-  loginWithPassword,
-  signupWithPassword,
-  requestPasswordReset,
-} from '@/lib/api/identity';
+import { loginWithPassword, signupWithPassword, requestPasswordReset } from '@/lib/api/identity';
 import { loginAdmin } from '@/lib/api/adminSession';
 import { startSocialLogin } from '@/lib/api/socialAuth';
 import { validatePasswordResetEmail } from '@/lib/validation/identity';
@@ -71,8 +67,7 @@ export default function UserLoginPage() {
       }
     } catch (err: unknown) {
       setState('idle');
-      const message =
-        err instanceof Error ? err.message : 'E-mail ou senha incorretos.';
+      const message = err instanceof Error ? err.message : 'E-mail ou senha incorretos.';
       toast.error(message);
     }
 
@@ -132,8 +127,7 @@ export default function UserLoginPage() {
       window.location.assign(authorizationUrl);
     } catch (err: unknown) {
       setState('idle');
-      const message =
-        err instanceof Error ? err.message : 'Erro ao iniciar login com Google.';
+      const message = err instanceof Error ? err.message : 'Erro ao iniciar login com Google.';
       toast.error(message);
     }
   }
@@ -200,11 +194,23 @@ export default function UserLoginPage() {
 
         <Card className="w-full max-w-sm border-none shadow-none bg-transparent">
           <CardHeader className="px-0 text-center">
-            <CardTitle className="text-xl font-semibold">
-              {mode === 'login' && 'Entrar'}
-              {mode === 'signup' && 'Criar Conta'}
-              {mode === 'forgot-password' && 'Recuperar Senha'}
-            </CardTitle>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex-1" />
+              <CardTitle className="text-xl font-semibold flex-1">
+                {mode === 'login' && 'Entrar'}
+                {mode === 'signup' && 'Criar Conta'}
+                {mode === 'forgot-password' && 'Recuperar Senha'}
+              </CardTitle>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="flex-1 justify-end"
+                onClick={() => navigate('/', { replace: false })}
+                title="Ir para página principal"
+              >
+                <Home className="h-5 w-5" />
+              </Button>
+            </div>
             <CardDescription>
               {mode === 'login' && 'Admin ou usuário — entre com sua conta.'}
               {mode === 'signup' && 'Junte-se a nós para salvar suas receitas.'}
@@ -294,8 +300,7 @@ export default function UserLoginPage() {
                     onClick={() => setMode('signup')}
                     className="text-muted-foreground hover:text-foreground"
                   >
-                    Não tem conta?{' '}
-                    <span className="text-primary font-medium">Criar uma agora</span>
+                    Não tem conta? <span className="text-primary font-medium">Criar uma agora</span>
                   </button>
                 </>
               )}

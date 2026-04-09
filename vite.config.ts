@@ -247,7 +247,7 @@ export default defineConfig(({ mode }) => {
           theme_color: '#ea580c',
           background_color: '#ffffff',
           display: 'standalone',
-          start_url: '/',
+          start_url: '/pwa/login',
           scope: '/',
           orientation: 'portrait-primary',
           categories: ['food', 'lifestyle'],
