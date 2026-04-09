@@ -127,10 +127,7 @@ const router = createBrowserRouter(
       path: '/pwa/admin/entry',
       lazy: lazyRoute(() => import('@/pwa/entry/PwaAdminEntryPage')),
     },
-    {
-      path: '/pwa/admin/login',
-      lazy: lazyRoute(() => import('@/pwa/pages/AdminLoginPage')),
-    },
+
     {
       path: '/pwa/app',
       lazy: async () => {
@@ -211,19 +208,7 @@ const router = createBrowserRouter(
         };
       },
     },
-    {
-      path: '/t/:tenantSlug/pwa/admin/login',
-      lazy: async () => {
-        const { default: Component } = await import('@/pwa/pages/AdminLoginPage');
-        return {
-          element: (
-            <PwaTenantBridge>
-              <Component />
-            </PwaTenantBridge>
-          ),
-        };
-      },
-    },
+
     {
       path: '/t/:tenantSlug/pwa/app/*',
       element: <PwaTenantRuntimeRedirect targetBasePath="/pwa/app" />,

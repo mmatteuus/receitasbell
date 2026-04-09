@@ -11,7 +11,8 @@ export default function PwaAdminEntryPage() {
   const location = useLocation();
 
   useEffect(() => {
-    // Garante que este contexto seja sempre reconhecido como admin
+    // Admin agora faz login na página de conta normal (Minha Conta)
+    // Esta página redireciona para a entrada do painel admin se já autenticado
     setInstallContext('admin');
 
     let active = true;
@@ -36,7 +37,8 @@ export default function PwaAdminEntryPage() {
 
       if (!active) return;
 
-      navigate(buildPwaPath('adminLogin', { tenantSlug }), { replace: true });
+      // Redireciona para a página de login normal (Minha Conta)
+      navigate(buildPwaPath('login', { tenantSlug }), { replace: true });
     }
 
     void run();

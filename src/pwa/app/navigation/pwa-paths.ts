@@ -1,15 +1,14 @@
 export type PwaRouteKey =
-  | "entry"
-  | "adminEntry"
-  | "login"
-  | "verify"
-  | "adminLogin"
-  | "home"
-  | "favorites"
-  | "shopping"
-  | "purchases"
-  | "search"
-  | "recipe";
+  | 'entry'
+  | 'adminEntry'
+  | 'login'
+  | 'verify'
+  | 'home'
+  | 'favorites'
+  | 'shopping'
+  | 'purchases'
+  | 'search'
+  | 'recipe';
 
 function normalizeTenantSlug(tenantSlug?: string | null) {
   const normalized = tenantSlug?.trim();
@@ -18,44 +17,40 @@ function normalizeTenantSlug(tenantSlug?: string | null) {
 
 export function buildPwaPath(
   key: PwaRouteKey,
-  params?: { tenantSlug?: string | null; slug?: string },
+  params?: { tenantSlug?: string | null; slug?: string }
 ) {
   const tenantSlug = normalizeTenantSlug(params?.tenantSlug);
-  const base = tenantSlug ? `/t/${tenantSlug}/pwa` : "/pwa";
+  const base = tenantSlug ? `/t/${tenantSlug}/pwa` : '/pwa';
 
   switch (key) {
-    case "entry":
+    case 'entry':
       return `${base}/entry`;
-    case "adminEntry":
+    case 'adminEntry':
       return `${base}/admin/entry`;
-    case "login":
+    case 'login':
       return `${base}/login`;
-    case "verify":
+    case 'verify':
       return `${base}/auth/verify`;
-    case "adminLogin":
-      return `${base}/admin/login`;
-    case "home":
+    case 'home':
       return `${base}/app`;
-    case "favorites":
+    case 'favorites':
       return `${base}/app/favoritos`;
-    case "shopping":
+    case 'shopping':
       return `${base}/app/lista-de-compras`;
-    case "purchases":
+    case 'purchases':
       return `${base}/app/compras`;
-    case "search":
+    case 'search':
       return `${base}/app/buscar`;
-    case "recipe":
-      return `${base}/app/receitas/${params?.slug ?? ""}`;
+    case 'recipe':
+      return `${base}/app/receitas/${params?.slug ?? ''}`;
     default:
       return `${base}/app`;
   }
 }
 
-export function buildPwaAdminPath(
-  params?: { tenantSlug?: string | null; path?: string },
-) {
+export function buildPwaAdminPath(params?: { tenantSlug?: string | null; path?: string }) {
   const tenantSlug = normalizeTenantSlug(params?.tenantSlug);
-  const base = tenantSlug ? `/t/${tenantSlug}/pwa/admin` : "/pwa/admin";
-  const suffix = params?.path?.replace(/^\/+/, "") || "";
+  const base = tenantSlug ? `/t/${tenantSlug}/pwa/admin` : '/pwa/admin';
+  const suffix = params?.path?.replace(/^\/+/, '') || '';
   return suffix ? `${base}/${suffix}` : base;
 }
