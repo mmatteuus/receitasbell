@@ -239,6 +239,9 @@ export default defineConfig(({ mode }) => {
             },
           ],
           globIgnores: ['**/*.map', '**/assets/vendor-*.js'],
+          // Configurações para forçar atualização automática do cache
+          skipWaiting: true,
+          clientsClaim: true,
         },
         manifest: {
           name: 'Receitas do Bell',
