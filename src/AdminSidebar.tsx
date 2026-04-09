@@ -21,7 +21,6 @@ import { buildTenantAdminPath, extractTenantSlugFromPath } from '@/lib/tenant';
 import { buildPwaPath } from '@/pwa/app/navigation/pwa-paths';
 import { resolvePwaTenantSlug } from '@/pwa/app/tenant/pwa-tenant-path';
 import { trackEvent } from '@/lib/telemetry';
-import { useAppContext } from '@/contexts/app-context';
 import {
   Dialog,
   DialogContent,
@@ -77,7 +76,6 @@ function SidebarNav({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?
   const location = useLocation();
   const navigate = useNavigate();
   const tenantSlug = extractTenantSlugFromPath(location.pathname);
-  const { clearIdentity } = useAppContext();
 
   async function handleLogout() {
     try {
@@ -86,9 +84,8 @@ function SidebarNav({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?
     } catch {
       // Ignora erro de logout para não bloquear saída.
     }
-    await clearIdentity();
-    onNavigate?.();
-    navigate('/minha-conta', { replace: true });
+    // Força recarga completa para limpar todo o estado React e ir para a home
+    window.location.href = '/';
   }
 
   return (
