@@ -33,6 +33,8 @@ import {
   requestPasswordReset,
   logoutUser,
 } from '@/lib/api/identity';
+import { loginAdmin } from '@/lib/api/adminSession';
+import { buildTenantAdminPath, getCurrentTenantSlug } from '@/lib/tenant';
 import { validatePasswordResetEmail } from '@/lib/validation/identity';
 
 type AccountTab = 'resumo' | 'minhas-receitas' | 'favoritos' | 'compras';
@@ -182,14 +184,7 @@ export default function AccountHome() {
 
     setAuthorizing(true);
     try {
-      if (authMode === 'password-login') {
-        if (!password) {
-          toast.error('A senha é obrigatória.');
-          return;
-        }
-        await loginWithPassword({ email: normalized, password });
-        toast.success('Bem-vindo(a) de volta!');
-      } else if (authMode === 'password-signup') {
+      if (authMode === 'password-signup') {
         if (!password || !fullName) {
           toast.error('Nome e senha são obrigatórios.');
           return;
@@ -201,7 +196,14 @@ export default function AccountHome() {
           tenantSlug: 'receitasbell',
         });
         toast.success('Conta criada com sucesso!');
-      } else if (authMode === 'forgot-password') {
+        const user = await fetchMe();
+        if (user?.email) {
+          await updateIdentity(user.email, user.role);
+        }
+        return;
+      }
+
+      if (authMode === 'forgot-password') {
         const validation = validatePasswordResetEmail({ email: normalized });
         if (!validation.ok) {
           toast.error(validation.message);
@@ -213,16 +215,45 @@ export default function AccountHome() {
         return;
       }
 
-      const user = await fetchMe();
-      if (user?.email) {
-        await updateIdentity(user.email, user.role);
-        const redirectTo = params.get('redirect');
-        if (redirectTo) {
-          navigate(redirectTo);
-        }
+      // Login: tenta usuário comum primeiro, depois admin
+      if (!password) {
+        toast.error('A senha é obrigatória.');
+        return;
       }
+
+      let loggedAsUser = false;
+      try {
+        await loginWithPassword({ email: normalized, password });
+        loggedAsUser = true;
+      } catch {
+        // não é usuário comum — tenta admin abaixo
+      }
+
+      if (loggedAsUser) {
+        toast.success('Bem-vindo(a) de volta!');
+        const user = await fetchMe();
+        if (user?.email) {
+          await updateIdentity(user.email, user.role);
+          const redirectTo = params.get('redirect');
+          if (redirectTo) {
+            navigate(redirectTo);
+          }
+        }
+        return;
+      }
+
+      // Tentativa como admin
+      const tenantSlug = getCurrentTenantSlug();
+      const adminResult = await loginAdmin({ email: normalized, password, tenantSlug: tenantSlug ?? undefined });
+      if (adminResult.authenticated) {
+        toast.success(`Bem-vindo(a), ${adminResult.user?.email ?? 'admin'}!`);
+        navigate(buildTenantAdminPath('', tenantSlug));
+        return;
+      }
+
+      toast.error('E-mail ou senha incorretos.');
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Erro ao realizar login';
+      const message = error instanceof Error ? error.message : 'E-mail ou senha incorretos.';
       toast.error(message);
     } finally {
       setAuthorizing(false);
