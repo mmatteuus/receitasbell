@@ -85,14 +85,13 @@
     "prettier": "^3.8.1",
     "sharp": "^0.34.5",
     "supabase": "^2.84.10",
-    "svg2png": "^4.1.1",
     "tailwindcss": "^3.4.17",
     "twemoji": "^14.0.2",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.38.0",
     "vite": "^6.4.1",
     "vite-plugin-pwa": "^1.2.0",
-    "vitest": "^4.1.0"
+    "vitest": "^4.1.4"
   },
   "overrides": {
     "@rollup/plugin-terser": {
