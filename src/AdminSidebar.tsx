@@ -21,6 +21,7 @@ import { buildTenantAdminPath, extractTenantSlugFromPath } from '@/lib/tenant';
 import { buildPwaPath } from '@/pwa/app/navigation/pwa-paths';
 import { resolvePwaTenantSlug } from '@/pwa/app/tenant/pwa-tenant-path';
 import { trackEvent } from '@/lib/telemetry';
+import { useAppContext } from '@/contexts/app-context';
 import {
   Dialog,
   DialogContent,
@@ -76,6 +77,7 @@ function SidebarNav({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?
   const location = useLocation();
   const navigate = useNavigate();
   const tenantSlug = extractTenantSlugFromPath(location.pathname);
+  const { clearIdentity } = useAppContext();
 
   async function handleLogout() {
     try {
@@ -84,15 +86,9 @@ function SidebarNav({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?
     } catch {
       // Ignora erro de logout para não bloquear saída.
     }
+    await clearIdentity();
     onNavigate?.();
-    // Se estiver no contexto PWA (/pwa/admin/...), redireciona para a entry do PWA admin
-    // para garantir que ao reabrir o app vá para login admin, não login de usuário.
-    if (location.pathname.startsWith('/pwa/')) {
-      const pwaTenantSlug = resolvePwaTenantSlug(location.pathname);
-      navigate(buildPwaPath('adminEntry', { tenantSlug: pwaTenantSlug }), { replace: true });
-    } else {
-      navigate(buildTenantAdminPath('login', tenantSlug), { replace: true });
-    }
+    navigate('/minha-conta', { replace: true });
   }
 
   return (

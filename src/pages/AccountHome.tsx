@@ -51,6 +51,7 @@ export default function AccountHome() {
     favorites,
     favoriteRecords,
     identityEmail,
+    identityRole,
     requireIdentity,
     clearIdentity,
     updateIdentity,
@@ -72,6 +73,14 @@ export default function AccountHome() {
   useEffect(() => {
     setCurrentTab(resolveTab(params.get('tab')));
   }, [params]);
+
+  // Admin não acessa o painel de usuário comum — redireciona para o painel admin
+  useEffect(() => {
+    if (identityEmail && (identityRole === 'admin' || identityRole === 'owner')) {
+      const tenantSlug = getCurrentTenantSlug();
+      navigate(buildTenantAdminPath('', tenantSlug), { replace: true });
+    }
+  }, [identityEmail, identityRole, navigate]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
