@@ -228,18 +228,43 @@ export default defineConfig(({ mode }) => {
           cleanupOutdatedCaches: true,
           sourcemap: false,
           maximumFileSizeToCacheInBytes: 512 * 1024, // Increased to 512KB to avoid Workbox build failures.
-          runtimeCaching: [],
+          runtimeCaching: [
+            {
+              urlPattern: /^https:\/\/api\./,
+              handler: 'NetworkFirst',
+              options: {
+                cacheName: 'api-cache',
+                networkTimeoutSeconds: 10,
+              },
+            },
+          ],
           globIgnores: ['**/*.map', '**/assets/vendor-*.js'],
         },
         manifest: {
           name: 'Receitas do Bell',
           short_name: 'Receitas Bell',
           description: 'Receitas caseiras testadas e aprovadas',
-          theme_color: '#ffffff',
+          theme_color: '#ea580c',
           background_color: '#ffffff',
           display: 'standalone',
-          start_url: '/pwa/entry',
-          scope: '/pwa/',
+          start_url: '/',
+          scope: '/',
+          orientation: 'portrait-primary',
+          categories: ['food', 'lifestyle'],
+          screenshots: [
+            {
+              src: '/pwa/icons/icon-192.png',
+              sizes: '192x192',
+              type: 'image/png',
+              form_factor: 'narrow',
+            },
+            {
+              src: '/pwa/icons/icon-512.png',
+              sizes: '512x512',
+              type: 'image/png',
+              form_factor: 'wide',
+            },
+          ],
           icons: [
             {
               src: '/pwa/icons/icon-192.png',
