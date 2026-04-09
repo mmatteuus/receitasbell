@@ -41,10 +41,62 @@ export function exportRecipeToPDF(input: ExportRecipeToPdfInput) {
     <meta charset="utf-8" />
     <title>${escapeHtml(input.recipe.title)} - Receitas Bell</title>
     <style>
-      @page { 
-        size: A4; 
-        margin: 20mm 20mm; 
+      @page {
+        size: A4;
+        margin: 20mm 20mm;
         @bottom-center { content: '© Receitas Bell'; }
+      }
+
+      .print-bar {
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        padding: 14px 20px;
+        background: #fff;
+        border-bottom: 1px solid #e5e7eb;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+
+      .btn-print {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 24px;
+        background: #ea580c;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-size: 15px;
+        font-family: sans-serif;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.15s;
+      }
+
+      .btn-print:hover { background: #c2410c; }
+
+      .btn-close {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 20px;
+        background: transparent;
+        color: #6b7280;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 15px;
+        font-family: sans-serif;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.15s;
+      }
+
+      .btn-close:hover { background: #f3f4f6; }
+
+      @media print {
+        .print-bar { display: none; }
       }
       
       * {
@@ -224,6 +276,10 @@ export function exportRecipeToPDF(input: ExportRecipeToPdfInput) {
     </style>
   </head>
   <body>
+    <div class="print-bar">
+      <button class="btn-print" onclick="window.print()">🖨️ Imprimir / Salvar PDF</button>
+      <button class="btn-close" onclick="window.close()">✕ Fechar</button>
+    </div>
     <div class="container">
       <div class="recipe-header">
         <div class="brand">Receitas Bell</div>
@@ -255,12 +311,7 @@ export function exportRecipeToPDF(input: ExportRecipeToPdfInput) {
 
   printWindow.document.write(html);
   printWindow.document.close();
-
-  // Imprimir
-  setTimeout(() => {
-    printWindow.focus();
-    printWindow.print();
-  }, 500);
+  printWindow.focus();
 
   return true;
 }

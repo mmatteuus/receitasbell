@@ -275,15 +275,6 @@ export default function RecipePage() {
             <FileText aria-hidden="true" className="h-4 w-4" />
             PDF
           </Button>
-          <Button
-            variant="outline"
-            className="gap-2"
-            onClick={handleExportPdf}
-            aria-label="Exportar PDF"
-          >
-            <FileText aria-hidden="true" className="h-4 w-4" />
-            PDF
-          </Button>
           {recipe.videoUrl && (
             <Button asChild variant="outline" className="gap-2" aria-label="Assistir Vídeo">
               <a href={recipe.videoUrl} target="_blank" rel="noopener noreferrer">
@@ -294,8 +285,8 @@ export default function RecipePage() {
           <Button
             variant="outline"
             size="icon"
-            onClick={() => window.print()}
-            aria-label="Imprimir"
+            onClick={handleExportPdf}
+            aria-label="Imprimir receita"
           >
             <Printer aria-hidden="true" className="h-4 w-4" />
           </Button>
