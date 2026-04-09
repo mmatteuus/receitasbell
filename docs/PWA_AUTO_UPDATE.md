@@ -68,14 +68,21 @@ Para testar o sistema de atualização:
 
 ## Frequência de Verificação
 
-- O Service Worker verifica por atualizações a cada **1 minuto**
-- Você pode ajustar isso editando o intervalo em `useServiceWorkerUpdate.ts`
+- O Service Worker verifica por atualizações a cada **5 dias**
+- O timestamp da última verificação é armazenado no `localStorage`
+- Quando uma atualização é detectada, é baixada imediatamente
+- Você pode ajustar o intervalo editando a constante em `useServiceWorkerUpdate.ts`
 
 ```typescript
-const interval = setInterval(() => {
-  swRegistration?.update();
-}, 60 * 1000); // 60 segundos
+const FIVE_DAYS_IN_MS = 5 * 24 * 60 * 60 * 1000; // Altere este valor para outro intervalo
 ```
+
+Exemplos de intervalos:
+
+- **1 minuto**: `1 * 60 * 1000`
+- **1 hora**: `1 * 60 * 60 * 1000`
+- **1 dia**: `1 * 24 * 60 * 60 * 1000`
+- **5 dias**: `5 * 24 * 60 * 60 * 1000` (padrão)
 
 ## Benefícios
 

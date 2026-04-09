@@ -5,9 +5,13 @@ interface UpdateNotification {
   isWaiting: boolean;
 }
 
+const FIVE_DAYS_IN_MS = 5 * 24 * 60 * 60 * 1000; // 5 dias em milissegundos
+const LAST_UPDATE_CHECK_KEY = 'pwa_last_update_check';
+
 /**
  * Hook para monitorar e gerenciar atualizações do Service Worker do PWA
  * Detecta quando uma nova versão está disponível e permite ao usuário atualizar
+ * Verificação de updates a cada 5 dias
  */
 export function useServiceWorkerUpdate() {
   const [updateNotification, setUpdateNotification] = useState<UpdateNotification>({
@@ -16,6 +20,36 @@ export function useServiceWorkerUpdate() {
   });
 
   const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
+
+  /**
+   * Verifica se é hora de fazer uma nova verificação de atualizações
+   */
+  const shouldCheckForUpdates = (): boolean => {
+    try {
+      const lastCheck = localStorage.getItem(LAST_UPDATE_CHECK_KEY);
+      if (!lastCheck) return true;
+
+      const lastCheckTime = parseInt(lastCheck, 10);
+      const now = Date.now();
+      const timeSinceLastCheck = now - lastCheckTime;
+
+      return timeSinceLastCheck >= FIVE_DAYS_IN_MS;
+    } catch {
+      // Se houver erro ao acessar localStorage, permitir verificação
+      return true;
+    }
+  };
+
+  /**
+   * Registra o timestamp da última verificação
+   */
+  const recordUpdateCheck = (): void => {
+    try {
+      localStorage.setItem(LAST_UPDATE_CHECK_KEY, Date.now().toString());
+    } catch {
+      // Silenciosamente falha se localStorage não estiver disponível
+    }
+  };
 
   useEffect(() => {
     // Verificar se o navegador suporta Service Workers
@@ -64,10 +98,21 @@ export function useServiceWorkerUpdate() {
           }
         });
 
-        // Verificar por atualizações a cada minuto
+        // Verificar por atualizações a cada 5 dias
+        // Primeira verificação é feita imediatamente se passou 5 dias
+        if (shouldCheckForUpdates()) {
+          swRegistration.update();
+          recordUpdateCheck();
+        }
+
+        // Intervalo de 5 dias para verificações subsequentes
         const interval = setInterval(() => {
-          swRegistration?.update();
-        }, 60 * 1000);
+          if (shouldCheckForUpdates()) {
+            swRegistration?.update();
+            recordUpdateCheck();
+            console.log('PWA: Verificando por atualizações...');
+          }
+        }, FIVE_DAYS_IN_MS);
 
         return () => clearInterval(interval);
       } catch (error) {
