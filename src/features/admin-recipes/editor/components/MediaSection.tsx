@@ -1,8 +1,8 @@
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Trash2 } from "lucide-react";
-import type { EditorState } from "../schema";
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Trash2 } from 'lucide-react';
+import type { EditorState } from '../schema';
 
 type MediaSectionProps = {
   form: EditorState;
@@ -43,14 +43,18 @@ export function MediaSection({
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            A imagem é enviada para storage externo e o Google Sheets guarda apenas URL e metadados.
+            A imagem é armazenada em storage seguro e apenas a URL é mantida no banco de dados.
           </p>
         </div>
       </div>
 
       {(form.imagePreviewUrl || form.imageUrl) && (
         <div className="overflow-hidden rounded-xl border">
-          <img src={form.imagePreviewUrl || form.imageUrl} alt="Preview" className="h-56 w-full object-cover" />
+          <img
+            src={form.imagePreviewUrl || form.imageUrl}
+            alt="Preview"
+            className="h-56 w-full object-cover"
+          />
         </div>
       )}
     </>
