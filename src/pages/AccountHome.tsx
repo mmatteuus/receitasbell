@@ -247,6 +247,7 @@ export default function AccountHome() {
       const adminResult = await loginAdmin({ email: normalized, password, tenantSlug: tenantSlug ?? undefined });
       if (adminResult.authenticated) {
         toast.success(`Bem-vindo(a), ${adminResult.user?.email ?? 'admin'}!`);
+        await updateIdentity(adminResult.user!.email, adminResult.user!.role);
         navigate(buildTenantAdminPath('', tenantSlug));
         return;
       }
