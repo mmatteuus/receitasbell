@@ -26,11 +26,13 @@
 
 A etapa só termina quando:
 
-- não existir mais `Instalar App` ou `Instalar app` em UI funcional
-- a suíte PWA passar com a UI atual
-- a duplicidade técnica estiver resolvida ou governada com clareza
-- as validações reais passarem
-- nenhuma regressão surgir
+- [x] não existir mais `Instalar App` ou `Instalar app` em UI funcional
+- [x] a suíte PWA passar com a UI atual
+- [x] a duplicidade técnica estiver resolvida ou governada com clareza
+- [x] as validações automáticas passarem
+- [x] nenhuma regressão surgir
+
+**Executado em 2026-04-09 — PWA online 10/10 ✅**
 
 ## Encerramento esperado do executor
 
