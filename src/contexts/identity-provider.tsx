@@ -18,7 +18,7 @@ import { isPwaRuntimePath } from '@/pwa/offline/runtime';
 
 type IdentityDialogState = {
   open: boolean;
-  mode: 'login-prompt' | 'email-form' | 'rating-prompt';
+  mode: 'login-prompt' | 'email-form' | 'rating-prompt' | 'favorite-prompt';
   message: string;
   email: string;
   error: string;
@@ -53,7 +53,7 @@ export function useIdentityProvider() {
   const requireIdentity = useCallback(
     async (
       message?: string,
-      mode: 'login-prompt' | 'email-form' | 'rating-prompt' = 'login-prompt'
+      mode: 'login-prompt' | 'email-form' | 'rating-prompt' | 'favorite-prompt' = 'login-prompt'
     ) => {
       if (identityEmail) {
         return identityEmail;
@@ -157,6 +157,38 @@ export function useIdentityProvider() {
                 <p className="text-xs text-blue-800 leading-relaxed">
                   Cada avaliação fica associada à sua conta, permitindo que você veja suas
                   avaliações posteriormente e ajudando a comunidade a ter avaliações autênticas.
+                </p>
+              </div>
+
+              <DialogFooter className="flex-col gap-2 sm:flex-col pt-4">
+                <Button asChild className="w-full bg-primary hover:bg-primary/90 gap-2">
+                  <Link to="/minha-conta">
+                    <LogIn className="h-4 w-4" />
+                    Fazer Login
+                  </Link>
+                </Button>
+                <Button variant="outline" className="w-full" onClick={handleIdentityCancel}>
+                  Agora Não
+                </Button>
+              </DialogFooter>
+            </>
+          ) : identityDialog.mode === 'favorite-prompt' ? (
+            <>
+              <DialogHeader>
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
+                  <span className="text-3xl">❤️</span>
+                </div>
+                <DialogTitle className="text-center text-xl">Salvar Receita</DialogTitle>
+                <DialogDescription className="text-center pt-2">
+                  Para salvar esta receita, você precisa estar conectado à sua conta.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 my-4">
+                <p className="text-sm text-green-900 font-medium mb-2">📚 Organize suas receitas</p>
+                <p className="text-xs text-green-800 leading-relaxed">
+                  Ao salvar, você poderá acessar suas receitas favoritas em qualquer momento e criar
+                  uma coleção pessoal das suas receitas preferidas.
                 </p>
               </div>
 
