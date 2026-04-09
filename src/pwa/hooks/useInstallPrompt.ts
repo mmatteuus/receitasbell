@@ -1,3 +1,13 @@
+/**
+ * GOVERNANÇA DE INSTALAÇÃO PWA — HOOK PWA
+ *
+ * Este hook atende superfícies PWA (namespace /pwa/*).
+ * Usado por: src/pwa/components/InstallAppButton.tsx
+ * Inclui: telemetria (trackEvent), installContext e lógica iOS.
+ *
+ * Para superfícies WEB (fora de /pwa/*) use: src/hooks/use-pwa-install.ts
+ * Não consolide sem validação — os dois hooks têm telemetria e contexto distintos.
+ */
 import { useState, useEffect, useRef } from 'react';
 import { getCurrentTenantSlug } from '@/lib/tenant';
 import { setInstallContext, type InstallContext } from '../lib/install-context';

@@ -1,3 +1,11 @@
+/**
+ * GOVERNANÇA DE INSTALAÇÃO PWA — COMPONENTE PWA (SUPERFÍCIE /pwa/*)
+ *
+ * Atende superfícies PWA (namespace /pwa/*).
+ * Usa: src/pwa/hooks/useInstallPrompt.ts (com telemetria e installContext)
+ *
+ * Para superfícies WEB (fora de /pwa/*) use: src/components/layout/InstallAppButton.tsx
+ */
 import { Button } from '@/components/ui/button';
 import { type ButtonVariantProps } from '@/components/ui/button-variants';
 import { useInstallPrompt } from '../hooks/useInstallPrompt';

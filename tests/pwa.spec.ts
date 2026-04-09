@@ -5,14 +5,15 @@ test.describe('PWA Namespace and Auth Flow', () => {
     // Navigate to PWA entry
     await page.goto('/pwa/entry');
 
-    // Check for loading state or immediate redirection
-    // Since we're in a browser and installContext is empty, it should default to /pwa/login
+    // Since we're unauthenticated, should redirect to /pwa/login
     await page.waitForURL('**/pwa/login');
     expect(page.url()).toContain('/pwa/login');
 
-    // Validate User Login Page content
+    // Validate User Login Page content — UI atual usa email/senha + Google
     await expect(page.locator('h1')).toContainText('Receitas Bell');
-    await expect(page.locator("button:has-text('Entrar com link mágico')")).toBeVisible();
+    await expect(page.locator("input[type='email']")).toBeVisible();
+    await expect(page.locator("button:has-text('Entrar')")).toBeVisible();
+    await expect(page.locator("button:has-text('Entrar com Google')")).toBeVisible();
   });
 
   test('should show Admin Login Page in PWA namespace', async ({ page }) => {

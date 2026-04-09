@@ -1,3 +1,11 @@
+/**
+ * GOVERNANÇA DE INSTALAÇÃO PWA — COMPONENTE LEGADO (SUPERFÍCIE WEB)
+ *
+ * Atende superfícies WEB (fora do namespace /pwa/*).
+ * Usa: src/hooks/use-pwa-install.ts (hook legado)
+ *
+ * Para superfícies PWA (/pwa/*) use: src/pwa/components/InstallAppButton.tsx
+ */
 import { useEffect, useState, useCallback } from 'react';
 import { Download } from 'lucide-react';
 import { toast } from 'sonner';
@@ -141,7 +149,8 @@ export function InstallAppButton({
       }
     } else if (browser.isChrome || browser.isEdge) {
       toast.info('Clique no ícone de instalação na barra de endereço', {
-        description: 'Procure por um ícone de "+download" ou use o menu (⋮) > Instalar app',
+        description:
+          'Procure por um ícone de "+download" ou use o menu (⋮) > Instalar aplicativo',
       });
     } else if (browser.isFirefox) {
       toast.info('Use o menu (≡) > Instalar site', {

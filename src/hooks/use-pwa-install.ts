@@ -1,3 +1,12 @@
+/**
+ * GOVERNANÇA DE INSTALAÇÃO PWA — HOOK LEGADO
+ *
+ * Este hook atende superfícies WEB (fora do namespace /pwa/*).
+ * Usado por: src/components/layout/InstallAppButton.tsx
+ *
+ * Para superfícies PWA (/pwa/*) use: src/pwa/hooks/useInstallPrompt.ts
+ * Não consolide sem validação — os dois hooks têm telemetria e contexto distintos.
+ */
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 // Minimal typing for the install prompt event (not part of the standard TS lib DOM types).
