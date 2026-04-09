@@ -47,8 +47,6 @@
     { "source": "/api/health", "destination": "/api/health/live" },
     { "source": "/api/health/:path*", "destination": "/api/health/[...path]" },
     { "source": "/api/uploads/recipe-image", "destination": "/api/uploads/recipe-image" },
-    { "source": "/api/auth/oauth/start", "destination": "/api/auth/oauth/start" },
-    { "source": "/api/auth/oauth/callback", "destination": "/api/auth/oauth/callback" },
     { "source": "/api/auth/:path*", "destination": "/api/auth/[...path]" },
     { "source": "/api/me/:path*", "destination": "/api/me/[...path]" },
     { "source": "/api/public/:path*", "destination": "/api/public/[...path]" },
