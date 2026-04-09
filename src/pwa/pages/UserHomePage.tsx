@@ -1,9 +1,9 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { 
-  Search, Heart, ListChecks, ShoppingBag, 
+import {
+  Search, Heart, ListChecks, ShoppingBag,
   Sparkles, Clock, ChevronRight, UserCircle2,
-  ChefHat, GraduationCap
+  GraduationCap
 } from "lucide-react";
 import { useAppContext } from "@/contexts/app-context";
 import { usePublicRecipes } from "@/features/recipes/use-recipes";
@@ -12,16 +12,42 @@ import type { RecipeRecord } from "@/lib/recipes/types";
 import { getRecipeImage, getRecipePresentation } from "@/lib/recipes/presentation";
 import SmartImage from "@/components/SmartImage";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
 import { resolvePwaTenantSlug } from "@/pwa/app/tenant/pwa-tenant-path";
 import { buildPwaPath } from "@/pwa/app/navigation/pwa-paths";
+import { getProfileSnapshot } from "@/pwa/offline/cache/profile-snapshot";
+import { getCurrentTenantSlug } from "@/lib/tenant";
 
 export default function UserHomePage() {
-  const { identityEmail, favoriteRecords } = useAppContext();
-  const { data: recipes = [], isLoading } = usePublicRecipes();
+  const { identityEmail } = useAppContext();
+  const { data: onlineRecipes = [], isLoading } = usePublicRecipes();
   const navigate = useNavigate();
   const location = useLocation();
   const tenantSlug = resolvePwaTenantSlug(location.pathname);
+
+  // Receitas do snapshot offline — fallback quando sem rede
+  const [offlineRecipes, setOfflineRecipes] = useState<RecipeRecord[]>([]);
+  const [offlineLoaded, setOfflineLoaded] = useState(false);
+
+  useEffect(() => {
+    if (onlineRecipes.length > 0) return;
+    async function loadOfflineSnapshot() {
+      try {
+        const scopeKey = `${getCurrentTenantSlug() || "default"}:${identityEmail || "anonymous"}`;
+        const snapshot = await getProfileSnapshot(scopeKey);
+        if (snapshot?.unlockedRecipes?.length) {
+          setOfflineRecipes(snapshot.unlockedRecipes);
+        }
+      } catch {
+        // sem snapshot — tela continua utilizável
+      } finally {
+        setOfflineLoaded(true);
+      }
+    }
+    void loadOfflineSnapshot();
+  }, [onlineRecipes.length, identityEmail]);
+
+  const recipes = onlineRecipes.length > 0 ? onlineRecipes : offlineRecipes;
+  const isOfflineFallback = onlineRecipes.length === 0 && offlineRecipes.length > 0;
 
   const recentRecipes = useMemo(() => {
     try {
@@ -47,6 +73,8 @@ export default function UserHomePage() {
     { label: "Minha Lista", icon: ListChecks, to: buildPwaPath("shopping", { tenantSlug }), color: "bg-orange-500/10 text-orange-600" },
   ];
 
+  const showSkeleton = isLoading && !offlineLoaded;
+
   return (
     <div className="space-y-8 pb-8 animate-in fade-in duration-500">
       {/* Welcome Header */}
@@ -57,9 +85,14 @@ export default function UserHomePage() {
             {identityEmail?.split('@')[0] || "Usuário"}
           </h1>
           <div className="h-10 w-10 rounded-full border bg-muted flex items-center justify-center">
-             <UserCircle2 className="h-6 w-6 text-muted-foreground" />
+            <UserCircle2 className="h-6 w-6 text-muted-foreground" />
           </div>
         </div>
+        {isOfflineFallback && (
+          <p className="text-xs text-muted-foreground mt-1" role="status">
+            Mostrando receitas salvas neste dispositivo
+          </p>
+        )}
       </section>
 
       {/* Quick Actions Grid */}
@@ -89,7 +122,7 @@ export default function UserHomePage() {
           </div>
           <div className="flex gap-4 overflow-x-auto hide-scrollbar pb-2 snap-x px-1">
             {recentRecipes.map((recipe) => (
-              <Link 
+              <Link
                 key={recipe.id}
                 to={buildPwaPath("recipe", { tenantSlug, slug: recipe.slug })}
                 className="flex-shrink-0 w-64 snap-start group"
@@ -120,20 +153,24 @@ export default function UserHomePage() {
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-amber-500" />
-            <h2 className="text-lg font-bold tracking-tight">Seleção Premium</h2>
+            <h2 className="text-lg font-bold tracking-tight">
+              {isOfflineFallback ? "Suas receitas salvas" : "Seleção Premium"}
+            </h2>
           </div>
-          <Link to={`${buildPwaPath("search", { tenantSlug })}?tier=paid`} className="text-xs font-semibold text-primary flex items-center gap-0.5">
-            Ver tudo <ChevronRight className="h-3 w-3" />
-          </Link>
+          {!isOfflineFallback && (
+            <Link to={`${buildPwaPath("search", { tenantSlug })}?tier=paid`} className="text-xs font-semibold text-primary flex items-center gap-0.5">
+              Ver tudo <ChevronRight className="h-3 w-3" />
+            </Link>
+          )}
         </div>
 
         <div className="flex gap-4 overflow-x-auto hide-scrollbar pb-2 snap-x px-1">
-          {isLoading ? (
+          {showSkeleton ? (
             Array.from({ length: 3 }).map((_, i) => (
               <Skeleton key={i} className="flex-shrink-0 h-48 w-40 rounded-2xl" />
             ))
-          ) : featuredRecipes.map((recipe) => (
-            <Link 
+          ) : featuredRecipes.length > 0 ? featuredRecipes.map((recipe) => (
+            <Link
               key={recipe.id}
               to={buildPwaPath("recipe", { tenantSlug, slug: recipe.slug })}
               className="flex-shrink-0 w-40 snap-start group"
@@ -156,31 +193,35 @@ export default function UserHomePage() {
                 </div>
               </div>
             </Link>
-          ))}
+          )) : (
+            <p className="text-sm text-muted-foreground px-1 py-4">
+              Explore receitas online para vê-las aqui.
+            </p>
+          )}
         </div>
       </section>
 
-      {/* Tips / Learning Section (Mocked for premium feel) */}
+      {/* Tips / Learning Section */}
       <section className="bg-gradient-to-br from-primary/10 to-amber-500/10 rounded-3xl p-6 border border-primary/20">
-         <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 rounded-xl bg-primary text-primary-foreground">
-               <GraduationCap className="h-6 w-6" />
-            </div>
-            <div>
-               <h2 className="text-lg font-bold leading-tight">Mestre Cuca Bell</h2>
-               <p className="text-xs text-muted-foreground">Aprenda novas técnicas</p>
-            </div>
-         </div>
-         <div className="space-y-3">
-            <div className="p-3 rounded-xl bg-background/60 border border-white/50 text-sm font-medium active:scale-95 transition-active flex items-center justify-between">
-               <span>Dica: Como gratinar perfeitamente</span>
-               <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <div className="p-3 rounded-xl bg-background/60 border border-white/50 text-sm font-medium active:scale-95 transition-active flex items-center justify-between">
-               <span>Técnica: Cortes básicos de legumes</span>
-               <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </div>
-         </div>
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 rounded-xl bg-primary text-primary-foreground">
+            <GraduationCap className="h-6 w-6" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold leading-tight">Mestre Cuca Bell</h2>
+            <p className="text-xs text-muted-foreground">Aprenda novas técnicas</p>
+          </div>
+        </div>
+        <div className="space-y-3">
+          <div className="p-3 rounded-xl bg-background/60 border border-white/50 text-sm font-medium active:scale-95 transition-active flex items-center justify-between">
+            <span>Dica: Como gratinar perfeitamente</span>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          </div>
+          <div className="p-3 rounded-xl bg-background/60 border border-white/50 text-sm font-medium active:scale-95 transition-active flex items-center justify-between">
+            <span>Técnica: Cortes básicos de legumes</span>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          </div>
+        </div>
       </section>
     </div>
   );

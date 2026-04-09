@@ -136,8 +136,8 @@ const router = createBrowserRouter(
       },
       children: [
         { index: true, lazy: lazyRoute(() => import('@/pwa/pages/UserHomePage')) },
-        { path: 'favoritos', lazy: lazyRoute(() => import('@/pages/Favorites')) },
-        { path: 'lista-de-compras', lazy: lazyRoute(() => import('@/pages/ShoppingListPage')) },
+        { path: 'favoritos', lazy: lazyRoute(() => import('@/pwa/pages/PwaFavoritesPage')) },
+        { path: 'lista-de-compras', lazy: lazyRoute(() => import('@/pwa/pages/PwaShoppingListPage')) },
         { path: 'compras', lazy: lazyRoute(() => import('@/pwa/pages/PwaPurchasesPage')) },
         { path: 'buscar', lazy: lazyRoute(() => import('@/pwa/pages/PwaSearchPage')) },
         { path: 'receitas/:slug', lazy: lazyRoute(() => import('@/pwa/pages/PwaRecipePage')) },
