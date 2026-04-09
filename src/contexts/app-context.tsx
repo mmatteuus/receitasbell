@@ -14,7 +14,7 @@ export type AppContextValue = {
   identityRole: string | null;
   requireIdentity: (
     message?: string,
-    mode?: 'login-prompt' | 'email-form'
+    mode?: 'login-prompt' | 'email-form' | 'rating-prompt' | 'favorite-prompt'
   ) => Promise<string | null>;
   updateIdentity: (email: string, role?: string) => Promise<void>;
   clearIdentity: () => Promise<void>;

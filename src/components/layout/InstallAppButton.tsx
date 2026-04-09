@@ -128,7 +128,7 @@ export function InstallAppButton({
     } else if (browser.isAndroid) {
       if (browser.isChrome) {
         toast.info('Toque no menu (⋮) no canto superior direito', {
-          description: 'Depois selecione "Instalar app" para adicionar à tela inicial',
+          description: 'Depois selecione "Instalar aplicativo" para adicionar à tela inicial',
         });
       } else if (browser.isFirefox) {
         toast.info('Use o menu (≡) > Instalar > Instalar site', {
@@ -170,10 +170,10 @@ export function InstallAppButton({
       disabled={isAttemptingInstall}
       className={`flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground hover:bg-muted/50 disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
       aria-label="Instalar aplicativo"
-      title={showInstallButton ? 'Instalar como aplicativo' : 'Ver instruções de instalação'}
+      title={showInstallButton ? 'Instalar aplicativo' : 'Ver instruções de instalação'}
     >
       <Download aria-hidden="true" className="h-4 w-4" />
-      {showLabel && <span className="hidden sm:inline">Instalar</span>}
+      {showLabel && <span>Instalar aplicativo</span>}
     </button>
   );
 }

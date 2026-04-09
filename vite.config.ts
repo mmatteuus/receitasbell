@@ -227,21 +227,8 @@ export default defineConfig(({ mode }) => {
         workbox: {
           cleanupOutdatedCaches: true,
           sourcemap: false,
-          maximumFileSizeToCacheInBytes: 512 * 1024, // Increased to 512KB to avoid Workbox build failures.
-          runtimeCaching: [
-            {
-              urlPattern: /^https:\/\/api\./,
-              handler: 'NetworkFirst',
-              options: {
-                cacheName: 'api-cache',
-                networkTimeoutSeconds: 10,
-              },
-            },
-          ],
+          maximumFileSizeToCacheInBytes: 512 * 1024,
           globIgnores: ['**/*.map', '**/assets/vendor-*.js'],
-          // Configurações para forçar atualização automática do cache
-          skipWaiting: true,
-          clientsClaim: true,
         },
         manifest: {
           name: 'Receitas do Bell',
@@ -250,7 +237,7 @@ export default defineConfig(({ mode }) => {
           theme_color: '#ea580c',
           background_color: '#ffffff',
           display: 'standalone',
-          start_url: '/pwa/login',
+          start_url: '/pwa/entry',
           scope: '/',
           orientation: 'portrait-primary',
           categories: ['food', 'lifestyle'],
