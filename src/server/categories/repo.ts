@@ -52,7 +52,7 @@ export async function getCategoryBySlug(tenantId: string | number, slug: string)
   return mapCategoryRowToRecord(data);
 }
 
-export async function createCategory(tenantId: string | number, input: { name: string; slug: string; description?: string }): Promise<Category> {
+export async function createCategory(tenantId: string | number, input: { name: string; slug: string; description?: string; icon?: string }): Promise<Category> {
   const { data, error } = await supabaseAdmin
     .from("categories")
     .insert({
@@ -60,6 +60,7 @@ export async function createCategory(tenantId: string | number, input: { name: s
       name: input.name,
       slug: input.slug,
       description: input.description || "",
+      icon: input.icon || null,
     })
     .select()
     .single();
@@ -68,7 +69,7 @@ export async function createCategory(tenantId: string | number, input: { name: s
   return mapCategoryRowToRecord(data);
 }
 
-export async function updateCategory(tenantId: string | number, id: string | number, input: Partial<{ name: string; slug: string; description: string }>): Promise<Category> {
+export async function updateCategory(tenantId: string | number, id: string | number, input: Partial<{ name: string; slug: string; description: string; icon: string }>): Promise<Category> {
   const { data, error } = await supabaseAdmin
     .from("categories")
     .update({

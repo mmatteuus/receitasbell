@@ -132,7 +132,6 @@ export default function CategoriesPage() {
                   setForm((current) => ({ ...current, icon: event.target.value }))
                 }
                 placeholder="🍕 ou ⭐ ou qualquer ícone/emoji"
-                maxLength={4}
                 className="text-center text-lg"
               />
               <p className="text-xs text-muted-foreground">

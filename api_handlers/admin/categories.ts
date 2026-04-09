@@ -11,6 +11,7 @@ const categorySchema = z.object({
   name: z.string().min(1),
   slug: z.string().min(1).regex(/^[a-z0-9-]+$/, "Slug inválido").optional(),
   description: z.string().optional(),
+  icon: z.string().optional(),
 });
 
 function slugify(value: string) {
