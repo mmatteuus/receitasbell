@@ -14,7 +14,9 @@ import { PriceBadge } from '@/components/price-badge';
 import { useCart } from '@/hooks/use-cart';
 import { buildCartItemFromRecipe } from '@/lib/utils/recipeAccess';
 import { toast } from 'sonner';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { getRecipeOfflineBySlug, saveRecipeSnapshot } from '@/pwa/offline/repos/recipes-offline-repo';
+import type { RecipeRecord } from '@/lib/recipes/types';
 
 export default function PwaRecipePage() {
   const { slug } = useParams<{ slug: string }>();
@@ -22,11 +24,32 @@ export default function PwaRecipePage() {
   const tenantSlug = resolvePwaTenantSlug(location.pathname);
   const homePath = buildPwaPath('home', { tenantSlug });
 
-  const { data: recipe, isLoading: loading } = useRecipeBySlug(slug);
+  const { data: onlineRecipe, isLoading: onlineLoading, isError: onlineError } = useRecipeBySlug(slug);
+  const [offlineRecipe, setOfflineRecipe] = useState<RecipeRecord | null>(null);
+  const [offlineChecked, setOfflineChecked] = useState(false);
   const [customServings, setCustomServings] = useState<number | null>(null);
   const { categories } = useAppContext();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { add: addToCart } = useCart();
+
+  // Carregar snapshot offline se a requisição online falhar
+  useEffect(() => {
+    if (!slug || onlineLoading) return;
+    if (onlineRecipe) {
+      // Salvar snapshot para uso futuro offline
+      void saveRecipeSnapshot(onlineRecipe);
+      return;
+    }
+    if (onlineError && !offlineChecked) {
+      void getRecipeOfflineBySlug(slug).then((local) => {
+        setOfflineRecipe(local);
+        setOfflineChecked(true);
+      });
+    }
+  }, [slug, onlineRecipe, onlineLoading, onlineError, offlineChecked]);
+
+  const recipe = onlineRecipe ?? offlineRecipe;
+  const loading = onlineLoading || (!offlineChecked && onlineError);
 
   if (loading) {
     return (

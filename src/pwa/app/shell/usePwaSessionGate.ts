@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { fetchMe } from "@/lib/api/identity";
+import { getOfflineUserSession } from "@/pwa/offline/auth/offline-auth";
 
 type PwaGateState =
   | { status: "loading" }
@@ -19,11 +20,19 @@ export function usePwaSessionGate() {
         if (!active) return;
 
         if (user?.email) {
+          // fetchMe já persiste o envelope via persistUserSessionEnvelope internamente
           setState({ status: "authenticated" });
           return;
         }
 
         if (typeof navigator !== "undefined" && !navigator.onLine) {
+          // Tentar sessão offline antes de bloquear
+          const offlineSession = await getOfflineUserSession();
+          if (!active) return;
+          if (offlineSession) {
+            setState({ status: "authenticated" });
+            return;
+          }
           setState({ status: "offline_locked" });
           return;
         }
@@ -33,6 +42,17 @@ export function usePwaSessionGate() {
         if (!active) return;
 
         if (typeof navigator !== "undefined" && !navigator.onLine) {
+          // Rede falhou: tentar sessão offline
+          try {
+            const offlineSession = await getOfflineUserSession();
+            if (!active) return;
+            if (offlineSession) {
+              setState({ status: "authenticated" });
+              return;
+            }
+          } catch {
+            // IndexedDB pode estar indisponível em contexto restrito
+          }
           setState({ status: "offline_locked" });
           return;
         }

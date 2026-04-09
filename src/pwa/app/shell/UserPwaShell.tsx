@@ -12,16 +12,31 @@ import { savePwaRedirect } from '@/pwa/app/auth/pwa-auth-redirect';
 import { PwaTopBar } from '@/pwa/app/navigation/PwaTopBar';
 import { PwaBottomNav } from '@/pwa/app/navigation/PwaBottomNav';
 import { trackEvent } from '@/lib/telemetry';
+import { OfflineRuntimeProvider, useOfflineRuntime } from '@/pwa/offline/runtime/OfflineRuntimeProvider';
+import { OfflineBanner } from '@/pwa/offline/ui/OfflineBanner';
+import { PendingChangesBar } from '@/pwa/offline/ui/PendingChangesBar';
+import { SyncCenterSheet } from '@/pwa/offline/ui/SyncCenterSheet';
+import { useOfflineStatus } from '@/pwa/offline/hooks/useOfflineStatus';
 
 type NavigatorStandalone = Navigator & { standalone?: boolean };
 
 export function UserPwaShell() {
+  return (
+    <OfflineRuntimeProvider>
+      <UserPwaShellInner />
+    </OfflineRuntimeProvider>
+  );
+}
+
+function UserPwaShellInner() {
   const location = useLocation();
   const navigate = useNavigate();
   const { settings } = useAppContext();
   const gate = usePwaSessionGate();
   const chrome = usePwaChrome(location.pathname);
   const tenantSlug = resolvePwaTenantSlug(location.pathname);
+  const { offline } = useOfflineStatus();
+  const { syncCenterOpen, openSyncCenter, closeSyncCenter } = useOfflineRuntime();
 
   useEffect(() => {
     if (gate.status === 'unauthenticated') {
@@ -75,6 +90,15 @@ export function UserPwaShell() {
       />
       <PwaUpdateBanner />
       <PwaTopBar title={chrome.title} showBack={chrome.showBack} tenantSlug={tenantSlug} />
+
+      {/* Banner de rede — só quando offline E em tela que depende de dados ao vivo */}
+      <OfflineBanner offline={offline} />
+
+      {/* Barra de pendências — só quando houver itens no outbox */}
+      <PendingChangesBar onOpenSyncCenter={openSyncCenter} />
+
+      {/* Centro de sincronização */}
+      <SyncCenterSheet open={syncCenterOpen} onOpenChange={(v) => (v ? openSyncCenter() : closeSyncCenter())} />
 
       <main
         className="mx-auto w-full max-w-md overflow-x-hidden px-4 pb-8 pt-4 sm:px-6"

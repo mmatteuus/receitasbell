@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { listPublicRecipes } from '@/lib/repos/recipeRepo';
+import { searchOfflineRecipes } from '@/pwa/offline/repos/search-offline-repo';
 import type { RecipeRecord } from '@/lib/recipes/types';
 import { useAppContext } from '@/contexts/app-context';
 import RecipeCard from '@/components/RecipeCard';
@@ -89,18 +90,25 @@ export default function PwaSearchPage() {
   useEffect(() => {
     async function fetchResults() {
       setLoading(true);
+      const searchParamsSnapshot = {
+        q: searchParams.get('q') || undefined,
+        categorySlug: readCategoryParam(searchParams) || undefined,
+        tier: normalizeTier(searchParams.get('tier')) as 'all' | 'free' | 'paid',
+        tempo: normalizeTime(searchParams.get('tempo')) as 'all' | 'quick' | 'medium' | 'long',
+        ordem: normalizeSort(searchParams.get('ordem')) as 'latest' | 'timeAsc' | 'timeDesc',
+      };
       try {
-        const recipes = await listPublicRecipes({
-          q: searchParams.get('q') || undefined,
-          categorySlug: readCategoryParam(searchParams) || undefined,
-          tier: normalizeTier(searchParams.get('tier')),
-          tempo: normalizeTime(searchParams.get('tempo')),
-          ordem: normalizeSort(searchParams.get('ordem')),
-        });
+        const recipes = await listPublicRecipes(searchParamsSnapshot);
         setResults(recipes);
       } catch (error) {
-        trackError('search.fetch', error);
-        setResults([]);
+        // Fallback: busca local nos snapshots disponíveis
+        try {
+          const localRecipes = await searchOfflineRecipes(searchParamsSnapshot);
+          setResults(localRecipes);
+        } catch {
+          trackError('search.fetch', error);
+          setResults([]);
+        }
       } finally {
         setLoading(false);
       }

@@ -4,7 +4,7 @@ import { WalletCards } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LastSyncBadge } from "@/pwa/offline/ui/LastSyncBadge";
-import { getProfileOverview } from "@/lib/repos/profileRepo";
+import { getProfileOverviewOfflineAware } from "@/pwa/offline/repos/profile-offline-repo";
 import type { RecipeRecord } from "@/lib/recipes/types";
 import { getRecipePresentation } from "@/lib/recipes/presentation";
 import { buildPwaPath } from "@/pwa/app/navigation/pwa-paths";
@@ -24,7 +24,7 @@ export default function PwaPurchasesPage() {
     async function load() {
       setLoading(true);
       try {
-        const overview = await getProfileOverview();
+        const overview = await getProfileOverviewOfflineAware();
         if (!active) {
           return;
         }
