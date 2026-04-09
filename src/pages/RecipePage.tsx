@@ -1,36 +1,51 @@
-import { useEffect, useState } from "react";
-import { useLocation, useParams, useSearchParams, Link } from "react-router-dom";
-import { Heart, Clock, ChevronRight, Printer, ChefHat, ShoppingCart, FileText, BarChart, Flame, PlayCircle, Plus, Minus, Users } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Skeleton } from "@/components/ui/skeleton";
-import { listComments, submitRating } from "@/lib/api/interactions";
-import { PageHead } from "@/components/PageHead";
-import RecipeIngredients from "@/components/recipe/RecipeIngredients";
-import { scaleIngredient } from "@/lib/utils/scaleIngredient";
-import RecipeComments from "@/components/recipe/RecipeComments";
-import type { Comment } from "@/types/recipe";
-import RatingStars from "@/components/RatingStars";
-import RecipeCard from "@/components/RecipeCard";
-import { PriceBadge } from "@/components/price-badge";
-import { PaywallBox } from "@/components/recipe/PaywallBox";
-import { useCart } from "@/hooks/use-cart";
-import { ShareButtons } from "@/components/ShareButtons";
-import { ReadingProgress } from "@/components/ReadingProgress";
-import { FocusContainer } from "@/components/FocusContainer";
-import { useAppContext } from "@/contexts/app-context";
-import { useFavorites } from "@/hooks/use-favorites";
-import { ApiClientError } from "@/lib/api/client";
-import { toast } from "sonner";
-import { getRecipeImage, getRecipePresentation } from "@/lib/recipes/presentation";
-import SmartImage from "@/components/SmartImage";
-import { buildCartItemFromRecipe } from "@/lib/utils/recipeAccess";
-import { usePublicRecipes, useRecipeBySlug } from "@/features/recipes/use-recipes";
-import { RECENT_RECIPES_KEY } from "@/lib/constants";
-import { logger } from "@/lib/logger";
-import { buildPwaPath } from "@/pwa/app/navigation/pwa-paths";
-import { resolvePwaTenantSlug } from "@/pwa/app/tenant/pwa-tenant-path";
+import { useEffect, useState } from 'react';
+import { useLocation, useParams, useSearchParams, Link } from 'react-router-dom';
+import {
+  Heart,
+  Clock,
+  ChevronRight,
+  Printer,
+  ChefHat,
+  ShoppingCart,
+  FileText,
+  BarChart,
+  Flame,
+  PlayCircle,
+  Plus,
+  Minus,
+  Users,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Skeleton } from '@/components/ui/skeleton';
+import { listComments, submitRating } from '@/lib/api/interactions';
+import { PageHead } from '@/components/PageHead';
+import RecipeIngredients from '@/components/recipe/RecipeIngredients';
+import { scaleIngredient } from '@/lib/utils/scaleIngredient';
+import RecipeComments from '@/components/recipe/RecipeComments';
+import type { Comment } from '@/types/recipe';
+import RatingStars from '@/components/RatingStars';
+import RecipeCard from '@/components/RecipeCard';
+import { PriceBadge } from '@/components/price-badge';
+import { PaywallBox } from '@/components/recipe/PaywallBox';
+import { useCart } from '@/hooks/use-cart';
+import { ShareButtons } from '@/components/ShareButtons';
+import { ReadingProgress } from '@/components/ReadingProgress';
+import { FocusContainer } from '@/components/FocusContainer';
+import { ReadingModeButton } from '@/components/ReadingModeButton';
+import { useAppContext } from '@/contexts/app-context';
+import { useFavorites } from '@/hooks/use-favorites';
+import { ApiClientError } from '@/lib/api/client';
+import { toast } from 'sonner';
+import { getRecipeImage, getRecipePresentation } from '@/lib/recipes/presentation';
+import SmartImage from '@/components/SmartImage';
+import { buildCartItemFromRecipe } from '@/lib/utils/recipeAccess';
+import { usePublicRecipes, useRecipeBySlug } from '@/features/recipes/use-recipes';
+import { RECENT_RECIPES_KEY } from '@/lib/constants';
+import { logger } from '@/lib/logger';
+import { buildPwaPath } from '@/pwa/app/navigation/pwa-paths';
+import { resolvePwaTenantSlug } from '@/pwa/app/tenant/pwa-tenant-path';
 
 type RatingState = {
   avg: number;
@@ -42,15 +57,11 @@ export default function RecipePage() {
   const { slug } = useParams<{ slug: string }>();
   const location = useLocation();
   const [params] = useSearchParams();
-  const isPreview = params.get("preview") === "1";
+  const isPreview = params.get('preview') === '1';
   const tenantSlug = resolvePwaTenantSlug(location.pathname);
-  const isPwaNamespace = location.pathname.includes("/pwa/app");
-  const homePath = isPwaNamespace
-    ? buildPwaPath("home", { tenantSlug })
-    : "/";
-  const searchPath = isPwaNamespace
-    ? buildPwaPath("search", { tenantSlug })
-    : "/buscar";
+  const isPwaNamespace = location.pathname.includes('/pwa/app');
+  const homePath = isPwaNamespace ? buildPwaPath('home', { tenantSlug }) : '/';
+  const searchPath = isPwaNamespace ? buildPwaPath('search', { tenantSlug }) : '/buscar';
 
   const { data: recipe, isLoading: loading } = useRecipeBySlug(slug);
   const [rating, setRating] = useState<RatingState>({ avg: 0, count: 0, userValue: null });
@@ -63,11 +74,9 @@ export default function RecipePage() {
 
   // Load related recipes from cache
   const { data: categoryRecipes = [] } = usePublicRecipes(
-    recipe?.categorySlug ? { categorySlug: recipe.categorySlug } : {},
+    recipe?.categorySlug ? { categorySlug: recipe.categorySlug } : {}
   );
-  const related = recipe
-    ? categoryRecipes.filter((item) => item.id !== recipe.id).slice(0, 3)
-    : [];
+  const related = recipe ? categoryRecipes.filter((item) => item.id !== recipe.id).slice(0, 3) : [];
 
   // Sync rating state when recipe loads
   useEffect(() => {
@@ -91,8 +100,11 @@ export default function RecipePage() {
   useEffect(() => {
     if (!recipe) return;
     try {
-      const stored = JSON.parse(localStorage.getItem(RECENT_RECIPES_KEY) || "[]");
-      const next = [recipe.id, ...(Array.isArray(stored) ? stored : []).filter((id) => id !== recipe.id)].slice(0, 8);
+      const stored = JSON.parse(localStorage.getItem(RECENT_RECIPES_KEY) || '[]');
+      const next = [
+        recipe.id,
+        ...(Array.isArray(stored) ? stored : []).filter((id) => id !== recipe.id),
+      ].slice(0, 8);
       localStorage.setItem(RECENT_RECIPES_KEY, JSON.stringify(next));
     } catch {
       // ignore storage errors
@@ -121,16 +133,20 @@ export default function RecipePage() {
     );
   }
 
-  if (!recipe || (recipe.status === "draft" && !isPreview)) {
+  if (!recipe || (recipe.status === 'draft' && !isPreview)) {
     return (
       <div className="container px-4 py-20 text-center">
         <h1 className="font-heading text-2xl font-bold sm:text-3xl">Receita não encontrada</h1>
-        <Link to={homePath} className="mt-4 inline-block text-primary hover:underline">Voltar</Link>
+        <Link to={homePath} className="mt-4 inline-block text-primary hover:underline">
+          Voltar
+        </Link>
       </div>
     );
   }
 
-  const cat = categories.find((category) => category.slug === recipe.categorySlug || category.id === recipe.categorySlug);
+  const cat = categories.find(
+    (category) => category.slug === recipe.categorySlug || category.id === recipe.categorySlug
+  );
   const categoryPath = cat
     ? isPwaNamespace
       ? `${searchPath}?category=${encodeURIComponent(cat.slug)}`
@@ -140,12 +156,12 @@ export default function RecipePage() {
   const imageUrl = getRecipeImage(recipe);
   const presentation = getRecipePresentation(recipe);
   const pageDescription =
-    recipe.seoDescription
-    || recipe.description
-    || presentation.cardSubtitle
-    || `Receita ${recipe.title} com ingredientes e modo de preparo.`;
-  const unlocked = recipe.accessTier === "free" || Boolean(recipe.hasAccess);
-  const showPaywall = !unlocked && recipe.accessTier === "paid";
+    recipe.seoDescription ||
+    recipe.description ||
+    presentation.cardSubtitle ||
+    `Receita ${recipe.title} com ingredientes e modo de preparo.`;
+  const unlocked = recipe.accessTier === 'free' || Boolean(recipe.hasAccess);
+  const showPaywall = !unlocked && recipe.accessTier === 'paid';
   const ingredients = recipe.fullIngredients;
   const instructions = recipe.fullInstructions;
 
@@ -158,7 +174,10 @@ export default function RecipePage() {
   const currentServings = customServings ?? baseServings;
 
   async function handleRate(value: number) {
-    const email = await requireIdentity("Digite seu e-mail para avaliar esta receita.", "email-form");
+    const email = await requireIdentity(
+      'Digite seu e-mail para avaliar esta receita.',
+      'email-form'
+    );
     if (!email) return;
 
     if (!recipe) return;
@@ -166,38 +185,46 @@ export default function RecipePage() {
     try {
       const summary = await submitRating({ recipeId: recipe.id, value });
       setRating(summary);
-      toast.success("Avaliação registrada");
+      toast.success('Avaliação registrada');
     } catch (error) {
       if (error instanceof ApiClientError) {
         toast.error(error.message);
         return;
       }
-      logger.error("recipe-rating", error);
-      toast.error("Não foi possível salvar sua avaliação.");
+      logger.error('recipe-rating', error);
+      toast.error('Não foi possível salvar sua avaliação.');
     }
   }
 
   async function handleExportPdf() {
     if (!recipe) return;
 
-    const { exportRecipeToPDF } = await import("@/lib/recipes/export");
+    const { exportRecipeToPDF } = await import('@/lib/recipes/export');
     const opened = exportRecipeToPDF({
       recipe: {
         ...recipe,
         totalTime: recipe.totalTime ?? undefined,
         servings: currentServings ?? undefined,
       },
-      ingredients: ingredients.map((ingredient) => scaleIngredient(ingredient, baseServings, currentServings ?? undefined)),
+      ingredients: ingredients.map((ingredient) =>
+        scaleIngredient(ingredient, baseServings, currentServings ?? undefined)
+      ),
       instructions,
     });
 
     if (!opened) {
-      toast.error("Não foi possível abrir a janela de exportação. Verifique o bloqueador de pop-up.");
+      toast.error(
+        'Não foi possível abrir a janela de exportação. Verifique o bloqueador de pop-up.'
+      );
     }
   }
 
   return (
-    <FocusContainer isFocused={isFocused} onClose={() => setIsFocused(false)} className="container max-w-3xl px-4 py-8 sm:py-10 animate-in fade-in duration-500 print:py-0 print:max-w-none">
+    <FocusContainer
+      isFocused={isFocused}
+      onClose={() => setIsFocused(false)}
+      className="container max-w-3xl px-4 py-8 sm:py-10 animate-in fade-in duration-500 print:py-0 print:max-w-none"
+    >
       <PageHead
         title={recipe.seoTitle || recipe.title}
         description={pageDescription}
@@ -214,7 +241,9 @@ export default function RecipePage() {
       )}
 
       <nav className="mb-4 flex flex-wrap items-center gap-1 text-sm text-muted-foreground print:hidden">
-        <Link to={homePath} className="hover:text-primary">Home</Link>
+        <Link to={homePath} className="hover:text-primary">
+          Home
+        </Link>
         <ChevronRight aria-hidden="true" className="h-3 w-3" />
         {cat && categoryPath && (
           <Link to={categoryPath} className="hover:text-primary">
@@ -227,7 +256,9 @@ export default function RecipePage() {
 
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
-          <h1 className="font-heading text-2xl font-bold sm:text-3xl md:text-4xl print:text-2xl">{recipe.title}</h1>
+          <h1 className="font-heading text-2xl font-bold sm:text-3xl md:text-4xl print:text-2xl">
+            {recipe.title}
+          </h1>
           {(recipe.description || presentation.cardSubtitle) && (
             <p className="mt-2 text-base text-muted-foreground sm:mt-3 sm:text-lg print:text-base">
               {recipe.description || presentation.cardSubtitle}
@@ -236,21 +267,38 @@ export default function RecipePage() {
         </div>
         <div className="flex flex-wrap gap-2 print:hidden">
           <ShareButtons title={recipe.title} slug={recipe.slug} />
-          <Button variant="outline" size="icon" onClick={() => setIsFocused(true)} aria-label="Modo Leitura">
-            <ChefHat aria-hidden="true" className="h-4 w-4" />
+          <ReadingModeButton onClick={() => setIsFocused(true)} />
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={handleExportPdf}
+            aria-label="Exportar PDF"
+          >
+            <FileText aria-hidden="true" className="h-4 w-4" />
+            PDF
           </Button>
-          <Button variant="outline" className="gap-2" onClick={handleExportPdf} aria-label="Exportar PDF">
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={handleExportPdf}
+            aria-label="Exportar PDF"
+          >
             <FileText aria-hidden="true" className="h-4 w-4" />
             PDF
           </Button>
           {recipe.videoUrl && (
             <Button asChild variant="outline" className="gap-2" aria-label="Assistir Vídeo">
-               <a href={recipe.videoUrl} target="_blank" rel="noopener noreferrer">
-                 <PlayCircle aria-hidden="true" className="h-4 w-4" /> Vídeo
-               </a>
+              <a href={recipe.videoUrl} target="_blank" rel="noopener noreferrer">
+                <PlayCircle aria-hidden="true" className="h-4 w-4" /> Vídeo
+              </a>
             </Button>
           )}
-          <Button variant="outline" size="icon" onClick={() => window.print()} aria-label="Imprimir">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => window.print()}
+            aria-label="Imprimir"
+          >
             <Printer aria-hidden="true" className="h-4 w-4" />
           </Button>
         </div>
@@ -265,7 +313,11 @@ export default function RecipePage() {
             className="w-full max-h-[420px] object-cover transition-transform hover:scale-105 print:object-contain"
           />
           <div className="absolute right-3 top-3 print:hidden">
-            <PriceBadge accessTier={recipe.accessTier} priceBRL={recipe.priceBRL} className="shadow-lg" />
+            <PriceBadge
+              accessTier={recipe.accessTier}
+              priceBRL={recipe.priceBRL}
+              className="shadow-lg"
+            />
           </div>
         </div>
       ) : (
@@ -305,7 +357,7 @@ export default function RecipePage() {
               <Minus aria-hidden="true" className="h-3 w-3" />
             </Button>
             <span className="min-w-[4rem] text-center font-bold">
-              {currentServings} {currentServings === 1 ? "porção" : "porções"}
+              {currentServings} {currentServings === 1 ? 'porção' : 'porções'}
             </span>
             <Button
               variant="ghost"
@@ -326,9 +378,13 @@ export default function RecipePage() {
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-3 sm:mt-6 print:hidden">
-        <Button variant={favorite ? "default" : "outline"} onClick={() => void handleFavorite()} className="gap-2">
-          <Heart aria-hidden="true" className={`h-4 w-4 ${favorite ? "fill-current" : ""}`} />
-          {favorite ? "Salvo" : "Favoritar"}
+        <Button
+          variant={favorite ? 'default' : 'outline'}
+          onClick={() => void handleFavorite()}
+          className="gap-2"
+        >
+          <Heart aria-hidden="true" className={`h-4 w-4 ${favorite ? 'fill-current' : ''}`} />
+          {favorite ? 'Salvo' : 'Favoritar'}
         </Button>
         {showPaywall && (
           <Button
@@ -338,7 +394,7 @@ export default function RecipePage() {
             disabled={inCart(recipe.id)}
           >
             <ShoppingCart aria-hidden="true" className="h-4 w-4" />
-            {inCart(recipe.id) ? "No carrinho ✓" : "Adicionar ao carrinho"}
+            {inCart(recipe.id) ? 'No carrinho ✓' : 'Adicionar ao carrinho'}
           </Button>
         )}
         <div className="flex items-center gap-2">
@@ -349,7 +405,11 @@ export default function RecipePage() {
 
       {recipe.tags?.length > 0 && (
         <div className="mt-4 flex flex-wrap gap-2 print:hidden">
-          {recipe.tags.map((tag) => <Badge key={tag} variant="secondary">{tag}</Badge>)}
+          {recipe.tags.map((tag) => (
+            <Badge key={tag} variant="secondary">
+              {tag}
+            </Badge>
+          ))}
         </div>
       )}
 
@@ -367,7 +427,10 @@ export default function RecipePage() {
       <h2 className="font-heading text-xl font-bold sm:text-2xl print:text-xl">Modo de Preparo</h2>
       <ol className="mt-3 space-y-3 sm:mt-4 sm:space-y-4 print:space-y-2">
         {instructions.map((step, index) => (
-          <li key={index} className="flex gap-3 rounded-lg border bg-card p-3 sm:gap-4 sm:p-4 print:border-0 print:bg-transparent print:p-0">
+          <li
+            key={index}
+            className="flex gap-3 rounded-lg border bg-card p-3 sm:gap-4 sm:p-4 print:border-0 print:bg-transparent print:p-0"
+          >
             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground sm:h-7 sm:w-7 sm:text-sm">
               {index + 1}
             </span>
@@ -407,12 +470,13 @@ export default function RecipePage() {
             <Separator className="my-8" />
             <h2 className="font-heading text-xl font-bold sm:text-2xl">Quem gostou também viu</h2>
             <div className="mt-4 grid gap-4 sm:grid-cols-3">
-              {related.map((item) => <RecipeCard key={item.id} recipe={item} />)}
+              {related.map((item) => (
+                <RecipeCard key={item.id} recipe={item} />
+              ))}
             </div>
           </>
         )}
       </div>
-
     </FocusContainer>
   );
 }
