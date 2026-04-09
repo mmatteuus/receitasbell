@@ -174,10 +174,7 @@ export default function RecipePage() {
   const currentServings = customServings ?? baseServings;
 
   async function handleRate(value: number) {
-    const email = await requireIdentity(
-      'Digite seu e-mail para avaliar esta receita.',
-      'email-form'
-    );
+    const email = await requireIdentity(undefined, 'rating-prompt');
     if (!email) return;
 
     if (!recipe) return;
@@ -185,7 +182,7 @@ export default function RecipePage() {
     try {
       const summary = await submitRating({ recipeId: recipe.id, value });
       setRating(summary);
-      toast.success('Avaliação registrada');
+      toast.success('Obrigado! Sua avaliação foi registrada com sucesso.');
     } catch (error) {
       if (error instanceof ApiClientError) {
         toast.error(error.message);
@@ -210,6 +207,7 @@ export default function RecipePage() {
         scaleIngredient(ingredient, baseServings, currentServings ?? undefined)
       ),
       instructions,
+      imageUrl: imageUrl || undefined,
     });
 
     if (!opened) {

@@ -13,12 +13,12 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Heart } from 'lucide-react';
+import { Heart, LogIn } from 'lucide-react';
 import { isPwaRuntimePath } from '@/pwa/offline/runtime';
 
 type IdentityDialogState = {
   open: boolean;
-  mode: 'login-prompt' | 'email-form';
+  mode: 'login-prompt' | 'email-form' | 'rating-prompt';
   message: string;
   email: string;
   error: string;
@@ -51,7 +51,10 @@ export function useIdentityProvider() {
   }, []);
 
   const requireIdentity = useCallback(
-    async (message?: string, mode: 'login-prompt' | 'email-form' = 'login-prompt') => {
+    async (
+      message?: string,
+      mode: 'login-prompt' | 'email-form' | 'rating-prompt' = 'login-prompt'
+    ) => {
       if (identityEmail) {
         return identityEmail;
       }
@@ -136,8 +139,40 @@ export function useIdentityProvider() {
   const identityDialogElement = useMemo<ReactNode>(
     () => (
       <Dialog open={identityDialog.open} onOpenChange={(open) => !open && handleIdentityCancel()}>
-        <DialogContent className="sm:max-w-sm">
-          {identityDialog.mode === 'login-prompt' ? (
+        <DialogContent className="sm:max-w-md">
+          {identityDialog.mode === 'rating-prompt' ? (
+            <>
+              <DialogHeader>
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-yellow-100">
+                  <span className="text-3xl">⭐</span>
+                </div>
+                <DialogTitle className="text-center text-xl">Fazer Avaliação</DialogTitle>
+                <DialogDescription className="text-center pt-2">
+                  Para avaliar esta receita, você precisa estar conectado à sua conta.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 my-4">
+                <p className="text-sm text-blue-900 font-medium mb-2">👤 Por que é necessário?</p>
+                <p className="text-xs text-blue-800 leading-relaxed">
+                  Cada avaliação fica associada à sua conta, permitindo que você veja suas
+                  avaliações posteriormente e ajudando a comunidade a ter avaliações autênticas.
+                </p>
+              </div>
+
+              <DialogFooter className="flex-col gap-2 sm:flex-col pt-4">
+                <Button asChild className="w-full bg-primary hover:bg-primary/90 gap-2">
+                  <Link to="/minha-conta">
+                    <LogIn className="h-4 w-4" />
+                    Fazer Login
+                  </Link>
+                </Button>
+                <Button variant="outline" className="w-full" onClick={handleIdentityCancel}>
+                  Agora Não
+                </Button>
+              </DialogFooter>
+            </>
+          ) : identityDialog.mode === 'login-prompt' ? (
             <>
               <DialogHeader>
                 <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
