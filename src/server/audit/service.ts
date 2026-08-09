@@ -1,4 +1,4 @@
-import { supabaseAdmin } from "../integrations/supabase/client.js";
+import { logAuditEvent } from './repo.js';
 
 type AuditLogInput = {
   organization_id: string;
@@ -12,22 +12,15 @@ type AuditLogInput = {
 };
 
 export async function createAuditLog(input: AuditLogInput) {
-  try {
-    const { error } = await supabaseAdmin.from("audit_logs").insert({
-      organization_id: input.organization_id,
-      user_id: input.user_id,
-      action: input.action,
-      resource: input.resource,
-      resource_id: input.resource_id,
-      metadata: input.metadata || {},
-      ip: input.ip,
-      user_agent: input.user_agent,
-    });
-
-    if (error) {
-      console.error("[AuditLog] Failed to create log:", error);
-    }
-  } catch (err) {
-    console.error("[AuditLog] Critical error creating log:", err);
-  }
+  await logAuditEvent({
+    actorType: 'admin',
+    actorId: input.user_id,
+    tenantId: input.organization_id,
+    action: input.action,
+    resourceType: input.resource,
+    resourceId: input.resource_id,
+    payload: input.metadata,
+    ip: input.ip,
+    userAgent: input.user_agent,
+  });
 }
