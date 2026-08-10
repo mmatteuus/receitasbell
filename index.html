@@ -40,9 +40,26 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="manifest" href="/manifest.webmanifest" />
+    <style>
+      .initial-preview{min-height:100vh;display:grid;place-items:center;padding:clamp(24px,5vw,72px);background:#fff7ed;color:#431407;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+      .initial-preview__inner{width:min(1120px,100%);display:grid;gap:22px}
+      .initial-preview__eyebrow{margin:0;color:#c2410c;font-size:.8rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase}
+      .initial-preview h1{margin:0;max-width:820px;font-size:clamp(2.5rem,6vw,5.3rem);line-height:1}
+      .initial-preview p{margin:0;max-width:760px;font-size:clamp(1rem,2vw,1.2rem);line-height:1.65;color:#7c2d12}
+      .initial-preview img{width:100%;aspect-ratio:16/9;object-fit:cover;object-position:top;border-radius:24px;border:1px solid #fed7aa;box-shadow:0 30px 70px rgba(124,45,18,.16)}
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <main class="initial-preview">
+        <div class="initial-preview__inner">
+          <p class="initial-preview__eyebrow">Receitas para o dia a dia</p>
+          <h1>Receitas Bell</h1>
+          <p>Descubra receitas caseiras, ideias de pratos e preparos organizados para tornar a escolha do que cozinhar mais simples. A aplicação reúne conteúdo culinário em uma navegação confortável no celular e no computador.</p>
+          <img src="https://s0.wordpress.com/mshots/v1/https%3A%2F%2Freceitasbell.mtsferreira.dev?w=1200" alt="Preview da aplicação Receitas Bell" width="1200" height="675" referrerpolicy="no-referrer" />
+        </div>
+      </main>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
